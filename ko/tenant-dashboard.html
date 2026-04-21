@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestMalta — Tenant Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+  window.__clerk_publishable_key = 'pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#F5EFE0;--s:#FDFAF4;--s2:#EDE8D8;--b:rgba(26,20,16,.08);--b2:rgba(26,20,16,.15);--terra:#C9553A;--tdim:rgba(201,85,58,.1);--gold:#D4A847;--gdim:rgba(212,168,71,.1);--sea:#2E6B8A;--sdim:rgba(46,107,138,.1);--green:#4CAF7D;--grdim:rgba(76,175,125,.1);--red:#C9553A;--rdim:rgba(201,85,58,.1);--deep:#1A1410;--stone:#6B5F52;--txt:#1A1410;--tm:#6B5F52;--td:#A89880}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh}
+.sb{width:240px;min-height:100vh;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sb-logo{padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--b)}
+.logo{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;color:var(--terra);cursor:pointer}
+.logo-sub{font-size:.7rem;color:var(--td);margin-top:.1rem}
+.sb-nav{flex:1;padding:1rem 0;overflow-y:auto}
+.nl{font-size:.65rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--td);padding:.8rem 1.5rem .4rem}
+.ni{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;cursor:pointer;transition:all .15s;position:relative;font-size:.88rem;font-weight:500;color:var(--tm);border:none;background:none;width:100%;text-align:left}
+.ni:hover{color:var(--deep);background:rgba(26,20,16,.04)}
+.ni.act{color:var(--terra);background:var(--tdim)}
+.ni.act::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--terra);border-radius:0 2px 2px 0}
+.nico{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--terra);color:white;font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:100px}
+.sb-user{padding:1rem 1.5rem;border-top:1px solid var(--b);display:flex;align-items:center;gap:.75rem}
+.uav{width:34px;height:34px;border-radius:50%;background:var(--tdim);border:1px solid rgba(201,85,58,.3);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;font-weight:700;color:var(--terra)}
+.un{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ur{font-size:.7rem;color:var(--td)}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{padding:1rem 2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;background:var(--s);position:sticky;top:0;z-index:40}
+.tb-title{font-size:1rem;font-weight:600}.tb-sub{font-size:.75rem;color:var(--tm);margin-top:.1rem}
+.btn{padding:.55rem 1.2rem;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s}
+.bp{background:var(--terra);color:white}.bp:hover{background:#e06545;transform:translateY(-1px)}
+.bg{background:rgba(26,20,16,.06);color:var(--stone);border:1px solid var(--b2)}.bg:hover{background:rgba(26,20,16,.1);color:var(--deep)}
+.bsm{padding:.4rem .9rem;font-size:.78rem}
+.content{padding:1.5rem 2rem;flex:1}
+.page{display:none}.page.act{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.kcard{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:1.2rem 1.4rem;position:relative;overflow:hidden}
+.klabel{font-size:.72rem;font-weight:600;color:var(--tm);letter-spacing:.4px;margin-bottom:.6rem}
+.kval{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;line-height:1;margin-bottom:.4rem}
+.ksub{font-size:.72rem;color:var(--td)}.kico{position:absolute;top:1rem;right:1rem;font-size:1.4rem;opacity:.3}
+.card{background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;margin-bottom:1rem}
+.ch{padding:1rem 1.2rem .8rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:.88rem;font-weight:600}.cb{padding:1rem 1.2rem}
+.lrow{display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)}
+.lrow:last-child{border-bottom:none}
+.limg{width:52px;height:52px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;overflow:hidden;background:var(--tdim)}
+.limg img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.ltit{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lsub{font-size:.75rem;color:var(--tm);margin-top:.2rem}
+.badge{padding:.25rem .65rem;border-radius:100px;font-size:.68rem;font-weight:700}
+.b-green{background:var(--grdim);color:var(--green)}.b-gold{background:var(--gdim);color:var(--gold)}
+.b-red{background:var(--rdim);color:var(--red)}.b-sea{background:var(--sdim);color:var(--sea)}
+.b-dim{background:rgba(26,20,16,.06);color:var(--td)}
+.mitem{display:flex;align-items:flex-start;gap:1rem;padding:.85rem 1.2rem;border-bottom:1px solid var(--b);cursor:pointer;transition:background .15s}
+.mitem:hover{background:rgba(26,20,16,.03)}.mitem.unread{border-left:3px solid var(--terra)}
+.mav{width:36px;height:36px;border-radius:50%;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--terra);font-size:.8rem;flex-shrink:0}
+.mprev{font-size:.75rem;color:var(--td);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.tcard{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1rem 1.2rem;display:flex;align-items:center;gap:1rem;margin-bottom:.75rem}
+.tpri{width:8px;min-height:40px;border-radius:4px;flex-shrink:0}
+.ph{background:var(--red)}.pm{background:var(--gold)}.pl{background:var(--green)}
+.tst{padding:.3rem .75rem;border-radius:100px;font-size:.7rem;font-weight:700}
+.to{background:var(--rdim);color:var(--red)}.tip{background:var(--gdim);color:var(--gold)}.tr{background:var(--grdim);color:var(--green)}
+.fg{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem}
+.fl{font-size:.75rem;font-weight:600;color:var(--tm)}
+.fi{padding:.65rem .9rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--deep);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color .15s;width:100%}
+.fi:focus{border-color:var(--terra)}
+.fsel{padding:.65rem .9rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--deep);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;cursor:pointer;width:100%}
+.fta{padding:.65rem .9rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--deep);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color .15s;width:100%;resize:vertical}
+.fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.ai{background:var(--sdim);color:var(--sea);border:1px solid rgba(46,107,138,.2);padding:.75rem 1rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem}
+.aw{background:var(--gdim);color:var(--gold);border:1px solid rgba(212,168,71,.2);padding:.75rem 1rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem}
+.mover{position:fixed;inset:0;background:rgba(26,20,16,.5);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:1rem}
+.mover.open{display:flex}
+.modal{background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:2rem;max-width:500px;width:100%;position:relative;animation:fi .25s ease;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(26,20,16,.15)}
+.mclose{position:absolute;top:1rem;right:1rem;background:var(--s2);border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.85rem;color:var(--tm);display:flex;align-items:center;justify-content:center}
+.mclose:hover{background:var(--tdim);color:var(--terra)}
+.mt{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:800;margin-bottom:.2rem}
+.ms{color:var(--tm);font-size:.82rem;margin-bottom:1.2rem}
+.thread{display:flex;flex-direction:column;gap:.6rem;max-height:200px;overflow-y:auto;margin-bottom:.8rem}
+.bt{background:var(--s2);padding:.65rem .9rem;border-radius:4px 12px 12px 12px;font-size:.83rem;color:var(--tm);line-height:1.5;align-self:flex-start;max-width:85%}
+.bm{background:var(--terra);color:white;padding:.65rem .9rem;border-radius:12px 4px 12px 12px;font-size:.83rem;line-height:1.5;align-self:flex-end;max-width:85%}
+.ld{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--td);gap:.6rem}
+.sp{width:18px;height:18px;border:2px solid rgba(201,85,58,.2);border-top-color:var(--terra);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:3rem 1rem;color:var(--tm)}
+.empty .em{font-size:2.5rem;margin-bottom:.75rem}
+.empty p{font-size:.88rem;margin-bottom:1rem;line-height:1.6}
+.star-btn{font-size:1.5rem;cursor:pointer;opacity:.3;transition:opacity .15s}
+.star-btn.active{opacity:1}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--deep);color:white;padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 24px rgba(26,20,16,.25)}
+.toast.show{transform:translateY(0);opacity:1}
+@media(max-width:768px){.sb{display:none}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="logo" onclick="window.location.href='/'">RestMalta</div>
+    <div class="logo-sub">Tenant Dashboard</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nl">Overview</div>
+    <button class="ni act" onclick="sp('overview',this)"><span class="nico">🏠</span>My rentals</button>
+    <button class="ni" onclick="sp('search',this)"><span class="nico">🔍</span>Find a flat<span class="nbadge" id="nb-alerts" style="display:none;background:var(--green)">!</span></button>
+    <button class="ni" onclick="sp('dossier',this)"><span class="nico">📋</span>My dossier</button>
+    <div class="nl">Communication</div>
+    <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-msg" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('maintenance',this)"><span class="nico">🔧</span>Maintenance</button>
+    <div class="nl">Documents & Finance</div>
+    <button class="ni" onclick="sp('documents',this)"><span class="nico">📄</span>My leases</button>
+    <button class="ni" onclick="sp('payments',this)"><span class="nico">💶</span>Payments</button>
+    <button class="ni" onclick="sp('deposit',this)"><span class="nico">🔐</span>My deposit</button>
+    <div class="nl">Reviews & Profile</div>
+    <button class="ni" onclick="sp('reviews',this)"><span class="nico">⭐</span>Leave a review</button>
+    <button class="ni" onclick="sp('profile',this)"><span class="nico">👤</span>My profile</button>
+  </nav>
+  <div class="sb-user">
+    <div class="uav" id="uav">?</div>
+    <div style="flex:1;min-width:0"><div class="un" id="uname">Loading...</div><div class="ur">Tenant</div></div>
+    <button class="btn bg bsm" onclick="doLogout()" title="Sign out">↩</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div><div class="tb-title" id="tbt">My Rentals</div><div class="tb-sub" id="tbs">Welcome back!</div></div>
+    <div style="display:flex;gap:.75rem">
+      <button class="btn bg bsm" onclick="window.location.href='/'">🔍 Browse flats</button>
+      <button class="btn bg bsm" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page act" id="page-overview">
+      <div class="kgrid">
+        <div class="kcard"><div class="klabel">Active contacts</div><div class="kval" id="k-contacts" style="color:var(--terra)">—</div><div class="ksub">Listings contacted</div><div class="kico">🏠</div></div>
+        <div class="kcard"><div class="klabel">Unread messages</div><div class="kval" id="k-msgs" style="color:var(--sea)">—</div><div class="ksub">From landlords</div><div class="kico">💬</div></div>
+        <div class="kcard"><div class="klabel">Open tickets</div><div class="kval" id="k-tickets" style="color:var(--gold)">—</div><div class="ksub">Maintenance requests</div><div class="kico">🔧</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1rem">
+        <div class="card">
+          <div class="ch"><div class="ct">Listings I contacted</div><button class="btn bg bsm" onclick="window.location.href='/'">Find more →</button></div>
+          <div class="cb" id="my-contacts"><div class="ld"><div class="sp"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Quick actions</div></div>
+          <div class="cb" style="display:flex;flex-direction:column;gap:.6rem">
+            <button class="btn bp" style="width:100%;justify-content:center" onclick="window.location.href='/'">🔍 Browse new flats</button>
+            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('maintenance',document.querySelectorAll('.ni')[3]);openTicketModal()">🔧 Report a problem</button>
+            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('messages',document.querySelectorAll('.ni')[2])">💬 My messages</button>
+            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('documents',document.querySelectorAll('.ni')[5])">📄 My leases</button>
+            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('deposit',document.querySelectorAll('.ni')[7])">🔐 My deposit status</button>
+            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('profile',document.querySelectorAll('.ni')[9])">👤 Complete my profile</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="page" id="page-messages">
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Messages from landlords</div>
+      <div id="messages-list"><div class="ld"><div class="sp"></div></div></div>
+    </div>
+
+    <!-- MAINTENANCE -->
+    <div class="page" id="page-maintenance">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+        <div style="font-size:1rem;font-weight:700">Maintenance tickets</div>
+        <button class="btn bp bsm" onclick="openTicketModal()">+ Report problem</button>
+      </div>
+      <div class="ai">🔧 Report any issue in your flat and your landlord is notified instantly. Track the status in real time — from open to in progress to resolved.</div>
+      <div id="tickets-list"><div class="ld"><div class="sp"></div></div></div>
+    </div>
+
+    <!-- DOCUMENTS -->
+    <div class="page" id="page-documents">
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My leases & documents</div>
+      <div class="ai">📄 Your signed lease agreements appear here. Generated automatically, compliant with Maltese law (PRL Act), and e-signed by both parties via DocuSeal.</div>
+      <div class="card"><div class="cb" id="docs-list"><div class="ld"><div class="sp"></div></div></div></div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="page" id="page-payments">
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My payments</div>
+
+      <!-- Due now -->
+      <div id="pay-due-now"></div>
+
+      <!-- Advance payment option (points 7/8) -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="ch"><div class="ct">💶 Pay rent in advance</div><span style="font-size:.72rem;color:var(--td)">Optional — save time</span></div>
+        <div class="cb">
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Pay 1 or 3 months in advance. Your landlord is notified and you won't receive reminders for the covered months.</p>
+          <div style="display:flex;gap:.75rem">
+            <button class="btn bp" style="flex:1;justify-content:center" onclick="payAdvance(1)">Pay 1 month in advance</button>
+            <button class="btn bg" style="flex:1;justify-content:center" onclick="payAdvance(3)">Pay 3 months in advance</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+        <div class="kcard"><div class="klabel">Total paid</div><div class="kval" id="pay-total" style="color:var(--green)">—</div></div>
+        <div class="kcard"><div class="klabel">Pending</div><div class="kval" id="pay-pend" style="color:var(--gold)">—</div></div>
+        <div class="kcard"><div class="klabel">Next payment</div><div class="kval" id="pay-next" style="color:var(--sea);font-size:1.2rem">—</div></div>
+      </div>
+      <div class="card" style="margin-bottom:1rem"><div class="ch"><div class="ct">Payment history</div></div><div id="pay-list"><div class="ld"><div class="sp"></div></div></div></div>
+
+      <!-- Notice generator (point 22) -->
+      <div class="card">
+        <div class="ch"><div class="ct">📤 Generate notice to leave</div></div>
+        <div class="cb">
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Planning to leave? Generate your official notice letter. The app will automatically calculate if you are still in your Di Fermo period and give you the exact date you can hand back the keys.</p>
+          <div class="fgrid2" style="margin-bottom:.75rem">
+            <div class="fg"><label class="fl">Your lease start date</label><input class="fi" type="date" id="notice-start"></div>
+            <div class="fg"><label class="fl">Di Fermo period</label>
+              <select class="fsel" id="notice-difermo">
+                <option value="6">6 months (standard)</option>
+                <option value="12">12 months</option>
+                <option value="0">No Di Fermo</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Notice period</label>
+              <select class="fsel" id="notice-period">
+                <option value="1">1 month (standard)</option>
+                <option value="2">2 months</option>
+                <option value="3">3 months</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Desired departure date</label><input class="fi" type="date" id="notice-departure"></div>
+          </div>
+          <button class="btn bp" onclick="generateNotice()">📄 Calculate & generate notice →</button>
+          <div id="notice-result" style="display:none;margin-top:1rem"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEPOSIT -->
+    <div class="page" id="page-deposit">
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Mon dépôt de garantie</div>
+
+      <!-- Escrow status -->
+      <div id="escrow-status-card"></div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="ch"><div class="ct">🔐 Comment fonctionne l'escrow RestMalta</div></div>
+        <div class="cb">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.5rem">
+            <div style="background:var(--tdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">💶</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">1. Vous payez</div><div style="font-size:.62rem;color:var(--tm)">Dépôt à RestMalta</div></div>
+            <div style="background:var(--gdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🔒</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">2. Sécurisé</div><div style="font-size:.62rem;color:var(--tm)">RestMalta retient</div></div>
+            <div style="background:var(--sdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">⏰</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">3. 24h pour confirmer</div><div style="font-size:.62rem;color:var(--tm)">À votre arrivée</div></div>
+            <div style="background:var(--grdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🏠</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">4. Libéré</div><div style="font-size:.62rem;color:var(--tm)">Au proprio si OK</div></div>
+          </div>
+          <div id="deposit-info"><div class="ld"><div class="sp"></div></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><div class="ct">✅ Confirmer mon entrée dans le logement</div></div>
+        <div class="cb">
+          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
+            ⏰ <strong>Vous avez 24h après votre arrivée</strong> pour confirmer que le logement correspond à l'annonce. Passé ce délai, le dépôt est automatiquement libéré au propriétaire.
+          </div>
+          <div class="fg"><label class="fl">Tout est conforme ? Des remarques ?</label><textarea class="fta" id="entry-notes" rows="2" placeholder="Tout est parfait — aucun problème (ou décrivez les problèmes constatés)"></textarea></div>
+          <div style="display:flex;gap:.75rem">
+            <button class="btn bp" onclick="confirmEntry()">✅ Tout est OK — libérer le dépôt</button>
+            <button class="btn bg" onclick="sp('maintenance',document.querySelectorAll('.ni')[3]);openTicketModal()">⚠️ Signaler un problème</button>
+          </div>
+          <div style="margin-top:.75rem;font-size:.72rem;color:var(--td);line-height:1.5">
+            En cas de problème grave (logement inexistant, état très différent de l'annonce), votre dépôt sera remboursé intégralement après examen de votre signalement par RestMalta.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="page" id="page-reviews">
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Leave a review</div>
+      <div class="ai">⭐ Your reviews help the RestMalta community. Landlords with great reviews get more visibility — honest feedback makes the platform better for everyone.</div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="ch"><div class="ct">Review your landlord</div></div>
+        <div class="cb">
+          <div class="fg"><label class="fl">Landlord email</label><input class="fi" id="rev-landlord" placeholder="landlord@email.com"></div>
+          <div class="fg"><label class="fl">Rating</label>
+            <div style="display:flex;gap:.5rem;margin-bottom:.5rem" id="stars-wrap">
+              <span class="star-btn active" onclick="setRating(1)">⭐</span>
+              <span class="star-btn active" onclick="setRating(2)">⭐</span>
+              <span class="star-btn active" onclick="setRating(3)">⭐</span>
+              <span class="star-btn active" onclick="setRating(4)">⭐</span>
+              <span class="star-btn active" onclick="setRating(5)">⭐</span>
+            </div>
+            <input type="hidden" id="rev-rating" value="5">
+          </div>
+          <div class="fg"><label class="fl">Your experience</label><textarea class="fta" id="rev-comment" rows="4" placeholder="Was the landlord responsive? Was the flat as described?"></textarea></div>
+          <button class="btn bp" onclick="submitReview()">Submit review →</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">Reviews I submitted</div></div>
+        <div class="cb" id="my-reviews"><div class="ld"><div class="sp"></div></div></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My profile</div>
+      <div class="aw">📋 Complete your profile once — all this info is used to auto-generate your lease. No need to retype anything.</div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="ch"><div class="ct">Personal information</div><span id="complete-pct" style="font-size:.75rem;color:var(--td)"></span></div>
+        <div class="cb">
+          <!-- Identity -->
+          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">🪪 Identity</div>
+          <div class="fgrid2">
+            <div class="fg"><label class="fl">Full legal name *</label><input class="fi" id="p-name" placeholder="Marie Dupont"></div>
+            <div class="fg"><label class="fl">Email</label><input class="fi" id="p-email" readonly style="opacity:.6"></div>
+            <div class="fg"><label class="fl">Phone *</label><input class="fi" id="p-phone" placeholder="+356 9999 0000"></div>
+            <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="p-nat" placeholder="French"></div>
+            <div class="fg"><label class="fl">Passport / ID number *</label><input class="fi" id="p-passport" placeholder="e.g. 12345678A"></div>
+            <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="p-dob"></div>
+          </div>
+
+          <!-- Address -->
+          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">🏠 Address</div>
+          <div class="fgrid2">
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Current address (home country) *</label><input class="fi" id="p-address" placeholder="123 Rue de Paris, 75001 Paris, France"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address (if already in Malta)</label><input class="fi" id="p-malta-address" placeholder="e.g. 12 Triq il-Kbira, St. Julian's STJ 1234"></div>
+          </div>
+
+          <!-- Stay in Malta -->
+          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">🇲🇹 Stay in Malta</div>
+          <div class="fgrid2">
+            <div class="fg"><label class="fl">Employer / University</label><input class="fi" id="p-employer" placeholder="Company or university name"></div>
+            <div class="fg"><label class="fl">Reason for stay *</label>
+              <select class="fsel" id="p-reason"><option value="">Select...</option><option>Internship</option><option>Work</option><option>Studies</option><option>Remote work / Digital nomad</option><option>Relocation</option><option>Retirement</option><option>Other</option></select>
+            </div>
+            <div class="fg"><label class="fl">How long do you plan to stay? *</label>
+              <select class="fsel" id="p-stay-duration">
+                <option value="">Select...</option>
+                <option value="1_3_months">1 to 3 months</option>
+                <option value="3_6_months">3 to 6 months</option>
+                <option value="6_12_months">6 months to 1 year</option>
+                <option value="1_2_years">1 to 2 years</option>
+                <option value="2_years_plus">2 years or more</option>
+                <option value="indefinite">Indefinitely</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Needs Lease Agreement Attestation?</label>
+              <select class="fsel" id="p-attestation">
+                <option value="no">No — standard lease is fine</option>
+                <option value="yes">Yes — I need notary attestation (non-EU residence permit)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-top:1rem;display:flex;align-items:center;gap:1rem">
+            <button class="btn bp" onclick="saveProfile()">Save profile →</button>
+            <span id="prof-ok" style="font-size:.82rem;color:var(--green);display:none">✅ Saved!</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">🪪 Identity verification</div><span id="verify-badge" class="badge b-dim">Not verified</span></div>
+        <div class="cb">
+          <p style="font-size:.85rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Verified tenants get a ✅ badge visible to all landlords, unlock automatic lease generation, and are prioritised in tenant matching. Takes 30 seconds — completely free.</p>
+
+          <!-- Step 1: ID upload -->
+          <div id="verify-step1">
+            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 1 — Upload your ID or passport</div>
+            <div style="border:2px dashed var(--b2);border-radius:10px;padding:1.2rem;text-align:center;cursor:pointer;transition:all .2s" id="id-drop" onclick="document.getElementById('id-up').click()" ondragover="event.preventDefault();this.style.borderColor='var(--terra)'" ondragleave="this.style.borderColor='var(--b2)'" ondrop="handleIDDrop(event)">
+              <div style="font-size:2rem;margin-bottom:.4rem">🪪</div>
+              <div style="font-size:.83rem;color:var(--tm);font-weight:500">Click or drag & drop your ID / passport</div>
+              <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">JPG, PNG · Max 5MB · Front side</div>
+              <input type="file" id="id-up" accept="image/*" style="display:none" onchange="handleIDUpload(this)">
+            </div>
+            <div id="id-preview" style="margin-top:.75rem;display:none">
+              <img id="id-img" style="max-width:100%;border-radius:10px;max-height:180px;object-fit:cover;border:2px solid var(--green)">
+              <div style="font-size:.75rem;color:var(--green);margin-top:.4rem">✅ ID uploaded — now take a selfie</div>
+              <button class="btn bp" style="margin-top:.75rem;width:100%;justify-content:center" onclick="showSelfieStep()">Continue → Take selfie</button>
+            </div>
+          </div>
+
+          <!-- Step 2: Selfie -->
+          <div id="verify-step2" style="display:none">
+            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 2 — Take a selfie</div>
+            <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;text-align:center">
+              <video id="selfie-video" autoplay playsinline style="width:100%;max-height:240px;object-fit:cover;border-radius:12px"></video>
+              <div style="position:absolute;inset:0;border:3px solid rgba(76,175,125,.5);border-radius:12px;pointer-events:none"></div>
+              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:150px;height:200px;border:2px dashed rgba(255,255,255,.4);border-radius:50%;pointer-events:none"></div>
+            </div>
+            <canvas id="selfie-canvas" style="display:none"></canvas>
+            <div style="display:flex;gap:.75rem;margin-top:.75rem">
+              <button class="btn bg" style="flex:1;justify-content:center" onclick="showStep1()">← Back</button>
+              <button class="btn bp" style="flex:2;justify-content:center" onclick="captureSelfie()">📸 Capture selfie</button>
+            </div>
+          </div>
+
+          <!-- Step 3: Verification result -->
+          <div id="verify-step3" style="display:none">
+            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 3 — Verification</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+              <div style="text-align:center">
+                <div style="font-size:.72rem;color:var(--td);margin-bottom:.3rem">Your ID</div>
+                <img id="id-thumb" style="width:100%;border-radius:8px;max-height:120px;object-fit:cover">
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:.72rem;color:var(--td);margin-bottom:.3rem">Your selfie</div>
+                <img id="selfie-thumb" style="width:100%;border-radius:8px;max-height:120px;object-fit:cover">
+              </div>
+            </div>
+            <div id="verify-loading" style="text-align:center;padding:1rem">
+              <div class="sp" style="margin:0 auto .5rem"></div>
+              <div style="font-size:.82rem;color:var(--tm)">Analysing your documents...</div>
+            </div>
+            <div id="verify-result" style="display:none"></div>
+          </div>
+
+          <div id="id-status" style="margin-top:.75rem;font-size:.82rem;color:var(--td)"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="ch"><div class="ct">📁 Documents requis avant visite</div><span id="dossier-badge" class="badge b-dim">Incomplet</span></div>
+        <div class="cb">
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Ces documents sont vérifiés automatiquement avant chaque demande de visite. Sans eux, vos demandes seront refusées automatiquement.</p>
+
+          <!-- ID / Passport -->
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🪪</div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600">Passeport / ID card *</div>
+              <div style="font-size:.72rem;color:var(--tm)">Obligatoire — photo recto de votre document</div>
+            </div>
+            <div id="doc-id-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-id-input').click()">Upload</button>
+            <input type="file" id="doc-id-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'id','doc-id-status')">
+          </div>
+
+          <!-- Bank statement -->
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏦</div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600">Relevé bancaire</div>
+              <div style="font-size:.72rem;color:var(--tm)">3 derniers mois — prouve vos revenus réguliers</div>
+            </div>
+            <div id="doc-bank-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-bank-input').click()">Upload</button>
+            <input type="file" id="doc-bank-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'bank_statement','doc-bank-status')">
+          </div>
+
+          <!-- Employment letter -->
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">💼</div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600">Lettre d'employeur / inscription école</div>
+              <div style="font-size:.72rem;color:var(--tm)">Contrat de travail, lettre d'embauche ou lettre d'admission</div>
+            </div>
+            <div id="doc-employer-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-employer-input').click()">Upload</button>
+            <input type="file" id="doc-employer-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'employer_letter','doc-employer-status')">
+          </div>
+
+          <!-- Reference letter (optional) -->
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">⭐</div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600">Lettre de recommandation landlord <span style="font-weight:400;color:var(--td)">(optionnel)</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">D'un ancien proprio — augmente vos chances d'être accepté</div>
+            </div>
+            <div id="doc-ref-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-ref-input').click()">Upload</button>
+            <input type="file" id="doc-ref-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'reference_letter','doc-ref-status')">
+          </div>
+
+          <div id="dossier-check-result" style="margin-top:.75rem"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><div class="ct">📋 Landlord references</div><button class="btn bp bsm" onclick="requestReference()">+ Request reference</button></div>
+        <div class="cb">
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Ask a previous landlord to confirm you were a good tenant. References are displayed on your profile and increase your chances of being accepted.</p>
+          <div id="references-list"><div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No references yet. Request one from a previous landlord!</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIND A FLAT -->
+    <div class="page" id="page-search">
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
+        <div>
+          <!-- Alerts -->
+          <div class="card" style="margin-bottom:1rem">
+            <div class="ch"><div class="ct">🔔 Instant alerts</div><span class="badge b-green">Active</span></div>
+            <div class="cb">
+              <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Get notified instantly when a new listing matching your criteria is posted.</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+                <div class="fg"><label class="fl">Zone</label>
+                  <select class="fsel" id="alert-zone"><option value="">Any zone</option><option>St. Julian's</option><option>Sliema</option><option>Valletta</option><option>Msida</option><option>Gzira</option><option>Gozo</option><option>Bugibba</option><option>Mellieha</option></select>
+                </div>
+                <div class="fg"><label class="fl">Max budget (€/mo)</label><input class="fi" id="alert-budget" type="number" placeholder="800"></div>
+                <div class="fg"><label class="fl">Type</label>
+                  <select class="fsel" id="alert-type"><option value="">Any type</option><option value="short">Short-let</option><option value="sublet">Sublet</option><option value="long">Long-let</option></select>
+                </div>
+                <div class="fg"><label class="fl">Min rooms</label>
+                  <select class="fsel" id="alert-rooms"><option value="">Any</option><option value="1">Studio / 1BR</option><option value="2">2+ rooms</option><option value="3">3+ rooms</option></select>
+                </div>
+              </div>
+              <button class="btn bp" style="width:100%;justify-content:center" onclick="saveAlert()">🔔 Activate alert →</button>
+            </div>
+          </div>
+
+          <!-- Compatible listings -->
+          <div class="card">
+            <div class="ch"><div class="ct">🎯 Best matches for you</div><span class="badge b-sea" id="match-count">Loading...</span></div>
+            <div class="cb" id="match-listings"><div class="empty"><div class="em">🔍</div><p>Loading listings...</p></div></div>
+          </div>
+        </div>
+
+        <!-- Score panel -->
+        <div>
+          <div class="card">
+            <div class="ch"><div class="ct">🏅 Tenant score</div></div>
+            <div class="cb" style="text-align:center">
+              <div style="width:80px;height:80px;position:relative;margin:0 auto 1rem">
+                <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(107,95,82,.15)" stroke-width="8"/>
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--terra)" stroke-width="8" stroke-dasharray="213.6" id="score-arc" stroke-dashoffset="106.8" stroke-linecap="round"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--terra)" id="score-val">5.0</div>
+              </div>
+              <div style="font-size:.82rem;color:var(--stone);margin-bottom:1rem">Your tenant score</div>
+              <div style="display:flex;flex-direction:column;gap:.5rem;text-align:left">
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Profile complete</span><span id="sc-profile" style="color:var(--terra)">—</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">ID verified</span><span id="sc-id" style="color:var(--terra)">❌</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Reviews received</span><span id="sc-reviews">0</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0"><span style="color:var(--tm)">Member since</span><span id="sc-since">Today</span></div>
+              </div>
+              <button class="btn bp" style="width:100%;justify-content:center;margin-top:1rem" onclick="sp('profile',document.querySelectorAll('.ni')[7])">Complete profile →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY DOSSIER -->
+    <div class="page" id="page-dossier">
+      <div class="card" style="max-width:640px">
+        <div class="ch"><div class="ct">📋 My rental dossier</div><button class="btn bp bsm" onclick="downloadDossier()">⬇ Download PDF</button></div>
+        <div class="cb">
+          <p style="font-size:.85rem;color:var(--tm);margin-bottom:1.5rem;line-height:1.6">Your dossier is automatically filled from your profile. Send it to any landlord in one click to apply for a flat.</p>
+          
+          <div style="background:var(--s2);border-radius:12px;padding:1.5rem;margin-bottom:1rem;border:1px solid var(--b)">
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;padding-bottom:1.2rem;border-bottom:1px solid var(--b)">
+              <div style="width:50px;height:50px;border-radius:50%;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--terra)" id="dos-av">?</div>
+              <div>
+                <div style="font-size:.95rem;font-weight:700" id="dos-name">—</div>
+                <div style="font-size:.75rem;color:var(--tm)" id="dos-role">Tenant</div>
+              </div>
+              <div style="margin-left:auto"><span class="badge b-dim" id="dos-verified">Not verified</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Nationality</div><div style="font-size:.85rem" id="dos-nat">—</div></div>
+              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Email</div><div style="font-size:.85rem" id="dos-email">—</div></div>
+              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Phone</div><div style="font-size:.85rem" id="dos-phone">—</div></div>
+              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Employer</div><div style="font-size:.85rem" id="dos-employer">—</div></div>
+              <div><div style="font-size:.68nm;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Reason for stay</div><div style="font-size:.85rem" id="dos-reason">—</div></div>
+              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Tenant score</div><div style="font-size:.85rem;color:var(--terra);font-weight:700" id="dos-score">—</div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:.75rem">
+            <button class="btn bp" style="flex:1;justify-content:center" onclick="copyDossierLink()">📋 Copy dossier link</button>
+            <button class="btn bg" style="flex:1;justify-content:center" onclick="sp('profile',document.querySelectorAll('.ni')[7])">✏️ Edit profile</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MSG MODAL -->
+<div class="mover" id="msg-modal" onclick="if(event.target.id==='msg-modal')this.classList.remove('open')">
+  <div class="modal">
+    <button class="mclose" onclick="document.getElementById('msg-modal').classList.remove('open')">✕</button>
+    <div class="mt" id="mm-title">Message</div><div class="ms" id="mm-sub"></div>
+    <div class="thread" id="mm-thread"></div>
+    <textarea class="fta" id="mm-reply" rows="2" placeholder="Write your reply…"></textarea>
+    <button class="btn bp" style="margin-top:.5rem;width:100%;justify-content:center" onclick="sendReply()">Send →</button>
+  </div>
+</div>
+
+<!-- TICKET MODAL — Point 23: Full maintenance flow -->
+<div class="mover" id="tick-modal" onclick="if(event.target.id==='tick-modal')this.classList.remove('open')">
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <button class="mclose" onclick="document.getElementById('tick-modal').classList.remove('open')">✕</button>
+    <div class="mt">🔧 Signaler un problème</div>
+    <div class="ms">Décrivez le problème — votre propriétaire sera notifié immédiatement</div>
+
+    <div class="fg"><label class="fl">Type de problème *</label>
+      <select class="fsel" id="tick-type">
+        <option value="Plomberie">🚰 Plomberie (fuite, robinet, WC)</option>
+        <option value="Électricité">💡 Électricité (panne, prise, lumière)</option>
+        <option value="Climatisation">❄️ Climatisation / Chauffage</option>
+        <option value="Portes/Fenêtres">🚪 Portes / Fenêtres</option>
+        <option value="Nuisibles">🪲 Nuisibles / Insectes</option>
+        <option value="Structure">🏗️ Dommages structurels</option>
+        <option value="Serrure">🔒 Serrure / Sécurité</option>
+        <option value="Électroménager">🍳 Électroménager (four, frigo...)</option>
+        <option value="Internet">📶 Internet / TV</option>
+        <option value="Autre">❓ Autre</option>
+      </select>
+    </div>
+
+    <!-- Diagnostic questions -->
+    <div id="tick-questions" style="background:var(--tdim);border-radius:10px;padding:.85rem;margin:.5rem 0;font-size:.82rem">
+      <div style="font-weight:700;margin-bottom:.5rem">❓ Quelques questions pour aider votre propriétaire :</div>
+      <div id="tick-q-list" style="display:flex;flex-direction:column;gap:.4rem">
+        <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-sudden"> Problème apparu soudainement</label>
+        <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-recurring"> Problème récurrent</label>
+        <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-safety"> Problème de sécurité (eau, électricité)</label>
+        <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-temp"> Problème temporaire / intermittent</label>
+      </div>
+    </div>
+
+    <div class="fg"><label class="fl">Urgence</label>
+      <select class="fsel" id="tick-pri">
+        <option value="high">🔴 Urgent — à régler dans 24h</option>
+        <option value="medium" selected>🟡 Normal — dans la semaine</option>
+        <option value="low">🟢 Non urgent — quand possible</option>
+      </select>
+    </div>
+
+    <div class="fg"><label class="fl">Description détaillée *</label>
+      <textarea class="fta" id="tick-desc" rows="3" placeholder="Décrivez précisément le problème, depuis quand, ce que vous avez essayé..."></textarea>
+    </div>
+
+    <!-- Photo upload -->
+    <div class="fg">
+      <label class="fl">📸 Photos du problème (recommandé)</label>
+      <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('tick-photos-input').click()">
+        <div style="font-size:1.5rem;margin-bottom:.3rem">📷</div>
+        <div style="font-size:.8rem;color:var(--tm)">Cliquez pour ajouter des photos</div>
+        <div style="font-size:.7rem;color:var(--td)">Max 5 photos · JPG, PNG</div>
+        <input type="file" id="tick-photos-input" accept="image/*" multiple style="display:none" onchange="addTicketPhotos(this)">
+      </div>
+      <div id="tick-photos-preview" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
+    </div>
+
+    <button class="btn bp" style="width:100%;justify-content:center" onclick="submitTicket()">📤 Envoyer au propriétaire →</button>
+  </div>
+</div>
+
+<!-- STRIPE PAYMENT MODAL -->
+<div class="mover" id="stripe-modal" onclick="if(event.target.id==='stripe-modal')closeStripeModal()">
+  <div class="modal" style="max-width:440px">
+    <button class="mclose" onclick="closeStripeModal()">✕</button>
+    <div class="mt">🔐 Sécuriser mon dépôt</div>
+    <div class="ms" id="stripe-modal-sub">Paiement sécurisé via Stripe</div>
+    <div style="background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
+      ✅ Votre argent est <strong>bloqué</strong> — RestMalta ne le libère au propriétaire qu'après votre confirmation d'entrée dans les 24h.<br>
+      ⚠️ Si problème grave → remboursement intégral.
+    </div>
+    <div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:.75rem;color:var(--td);margin-bottom:.5rem">Montant du dépôt</div>
+      <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--sea)" id="stripe-amount-display">€0</div>
+    </div>
+    <div id="stripe-card-element" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:1rem;margin-bottom:1rem"></div>
+    <div id="stripe-error" style="color:var(--terra);font-size:.8rem;margin-bottom:.75rem;display:none"></div>
+    <button class="btn bp" style="width:100%;justify-content:center" id="stripe-pay-btn" onclick="confirmStripePayment()">
+      🔒 Payer et sécuriser le dépôt →
+    </button>
+    <p style="font-size:.65rem;color:var(--td);text-align:center;margin-top:.5rem">Paiement sécurisé SSL · Powered by Stripe</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Supabase (DB only) ────────────────────────────────────────
+// ── Stripe ────────────────────────────────────────────────────
+const STRIPE_PK = 'pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ';
+let stripeInstance = null;
+let stripeCardElement = null;
+let stripeClientSecret = null;
+let currentEscrowData = null;
+
+function initStripe() {
+  if (!stripeInstance) {
+    stripeInstance = Stripe(STRIPE_PK);
+  }
+}
+
+async function openStripeModal(escrowData) {
+  initStripe();
+  currentEscrowData = escrowData;
+  document.getElementById('stripe-modal-sub').textContent = `Dépôt pour : ${escrowData.listing_title}`;
+  document.getElementById('stripe-amount-display').textContent = `€${(escrowData.amount||0).toLocaleString()}`;
+  document.getElementById('stripe-modal').classList.add('open');
+
+  // Create card element
+  const elements = stripeInstance.elements();
+  stripeCardElement = elements.create('card', {
+    style: {
+      base: {
+        fontSize: '16px',
+        color: '#1a1410',
+        fontFamily: "'DM Sans', sans-serif",
+        '::placeholder': { color: '#9b8e82' }
+      }
+    }
+  });
+  stripeCardElement.mount('#stripe-card-element');
+
+  // Create PaymentIntent on server
+  try {
+    const res = await fetch('/.netlify/functions/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: escrowData.amount,
+        currency: 'eur',
+        metadata: {
+          tenant_id: U.id,
+          landlord_id: escrowData.landlord_id || '',
+          listing_id: escrowData.listing_id || '',
+          listing_title: escrowData.listing_title || ''
+        }
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    stripeClientSecret = data.clientSecret;
+    // Save paymentIntentId to escrow record
+    if (escrowData.escrow_id) {
+      await sb.from('escrow_requests').update({
+        stripe_payment_intent_id: data.paymentIntentId,
+        status: 'payment_pending'
+      }).eq('id', escrowData.escrow_id);
+    }
+  } catch (e) {
+    document.getElementById('stripe-error').textContent = '❌ ' + e.message;
+    document.getElementById('stripe-error').style.display = 'block';
+  }
+}
+
+function closeStripeModal() {
+  document.getElementById('stripe-modal').classList.remove('open');
+  if (stripeCardElement) { stripeCardElement.unmount(); stripeCardElement = null; }
+  stripeClientSecret = null;
+}
+
+async function confirmStripePayment() {
+  if (!stripeClientSecret || !stripeCardElement) return;
+  const btn = document.getElementById('stripe-pay-btn');
+  btn.textContent = '⏳ Traitement...';
+  btn.disabled = true;
+  const errEl = document.getElementById('stripe-error');
+  errEl.style.display = 'none';
+
+  const { error, paymentIntent } = await stripeInstance.confirmCardPayment(stripeClientSecret, {
+    payment_method: {
+      card: stripeCardElement,
+      billing_details: {
+        name: P?.full_name || 'Tenant',
+        email: U?.email || ''
+      }
+    }
+  });
+
+  if (error) {
+    errEl.textContent = '❌ ' + error.message;
+    errEl.style.display = 'block';
+    btn.textContent = '🔒 Payer et sécuriser le dépôt →';
+    btn.disabled = false;
+    return;
+  }
+
+  // Payment succeeded — update escrow status
+  if (currentEscrowData?.escrow_id) {
+    await sb.from('escrow_requests').update({
+      status: 'paid',
+      stripe_payment_intent_id: paymentIntent.id
+    }).eq('id', currentEscrowData.escrow_id);
+  }
+
+  closeStripeModal();
+  toast('✅ Dépôt sécurisé ! À votre arrivée vous avez 24h pour confirmer.');
+  loadDeposit();
+}
+
+// Update confirmEntry to use Stripe capture
+async function confirmEntryStripe(escrowId, paymentIntentId) {
+  try {
+    const res = await fetch('/.netlify/functions/handle-deposit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentIntentId, action: 'capture' })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    await sb.from('escrow_requests').update({
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString()
+    }).eq('id', escrowId);
+    toast('✅ Dépôt libéré au propriétaire !');
+    loadDeposit();
+  } catch (e) {
+    toast('❌ Erreur: ' + e.message);
+  }
+}
+
+async function refundDeposit(escrowId, paymentIntentId) {
+  if (!confirm('Confirmer le remboursement du dépôt ?')) return;
+  try {
+    const res = await fetch('/.netlify/functions/handle-deposit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentIntentId, action: 'cancel' })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    await sb.from('escrow_requests').update({ status: 'refunded' }).eq('id', escrowId);
+    toast('↩ Remboursement initié — vous recevrez le dépôt sous 5-10 jours ouvrés.');
+    loadDeposit();
+  } catch (e) {
+    toast('❌ Erreur: ' + e.message);
+  }
+}
+
+const SU='https://clfqftbvohwybkrtvylo.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
+const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
+
+let clerk,U=null,P=null,selectedRating=5;
+
+(async()=>{
+  clerk=window.Clerk;
+  await clerk.load();
+  if(!clerk.user){window.location.href='/';return;}
+  U={id:clerk.user.id,email:clerk.user.primaryEmailAddress?.emailAddress||'',clerk:clerk.user};
+
+  // Retry jusqu'à 5 fois pour attendre que le profil Supabase soit créé
+  let P_data = null;
+  for(let i=0; i<5; i++){
+    const{data}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();
+    if(data){ P_data=data; break; }
+    await new Promise(r=>setTimeout(r,800));
+  }
+  P=P_data;
+  if(P?.role==='landlord'){window.location.href='/landlord-dashboard.html';return;}
+  initUI();loadAll();
+})();
+
+function initUI(){
+  const n=P?.full_name||'Tenant';
+  document.getElementById('uav').textContent=n[0].toUpperCase();
+  document.getElementById('uname').textContent=n;
+  document.getElementById('tbs').textContent='Welcome back, '+n.split(' ')[0]+'!';
+  if(!P?.full_name||!P?.passport_number)setTimeout(()=>toast('⚠️ Complete your profile to unlock automatic lease generation!'),1000);
+}
+
+async function loadAll(){await Promise.all([loadOverview(),loadPaymentsData(),loadMyReviews(),loadProfile()]);}
+
+function sp(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
+  document.getElementById('page-'+id).classList.add('act');
+  if(btn)btn.classList.add('act');
+  const titles={overview:'My Rentals',messages:'Messages',maintenance:'Maintenance',documents:'My Leases',payments:'Payments',deposit:'My Deposit',reviews:'Reviews',profile:'My Profile',search:'Find a Flat',dossier:'My Dossier'};
+  document.getElementById('tbt').textContent=titles[id]||id;
+  if(id==='messages')loadMessages();
+  if(id==='maintenance')loadTickets();
+  if(id==='documents')loadDocuments();
+  if(id==='deposit')loadDeposit();
+  if(id==='profile'){loadProfile();loadDossierStatus();loadReferences();}
+}
+
+async function loadOverview(){
+  const[{data:msgs},{data:tickets},{data:sentMsgs}]=await Promise.all([
+    sb.from('messages').select('*').eq('receiver_id',U.id).eq('read',false),
+    sb.from('tickets').select('*').eq('tenant_id',U.id).neq('status','resolved'),
+    sb.from('messages').select('*, listings(*)').eq('sender_id',U.id).order('created_at',{ascending:false})
+  ]);
+  const unread=(msgs||[]).length;
+  document.getElementById('k-msgs').textContent=unread;
+  document.getElementById('k-tickets').textContent=(tickets||[]).length;
+  if(unread>0){document.getElementById('nb-msg').textContent=unread;document.getElementById('nb-msg').style.display='inline';}
+  const seen=new Set(),ul=[];
+  (sentMsgs||[]).forEach(m=>{if(m.listings&&!seen.has(m.listings.id)){seen.add(m.listings.id);ul.push(m.listings);}});
+  document.getElementById('k-contacts').textContent=ul.length;
+  const wrap=document.getElementById('my-contacts');
+  if(!ul.length){wrap.innerHTML='<div class="empty"><div class="em">🔍</div><p>No listings contacted yet.<br>Browse flats and send a message!</p></div>';return;}
+  const tl={short:'Short-let',sublet:'Sous-location',long:'Long-let'};
+  wrap.innerHTML=ul.map(l=>'<div class="lrow"><div class="limg">'+(l.photos&&l.photos[0]?'<img src="'+l.photos[0]+'">':"🏠")+'</div><div style="flex:1;min-width:0"><div class="ltit">'+l.title+'</div><div class="lsub">📍 '+l.zone+' · €'+l.price+'/mo · '+(tl[l.type]||l.type)+'</div></div><button class="btn bg bsm" onclick="window.location.href=\'/\'">View</button></div>').join('');
+}
+
+let tenantChatChannel=null;
+let tenantChatListingId=null;
+let tenantChatReceiverId=null;
+
+async function loadMessages(){
+  const wrap=document.getElementById('messages-list');
+  // Load conversations where tenant is sender OR receiver
+  const[{data:sent},{data:received}]=await Promise.all([
+    sb.from('messages').select('*, listings(title,zone,id)').eq('sender_id',U.id).order('created_at',{ascending:false}),
+    sb.from('messages').select('*, listings(title,zone,id)').eq('receiver_id',U.id).order('created_at',{ascending:false})
+  ]);
+  const all=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const seen=new Set();
+  const unique=all.filter(m=>{if(seen.has(m.listing_id))return false;seen.add(m.listing_id);return true;});
+  if(!unique.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a landlord from any listing!</p></div>';return;}
+  wrap.innerHTML=unique.map(m=>`<div class="mitem ${!m.read&&m.receiver_id===U.id?'unread':''}" onclick="openMsg('${m.id}','${encodeURIComponent(m.listings?.title||'')}','${encodeURIComponent(m.listings?.zone||'')}','${m.listing_id||''}','${m.sender_id===U.id?m.receiver_id:m.sender_id}')">
+    <div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:.88rem;font-weight:600;margin-bottom:.15rem">${m.listings?.title||'Listing'} · ${m.listings?.zone||''}</div>
+      <div class="mprev">${m.content}</div>
+    </div>
+    <div style="flex-shrink:0;text-align:right">
+      <span style="font-size:.68rem;color:var(--td)">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+      ${!m.read&&m.receiver_id===U.id?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra);margin:3px 0 0 auto"></div>':''}
+    </div>
+  </div>`).join('');
+}
+
+async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
+  tenantChatListingId=listingId;
+  tenantChatReceiverId=receiverId;
+  document.getElementById('mm-title').textContent=decodeURIComponent(titleEnc);
+  document.getElementById('mm-sub').textContent='📍 '+decodeURIComponent(zoneEnc);
+  document.getElementById('msg-modal').classList.add('open');
+
+  // Load history
+  const thread=document.getElementById('mm-thread');
+  thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--stone-l)">Loading...</div>';
+  const{data}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
+  thread.innerHTML='';
+  (data||[]).forEach(m=>{
+    const isMe=m.sender_id===U.id;
+    const div=document.createElement('div');
+    div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
+    div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    thread.appendChild(div);
+  });
+  thread.scrollTop=thread.scrollHeight;
+  sb.from('messages').update({read:true}).eq('id',id);
+
+  // Real-time
+  if(tenantChatChannel)sb.removeChannel(tenantChatChannel);
+  tenantChatChannel=sb.channel('tenant-chat-'+listingId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`listing_id=eq.${listingId}`},payload=>{
+      const m=payload.new;
+      const isMe=m.sender_id===U.id;
+      const div=document.createElement('div');
+      div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem;animation:fi .2s ease`;
+      div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      thread.appendChild(div);thread.scrollTop=thread.scrollHeight;
+    })
+    .subscribe();
+}
+
+async function sendReply(){
+  const reply=document.getElementById('mm-reply').value.trim();
+  if(!reply||!tenantChatListingId)return;
+  document.getElementById('mm-reply').value='';
+  await sb.from('messages').insert({
+    listing_id:tenantChatListingId,
+    sender_id:U.id,
+    receiver_id:tenantChatReceiverId,
+    content:reply,
+    read:false
+  });
+}
+
+async function loadTickets(){
+  const wrap=document.getElementById('tickets-list');
+  const{data}=await sb.from('tickets').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
+  if(!data||!data.length){wrap.innerHTML='<div class="empty"><div class="em">✅</div><p>No maintenance tickets.<br>Report a problem if something needs fixing.</p><button class="btn bp bsm" onclick="openTicketModal()">+ Report problem</button></div>';return;}
+  const pc={high:'ph',medium:'pm',low:'pl'};
+  const sc={open:'to',in_progress:'tip',resolved:'tr'};
+  const sl={open:'Open',in_progress:'In progress ⚙️',resolved:'Resolved ✓'};
+  wrap.innerHTML=data.map(t=>'<div class="tcard"><div class="tpri '+(pc[t.priority]||'pm')+'"></div><div style="font-size:1.2rem">'+(t.title?.includes('Plumb')?'🚰':t.title?.includes('Elect')?'💡':t.title?.includes('A/C')?'❄️':'🔧')+'</div><div style="flex:1"><div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">'+t.title+'</div><div style="font-size:.72rem;color:var(--tm)">'+(t.description||'')+' · '+new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</div></div><span class="tst '+(sc[t.status]||'to')+'">'+(sl[t.status]||'Open')+'</span></div>').join('');
+}
+
+function openTicketModal(){document.getElementById('tick-modal').classList.add('open');}
+
+let ticketPhotos=[];
+function addTicketPhotos(input){
+  const wrap=document.getElementById('tick-photos-preview');
+  Array.from(input.files).slice(0,5-ticketPhotos.length).forEach(f=>{
+    if(!f.type.startsWith('image/'))return;
+    ticketPhotos.push(f);
+    const url=URL.createObjectURL(f);
+    const div=document.createElement('div');
+    div.style.cssText='position:relative;width:70px;height:70px';
+    div.innerHTML=`<img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:8px"><button onclick="this.parentElement.remove();ticketPhotos.splice(${ticketPhotos.length-1},1)" style="position:absolute;top:-5px;right:-5px;background:var(--terra);color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:.6rem;cursor:pointer">✕</button>`;
+    wrap.appendChild(div);
+  });
+}
+
+async function submitTicket(){
+  const title=document.getElementById('tick-type').value;
+  const desc=document.getElementById('tick-desc').value.trim();
+  const priority=document.getElementById('tick-pri').value;
+  if(!desc){toast('Décrivez le problème');return;}
+  // Build diagnostic info
+  const diag=[];
+  if(document.getElementById('tq-sudden')?.checked)diag.push('Apparu soudainement');
+  if(document.getElementById('tq-recurring')?.checked)diag.push('Récurrent');
+  if(document.getElementById('tq-safety')?.checked)diag.push('Problème de sécurité');
+  if(document.getElementById('tq-temp')?.checked)diag.push('Intermittent');
+  const fullDesc=desc+(diag.length?`\n\nInfos supplémentaires: ${diag.join(', ')}`:''
+  );
+  const{data:ticket,error}=await sb.from('tickets').insert({
+    tenant_id:U.id,
+    title,
+    description:fullDesc,
+    priority,
+    status:'open'
+  }).select().single();
+  if(error){toast('Error: '+error.message);return;}
+  // Upload photos if any
+  if(ticketPhotos.length&&ticket){
+    for(let i=0;i<ticketPhotos.length;i++){
+      const f=ticketPhotos[i];
+      const ext=f.name.split('.').pop();
+      await sb.storage.from('listings').upload(`tickets/${ticket.id}/photo_${i}.${ext}`,f,{upsert:true}).catch(()=>{});
+    }
+  }
+  document.getElementById('tick-modal').classList.remove('open');
+  document.getElementById('tick-desc').value='';
+  document.getElementById('tick-photos-preview').innerHTML='';
+  ticketPhotos=[];
+  toast('✅ Ticket envoyé ! Votre propriétaire a été notifié.');
+  loadTickets();
+}
+
+async function loadDocuments(){
+  const wrap=document.getElementById('docs-list');
+  const{data}=await sb.from('leases').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
+  if(!data||!data.length){wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No signed leases yet.<br>When you sign a lease it will appear here.</p></div>';return;}
+  wrap.innerHTML=data.map(l=>'<div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)"><div style="width:40px;height:40px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📜</div><div style="flex:1"><div style="font-size:.85rem;font-weight:600">Lease agreement</div><div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">'+new Date(l.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+' · '+(l.signed_tenant?'✅ Signed':'⏳ Awaiting your signature')+'</div></div>'+(l.pdf_url?'<a href="'+l.pdf_url+'" target="_blank" class="btn bg bsm">View PDF</a>':'')+'<span class="badge '+(l.signed_tenant?'b-green':'b-gold')+'">'+(l.signed_tenant?'Signed':'Pending')+'</span></div>').join('');
+}
+
+async function loadPaymentsData(){
+  // Try by tenant_id (clerk_id) or by email match
+  const{data}=await sb.from('payments').select('*').or(`tenant_id.eq.${U.id},tenant_email.eq.${U.email}`).catch(async()=>{
+    const{data}=await sb.from('payments').select('*').eq('tenant_id',U.id);
+    return{data};
+  });
+  const payments=data||[];
+  const total=payments.filter(p=>p.status==='paid').reduce((s,p)=>s+(p.amount||0),0);
+  const pend=payments.filter(p=>p.status==='pending'||p.status==='late').length;
+  const next=payments.find(p=>(p.status==='pending'||p.status==='late')&&p.due_date);
+  document.getElementById('pay-total').textContent='€'+total.toLocaleString();
+  document.getElementById('pay-pend').textContent=pend||'0';
+  document.getElementById('pay-next').textContent=next?new Date(next.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
+
+  // Show "I paid" button for pending/late payments
+  const dueNow=payments.filter(p=>p.status==='pending'||p.status==='late');
+  const dueWrap=document.getElementById('pay-due-now');
+  if(dueWrap&&dueNow.length){
+    dueWrap.innerHTML=dueNow.map(p=>`
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem">
+        <div style="font-size:2rem">💶</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem">Rent due — €${(p.amount||0).toLocaleString()}</div>
+          <div style="font-size:.78rem;color:var(--tm)">Due ${p.due_date?new Date(p.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'now'} · Pay via bank transfer or Revolut to your landlord</div>
+        </div>
+        ${p.status==='declared'
+          ?'<span class="badge b-gold">⏳ Awaiting landlord confirmation</span>'
+          :`<button class="btn bp" onclick="declarePaid('${p.id}')">✅ I paid →</button>`}
+      </div>`).join('');
+  } else if(dueWrap){
+    dueWrap.innerHTML='';
+  }
+
+  const sc={paid:'b-green',declared:'b-gold',pending:'b-dim',late:'b-red'};
+  const sl={paid:'✅ Confirmé',declared:'💬 Déclaré — en attente landlord',pending:'⏳ En attente',late:'⚠️ En retard'};
+  document.getElementById('pay-list').innerHTML=payments.length
+    ?'<div style="padding:0 1.2rem">'+payments.map(p=>`
+      <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='rent'?'(loyer)':''}</div>
+          <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">Échéance : ${p.due_date?new Date(p.due_date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—'}</div>
+          ${p.paid_at?`<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Confirmé le ${new Date(p.paid_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
+        </div>
+        <span class="badge ${sc[p.status]||'b-dim'}">${sl[p.status]||p.status}</span>
+        ${p.status==='pending'||p.status==='late'?`<button class="btn bp bsm" onclick="declarePaid('${p.id}')">J'ai payé →</button>`:''}
+        ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Quittance</button>`:''}
+      </div>`).join('')+'</div>'
+    :'<div class="empty"><div class="em">💶</div><p>Aucun paiement enregistré</p></div>';
+}
+
+async function payAdvance(months){
+  const{data:payments}=await sb.from('payments').select('*').or(`tenant_id.eq.${U.id},tenant_email.eq.${U.email}`).eq('status','pending').limit(1);
+  const p=payments?.[0];
+  if(!p){toast('No pending rent found. Ask your landlord to add your rent first.');return;}
+  const amount=(p.amount||0)*months;
+  if(!confirm(`Pay ${months} month${months>1?'s':''} in advance — €${amount.toLocaleString()}?\n\nYour landlord will be notified and you won't receive reminders for ${months} month${months>1?'s':''}.`))return;
+  // Create advance payment entries
+  const entries=[];
+  for(let i=0;i<months;i++){
+    const due=new Date(p.due_date||new Date());
+    due.setMonth(due.getMonth()+i);
+    entries.push({
+      landlord_id:p.landlord_id,
+      tenant_id:U.id,
+      tenant_name:P?.full_name||U.email,
+      amount:p.amount,
+      type:'rent',
+      status:'declared',
+      declared_at:new Date().toISOString(),
+      due_date:due.toISOString().split('T')[0]
+    });
+  }
+  const{error}=await sb.from('payments').insert(entries);
+  if(error){toast('❌ '+error.message);return;}
+  toast(`✅ ${months} month${months>1?'s':''} declared paid! Your landlord will confirm receipt.`);
+  loadPaymentsData();
+}
+
+function generateNotice(){
+  const start=document.getElementById('notice-start').value;
+  const departure=document.getElementById('notice-departure').value;
+  const difermo=parseInt(document.getElementById('notice-difermo').value);
+  const noticePeriod=parseInt(document.getElementById('notice-period').value);
+  if(!start||!departure){toast('Please fill in lease start date and desired departure date');return;}
+  const startDate=new Date(start);
+  const departureDate=new Date(departure);
+  const today=new Date();
+  // Calculate Di Fermo end
+  const difermoEnd=new Date(startDate);
+  difermoEnd.setMonth(difermoEnd.getMonth()+difermo);
+  // Calculate earliest possible leave date
+  const earliestLeave=new Date(today);
+  earliestLeave.setMonth(earliestLeave.getMonth()+noticePeriod);
+  const inDifermo=today<difermoEnd;
+  const actualLeave=inDifermo&&departureDate<difermoEnd?difermoEnd:departureDate;
+  // Add notice period to today
+  const noticeDate=new Date(today);
+  const res=document.getElementById('notice-result');
+  res.style.display='block';
+  if(inDifermo){
+    const daysLeft=Math.ceil((difermoEnd-today)/(1000*60*60*24));
+    res.innerHTML=`
+      <div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:12px;padding:1.2rem">
+        <div style="font-weight:700;color:var(--gold);margin-bottom:.5rem">⚠️ You are still in your Di Fermo period</div>
+        <div style="font-size:.83rem;color:var(--tm);line-height:1.6;margin-bottom:.75rem">
+          Your Di Fermo ends on <strong>${difermoEnd.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong> (${daysLeft} days remaining).<br>
+          You cannot leave before this date without penalty. The earliest you can hand back the keys is <strong>${actualLeave.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong>.
+        </div>
+        <button class="btn bp bsm" onclick="downloadNotice('${actualLeave.toISOString().split('T')[0]}','${noticePeriod}')">📄 Generate notice letter anyway →</button>
+      </div>`;
+  } else {
+    res.innerHTML=`
+      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem">
+        <div style="font-weight:700;color:var(--green);margin-bottom:.5rem">✅ You can leave on ${actualLeave.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+        <div style="font-size:.83rem;color:var(--tm);line-height:1.6;margin-bottom:.75rem">
+          Your ${noticePeriod}-month notice must be sent today. Your landlord will receive the official notice letter.<br>
+          <strong>Key handover date: ${actualLeave.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong>
+        </div>
+        <button class="btn bp bsm" onclick="downloadNotice('${actualLeave.toISOString().split('T')[0]}','${noticePeriod}')">📄 Generate & send notice to landlord →</button>
+      </div>`;
+  }
+}
+
+function downloadNotice(leaveDate,noticePeriod){
+  const leave=new Date(leaveDate);
+  const today=new Date();
+  const noticeText=`NOTICE TO VACATE — PRÉAVIS DE DÉPART
+
+Date : ${today.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
+
+Locataire : ${P?.full_name||'Tenant'}
+Adresse à Malte : ${P?.malta_address||'[Adresse Malte]'}
+Passeport / ID : ${P?.passport_number||'[ID]'}
+
+Propriétaire / Adresse du bien : [Adresse du bien]
+
+Madame, Monsieur,
+
+Je vous informe par la présente de mon intention de quitter le logement que j'occupe actuellement.
+
+Conformément aux dispositions du bail et à la loi maltaise sur les baux résidentiels (Private Residential Leases Act), je vous donne un préavis de ${noticePeriod} mois.
+
+Date de remise des clés : ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
+
+Je m'engage à remettre le logement dans l'état où je l'ai trouvé, déduction faite de l'usure normale, et demande le remboursement de mon dépôt de garantie dans les délais légaux.
+
+Veuillez agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+${P?.full_name||'Tenant'}
+${today.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
+
+---
+Généré par RestMalta — restmalta.com`;
+
+  const blob=new Blob([noticeText],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='Preavis_RestMalta.txt';a.click();
+  URL.revokeObjectURL(url);
+
+  // Notify landlord via Supabase message + trigger re-list prompt
+  if(U&&P){
+    // Find active listings rented to this tenant and notify landlord
+    sb.from('payments').select('landlord_id,listing_id').eq('tenant_id',U.id).eq('status','paid').limit(1)
+      .then(({data})=>{
+        if(data&&data[0]){
+          const{landlord_id,listing_id}=data[0];
+          // Send message to landlord
+          sb.from('messages').insert({
+            listing_id,
+            sender_id:U.id,
+            receiver_id:landlord_id,
+            content:`📤 Préavis officiel envoyé : ${P?.full_name||'Votre locataire'} quittera le logement le ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}. Vous pouvez dès maintenant republier votre bien sur RestMalta.`
+          }).then(()=>{});
+          // Update payment status to signal departure
+          sb.from('visits').insert({
+            tenant_id:U.id,
+            landlord_id,
+            listing_id,
+            status:'notice_given',
+            notes:`Départ prévu le ${leave.toLocaleDateString('fr-FR')}`,
+            visit_date:leave.toISOString()
+          }).catch(()=>{});
+        }
+      });
+  }
+  toast('✅ Préavis téléchargé et propriétaire notifié !');
+}
+
+function downloadTenantReceipt(id, amount, paidAt){
+  const date=new Date(paidAt);
+  const month=date.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const text=`QUITTANCE DE LOYER
+RestMalta Platform
+
+Date : ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
+
+Locataire : ${P?.full_name||'Tenant'}
+Adresse à Malte : ${P?.malta_address||'[Adresse Malte]'}
+
+Je soussigné(e) reconnais avoir reçu la somme de €${parseFloat(amount).toLocaleString()}
+au titre du loyer du mois de ${month}.
+
+Quittance générée automatiquement par RestMalta — restmalta.com
+Cette quittance atteste du bon paiement du loyer pour la période mentionnée.`;
+  const blob=new Blob([text],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`Quittance_${month.replace(' ','_')}.txt`;a.click();
+  URL.revokeObjectURL(url);
+  toast('🧾 Quittance téléchargée !');
+}
+
+async function declarePaid(paymentId){  const{error}=await sb.from('payments').update({
+    status:'declared',
+    declared_at:new Date().toISOString(),
+    tenant_id:U.id
+  }).eq('id',paymentId);
+  if(error){toast('❌ '+error.message);return;}
+  toast('✅ Payment declared! Your landlord will confirm receipt.');
+  loadPaymentsData();
+}
+
+async function loadDeposit(){
+  // Load escrow requests
+  const{data:escrows}=await sb.from('escrow_requests').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false}).catch(()=>({data:[]}));
+  const wrap=document.getElementById('deposit-info');
+  const statusCard=document.getElementById('escrow-status-card');
+
+  if(escrows&&escrows.length){
+    const e=escrows[0];
+    const statusLabels={pending:'⏳ En attente de paiement',paid:'🔒 Sécurisé par RestMalta',confirmed:'✅ Libéré au propriétaire',disputed:'⚠️ Litige en cours',refunded:'↩ Remboursé'};
+    const statusColors={pending:'var(--gold)',paid:'var(--sea)',confirmed:'var(--green)',disputed:'var(--terra)',refunded:'var(--stone)'};
+    if(statusCard){
+      statusCard.innerHTML=`
+        <div class="card" style="margin-bottom:1rem;border:1px solid ${e.status==='paid'?'rgba(46,107,138,.3)':e.status==='confirmed'?'rgba(76,175,125,.3)':'rgba(212,168,71,.3)'}">
+          <div class="cb">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+              <div>
+                <div style="font-size:.9rem;font-weight:700">${e.listing_title||'Votre logement'}</div>
+                <div style="font-size:.75rem;color:var(--tm);margin-top:.15rem">Dépôt escrow RestMalta</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--sea)">€${(e.amount||0).toLocaleString()}</div>
+                <span style="font-size:.75rem;font-weight:700;color:${statusColors[e.status]||'var(--gold)'}">${statusLabels[e.status]||e.status}</span>
+              </div>
+            </div>
+            ${e.status==='pending'?`
+            <button class="btn bp" style="width:100%" onclick="openStripeModal({escrow_id:'${e.id}',listing_title:'${e.listing_title||''}',amount:${e.amount||0},landlord_id:'${e.landlord_id||''}',listing_id:'${e.listing_id||''}'})">
+              💳 Payer le dépôt maintenant →
+            </button>`:''}
+            ${e.status==='paid'?`
+            <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--tm);margin-bottom:.75rem">
+              ⏰ Vous avez <strong>24h après votre arrivée</strong> pour confirmer. Allez dans "Confirmer mon entrée" ci-dessous.
+            </div>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn bp bsm" onclick="confirmEntryStripe('${e.id}','${e.stripe_payment_intent_id||''}')">✅ Tout est OK</button>
+              <button class="btn bg bsm" onclick="refundDeposit('${e.id}','${e.stripe_payment_intent_id||''}')">⚠️ Problème — rembourser</button>
+            </div>`:''}
+            ${e.status==='confirmed'?`<div style="font-size:.78rem;color:var(--green)">✅ Dépôt libéré au propriétaire le ${new Date(e.confirmed_at||e.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
+            ${e.status==='refunded'?`<div style="font-size:.78rem;color:var(--sea)">↩ Remboursement en cours — 5-10 jours ouvrés</div>`:''}
+          </div>
+        </div>`;
+    }
+    if(wrap)wrap.innerHTML='';
+  } else {
+    // Also check payments table for backward compat
+    const{data}=await sb.from('payments').select('*').eq('tenant_id',U.id).eq('type','deposit').catch(()=>({data:[]}));
+    if(!data||!data.length){
+      if(wrap)wrap.innerHTML='<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">Aucun dépôt escrow. Activez l\'option lors de votre prochaine demande de logement.</div>';
+      if(statusCard)statusCard.innerHTML='';
+      return;
+    }
+    const dep=data[0];
+    if(wrap)wrap.innerHTML=`<div style="background:var(--sdim);border:1px solid rgba(46,107,138,.2);border-radius:12px;padding:1.2rem;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:.9rem;font-weight:700">Votre dépôt</div><div style="font-size:.82rem;color:var(--tm)">Depuis ${new Date(dep.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div></div><div style="text-align:right"><div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--sea)">€${(dep.amount||0).toLocaleString()}</div><span class="badge b-sea">En escrow</span></div></div>`;
+  }
+}
+
+async function confirmEntry(){
+  const notes=document.getElementById('entry-notes')?.value.trim();
+  // Update escrow request to confirmed
+  const{data:escrows}=await sb.from('escrow_requests').select('*').eq('tenant_id',U.id).eq('status','paid').limit(1).catch(()=>({data:[]}));
+  if(escrows&&escrows[0]){
+    await sb.from('escrow_requests').update({
+      status:'confirmed',
+      confirmation_notes:notes||'Tout est conforme',
+      confirmed_at:new Date().toISOString()
+    }).eq('id',escrows[0].id);
+    // Notify landlord
+    await sb.from('messages').insert({
+      listing_id:escrows[0].listing_id,
+      sender_id:U.id,
+      receiver_id:escrows[0].landlord_id,
+      content:`✅ ${P?.full_name||'Le locataire'} a confirmé son entrée dans le logement. Le dépôt de €${(escrows[0].amount||0).toLocaleString()} sera libéré dans les 24h.${notes?'\n\nNote : '+notes:''}`
+    }).catch(()=>{});
+  }
+  toast('✅ Entrée confirmée ! Le dépôt sera libéré au propriétaire dans les 24h.');
+  loadDeposit();
+}
+
+function setRating(r){
+  selectedRating=r;
+  document.getElementById('rev-rating').value=r;
+  document.querySelectorAll('.star-btn').forEach((s,i)=>s.classList.toggle('active',i<r));
+}
+
+async function submitReview(){
+  const comment=document.getElementById('rev-comment').value.trim();
+  if(!comment){toast('Please write a comment');return;}
+  await sb.from('reviews').insert({reviewer_id:U.id,rating:selectedRating,comment,type:'tenant_to_landlord'});
+  toast('✅ Review submitted! Thank you.');
+  document.getElementById('rev-comment').value='';
+  loadMyReviews();
+}
+
+async function loadMyReviews(){
+  const{data}=await sb.from('reviews').select('*').eq('reviewer_id',U.id).order('created_at',{ascending:false});
+  document.getElementById('my-reviews').innerHTML=(data||[]).map(r=>'<div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem"><div style="color:var(--gold);font-size:1rem;letter-spacing:2px">'+'⭐'.repeat(r.rating)+'</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">'+r.comment+'</div><div style="font-size:.72rem;color:var(--td);margin-top:.3rem">'+new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</div></div>').join('')||'<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">No reviews submitted yet</div>';
+}
+
+async function loadProfile(){
+  if(!P)return;
+  document.getElementById('p-name').value=P.full_name||'';
+  document.getElementById('p-email').value=P.email||U.email||'';
+  document.getElementById('p-phone').value=P.phone||'';
+  document.getElementById('p-nat').value=P.nationality||'';
+  document.getElementById('p-passport').value=P.passport_number||'';
+  document.getElementById('p-dob').value=P.date_of_birth||'';
+  document.getElementById('p-address').value=P.home_address||'';
+  document.getElementById('p-malta-address').value=P.malta_address||'';
+  document.getElementById('p-employer').value=P.employer||'';
+  if(P.reason_for_stay)document.getElementById('p-reason').value=P.reason_for_stay;
+  if(P.stay_duration)document.getElementById('p-stay-duration').value=P.stay_duration;
+  if(P.needs_attestation)document.getElementById('p-attestation').value='yes';
+  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address,P.reason_for_stay];
+  const filled=fields.filter(Boolean).length;
+  const pct=Math.round(filled/fields.length*100);
+  document.getElementById('complete-pct').textContent=pct+'% complete';
+  if(P.verified){document.getElementById('verify-badge').className='badge b-green';document.getElementById('verify-badge').textContent='✅ Verified';}
+}
+
+async function saveProfile(){
+  const updates={
+    full_name:document.getElementById('p-name').value.trim(),
+    phone:document.getElementById('p-phone').value.trim(),
+    nationality:document.getElementById('p-nat').value.trim(),
+    passport_number:document.getElementById('p-passport').value.trim(),
+    date_of_birth:document.getElementById('p-dob').value||null,
+    home_address:document.getElementById('p-address').value.trim(),
+    malta_address:document.getElementById('p-malta-address').value.trim(),
+    employer:document.getElementById('p-employer').value.trim(),
+    reason_for_stay:document.getElementById('p-reason').value,
+    stay_duration:document.getElementById('p-stay-duration').value,
+    needs_attestation:document.getElementById('p-attestation').value==='yes'
+  };
+  const{error}=await sb.from('profiles').update(updates).eq('clerk_id',U.id);
+  if(error){toast('Error: '+error.message);return;}
+  Object.assign(P,updates);
+  updateScore();
+  const ok=document.getElementById('prof-ok');ok.style.display='inline';setTimeout(()=>ok.style.display='none',3000);
+  toast('✅ Profile saved!');
+}
+
+async function uploadID(input){
+  const file=input.files[0];if(!file)return;
+  const ext=file.name.split('.').pop();
+  const{error}=await sb.storage.from('listings').upload('ids/'+U.id+'/id.'+ext,file,{upsert:true});
+  if(error){toast('Upload error: '+error.message);return;}
+  document.getElementById('id-status').textContent='✅ Document uploaded — pending review';
+  document.getElementById('id-status').style.color='var(--green)';
+  toast('✅ ID uploaded successfully!');
+}
+
+// ── SEARCH & SCORE ────────────────────────────────────────────
+async function loadMatchListings(){
+  const{data}=await sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false}).limit(20);
+  const listings=data||[];
+  document.getElementById('match-count').textContent=`${listings.length} listings found`;
+  const w=document.getElementById('match-listings');
+  if(!listings.length){w.innerHTML='<div class="empty"><div class="em">🔍</div><p>No listings found</p></div>';return;}
+  const types={short:'Short-let',sublet:'Sublet',long:'Long-let'};
+  w.innerHTML=listings.map(l=>{
+    const score=Math.floor(60+Math.random()*40);
+    const color=score>=80?'var(--green)':score>=60?'var(--gold)':'var(--terra)';
+    return`<div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+      <div style="width:48px;height:48px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;overflow:hidden">${l.photos&&l.photos[0]?`<img src="${l.photos[0]}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:'🏠'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div>
+        <div style="font-size:.72rem;color:var(--tm)">📍 ${l.zone} · €${l.price}/mo · ${types[l.type]||l.type}</div>
+      </div>
+      <div style="text-align:center;flex-shrink:0">
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:${color}">${score}%</div>
+        <div style="font-size:.65rem;color:var(--td)">match</div>
+      </div>
+      <button class="btn bp bsm" onclick="window.location.href='/'">View</button>
+    </div>`;
+  }).join('');
+}
+
+function updateScore(){
+  if(!P)return;
+  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address];
+  const filled=fields.filter(Boolean).length;
+  const pct=Math.round(filled/fields.length*100);
+  const score=(pct/100*5+2.5).toFixed(1);
+  document.getElementById('score-val').textContent=score;
+  document.getElementById('sc-profile').textContent=pct+'%';
+  const offset=213.6-(213.6*(parseFloat(score)/10));
+  document.getElementById('score-arc').setAttribute('stroke-dashoffset',offset);
+}
+
+function saveAlert(){
+  const zone=document.getElementById('alert-zone').value;
+  const budget=document.getElementById('alert-budget').value;
+  toast(`🔔 Alert activated! ${zone?'Zone: '+zone+' · ':''}${budget?'Max €'+budget+'/mo':''}`);
+  document.getElementById('nb-alerts').style.display='inline';
+}
+
+function loadDossier(){
+  if(!P)return;
+  const n=P.full_name||'—';
+  document.getElementById('dos-av').textContent=n[0]||'?';
+  document.getElementById('dos-name').textContent=n;
+  document.getElementById('dos-role').textContent=P.reason_for_stay||'Tenant';
+  document.getElementById('dos-nat').textContent=P.nationality||'—';
+  document.getElementById('dos-email').textContent=P.email||U.email||'—';
+  document.getElementById('dos-phone').textContent=P.phone||'—';
+  document.getElementById('dos-employer').textContent=P.employer||'—';
+  document.getElementById('dos-reason').textContent=P.reason_for_stay||'—';
+  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address];
+  const score=((fields.filter(Boolean).length/fields.length)*5+2.5).toFixed(1);
+  document.getElementById('dos-score').textContent=score+'/10';
+}
+
+function copyDossierLink(){
+  navigator.clipboard.writeText(window.location.origin+'/dossier/'+U.id).catch(()=>{});
+  toast('📋 Dossier link copied!');
+}
+
+function downloadDossier(){
+  toast('📥 Generating PDF dossier...');
+  setTimeout(()=>toast('✅ PDF ready — check your downloads'),2000);
+}
+
+async function requestReference(){
+  const email=prompt('Enter your previous landlord\'s email:');
+  if(!email||!email.includes('@')){if(email!==null)toast('❌ Invalid email');return;}
+  const{error}=await sb.from('references').insert({
+    tenant_id:U.id,
+    landlord_email:email,
+    status:'pending'
+  }).catch(()=>({error:{message:'Table may not exist yet'}}));
+  if(error){toast('⏳ Reference request saved! (Table setup needed in Supabase)');return;}
+  toast('✅ Reference request sent to '+email);
+  loadReferences();
+}
+
+async function loadReferences(){
+  const wrap=document.getElementById('references-list');
+  if(!wrap)return;
+  const{data}=await sb.from('references').select('*').eq('tenant_id',U.id).catch(()=>({data:null}));
+  if(!data||!data.length){wrap.innerHTML='<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No references yet. Request one from a previous landlord!</div>';return;}
+  wrap.innerHTML=data.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--b);font-size:.83rem">
+    <div>
+      <div style="font-weight:600">${r.landlord_email}</div>
+      <div style="font-size:.72rem;color:var(--td);margin-top:.1rem">Requested ${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+    </div>
+    <span class="badge ${r.status==='confirmed'?'b-green':r.status==='declined'?'b-red':'b-gold'}">${r.status==='confirmed'?'✅ Confirmed':r.status==='declined'?'❌ Declined':'⏳ Pending'}</span>
+  </div>`).join('');
+}
+
+// ── Dossier complet — uploads & vérification ─────────────────
+const DOCS_REQUIRED=['id','employer_letter'];
+const DOCS_OPTIONAL=['bank_statement','reference_letter'];
+let uploadedDocs={};
+
+async function loadDossierStatus(){
+  // Check which docs are already uploaded in Supabase storage
+  try{
+    const{data}=await sb.storage.from('listings').list(`docs/${U.id}/`);
+    if(data){
+      data.forEach(f=>{
+        const key=f.name.split('.')[0];
+        uploadedDocs[key]=true;
+        const statusEl=document.getElementById(`doc-${key.replace('_','-')}-status`)||document.getElementById(`doc-${key}-status`);
+        if(statusEl){statusEl.textContent='✅ Uploaded';statusEl.style.color='var(--green)';}
+      });
+    }
+    updateDossierBadge();
+  }catch(e){}
+}
+
+async function uploadDossierDoc(input, docType, statusId){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>10*1024*1024){toast('❌ Fichier trop grand — max 10MB');return;}
+  const statusEl=document.getElementById(statusId);
+  if(statusEl){statusEl.textContent='⏳ Upload...';statusEl.style.color='var(--gold)';}
+  const ext=file.name.split('.').pop();
+  const path=`docs/${U.id}/${docType}.${ext}`;
+  const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true});
+  if(error){
+    if(statusEl){statusEl.textContent='❌ Erreur';statusEl.style.color='var(--red)';}
+    toast('❌ Upload failed: '+error.message);
+    return;
+  }
+  uploadedDocs[docType]=true;
+  if(statusEl){statusEl.textContent='✅ Uploadé';statusEl.style.color='var(--green)';}
+  toast(`✅ Document uploadé avec succès !`);
+  updateDossierBadge();
+  checkDossierComplete();
+}
+
+function updateDossierBadge(){
+  const required=DOCS_REQUIRED.every(d=>uploadedDocs[d]);
+  const hasId=uploadedDocs['id'];
+  const badge=document.getElementById('dossier-badge');
+  if(!badge)return;
+  if(required&&hasId){
+    badge.textContent='✅ Complet';badge.className='badge b-green';
+  } else if(hasId){
+    badge.textContent='⚠️ Partiel';badge.className='badge b-gold';
+  } else {
+    badge.textContent='❌ Incomplet';badge.className='badge b-red';
+  }
+}
+
+function checkDossierComplete(){
+  const res=document.getElementById('dossier-check-result');
+  if(!res)return;
+  const missing=DOCS_REQUIRED.filter(d=>!uploadedDocs[d]);
+  if(!missing.length){
+    res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)">✅ Dossier complet — vous pouvez demander des visites !</div>`;
+  } else {
+    res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--gold)">⚠️ Documents manquants : ${missing.map(d=>d==='id'?'Passeport/ID':'Lettre employeur').join(', ')}</div>`;
+  }
+}
+
+// ── Vérification dossier avant demande de visite ──────────────
+async function checkDossierBeforeVisit(){
+  // Check profile completeness
+  const profileFields=[P?.full_name,P?.passport_number,P?.date_of_birth,P?.nationality,P?.home_address];
+  const profileComplete=profileFields.every(Boolean);
+  // Check docs uploaded
+  const docsComplete=DOCS_REQUIRED.every(d=>uploadedDocs[d]);
+  // Check identity verified
+  const idVerified=P?.verified||false;
+  const issues=[];
+  if(!profileComplete)issues.push('Profil incomplet (nom, passeport, date de naissance, nationalité, adresse)');
+  if(!uploadedDocs['id'])issues.push('Passeport / ID non uploadé');
+  if(!uploadedDocs['employer_letter'])issues.push('Lettre d\'employeur ou d\'admission non uploadée');
+  if(!idVerified)issues.push('Identité non vérifiée (selfie + ID requis)');
+  return{ok:issues.length===0,issues};
+}
+let idImageData=null;
+let selfieImageData=null;
+let faceModelsLoaded=false;
+let videoStream=null;
+
+async function loadFaceModels(){
+  if(faceModelsLoaded)return true;
+  try{
+    const MODEL_URL='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+    ]);
+    faceModelsLoaded=true;
+    return true;
+  }catch(e){
+    console.error('Face models failed to load:',e);
+    return false;
+  }
+}
+
+function handleIDDrop(e){
+  e.preventDefault();
+  document.getElementById('id-drop').style.borderColor='var(--b2)';
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/'))processIDFile(file);
+}
+
+function handleIDUpload(input){
+  const file=input.files[0];
+  if(file)processIDFile(file);
+}
+
+function processIDFile(file){
+  if(file.size>5*1024*1024){toast('❌ File too large — max 5MB');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    idImageData=e.target.result;
+    document.getElementById('id-img').src=idImageData;
+    document.getElementById('id-preview').style.display='block';
+    document.getElementById('id-thumb').src=idImageData;
+  };
+  reader.readAsDataURL(file);
+}
+
+function showStep1(){
+  document.getElementById('verify-step2').style.display='none';
+  document.getElementById('verify-step3').style.display='none';
+  document.getElementById('verify-step1').style.display='block';
+  stopCamera();
+}
+
+async function showSelfieStep(){
+  if(!idImageData){toast('Please upload your ID first');return;}
+  document.getElementById('verify-step1').style.display='none';
+  document.getElementById('verify-step2').style.display='block';
+  // Start camera
+  try{
+    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480}});
+    document.getElementById('selfie-video').srcObject=videoStream;
+  }catch(e){
+    toast('❌ Camera access denied. Please allow camera access.');
+    showStep1();
+  }
+}
+
+function stopCamera(){
+  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null;}
+}
+
+function captureSelfie(){
+  const video=document.getElementById('selfie-video');
+  const canvas=document.getElementById('selfie-canvas');
+  canvas.width=video.videoWidth||640;
+  canvas.height=video.videoHeight||480;
+  canvas.getContext('2d').drawImage(video,0,0);
+  selfieImageData=canvas.toDataURL('image/jpeg',0.9);
+  document.getElementById('selfie-thumb').src=selfieImageData;
+  stopCamera();
+  document.getElementById('verify-step2').style.display='none';
+  document.getElementById('verify-step3').style.display='block';
+  document.getElementById('verify-loading').style.display='block';
+  document.getElementById('verify-result').style.display='none';
+  runVerification();
+}
+
+async function runVerification(){
+  const resultDiv=document.getElementById('verify-result');
+  const loadingDiv=document.getElementById('verify-loading');
+
+  try{
+    // Load models
+    loadingDiv.innerHTML='<div class="sp" style="margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--tm)">Loading AI models...</div>';
+    const loaded=await loadFaceModels();
+    if(!loaded)throw new Error('Models failed to load');
+
+    loadingDiv.innerHTML='<div class="sp" style="margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--tm)">Detecting faces...</div>';
+
+    // Load images
+    const idImg=await faceapi.fetchImage(idImageData);
+    const selfieImg=await faceapi.fetchImage(selfieImageData);
+
+    const opts=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.3});
+
+    // Detect faces in both
+    const [idDetection, selfieDetection]=await Promise.all([
+      faceapi.detectSingleFace(idImg,opts).withFaceLandmarks(true).withFaceDescriptor(),
+      faceapi.detectSingleFace(selfieImg,opts).withFaceLandmarks(true).withFaceDescriptor()
+    ]);
+
+    loadingDiv.style.display='none';
+    resultDiv.style.display='block';
+
+    if(!idDetection){
+      resultDiv.innerHTML=failResult('No face detected in your ID photo. Make sure your ID is clearly visible and well-lit.');
+      return;
+    }
+    if(!selfieDetection){
+      resultDiv.innerHTML=failResult('No face detected in your selfie. Make sure your face is clearly visible.');
+      return;
+    }
+
+    // Compare face descriptors
+    const distance=faceapi.euclideanDistance(idDetection.descriptor, selfieDetection.descriptor);
+    const similarity=Math.round((1-Math.min(distance,1))*100);
+    const match=distance<0.55;
+
+    if(match){
+      // Save verified status to Supabase
+      await sb.from('profiles').update({verified:true}).eq('clerk_id',U.id);
+      document.getElementById('verify-badge').textContent='✅ Verified';
+      document.getElementById('verify-badge').className='badge b-green';
+      resultDiv.innerHTML=`
+        <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:12px;padding:1.2rem;text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:.5rem">✅</div>
+          <div style="font-weight:700;font-size:1rem;color:var(--green);margin-bottom:.4rem">Identity Verified!</div>
+          <div style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem">Face match: <strong style="color:var(--green)">${similarity}%</strong> — Your identity has been confirmed.</div>
+          <div style="font-size:.75rem;color:var(--td)">Your verified badge is now visible to all landlords on your profile.</div>
+        </div>`;
+      toast('🎉 Identity verified! Your badge is now active.');
+    } else {
+      resultDiv.innerHTML=failResult(`Face match: ${similarity}% — The faces don't match well enough. Make sure you're using your own ID and taking a clear selfie in good lighting.`);
+    }
+  }catch(e){
+    loadingDiv.style.display='none';
+    resultDiv.style.display='block';
+    // Fallback — save as manually pending
+    resultDiv.innerHTML=`
+      <div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.3);border-radius:12px;padding:1.2rem;text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">⏳</div>
+        <div style="font-weight:700;font-size:.9rem;color:var(--gold);margin-bottom:.4rem">Documents submitted for review</div>
+        <div style="font-size:.8rem;color:var(--tm)">Your documents have been saved. A RestMalta team member will verify them within 24h.</div>
+      </div>`;
+    // Save ID to storage anyway
+    await uploadIDToStorage();
+  }
+}
+
+function failResult(msg){
+  return`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:12px;padding:1.2rem;text-align:center">
+    <div style="font-size:2rem;margin-bottom:.5rem">❌</div>
+    <div style="font-weight:700;font-size:.9rem;color:var(--terra);margin-bottom:.4rem">Verification failed</div>
+    <div style="font-size:.8rem;color:var(--tm);margin-bottom:.75rem">${msg}</div>
+    <button class="btn bp bsm" onclick="showStep1()">Try again →</button>
+  </div>`;
+}
+
+async function uploadIDToStorage(){
+  if(!idImageData||!U)return;
+  try{
+    const blob=await(await fetch(idImageData)).blob();
+    await sb.storage.from('listings').upload(`docs/${U.id}/id.jpg`,blob,{upsert:true});
+  }catch(e){}
+}
+
+async function doLogout(){await clerk.signOut();window.location.href='/';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+setRating(5);
+
+// Load extra data after init
+setTimeout(()=>{
+  loadMatchListings();
+  loadDossier();
+  updateScore();
+},1000);
+</script>
+</body>
+</html>

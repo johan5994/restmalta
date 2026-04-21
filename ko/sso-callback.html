@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>RestMalta — Connecting...</title>
+<script>
+  window.__clerk_publishable_key = 'pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<p style="font-family:sans-serif;text-align:center;margin-top:3rem">Connecting... please wait ⏳</p>
+<script>
+(async () => {
+  const clerk = window.Clerk;
+  await clerk.load();
+  // Clerk handles the OAuth callback automatically — just redirect home
+  await clerk.handleRedirectCallback();
+  window.location.href = '/';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestMalta — Agent Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>window.__clerk_publishable_key='pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';</script>
+<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#0A0F1E;--s:#111827;--s2:#1A2236;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--terra:#E05A3A;--tdim:rgba(224,90,58,.15);--gold:#D4A847;--gdim:rgba(212,168,71,.12);--sea:#3A8FB5;--sdim:rgba(58,143,181,.15);--green:#4CAF7D;--grdim:rgba(76,175,125,.12);--red:#E05A5A;--rdim:rgba(224,90,90,.12);--txt:#F0EDE8;--tm:rgba(240,237,232,.5);--td:rgba(240,237,232,.28);--accent:#6C63FF;--accdim:rgba(108,99,255,.15)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh}
+.sb{width:240px;min-height:100vh;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sb-logo{padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--b)}
+.logo{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;color:var(--terra)}
+.logo-sub{font-size:.7rem;color:var(--td);margin-top:.1rem}
+.agent-badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--accdim);color:#8B85FF;border:1px solid rgba(108,99,255,.25);padding:.25rem .7rem;border-radius:100px;font-size:.68rem;font-weight:700;margin-top:.5rem}
+.sb-nav{flex:1;padding:1rem 0;overflow-y:auto}
+.nl{font-size:.65rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--td);padding:.8rem 1.5rem .4rem}
+.ni{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;cursor:pointer;transition:all .15s;position:relative;font-size:.88rem;font-weight:500;color:var(--tm);border:none;background:none;width:100%;text-align:left}
+.ni:hover{color:var(--txt);background:rgba(255,255,255,.04)}
+.ni.act{color:var(--terra);background:var(--tdim)}
+.ni.act::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--terra);border-radius:0 2px 2px 0}
+.nico{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--terra);color:white;font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:100px}
+.sb-user{padding:1rem 1.5rem;border-top:1px solid var(--b);display:flex;align-items:center;gap:.75rem}
+.uav{width:34px;height:34px;border-radius:50%;background:var(--accdim);border:1px solid rgba(108,99,255,.3);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#8B85FF}
+.un{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ur{font-size:.7rem;color:var(--td)}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{padding:1rem 2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;background:var(--s);position:sticky;top:0;z-index:40}
+.tb-title{font-size:1rem;font-weight:600}.tb-sub{font-size:.75rem;color:var(--tm);margin-top:.1rem}
+.btn{padding:.55rem 1.2rem;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s}
+.bp{background:var(--terra);color:white}.bp:hover{background:#f06545;transform:translateY(-1px)}
+.bg{background:rgba(255,255,255,.06);color:var(--tm);border:1px solid var(--b2)}.bg:hover{background:rgba(255,255,255,.1);color:var(--txt)}
+.bsm{padding:.4rem .9rem;font-size:.78rem}
+.content{padding:1.5rem 2rem;flex:1}
+.page{display:none}.page.act{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.kcard{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:1.2rem 1.4rem;position:relative;overflow:hidden}
+.klabel{font-size:.72rem;font-weight:600;color:var(--tm);letter-spacing:.4px;margin-bottom:.6rem}
+.kval{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;line-height:1;margin-bottom:.4rem}
+.ksub{font-size:.72rem;color:var(--td)}.kico{position:absolute;top:1rem;right:1rem;font-size:1.4rem;opacity:.4}
+.card{background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;margin-bottom:1rem}
+.ch{padding:1rem 1.2rem .8rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:.88rem;font-weight:600}.cb{padding:1rem 1.2rem}
+.badge{padding:.25rem .65rem;border-radius:100px;font-size:.68rem;font-weight:700}
+.b-green{background:var(--grdim);color:var(--green)}.b-gold{background:var(--gdim);color:var(--gold)}
+.b-red{background:var(--rdim);color:var(--red)}.b-sea{background:var(--sdim);color:var(--sea)}
+.b-dim{background:rgba(255,255,255,.05);color:var(--td)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;margin-bottom:1rem}
+.cal-day{text-align:center;padding:.5rem .2rem;border-radius:8px;font-size:.78rem;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.cal-day:hover{background:rgba(255,255,255,.05)}
+.cal-day.has-visit{background:var(--tdim);border-color:rgba(224,90,58,.3);color:var(--terra);font-weight:700}
+.cal-day.today{border-color:var(--terra)}
+.cal-day.empty{opacity:0;pointer-events:none}
+.cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;margin-bottom:.5rem;text-align:center;font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td)}
+.vcard{background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:1rem 1.2rem;margin-bottom:.75rem;display:flex;align-items:center;gap:1rem;transition:border-color .2s}
+.vcard:hover{border-color:var(--b2)}
+.vtime{background:var(--tdim);border:1px solid rgba(224,90,58,.2);border-radius:8px;padding:.5rem .8rem;text-align:center;flex-shrink:0;min-width:60px}
+.vt-h{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--terra);line-height:1}
+.vt-m{font-size:.68rem;color:var(--tm)}
+.vinfo{flex:1;min-width:0}
+.vtitle{font-size:.88rem;font-weight:600;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsub{font-size:.75rem;color:var(--tm)}
+.vtenant{display:flex;align-items:center;gap:.5rem;margin-top:.4rem;font-size:.75rem;color:var(--td)}
+.vav{width:22px;height:22px;border-radius:50%;background:var(--accdim);color:#8B85FF;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0}
+.score-ring{width:80px;height:80px;position:relative;margin:0 auto 1rem}
+.score-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--terra)}
+.sbar-row{display:flex;align-items:center;gap:.75rem;font-size:.78rem;margin-bottom:.6rem}
+.sbar-label{width:130px;color:var(--tm);flex-shrink:0}
+.sbar-track{flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.sbar-fill{height:100%;border-radius:3px;background:var(--terra);transition:width .5s ease}
+.rev-bar{flex:1;border-radius:4px 4px 0 0;background:rgba(108,99,255,.2);border:1px solid rgba(108,99,255,.15);transition:all .3s;cursor:pointer;min-width:0}
+.rev-bar:hover,.rev-bar.active{background:rgba(108,99,255,.5)}
+.pcard-agent{background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:1rem 1.2rem;margin-bottom:.75rem;display:flex;align-items:center;gap:1rem}
+.pimg-sm{width:56px;height:56px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;overflow:hidden}
+.pimg-sm img{width:100%;height:100%;object-fit:cover}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);padding:.6rem 1rem;border-bottom:1px solid var(--b)}
+.tbl td{padding:.85rem 1rem;font-size:.83rem;border-bottom:1px solid var(--b);color:var(--tm)}
+.tbl tr:last-child td{border-bottom:none}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:1rem}
+.modal.open{display:flex}
+.mbox{background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:2rem;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
+.mh{font-size:1.1rem;font-weight:700;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between}
+.fg{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem}
+.fl{font-size:.75rem;font-weight:600;color:var(--tm)}
+.fi{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .9rem;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;width:100%}
+.fi:focus{border-color:var(--terra)}
+.fsel{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .9rem;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;width:100%}
+.fta{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .9rem;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;width:100%;resize:vertical}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--s);border:1px solid var(--b2);color:var(--txt);padding:.8rem 1.5rem;border-radius:12px;font-size:.85rem;font-weight:500;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{text-align:center;padding:3rem 1rem;color:var(--td)}
+.em{font-size:2.5rem;margin-bottom:.75rem}
+.empty p{font-size:.85rem;line-height:1.6}
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="logo" onclick="window.location.href='/'">Rest<span style="color:var(--txt)">Malta</span></div>
+    <div class="logo-sub">Agent Dashboard</div>
+    <div class="agent-badge">🏆 Certified Agent</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nl">Overview</div>
+    <button class="ni act" onclick="sp('dash',this)"><span class="nico">📊</span>Dashboard</button>
+    <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>My Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>Listings</button>
+    <div class="nl">Performance</div>
+    <button class="ni" onclick="sp('revenue',this)"><span class="nico">💰</span>Revenue</button>
+    <button class="ni" onclick="sp('score',this)"><span class="nico">⭐</span>My Score</button>
+    <div class="nl">Account</div>
+    <button class="ni" onclick="sp('profile',this)"><span class="nico">👤</span>Profile</button>
+    <button class="ni" onclick="sp('zone',this)"><span class="nico">📍</span>My Zone</button>
+  </nav>
+  <div class="sb-user">
+    <div class="uav" id="uav">A</div>
+    <div style="flex:1;min-width:0"><div class="un" id="uname">Agent</div><div class="ur">RestMalta Agent</div></div>
+    <button class="bg bsm btn" onclick="doLogout()" style="padding:.3rem .6rem;font-size:.7rem">↪</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div><div class="tb-title" id="tbt">Dashboard</div><div class="tb-sub" id="tbs"></div></div>
+    <div style="display:flex;gap:.75rem">
+      <button class="btn bg bsm" onclick="window.location.href='/'">← Back to site</button>
+      <button class="btn bp bsm" onclick="openVisitModal()">+ Schedule visit</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page act" id="page-dash">
+      <div class="kgrid">
+        <div class="kcard"><div class="kico">📅</div><div class="klabel">Visits this month</div><div class="kval" id="k-visits">—</div><div class="ksub">Scheduled & completed</div></div>
+        <div class="kcard"><div class="kico">💰</div><div class="klabel">Revenue this month</div><div class="kval" id="k-rev">—</div><div class="ksub">25% tenant + 25% landlord</div></div>
+        <div class="kcard"><div class="kico">⭐</div><div class="klabel">Conversion rate</div><div class="kval" id="k-conv">—</div><div class="ksub">Visits → signed leases</div></div>
+        <div class="kcard"><div class="kico">🏠</div><div class="klabel">Active listings</div><div class="kval" id="k-list">—</div><div class="ksub">In your zone</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+        <div class="card">
+          <div class="ch"><span class="ct">📅 Today's visits</span><span class="badge b-sea" id="today-count">0 visits</span></div>
+          <div class="cb" id="today-visits"><div class="empty" style="padding:2rem"><div class="em" style="font-size:1.5rem">✅</div><p style="font-size:.78rem">No visits today</p></div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">🔔 Notifications</span></div>
+          <div class="cb">
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--terra);display:inline-block;margin-top:.3rem;flex-shrink:0"></span>
+              <div><div style="font-size:.82rem">New request — <strong>Sliema Studio</strong></div><div style="font-size:.7rem;color:var(--td);margin-top:.15rem">2 min ago</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-top:.3rem;flex-shrink:0"></span>
+              <div><div style="font-size:.82rem">Lease signed — <strong>St Julian's flat</strong></div><div style="font-size:.7rem;color:var(--td);margin-top:.15rem">1 hour ago · Commission: €240</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-top:.3rem;flex-shrink:0"></span>
+              <div><div style="font-size:.82rem">Review received — <strong>4.8 ⭐</strong></div><div style="font-size:.7rem;color:var(--td);margin-top:.15rem">Yesterday</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">📋 Upcoming visits</span><button class="btn bg bsm" onclick="sp('visits',document.querySelectorAll('.ni')[1])">View all</button></div>
+        <div class="cb" id="upcoming-visits"><div class="empty" style="padding:2rem"><div class="em" style="font-size:1.5rem">📅</div><p style="font-size:.78rem">No upcoming visits</p></div></div>
+      </div>
+    </div>
+
+    <!-- VISITS -->
+    <div class="page" id="page-visits">
+      <div id="visit-groups-agent"></div>
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
+        <div>
+          <div class="card">
+            <div class="ch">
+              <span class="ct">📅 Calendar</span>
+              <div style="display:flex;gap:.5rem;align-items:center">
+                <button class="btn bg bsm" onclick="prevMonth()">‹</button>
+                <span style="font-size:.85rem;font-weight:600;min-width:120px;text-align:center" id="cal-month">April 2026</span>
+                <button class="btn bg bsm" onclick="nextMonth()">›</button>
+              </div>
+            </div>
+            <div class="cb">
+              <div class="cal-header"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+              <div class="cal-grid" id="cal-grid"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">All visits</span><button class="btn bp bsm" onclick="openVisitModal()">+ Schedule</button></div>
+            <div class="cb" id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="ch"><span class="ct">🗺️ Today's route</span></div>
+            <div class="cb">
+              <div style="background:var(--s2);border-radius:10px;padding:1.2rem;text-align:center;margin-bottom:.75rem">
+                <div style="font-size:2rem;margin-bottom:.4rem">🗺️</div>
+                <div style="font-size:.82rem;color:var(--tm)">GPS route optimized</div>
+                <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">3 stops · ~45 min</div>
+              </div>
+              <button class="btn bp" style="width:100%;justify-content:center" onclick="toast('🗺️ Opening GPS...')">Open GPS route</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">📬 Visit requests</span><span class="badge b-gold" id="req-count">0 pending</span></div>
+            <div class="cb" id="visit-requests"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTINGS -->
+    <div class="page" id="page-listings">
+      <div class="card">
+        <div class="ch"><span class="ct">🏠 Listings in my zone</span><span class="badge b-green" id="listing-count">0 active</span></div>
+        <div class="cb" id="agent-listings"><div class="empty"><div class="em">🏠</div><p>No listings in your zone yet.</p></div></div>
+      </div>
+    </div>
+
+    <!-- REVENUE -->
+    <div class="page" id="page-revenue">
+      <div class="kgrid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kcard"><div class="kico">💰</div><div class="klabel">Total earned</div><div class="kval">€1,240</div><div class="ksub">All time</div></div>
+        <div class="kcard"><div class="kico">📅</div><div class="klabel">This month</div><div class="kval">€480</div><div class="ksub">Commission on leases</div></div>
+        <div class="kcard"><div class="kico">⏳</div><div class="klabel">Pending</div><div class="kval">€240</div><div class="ksub">Awaiting signature</div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">📊 Revenue — last 6 months</span></div>
+        <div class="cb">
+          <div style="display:flex;align-items:flex-end;gap:.5rem;height:120px;margin-bottom:.5rem" id="rev-chart"></div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem" id="rev-labels"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">💳 Commission history</span></div>
+        <div class="cb">
+          <table class="tbl">
+            <thead><tr><th>Property</th><th>Tenant</th><th>Lease</th><th>Commission</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody id="comm-table">
+              <tr><td>Sliema Studio</td><td>Marie D.</td><td>€800/mo</td><td style="color:var(--green)">€400</td><td><span class="badge b-green">Paid</span></td><td style="color:var(--td)">Apr 10</td></tr>
+              <tr><td>St Julian's 2BR</td><td>Tom H.</td><td>€1,200/mo</td><td style="color:var(--gold)">€600</td><td><span class="badge b-gold">Pending</span></td><td style="color:var(--td)">Apr 12</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCORE -->
+    <div class="page" id="page-score">
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:1.5rem">
+        <div>
+          <div class="card">
+            <div class="ch"><span class="ct">⭐ Performance score</span></div>
+            <div class="cb" style="text-align:center">
+              <div class="score-ring" style="margin-bottom:1rem">
+                <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="8"/>
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--terra)" stroke-width="8" stroke-dasharray="213.6" stroke-dashoffset="42.7" stroke-linecap="round"/>
+                </svg>
+                <div class="score-val">8.2</div>
+              </div>
+              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.5rem">Overall score / 10</div>
+              <div class="badge b-green" style="display:inline-block">Top Agent 🏆</div>
+              <div style="font-size:.72rem;color:var(--td);margin-top:.75rem">Based on 12 reviews</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">🏅 Zone ranking</span></div>
+            <div class="cb">
+              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem">Zone: <strong style="color:var(--terra)">St Julian's</strong></div>
+              <div style="background:var(--s2);border-radius:10px;padding:1rem;display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:.82rem;color:var(--tm)">Your rank</span>
+                <span style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--gold)">#1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="ch"><span class="ct">📊 Score breakdown</span></div>
+            <div class="cb">
+              <div class="sbar-row"><span class="sbar-label">Response time</span><div class="sbar-track"><div class="sbar-fill" style="width:92%;background:var(--green)"></div></div><span style="font-size:.75rem;color:var(--green);width:30px;text-align:right">9.2</span></div>
+              <div class="sbar-row"><span class="sbar-label">Tenant satisfaction</span><div class="sbar-track"><div class="sbar-fill" style="width:85%"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right">8.5</span></div>
+              <div class="sbar-row"><span class="sbar-label">Conversion rate</span><div class="sbar-track"><div class="sbar-fill" style="width:78%"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right">7.8</span></div>
+              <div class="sbar-row"><span class="sbar-label">Punctuality</span><div class="sbar-track"><div class="sbar-fill" style="width:88%;background:var(--green)"></div></div><span style="font-size:.75rem;color:var(--green);width:30px;text-align:right">8.8</span></div>
+              <div class="sbar-row"><span class="sbar-label">Profile completeness</span><div class="sbar-track"><div class="sbar-fill" style="width:70%;background:var(--gold)"></div></div><span style="font-size:.75rem;color:var(--gold);width:30px;text-align:right">7.0</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">💬 Recent reviews</span></div>
+            <div class="cb">
+              <div style="padding:.75rem 0;border-bottom:1px solid var(--b)">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem"><span>⭐⭐⭐⭐⭐</span><span style="font-size:.7rem;color:var(--td)">2 days ago</span></div>
+                <div style="font-size:.82rem;color:var(--tm)">"Very professional, showed up on time and knew the property well."</div>
+              </div>
+              <div style="padding:.75rem 0">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem"><span>⭐⭐⭐⭐</span><span style="font-size:.7rem;color:var(--td)">1 week ago</span></div>
+                <div style="font-size:.82rem;color:var(--tm)">"Quick response, very helpful during the visit."</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="card" style="max-width:580px;margin-bottom:1rem">
+        <div class="ch"><span class="ct">👤 My profile</span></div>
+        <div class="cb">
+          <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--b)">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--accdim);border:2px solid rgba(108,99,255,.3);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:#8B85FF" id="prof-av">A</div>
+            <div><div style="font-size:1rem;font-weight:700" id="prof-name-display">Agent</div><div class="agent-badge" style="margin-top:.4rem">🏆 Certified Agent</div></div>
+          </div>
+          <div class="fg"><label class="fl">Full name</label><input class="fi" id="prof-name" placeholder="Your name"></div>
+          <div class="fg"><label class="fl">Email</label><input class="fi" id="prof-email" type="email"></div>
+          <div class="fg"><label class="fl">Phone</label><input class="fi" id="prof-phone" type="tel" placeholder="+356 9999 0000"></div>
+          <div class="fg"><label class="fl">Languages</label><input class="fi" id="prof-lang" placeholder="English, French, Italian..."></div>
+          <div class="fg"><label class="fl">Bio</label><textarea class="fta" id="prof-bio" rows="3" placeholder="Tell landlords and tenants about yourself..."></textarea></div>
+          <button class="btn bp" style="width:100%;justify-content:center" onclick="saveProfile()">Save profile →</button>
+        </div>
+      </div>
+
+      <!-- Identity verification -->
+      <div class="card" style="max-width:580px">
+        <div class="ch"><span class="ct">🪪 Identity verification</span><span id="agent-verify-badge" class="badge" style="background:rgba(107,95,82,.15);color:var(--td)">Not verified</span></div>
+        <div class="cb">
+          <p style="font-size:.85rem;color:var(--td);margin-bottom:1rem;line-height:1.6">Verified agents are trusted by landlords and tenants. Your badge appears on every visit you book. Takes 30 seconds — free.</p>
+
+          <div id="ag-step1">
+            <div style="font-size:.82rem;font-weight:600;margin-bottom:.6rem;color:var(--txt)">Step 1 — Upload your ID</div>
+            <div style="border:2px dashed rgba(108,99,255,.25);border-radius:10px;padding:1.2rem;text-align:center;cursor:pointer" onclick="document.getElementById('ag-id-up').click()">
+              <div style="font-size:2rem;margin-bottom:.4rem">🪪</div>
+              <div style="font-size:.83rem;color:var(--td)">Click to upload your ID / passport</div>
+              <input type="file" id="ag-id-up" accept="image/*" style="display:none" onchange="agHandleID(this)">
+            </div>
+            <div id="ag-id-preview" style="margin-top:.75rem;display:none">
+              <img id="ag-id-img" style="max-width:100%;border-radius:8px;max-height:140px;object-fit:cover">
+              <button class="btn bp" style="margin-top:.75rem;width:100%;justify-content:center" onclick="agShowSelfie()">Continue → Take selfie</button>
+            </div>
+          </div>
+
+          <div id="ag-step2" style="display:none">
+            <div style="font-size:.82rem;font-weight:600;margin-bottom:.6rem;color:var(--txt)">Step 2 — Take a selfie</div>
+            <video id="ag-video" autoplay playsinline style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;background:#000"></video>
+            <canvas id="ag-canvas" style="display:none"></canvas>
+            <div style="display:flex;gap:.75rem;margin-top:.75rem">
+              <button class="btn" style="flex:1;justify-content:center;background:var(--s2);color:var(--td)" onclick="agStep1()">← Back</button>
+              <button class="btn bp" style="flex:2;justify-content:center" onclick="agCapture()">📸 Capture</button>
+            </div>
+          </div>
+
+          <div id="ag-step3" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+              <div style="text-align:center"><div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">ID</div><img id="ag-id-thumb" style="width:100%;border-radius:8px;max-height:100px;object-fit:cover"></div>
+              <div style="text-align:center"><div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">Selfie</div><img id="ag-selfie-thumb" style="width:100%;border-radius:8px;max-height:100px;object-fit:cover"></div>
+            </div>
+            <div id="ag-loading" style="text-align:center;padding:1rem"><div style="width:24px;height:24px;border:2px solid rgba(108,99,255,.3);border-top-color:#8B85FF;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--td)">Analysing...</div></div>
+            <div id="ag-result" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONE -->
+    <div class="page" id="page-zone">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="card">
+          <div class="ch"><span class="ct">📍 My exclusive zone</span></div>
+          <div class="cb">
+            <div style="background:var(--s2);border-radius:12px;padding:2rem;text-align:center;margin-bottom:1rem">
+              <div style="font-size:3rem;margin-bottom:.5rem">🗺️</div>
+              <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--terra)">St Julian's</div>
+              <div style="font-size:.75rem;color:var(--td);margin-top:.3rem">Exclusive territory · 1 agent per zone</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.25rem">
+              <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Active listings</span><strong id="zone-listings-count">0</strong></div>
+              <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Visits this month</span><strong>8</strong></div>
+              <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.6rem 0"><span style="color:var(--tm)">Signed leases</span><strong>3</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">🏠 Zone listings</span></div>
+          <div class="cb" id="zone-listings-list"><div class="empty"><div class="em">🏠</div><p>No listings in your zone yet</p></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- VISIT MODAL -->
+<div class="modal" id="visit-modal" onclick="if(event.target===this)closeVisitModal()">
+  <div class="mbox">
+    <div class="mh"><span>📅 Schedule a visit</span><button class="bg btn bsm" onclick="closeVisitModal()">✕</button></div>
+    <div class="fg"><label class="fl">Property *</label><select class="fsel" id="vm-listing"><option value="">Select a listing...</option></select></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Date *</label><input class="fi" type="date" id="vm-date"></div>
+      <div class="fg"><label class="fl">Time *</label><input class="fi" type="time" id="vm-time" value="10:00"></div>
+    </div>
+    <div class="fg"><label class="fl">Tenant name *</label><input class="fi" id="vm-tenant" placeholder="Full name"></div>
+    <div class="fg"><label class="fl">Tenant email</label><input class="fi" type="email" id="vm-temail" placeholder="tenant@email.com"></div>
+    <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="vm-notes" rows="2" placeholder="Special instructions..."></textarea></div>
+    <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" onclick="scheduleVisit()">Schedule visit →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SU='https://clfqftbvohwybkrtvylo.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
+const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
+let clerk,U=null,P=null;
+let currentMonth=new Date().getMonth(),currentYear=new Date().getFullYear();
+let visits=[],listings=[];
+
+(async()=>{
+  clerk=window.Clerk;
+  await clerk.load();
+  if(!clerk.user){window.location.href='/';return;}
+  U={id:clerk.user.id,email:clerk.user.primaryEmailAddress?.emailAddress||''};
+  let Pd=null;
+  for(let i=0;i<5;i++){
+    const{data}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();
+    if(data){Pd=data;break;}
+    await new Promise(r=>setTimeout(r,800));
+  }
+  P=Pd;
+  if(!P||P.role!=='agent'){window.location.href='/';return;}
+  initUI();loadAll();
+})();
+
+function initUI(){
+  const n=P.full_name||'Agent';
+  document.getElementById('uav').textContent=n[0].toUpperCase();
+  document.getElementById('uname').textContent=n;
+  document.getElementById('prof-av').textContent=n[0].toUpperCase();
+  document.getElementById('prof-name-display').textContent=n;
+  document.getElementById('prof-name').value=P.full_name||'';
+  document.getElementById('prof-email').value=P.email||'';
+  document.getElementById('prof-phone').value=P.phone||'';
+  document.getElementById('tbs').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+async function loadAll(){await Promise.all([loadVisits(),loadListings()]);renderRevChart();}
+
+async function loadVisits(){
+  // Load real visits from Supabase
+  const{data:realVisits}=await sb.from('visits').select('*').eq('agent_id',U.id).order('visit_date',{ascending:true}).catch(()=>({data:[]}));
+  // Also load visit groups where agent is assigned
+  const{data:groups}=await sb.from('visit_groups').select('*').eq('agent_id',U.id).eq('status','active').catch(()=>({data:[]}));
+
+  const today=new Date().toISOString().split('T')[0];
+  visits=realVisits||[];
+
+  // If no real visits yet, show mock
+  if(!visits.length){
+    visits=[
+      {id:1,listing_title:'Sliema Studio',visit_date:new Date().toISOString(),tenant_name:'Marie D.',status:'confirmed',landlord_presence:'not_needed'},
+      {id:2,listing_title:"St Julian's 2BR",visit_date:new Date().toISOString(),tenant_name:'Tom H.',status:'pending',landlord_presence:'mandatory'},
+    ];
+  }
+
+  const todayV=visits.filter(v=>v.visit_date?.startsWith(today));
+  document.getElementById('k-visits').textContent=visits.length;
+  document.getElementById('today-count').textContent=`${todayV.length} visite${todayV.length!==1?'s':''}`;
+  const pending=visits.filter(v=>v.status==='pending'||v.status==='requested').length;
+  if(pending>0){document.getElementById('nb-visits').textContent=pending;document.getElementById('nb-visits').style.display='inline';}
+
+  // Show visit groups info
+  const groupsWrap=document.getElementById('visit-groups-agent');
+  if(groupsWrap&&groups?.length){
+    const typeLabels={agent_tenant:'Vous gérez seul',agent_tenant_optional:'RDV envoyé au proprio',three_way:'👥 Groupe 3 — proprio présent'};
+    groupsWrap.innerHTML=`<div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem">
+      <div style="font-size:.8rem;font-weight:700;color:#8B85FF;margin-bottom:.5rem">👥 Vos groupes de visite actifs (${groups.length})</div>
+      ${groups.map(g=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid rgba(108,99,255,.1);font-size:.8rem">
+        <div style="flex:1"><strong>${g.listing_title||'Listing'}</strong> — ${g.tenant_name||'Tenant'}</div>
+        <span style="font-size:.72rem;color:#8B85FF">${typeLabels[g.type]||g.type}</span>
+        ${g.type==='three_way'?`<button onclick="openAgentGroupChat('${g.id}','${g.listing_title||''}','${g.tenant_name||''}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;cursor:pointer;font-weight:600">💬 Chat</button>`:''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  renderTodayVisits(todayV);renderUpcoming();renderAllVisits();renderCalendar();
+}
+
+function renderTodayVisits(v){
+  const w=document.getElementById('today-visits');
+  if(!v.length){w.innerHTML='<div class="empty" style="padding:2rem"><div class="em" style="font-size:1.5rem">✅</div><p style="font-size:.78rem">No visits today</p></div>';return;}
+  w.innerHTML=v.map(v=>`<div class="vcard" style="margin-bottom:.5rem"><div class="vtime"><div class="vt-h">${v.time.split(':')[0]}</div><div class="vt-m">${v.time.split(':')[1]}</div></div><div class="vinfo"><div class="vtitle">${v.listing}</div><div class="vtenant"><div class="vav">${v.tenant[0]}</div>${v.tenant}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`).join('');
+}
+
+function renderUpcoming(){
+  const today=new Date().toISOString().split('T')[0];
+  const up=visits.filter(v=>v.date>=today).slice(0,3);
+  const w=document.getElementById('upcoming-visits');
+  if(!up.length){w.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📅</div><p style="font-size:.78rem">No upcoming visits</p></div>';return;}
+  w.innerHTML=up.map(v=>`<div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="background:var(--tdim);border-radius:8px;padding:.4rem .7rem;text-align:center;flex-shrink:0"><div style="font-size:.6rem;color:var(--td)">${new Date(v.date).toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase()}</div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--terra)">${new Date(v.date).getDate()}</div></div><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${v.listing}</div><div style="font-size:.75rem;color:var(--tm)">${v.time} · ${v.tenant}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`).join('');
+}
+
+function renderAllVisits(){
+  const w=document.getElementById('all-visits-list');
+  if(!visits.length){w.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet</p></div>';return;}
+  w.innerHTML=visits.map(v=>`<div class="vcard"><div class="vtime"><div class="vt-h">${v.time.split(':')[0]}</div><div class="vt-m">${v.time.split(':')[1]}</div></div><div class="vinfo"><div class="vtitle">${v.listing}</div><div class="vsub">${new Date(v.date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="vtenant"><div class="vav">${v.tenant[0]}</div>${v.tenant} · ${v.tenant_email}</div></div><div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end"><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span><button class="btn bg bsm" onclick="toast('✅ Confirmed!')">Confirm</button></div></div>`).join('');
+  const pending=visits.filter(v=>v.status==='pending');
+  document.getElementById('req-count').textContent=`${pending.length} pending`;
+  const rw=document.getElementById('visit-requests');
+  if(!pending.length){rw.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests</p></div>';return;}
+  rw.innerHTML=pending.map(v=>`<div style="padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${v.listing}</div><div style="font-size:.72rem;color:var(--td);margin-bottom:.5rem">${v.tenant} · ${v.time}</div><div style="display:flex;gap:.5rem"><button class="btn bp bsm" style="flex:1;justify-content:center" onclick="toast('✅ Confirmed!')">Accept</button><button class="btn bg bsm" style="flex:1;justify-content:center" onclick="toast('❌ Declined')">Decline</button></div></div>`).join('');
+}
+
+async function loadListings(){
+  const{data}=await sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false}).limit(20);
+  listings=data||[];
+  document.getElementById('k-list').textContent=listings.length;
+  document.getElementById('listing-count').textContent=`${listings.length} active`;
+  document.getElementById('zone-listings-count').textContent=listings.length;
+  document.getElementById('vm-listing').innerHTML='<option value="">Select a listing...</option>'+listings.map(l=>`<option value="${l.id}">${l.title} — ${l.zone}</option>`).join('');
+  const w=document.getElementById('agent-listings');
+  if(!listings.length){w.innerHTML='<div class="empty"><div class="em">🏠</div><p>No listings yet</p></div>';return;}
+  w.innerHTML=listings.map(l=>`<div class="pcard-agent"><div class="pimg-sm">${l.photos&&l.photos[0]?`<img src="${l.photos[0]}">`:'🏠'}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.75rem;color:var(--tm)">📍 ${l.zone} · €${l.price}/mo</div></div><div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end"><span class="badge b-green">Active</span><button class="btn bg bsm" onclick="openVisitModal()">Schedule visit</button></div></div>`).join('');
+  const zw=document.getElementById('zone-listings-list');
+  zw.innerHTML=listings.slice(0,6).map(l=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="font-size:1.1rem">🏠</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.7rem;color:var(--td)">€${l.price}/mo</div></div></div>`).join('');
+}
+
+function renderRevChart(){
+  document.getElementById('k-rev').textContent='€480';
+  document.getElementById('k-conv').textContent='67%';
+  const months=['Nov','Dec','Jan','Feb','Mar','Apr'];
+  const vals=[120,0,360,240,480,480];
+  const max=Math.max(...vals)||1;
+  document.getElementById('rev-chart').innerHTML=months.map((m,i)=>`<div class="rev-bar ${i===5?'active':''}" style="height:${Math.max(4,(vals[i]/max)*100)}%;flex:1" title="€${vals[i]}"></div>`).join('');
+  document.getElementById('rev-labels').innerHTML=months.map(m=>`<div style="text-align:center;font-size:.65rem;color:var(--td);margin-top:.3rem">${m}</div>`).join('');
+}
+
+function renderCalendar(){
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month').textContent=`${monthNames[currentMonth]} ${currentYear}`;
+  const firstDay=(new Date(currentYear,currentMonth,1).getDay()+6)%7;
+  const days=new Date(currentYear,currentMonth+1,0).getDate();
+  const today=new Date();
+  const visitDays=new Set(visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===currentMonth&&d.getFullYear()===currentYear;}).map(v=>new Date(v.date).getDate()));
+  let html='';
+  for(let i=0;i<firstDay;i++)html+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const isToday=d===today.getDate()&&currentMonth===today.getMonth()&&currentYear===today.getFullYear();
+    html+=`<div class="cal-day ${isToday?'today':''} ${visitDays.has(d)?'has-visit':''}" onclick="toast('📅 ${d} ${monthNames[currentMonth]}')">${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+}
+
+function prevMonth(){currentMonth--;if(currentMonth<0){currentMonth=11;currentYear--;}renderCalendar();}
+function nextMonth(){currentMonth++;if(currentMonth>11){currentMonth=0;currentYear++;}renderCalendar();}
+
+function openVisitModal(){document.getElementById('visit-modal').classList.add('open');document.getElementById('vm-date').value=new Date().toISOString().split('T')[0];}
+function closeVisitModal(){document.getElementById('visit-modal').classList.remove('open');}
+
+function scheduleVisit(){
+  const listing=document.getElementById('vm-listing');
+  const date=document.getElementById('vm-date').value;
+  const time=document.getElementById('vm-time').value;
+  const tenant=document.getElementById('vm-tenant').value.trim();
+  if(!listing.value||!date||!tenant){toast('❌ Please fill required fields');return;}
+  visits.push({id:Date.now(),listing:listing.selectedOptions[0].text.split(' —')[0],time,date,tenant,tenant_email:document.getElementById('vm-temail').value,status:'confirmed'});
+  closeVisitModal();toast('✅ Visit scheduled!');
+  renderAllVisits();renderCalendar();renderUpcoming();
+  document.getElementById('vm-tenant').value='';document.getElementById('vm-temail').value='';document.getElementById('vm-notes').value='';
+}
+
+async function saveProfile(){
+  const n=document.getElementById('prof-name').value.trim();
+  if(!P)return;
+  await sb.from('profiles').update({full_name:n,phone:document.getElementById('prof-phone').value.trim()}).eq('clerk_id',U.id);
+  if(n){document.getElementById('uname').textContent=n;document.getElementById('prof-name-display').textContent=n;}
+  toast('✅ Profile saved!');
+}
+
+// Agent group chat — real-time
+let agentGroupChannel=null;
+let currentGroupId=null;
+
+async function openAgentGroupChat(groupId, listingTitle, tenantName){
+  currentGroupId=groupId;
+  // Simple chat modal
+  const modal=document.createElement('div');
+  modal.id='agent-chat-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border-radius:16px;width:100%;max-width:500px;height:500px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700;font-size:.9rem">👥 ${listingTitle}</div>
+          <div style="font-size:.72rem;color:var(--td)">Tenant: ${tenantName} · Tél masqués</div>
+        </div>
+        <button onclick="document.getElementById('agent-chat-modal').remove();if(agentGroupChannel){sb.removeChannel(agentGroupChannel);agentGroupChannel=null;}" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+      </div>
+      <div id="agent-group-body" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
+      <div style="padding:.75rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+        <textarea id="agent-group-input" rows="2" placeholder="Message groupe... (téléphones masqués)" style="flex:1;resize:none;border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.83rem;background:var(--s2);color:var(--txt);font-family:'DM Sans',sans-serif"></textarea>
+        <button onclick="sendAgentGroupMessage('${groupId}')" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-weight:600">↑</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  // Load history
+  const body=document.getElementById('agent-group-body');
+  const{data}=await sb.from('group_messages').select('*').eq('group_id',groupId).order('created_at',{ascending:true}).catch(()=>({data:[]}));
+  (data||[]).forEach(m=>appendAgentGroupMsg(m,body));
+  body.scrollTop=body.scrollHeight;
+  // Subscribe realtime
+  if(agentGroupChannel)sb.removeChannel(agentGroupChannel);
+  agentGroupChannel=sb.channel('agent-group-'+groupId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'group_messages',filter:`group_id=eq.${groupId}`},payload=>{
+      appendAgentGroupMsg(payload.new,body);
+      body.scrollTop=body.scrollHeight;
+    }).subscribe();
+}
+
+function appendAgentGroupMsg(m,body){
+  const isMe=m.sender_id===U.id;
+  const div=document.createElement('div');
+  div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
+  // Mask phone numbers
+  const content=(m.content||'').replace(/(\+?[\d\s\-]{8,})/g,'[📵 Tél masqué]');
+  div.innerHTML=`<div style="font-size:.63rem;color:var(--td)">${m.sender_name||''} · ${m.sender_role||''}</div><div style="max-width:80%;padding:.5rem .75rem;border-radius:10px;font-size:.83rem;${isMe?'background:var(--terra);color:white':'background:var(--s2);color:var(--txt)'}">${content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  body.appendChild(div);
+}
+
+async function sendAgentGroupMessage(groupId){
+  const input=document.getElementById('agent-group-input');
+  const content=input?.value.trim();
+  if(!content)return;
+  // Check for phone numbers before sending
+  if(/\+?[\d\s\-]{10,}/.test(content)){
+    toast('⚠️ Les numéros de téléphone sont masqués — utilisez uniquement le chat RestMalta.');
+    return;
+  }
+  input.value='';
+  await sb.from('group_messages').insert({
+    group_id:groupId,
+    sender_id:U.id,
+    sender_name:P?.full_name||'Agent',
+    sender_role:'agent',
+    content
+  }).catch(e=>toast('❌ '+e.message));
+}
+
+function sp(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
+  document.getElementById('page-'+id).classList.add('act');
+  if(btn)btn.classList.add('act');
+  const titles={dash:'Dashboard',visits:'My Visits',listings:'Listings',revenue:'Revenue',score:'My Score',profile:'Profile',zone:'My Zone'};
+  document.getElementById('tbt').textContent=titles[id]||id;
+}
+
+// ── Agent Identity Verification ───────────────────────────────
+let agIdData=null,agSelfieData=null,agStream=null,agModels=false;
+async function agLoadModels(){if(agModels)return true;try{const M='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(M),faceapi.nets.faceLandmark68TinyNet.loadFromUri(M),faceapi.nets.faceRecognitionNet.loadFromUri(M)]);agModels=true;return true;}catch(e){return false;}}
+function agHandleID(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{agIdData=e.target.result;document.getElementById('ag-id-img').src=agIdData;document.getElementById('ag-id-thumb').src=agIdData;document.getElementById('ag-id-preview').style.display='block';};r.readAsDataURL(file);}
+function agStep1(){document.getElementById('ag-step2').style.display='none';document.getElementById('ag-step3').style.display='none';document.getElementById('ag-step1').style.display='block';if(agStream){agStream.getTracks().forEach(t=>t.stop());agStream=null;}}
+async function agShowSelfie(){if(!agIdData){toast('Upload your ID first');return;}document.getElementById('ag-step1').style.display='none';document.getElementById('ag-step2').style.display='block';try{agStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});document.getElementById('ag-video').srcObject=agStream;}catch(e){toast('❌ Camera access denied');agStep1();}}
+function agCapture(){const v=document.getElementById('ag-video');const c=document.getElementById('ag-canvas');c.width=v.videoWidth||640;c.height=v.videoHeight||480;c.getContext('2d').drawImage(v,0,0);agSelfieData=c.toDataURL('image/jpeg',.9);document.getElementById('ag-selfie-thumb').src=agSelfieData;if(agStream){agStream.getTracks().forEach(t=>t.stop());agStream=null;}document.getElementById('ag-step2').style.display='none';document.getElementById('ag-step3').style.display='block';agVerify();}
+async function agVerify(){const res=document.getElementById('ag-result');const load=document.getElementById('ag-loading');load.style.display='block';res.style.display='none';try{await agLoadModels();const opts=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.3});const[idImg,sImg]=await Promise.all([faceapi.fetchImage(agIdData),faceapi.fetchImage(agSelfieData)]);const[idD,sD]=await Promise.all([faceapi.detectSingleFace(idImg,opts).withFaceLandmarks(true).withFaceDescriptor(),faceapi.detectSingleFace(sImg,opts).withFaceLandmarks(true).withFaceDescriptor()]);load.style.display='none';res.style.display='block';if(!idD||!sD){res.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">❌</div><div style="font-size:.82rem;color:var(--terra);margin:.4rem 0">Face not detected. Try again with better lighting.</div><button class="btn bp bsm" onclick="agStep1()">Try again</button></div>`;return;}const dist=faceapi.euclideanDistance(idD.descriptor,sD.descriptor);const sim=Math.round((1-Math.min(dist,1))*100);if(dist<0.55){await sb.from('profiles').update({verified:true}).eq('clerk_id',U.id);document.getElementById('agent-verify-badge').textContent='✅ Verified';document.getElementById('agent-verify-badge').style.cssText='background:rgba(76,175,125,.15);color:#4CAF7D';res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin:.3rem 0">Identity Verified! Match: ${sim}%</div><div style="font-size:.78rem;color:var(--td)">Your verified agent badge is now active.</div></div>`;toast('🎉 Identity verified!');}else{res.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">❌</div><div style="font-size:.82rem;color:var(--terra);margin:.4rem 0">Match: ${sim}% — too low. Try again.</div><button class="btn bp bsm" onclick="agStep1()">Try again</button></div>`;}}catch(e){load.style.display='none';res.style.display='block';res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">⏳</div><div style="font-size:.82rem;color:var(--gold);margin:.4rem 0">Documents saved — manual review within 24h.</div></div>`;}}
+
+async function doLogout(){await clerk.signOut();window.location.href='/';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+</script>
+</body>
+</html>

@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>RestMalta — Find your place in Malta</title>
+<meta name="description" content="Find verified flats in Malta — no agents, no Facebook. Short-let, long-let, sous-location.">
+<meta name="theme-color" content="#C9553A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RestMalta">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<script>
+  // ── Clerk config ──────────────────────────────────────────────
+  window.__clerk_publishable_key = 'pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
+<style>
+:root{--sand:#F5EFE0;--warm:#FDFAF4;--terra:#C9553A;--terra-l:#E8715A;--ochre:#D4A847;--deep:#1A1410;--stone:#6B5F52;--stone-l:#A89880;--sea:#2E6B8A;--green:#4CAF7D}
+
+
+
+
+
+
+
+
+
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--warm);color:var(--deep);overflow-x:hidden}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 4rem;background:rgba(253,250,244,0.93);backdrop-filter:blur(16px);border-bottom:1px solid rgba(201,85,58,0.1)}
+.logo{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:900;color:var(--terra);cursor:pointer}
+.logo span{color:var(--deep)}
+.nav-links{display:flex;gap:2.5rem;list-style:none}
+.nav-links a{text-decoration:none;color:var(--stone);font-size:0.9rem;font-weight:500;cursor:pointer;transition:color .2s}
+.nav-links a:hover{color:var(--terra)}
+.nav-act{display:flex;gap:.75rem;align-items:center}
+
+.btn{padding:.65rem 1.4rem;border-radius:100px;border:none;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .2s}
+.btn-p{background:var(--terra);color:white;box-shadow:0 4px 16px rgba(201,85,58,.25)}
+.btn-p:hover{background:var(--terra-l);transform:translateY(-2px)}
+.btn-s{background:transparent;color:var(--deep);border:1.5px solid rgba(26,20,16,.18)}
+.btn-s:hover{border-color:var(--terra);color:var(--terra)}
+.btn-sm{padding:.45rem 1rem;font-size:.8rem}
+
+.page{display:none;min-height:100vh;padding-top:80px}
+.page.active{display:block;animation:fu .3s ease}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* HERO */
+.hero{min-height:calc(100vh - 80px);display:grid;grid-template-columns:1fr 1fr;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 80% 50%,rgba(46,107,138,.07) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 10% 80%,rgba(201,85,58,.05) 0%,transparent 70%)}
+.hero-l{display:flex;flex-direction:column;justify-content:center;padding:4rem 3rem 4rem 5rem;position:relative;z-index:1}
+.hero-tag{display:inline-flex;align-items:center;gap:.5rem;background:rgba(201,85,58,.1);color:var(--terra);border:1px solid rgba(201,85,58,.2);padding:.4rem 1rem;border-radius:100px;font-size:.75rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;width:fit-content;margin-bottom:1.8rem}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(2.8rem,4.5vw,4rem);font-weight:900;line-height:1.08;letter-spacing:-1.5px;margin-bottom:1.3rem}
+.hero h1 em{font-style:italic;color:var(--terra)}
+.hero-desc{font-size:1rem;color:var(--stone);line-height:1.7;max-width:420px;margin-bottom:2rem}
+.hero-acts{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:3rem}
+.hero-stats{display:flex;gap:2.5rem;padding-top:2rem;border-top:1px solid rgba(107,95,82,.12)}
+.sn{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--terra)}
+.sl{font-size:.75rem;color:var(--stone-l);font-weight:500}
+
+.hero-r{display:flex;align-items:center;justify-content:center;padding:2rem}
+.pcard{background:white;border-radius:20px;padding:1.5rem;box-shadow:0 20px 60px rgba(26,20,16,.12);width:100%;max-width:400px}
+.pmap{width:100%;height:200px;background:linear-gradient(135deg,#CBE4F0,#BFD8E8);border-radius:12px;position:relative;overflow:hidden;margin-bottom:1.2rem}
+.pmap svg{width:100%;height:100%;position:absolute;top:0;left:0}
+.mpin{position:absolute;display:flex;flex-direction:column;align-items:center;animation:pb 2s infinite}
+.mpin .pl{background:white;padding:.2rem .5rem;border-radius:6px;font-size:.63rem;font-weight:700;color:var(--deep);box-shadow:0 2px 6px rgba(0,0,0,.1);margin-bottom:.2rem;white-space:nowrap}
+.mpin .pd{width:10px;height:10px;background:var(--terra);border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(201,85,58,.4)}
+@keyframes pb{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.pi-a{top:30%;left:50%;animation-delay:0s}.pi-b{top:48%;left:56%;animation-delay:.3s}.pi-c{top:22%;left:44%;animation-delay:.6s}.pi-d{top:18%;left:20%;animation-delay:.9s}
+.pitems{display:flex;flex-direction:column;gap:.6rem}
+.pitem{display:flex;align-items:center;gap:.75rem;padding:.65rem .8rem;background:var(--warm);border-radius:10px;border:1px solid rgba(107,95,82,.08);cursor:pointer;transition:all .2s}
+.pitem:hover{border-color:var(--terra);transform:translateX(3px)}
+.pe{font-size:1.3rem;flex-shrink:0}
+.pi{flex:1}
+.pt{font-size:.8rem;font-weight:600}
+.ps{font-size:.68rem;color:var(--stone-l)}
+.pp{font-family:'Playfair Display',serif;font-weight:700;color:var(--terra);font-size:.85rem}
+
+/* SEARCH */
+.search-sec{padding:0 4rem 2rem}
+.sbar{background:white;border-radius:16px;padding:1.2rem 1.5rem;box-shadow:0 8px 32px rgba(26,20,16,.08);display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1rem;align-items:end;border:1px solid rgba(107,95,82,.08)}
+.sf{display:flex;flex-direction:column;gap:.3rem}
+.sf label{font-size:.67rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--stone-l)}
+.sf select{border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--deep);font-weight:500;padding:.3rem 0;border-bottom:1.5px solid rgba(107,95,82,.2);outline:none;cursor:pointer;width:100%;transition:border-color .2s}
+.sf select:focus{border-color:var(--terra)}
+
+/* HOW IT WORKS */
+.hiw{padding:5rem 4rem;background:white}
+.stag{display:inline-flex;align-items:center;background:rgba(212,168,71,.1);color:var(--ochre);border:1px solid rgba(212,168,71,.2);padding:.35rem 1rem;border-radius:100px;font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:1.2rem}
+.hiw h2{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:.8rem}
+.hiw h2 em{font-style:italic;color:var(--terra)}
+.hiw p{color:var(--stone);font-size:.95rem;line-height:1.7;max-width:480px;margin-bottom:3rem}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.step{padding:1.8rem;border-radius:18px;border:1px solid rgba(107,95,82,.1);background:var(--warm);transition:all .3s;position:relative;overflow:hidden}
+.step::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--terra);transform:scaleX(0);transition:transform .3s;transform-origin:left}
+.step:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(26,20,16,.08)}
+.step:hover::before{transform:scaleX(1)}
+.snum{font-family:'Playfair Display',serif;font-size:2.5rem;font-weight:900;color:rgba(201,85,58,.1);line-height:1;margin-bottom:.8rem}
+.sico{font-size:1.6rem;margin-bottom:.8rem}
+.step h3{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
+.step p{font-size:.85rem;color:var(--stone);line-height:1.6}
+
+/* FEATURES */
+.feat{background:var(--deep);color:white;padding:5rem 4rem}
+.feat .stag{background:rgba(255,255,255,.07);color:var(--ochre);border-color:rgba(212,168,71,.2)}
+.feat h2{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;letter-spacing:-1px;line-height:1.1;color:white;margin-bottom:3rem}
+.feat h2 em{font-style:italic;color:var(--terra)}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.fc{padding:1.8rem;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);transition:all .3s}
+.fc:hover{background:rgba(255,255,255,.08);border-color:rgba(201,85,58,.3);transform:translateY(-3px)}
+.fci{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:1rem}
+.fc h3{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:white;margin-bottom:.4rem}
+.fc p{font-size:.82rem;color:rgba(255,255,255,.45);line-height:1.6}
+
+/* LISTINGS */
+.ls{padding:3rem 4rem 5rem;background:var(--sand)}
+.ls-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2rem}
+.ls-head h2{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:800}
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.lcard{background:white;border-radius:18px;overflow:hidden;border:1px solid rgba(107,95,82,.08);transition:all .3s;cursor:pointer}
+.lcard:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(26,20,16,.1)}
+.limg{width:100%;height:180px;display:flex;align-items:center;justify-content:center;font-size:4rem;position:relative;overflow:hidden}
+.lbadge{position:absolute;top:.75rem;left:.75rem;padding:.25rem .7rem;border-radius:100px;font-size:.68rem;font-weight:700}
+.bs{background:var(--terra);color:white}.bl{background:var(--sea);color:white}.bsub{background:var(--ochre);color:white}
+.lbody{padding:1.1rem}
+.lzone{font-size:.72rem;color:var(--stone-l);margin-bottom:.3rem;font-weight:500}
+.ltitle{font-family:'Playfair Display',serif;font-size:.98rem;font-weight:700;margin-bottom:.6rem;line-height:1.3}
+.ltags{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.ltag{background:var(--sand);color:var(--stone);padding:.2rem .6rem;border-radius:100px;font-size:.66rem}
+.lfoot{display:flex;align-items:center;justify-content:space-between;padding-top:.8rem;border-top:1px solid rgba(107,95,82,.1)}
+.lprice{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--terra)}
+.lper{font-size:.7rem;color:var(--stone-l)}
+
+/* TRUST */
+.trust{padding:3rem 4rem;display:flex;align-items:center;justify-content:space-between;gap:2rem;flex-wrap:wrap;background:white;border-top:1px solid rgba(107,95,82,.08)}
+.ti{display:flex;align-items:center;gap:1rem}
+.tico{font-size:1.8rem}
+.ttext strong{display:block;font-size:.88rem;font-weight:700}
+.ttext span{font-size:.75rem;color:var(--stone-l)}
+
+/* FOOTER */
+footer{background:var(--deep);color:white;padding:4rem 4rem 2rem}
+.fg{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem}
+.flogo{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:900;color:var(--terra);margin-bottom:.8rem}
+.fdesc{font-size:.82rem;color:rgba(255,255,255,.35);line-height:1.7;max-width:240px}
+footer h4{font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:1rem}
+footer ul{list-style:none;display:flex;flex-direction:column;gap:.6rem}
+footer ul a{text-decoration:none;color:rgba(255,255,255,.45);font-size:.85rem;cursor:pointer;transition:color .2s}
+footer ul a:hover{color:var(--terra)}
+.fbot{border-top:1px solid rgba(255,255,255,.07);padding-top:1.5rem;display:flex;justify-content:space-between}
+.fbot p{font-size:.75rem;color:rgba(255,255,255,.2)}
+
+/* AUTH */
+.awrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 80px);padding:2rem;background:radial-gradient(ellipse at 50% 0%,rgba(201,85,58,.05) 0%,transparent 60%)}
+.acard{background:white;border-radius:24px;padding:2.5rem;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(26,20,16,.1);border:1px solid rgba(107,95,82,.08)}
+.atitle{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:800;margin-bottom:.3rem}
+.asub{color:var(--stone);font-size:.85rem;margin-bottom:1.5rem}
+.atabs{display:flex;background:var(--sand);border-radius:10px;padding:4px;gap:4px;margin-bottom:1.5rem}
+.atab{flex:1;padding:.55rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:500;cursor:pointer;background:transparent;color:var(--stone);transition:all .2s}
+.atab.active{background:white;color:var(--deep);font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.rtog{display:flex;background:var(--sand);border-radius:10px;padding:4px;gap:4px;margin-bottom:1.2rem}
+.rbtn{flex:1;padding:.6rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.83rem;cursor:pointer;background:transparent;color:var(--stone);transition:all .2s}
+.rbtn.active{background:var(--terra);color:white;font-weight:600}
+.fg2{display:flex;flex-direction:column;gap:.35rem;margin-bottom:1rem}
+.fg2 label{font-size:.75rem;font-weight:600;color:var(--stone)}
+.fi{padding:.75rem 1rem;border:1.5px solid rgba(107,95,82,.2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--deep);background:var(--warm);outline:none;transition:border-color .2s;width:100%}
+.fi:focus{border-color:var(--terra);background:white}
+.fsel{padding:.75rem 1rem;border:1.5px solid rgba(107,95,82,.2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--deep);background:var(--warm);outline:none;cursor:pointer;width:100%}
+.fta{padding:.75rem 1rem;border:1.5px solid rgba(107,95,82,.2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--deep);background:var(--warm);outline:none;transition:border-color .2s;width:100%;resize:vertical}
+.fta:focus{border-color:var(--terra);background:white}
+.aerr{background:rgba(201,85,58,.08);color:var(--terra);padding:.7rem 1rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem;display:none;border:1px solid rgba(201,85,58,.15)}
+.aok{background:rgba(76,175,125,.08);color:#2d7a56;padding:.7rem 1rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem;display:none;border:1px solid rgba(76,175,125,.2)}
+
+/* POST */
+.pwrap{max-width:700px;margin:0 auto;padding:3rem 2rem 5rem}
+.ptitle{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;margin-bottom:.3rem}
+.psub{color:var(--stone);margin-bottom:2rem;font-size:.95rem}
+.fcard{background:white;border-radius:20px;padding:2rem;box-shadow:0 8px 32px rgba(26,20,16,.06);border:1px solid rgba(107,95,82,.08);margin-bottom:1.5rem}
+.fcard h3{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:1.2rem;padding-bottom:.8rem;border-bottom:1px solid rgba(107,95,82,.1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.ttog{display:flex;background:var(--sand);border-radius:10px;padding:4px;gap:4px}
+.tbtn{flex:1;padding:.6rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;background:transparent;color:var(--stone);transition:all .2s}
+.tbtn.active{background:var(--terra);color:white;font-weight:600}
+.cbwrap{display:flex;gap:1.5rem;flex-wrap:wrap}
+.cl{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--stone);cursor:pointer}
+.cl input{accent-color:var(--terra);width:15px;height:15px;cursor:pointer}
+
+/* DETAIL */
+.dwrap{max-width:900px;margin:0 auto;padding:2rem 2rem 5rem}
+.dhero{border-radius:20px;height:300px;display:flex;align-items:center;justify-content:center;font-size:7rem;position:relative;margin-bottom:2rem}
+.bbtn{position:absolute;top:1.2rem;left:1.2rem;background:white;border:none;padding:.5rem 1.2rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s}
+.bbtn:hover{transform:translateX(-2px)}
+.dgrid{display:grid;grid-template-columns:1.4fr 1fr;gap:2.5rem}
+.dtitle{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;margin-bottom:.5rem}
+.dzone{color:var(--stone-l);font-size:.9rem;margin-bottom:1.2rem}
+.dfeats{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.dfeat{background:var(--sand);padding:.35rem .85rem;border-radius:100px;font-size:.78rem;color:var(--stone)}
+.ddesc{color:var(--stone);line-height:1.8;font-size:.92rem;margin-bottom:2rem}
+.ccard{background:white;border-radius:20px;padding:1.8rem;border:1px solid rgba(107,95,82,.1);box-shadow:0 8px 30px rgba(26,20,16,.08);position:sticky;top:100px}
+.cprice{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--terra)}
+.cper{font-size:.78rem;color:var(--stone-l);margin-bottom:1.2rem}
+.cinfo{display:flex;flex-direction:column;gap:.6rem;padding-bottom:1.2rem;margin-bottom:1.2rem;border-bottom:1px solid rgba(107,95,82,.1)}
+.crow{display:flex;justify-content:space-between;font-size:.83rem}
+.crow span:first-child{color:var(--stone-l)}
+.crow span:last-child{font-weight:600}
+
+/* DASHBOARD */
+.dwrap2{max-width:960px;margin:0 auto;padding:2.5rem 2rem 5rem}
+.dh{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem}
+.dtabs{display:flex;gap:.3rem;background:var(--sand);border-radius:10px;padding:4px;width:fit-content;margin-bottom:1.5rem}
+.dtab{padding:.5rem 1.2rem;border-radius:8px;font-size:.83rem;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--stone);font-family:'DM Sans',sans-serif;transition:all .15s}
+.dtab.active{background:var(--terra);color:white;font-weight:600}
+.dpanel{display:none}
+.dpanel.active{display:block;animation:fu .2s ease}
+.mlcard{background:white;border-radius:14px;padding:1.2rem 1.4rem;border:1px solid rgba(107,95,82,.1);display:flex;gap:1rem;align-items:center;margin-bottom:.8rem;transition:all .2s}
+.mlcard:hover{border-color:rgba(107,95,82,.2);box-shadow:0 4px 16px rgba(26,20,16,.06)}
+.mlico{width:44px;height:44px;border-radius:10px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.mli{flex:1;min-width:0}
+.mlt{font-weight:600;font-size:.9rem;margin-bottom:.2rem}
+.mls{font-size:.75rem;color:var(--stone-l)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:.3rem}
+.dg{background:var(--green)}.dr{background:var(--terra)}
+.msgcard{background:white;border-radius:14px;padding:1.1rem 1.4rem;border:1px solid rgba(107,95,82,.1);display:flex;gap:1rem;align-items:flex-start;margin-bottom:.75rem;cursor:pointer;transition:all .2s}
+.msgcard:hover{border-color:var(--terra);transform:translateX(3px)}
+.mav{width:38px;height:38px;border-radius:50%;background:rgba(201,85,58,.1);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--terra);font-size:.82rem;flex-shrink:0}
+.mprev{font-size:.78rem;color:var(--stone-l);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.mtime{font-size:.68rem;color:var(--stone-l);white-space:nowrap}
+.ubadge{width:8px;height:8px;background:var(--terra);border-radius:50%;flex-shrink:0;margin-top:.5rem}
+
+/* MODAL */
+.mover{position:fixed;inset:0;background:rgba(26,20,16,.55);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:1rem}
+.mover.open{display:flex}
+.modal{background:white;border-radius:22px;padding:2rem;max-width:500px;width:100%;position:relative;animation:fu .25s ease;max-height:88vh;overflow-y:auto}
+.mclose{position:absolute;top:1rem;right:1rem;background:var(--sand);border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.85rem;color:var(--stone);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.mclose:hover{background:rgba(201,85,58,.1);color:var(--terra)}
+.mt{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:800;margin-bottom:.2rem}
+.ms{color:var(--stone);font-size:.82rem;margin-bottom:1.2rem}
+.thread{display:flex;flex-direction:column;gap:.6rem;max-height:220px;overflow-y:auto;padding:.5rem 0;margin-bottom:.8rem}
+.bt{background:var(--sand);padding:.65rem .9rem;border-radius:4px 12px 12px 12px;font-size:.83rem;color:var(--stone);line-height:1.5;align-self:flex-start;max-width:85%}
+.bm{background:var(--terra);color:white;padding:.65rem .9rem;border-radius:12px 4px 12px 12px;font-size:.83rem;line-height:1.5;align-self:flex-end;max-width:85%}
+
+.loading{display:flex;align-items:center;justify-content:center;padding:4rem 2rem;color:var(--stone-l);gap:.6rem;grid-column:1/-1}
+.sp{width:20px;height:20px;border:2px solid rgba(201,85,58,.2);border-top-color:var(--terra);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:4rem 2rem;color:var(--stone);grid-column:1/-1}
+.empty .emo{font-size:3rem;margin-bottom:1rem}
+.empty p{font-size:.9rem;margin-bottom:1.5rem;line-height:1.6}
+
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--deep);color:white;padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast.show{transform:translateY(0);opacity:1}
+
+
+.promo-banner strong{font-weight:700}
+.promo-banner .pbadge{background:var(--ochre);color:#1A1410;padding:.2rem .65rem;border-radius:100px;font-size:.7rem;font-weight:800;letter-spacing:.3px}
+.promo-banner-close{position:absolute;right:1.5rem;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:white;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.promo-banner-close:hover{background:rgba(255,255,255,.35)}
+
+@media(max-width:768px){
+  .deposit-grid{grid-template-columns:1fr 1fr!important}
+  body{overflow-x:hidden!important}
+  *{max-width:100vw}
+  .hero-stats{gap:1.5rem!important}
+  section,div{overflow-x:hidden}
+
+  .hero{grid-template-columns:1fr!important}
+  .hero-r{display:none!important}
+  .hero-l{padding:2rem 1.2rem!important}
+  .sbar{grid-template-columns:1fr!important;padding:1rem!important}
+  .lgrid{grid-template-columns:1fr!important}
+  .steps,.fgrid{grid-template-columns:1fr!important}
+  .hiw,.feat,.ls{padding:2.5rem 1.2rem!important}
+  .trust{padding:2rem 1.2rem!important;flex-wrap:wrap}
+  footer{padding:2.5rem 1.2rem 1.5rem!important}
+  .fg{grid-template-columns:1fr!important}
+  .dgrid{grid-template-columns:1fr!important}
+  .frow{grid-template-columns:1fr!important}
+  .awrap{padding:1rem!important}
+  .acard{padding:1.5rem!important}
+  .pwrap{padding:1.5rem 1rem!important}
+  .dwrap,.dwrap2{padding:1.5rem 1rem!important}
+  nav{padding:.8rem 1rem!important}
+  .nav-links{display:none!important}
+  .deposit-grid{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:900px){
+  nav{padding:1rem 1.5rem}.nav-links{display:none}
+  .hero{grid-template-columns:1fr}.hero-r{display:none}.hero-l{padding:3rem 1.5rem}
+  .search-sec{padding:0 1.5rem 2rem}.sbar{grid-template-columns:1fr}
+  .hiw,.feat{padding:3rem 1.5rem}.steps,.fgrid{grid-template-columns:1fr}
+  .ls{padding:2.5rem 1.5rem}.lgrid{grid-template-columns:1fr}
+  .trust{padding:2rem 1.5rem}footer{padding:3rem 1.5rem 2rem}.fg{grid-template-columns:1fr 1fr}
+  .dgrid{grid-template-columns:1fr}.frow{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+
+<nav>
+  <div class="logo" onclick="go('home')">Rest<span>Malta</span></div>
+  <ul class="nav-links">
+    <li><a onclick="go('home');stl()">Browse flats</a></li>
+    <li><a onclick="go('home')">How it works</a></li>
+    <li id="np" style="display:none"><a onclick="chkPost()">Post a flat</a></li>
+    <li id="nd" style="display:none"><a onclick="goToDash()">My Dashboard</a></li>
+  </ul>
+  <div class="nav-act" id="na">
+    <button class="btn btn-s btn-sm" onclick="go('auth')">Sign in</button>
+    <button class="btn btn-p btn-sm" onclick="go('auth')">List your flat →</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-l">
+      <div class="hero-tag">🇲🇹 Malta's #1 rental platform</div>
+      <h1>Find your flat in<br><em>Malta</em> — no<br>Facebook needed.</h1>
+      <p class="hero-desc">Find verified flats in Malta without agents or Facebook. Real-time chat, virtual visits, e-signed leases and secure deposit — all in one place. Free for tenants.</p>
+      <div class="hero-acts">
+        <button class="btn btn-p" onclick="stl()">🔍 Browse listings</button>
+        <button class="btn btn-s" onclick="chkPost()">🏠 List your flat</button>
+      </div>
+      <div class="hero-stats">
+        <div><div class="sn" id="sc">—</div><div class="sl">Active listings</div></div>
+        <div><div class="sn">3×</div><div class="sl">Cheaper than agents</div></div>
+        <div><div class="sn">0€</div><div class="sl">Free for tenants</div></div>
+      </div>
+    </div>
+    <div class="hero-r">
+      <div class="pcard">
+        <div class="pmap">
+          <svg viewBox="0 0 400 200"><rect width="400" height="200" fill="#CBE4F0"/><path d="M160,140 Q175,108 205,100 Q235,92 260,105 Q278,115 274,132 Q270,148 250,156 Q222,164 197,160 Q172,156 160,140Z" fill="#D4C9B0" stroke="#B8A890" stroke-width="1.5"/><path d="M88,118 Q98,108 116,110 Q130,112 126,122 Q122,132 108,130 Q94,128 88,118Z" fill="#D4C9B0" stroke="#B8A890" stroke-width="1"/><text x="40" y="185" font-family="DM Sans" font-size="10" fill="#8BB5C8" opacity="0.6">Mediterranean Sea</text></svg>
+          <div class="mpin pi-a"><div class="pl">St. Julian's</div><div class="pd"></div></div>
+          <div class="mpin pi-b"><div class="pl">Sliema</div><div class="pd"></div></div>
+          <div class="mpin pi-c"><div class="pl">Valletta</div><div class="pd" style="background:var(--sea)"></div></div>
+          <div class="mpin pi-d"><div class="pl">Gozo</div><div class="pd" style="background:var(--ochre)"></div></div>
+        </div>
+        <div class="pitems">
+          <div class="pitem"><div class="pe">🏠</div><div class="pi"><div class="pt">Studio · St. Julian's</div><div class="ps">1 bed · Available now</div></div><div class="pp">€650/mo</div></div>
+          <div class="pitem"><div class="pe">🌊</div><div class="pi"><div class="pt">Room · Sliema seafront</div><div class="ps">Shared · 2 spots left</div></div><div class="pp">€420/mo</div></div>
+          <div class="pitem"><div class="pe">🔑</div><div class="pi"><div class="pt">Long-let · Valletta</div><div class="ps">6 mois+ · Furnished</div></div><div class="pp">€980/mo</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-sec" id="la">
+    <div class="sbar">
+      <div class="sf"><label>📍 Zone</label><input list="zones-list" id="fz" onchange="loadL()" oninput="loadL()" placeholder="Any zone..." style="border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--deep);font-weight:500;padding:.3rem 0;border-bottom:1.5px solid rgba(107,95,82,.2);outline:none;width:100%">
+<datalist id="zones-list">
+  <option value="St. Julian's"><option value="Sliema"><option value="Valletta"><option value="Msida">
+  <option value="Gzira"><option value="Gozo"><option value="Birkirkara"><option value="Swieqi">
+  <option value="Paceville"><option value="Bugibba"><option value="St. Paul's Bay"><option value="Mellieha">
+  <option value="Mosta"><option value="Naxxar"><option value="Rabat"><option value="Mdina">
+  <option value="Marsaskala"><option value="Marsaxlokk"><option value="Birgu"><option value="Senglea">
+</datalist></div>
+      <div class="sf"><label>📅 Type</label><select id="ft" onchange="loadL()">
+        <option value="">All types</option>
+        <option value="short">🏠 Short-let only</option>
+        <option value="long">📅 Long-let only</option>
+        <option value="both">🔄 Short or Long</option>
+        <option value="sublet">🔑 Sous-location</option>
+      </select></div>
+      <div class="sf"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
+      <div class="sf"><label>📋 Attestation</label><select id="fa" onchange="loadL()"><option value="">Tous</option><option value="yes">✅ Attestation OK</option></select></div>
+      <button class="btn btn-p" onclick="loadL()">Search →</button>
+    </div>
+  </div>
+
+  <div class="ls">
+    <div class="ls-head">
+      <div><h2>Latest listings</h2><p style="font-size:.82rem;color:var(--stone-l);margin-top:.2rem" id="lc"></p></div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button class="btn btn-s btn-sm" id="view-toggle" onclick="toggleMapView()">🗺 Map view</button>
+        <button class="btn btn-s btn-sm" onclick="chkPost()">+ Post your flat</button>
+      </div>
+    </div>
+    <!-- MAP VIEW -->
+    <div id="map-container" style="display:none;height:500px;border-radius:16px;overflow:hidden;margin-bottom:1.5rem;border:1px solid rgba(107,95,82,.12)">
+      <div id="listings-map" style="height:100%;width:100%"></div>
+    </div>
+    <div id="lg" class="lgrid"><div class="loading"><div class="sp"></div> Loading listings…</div></div>
+  </div>
+
+  <div class="hiw">
+    <div class="stag">✦ Simple process</div>
+    <h2>From scroll to <em>signed</em> in 3 steps</h2>
+    <p>No agents, no Facebook, no cash to strangers. RestMalta handles everything — listing, visit, lease, deposit. 100% digital, 100% legal in Malta.</p>
+    <div class="steps">
+      <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & contact</h3><p>Filter by zone, budget and type. Message landlords directly through real-time chat — no phone numbers shared, no middlemen.</p></div>
+      <div class="step"><div class="snum">02</div><div class="sico">🏆</div><h3>Visit with confidence</h3><p>Book a guided visit with a RestMalta agent — they show you the property and verify everything is as described. Or visit directly with the landlord.</p></div>
+      <div class="step"><div class="snum">03</div><div class="sico">📄</div><h3>Sign & move in</h3><p>Your lease is auto-generated, e-signed via DocuSeal, and compliant with Maltese law. Deposit held securely by RestMalta until you're settled in.</p></div>
+    </div>
+  </div>
+
+  <div class="feat">
+    <div class="stag">✦ Platform features</div>
+    <h2>Everything you need,<br><em>nothing</em> you don't.</h2>
+    <div class="fgrid">
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">💬</div><h3>Real-time chat</h3><p>Instant messaging between tenants and landlords. Messages appear live — no refreshing, no waiting. Like WhatsApp, built into the platform.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(212,168,71,.15)">🏆</div><h3>Agent-assisted visits</h3><p>Landlords can assign a RestMalta agent to handle visits. The agent shows the flat, verifies everything, and earns 25% commission per side.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(46,107,138,.15)">🗺</div><h3>Interactive map</h3><p>Browse listings on a live map of Malta. See exactly where each flat is — click any pin to view the listing instantly.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(76,175,125,.15)">🎥</div><h3>Virtual visit videos</h3><p>Landlords can upload a video tour of their flat. Perfect for tenants arriving from abroad — see the property before you even land in Malta.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">📋</div><h3>Digital tenant dossier</h3><p>Build your rental dossier once — ID, employment letter, references — and send it to any landlord in one click. No more paperwork.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(139,92,246,.15)">📊</div><h3>Full landlord dashboard</h3><p>Manage listings, leases, payments, maintenance tickets and tenant matching from one professional dashboard. Replace 5 tools with one.</p></div>
+    </div>
+  </div>
+
+  <!-- DEPOSIT SECTION -->
+  <div style="padding:5rem 4rem;background:white">
+    <div style="max-width:900px;margin:0 auto">
+      <div class="stag">✦ Dépôt de garantie</div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:.8rem">Votre dépôt est <em style="font-style:italic;color:var(--terra)">protégé</em></h2>
+      <p style="color:var(--stone);font-size:.95rem;line-height:1.7;max-width:520px;margin-bottom:3rem">RestMalta agit comme tiers de confiance — on garde votre dépôt jusqu'à ce que tout soit confirmé. Zéro risque d'arnaque.</p>
+
+      <div class="deposit-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;position:relative">
+        <!-- Connector line -->
+        <div style="position:absolute;top:2.2rem;left:calc(12.5% + 1rem);right:calc(12.5% + 1rem);height:2px;background:linear-gradient(90deg,var(--terra),var(--ochre));z-index:0;opacity:0.3"></div>
+
+        <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
+          <div style="width:44px;height:44px;background:rgba(201,85,58,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">💶</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">1. Paiement</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">Le locataire paie le dépôt à RestMalta — jamais directement au proprio</div>
+        </div>
+
+        <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
+          <div style="width:44px;height:44px;background:rgba(212,168,71,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">🔒</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">2. Sécurisé</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">RestMalta garde le dépôt en sécurité jusqu'à l'entrée dans le logement</div>
+        </div>
+
+        <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
+          <div style="width:44px;height:44px;background:rgba(76,175,125,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">✅</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">3. Confirmation</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">Le locataire entre dans l'appart et confirme que tout est ok dans l'app</div>
+        </div>
+
+        <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
+          <div style="width:44px;height:44px;background:rgba(46,107,138,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">🏠</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">4. Transfert</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">RestMalta transfère le dépôt au proprio dans les 24h — tout le monde est protégé</div>
+        </div>
+      </div>
+
+      <!-- Problem case -->
+      <div style="margin-top:2rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:14px;padding:1.2rem 1.5rem;display:flex;align-items:flex-start;gap:1rem">
+        <div style="font-size:1.4rem;flex-shrink:0">⚠️</div>
+        <div>
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">Si quelque chose ne va pas à l'entrée ?</div>
+          <div style="font-size:.82rem;color:var(--stone);line-height:1.6">Le locataire signale le problème dans l'app. RestMalta arbitre et peut rembourser tout ou partie du dépôt selon la situation. Vous n'êtes jamais seul face à un litige.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust">
+    <div class="ti"><div class="tico">💬</div><div class="ttext"><strong>Real-time chat</strong><span>Instant landlord-tenant messaging</span></div></div>
+    <div class="ti"><div class="tico">🏆</div><div class="ttext"><strong>Agent visits</strong><span>Guided visits by RestMalta agents</span></div></div>
+    <div class="ti"><div class="tico">📜</div><div class="ttext"><strong>Legal Maltese leases</strong><span>Auto-generated & e-signed</span></div></div>
+    <div class="ti"><div class="tico">🔐</div><div class="ttext"><strong>Deposit escrow</strong><span>Your money protected until move-in</span></div></div>
+  </div>
+
+  <footer>
+    <div class="fg">
+      <div><div class="flogo">RestMalta</div><p class="fdesc">Malta's first smart rental platform. Real-time chat, agent visits, e-signed leases and secure deposit escrow. Built for interns, expats and independent landlords.</p></div>
+      <div><h4>For tenants</h4><ul><li><a onclick="stl()">Browse listings</a></li><li><a>Virtual visits</a></li><li><a>Tenant dossier</a></li><li><a>Sous-location</a></li></ul></div>
+      <div><h4>For landlords</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a>Agent visits</a></li><li><a>Dashboard</a></li><li><a>Lease generator</a></li></ul></div>
+      <div><h4>Legal</h4><ul><li><a>Terms of service</a></li><li><a>Privacy policy</a></li><li><a>Contact us</a></li></ul></div>
+    </div>
+    <div class="fbot"><p>© 2026 RestMalta. Made with ☀️ in Malta.</p><p>Not affiliated with the Maltese government. RestMalta is not a real estate agency.</p></div>
+  </footer>
+</div>
+
+<!-- AUTH -->
+<div class="page" id="page-auth">
+  <div class="awrap"><div class="acard">
+    <div class="atitle">Welcome to RestMalta</div>
+    <div class="asub">Sign in to access your dashboard, chat with landlords and manage your rental</div>
+    <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:1.5rem">
+      <button onclick="signInWithGoogle()" style="width:100%;padding:.85rem;border:1.5px solid rgba(107,95,82,.2);border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;color:#1A1410;transition:all .2s" onmouseover="this.style.borderColor='#4285F4'" onmouseout="this.style.borderColor='rgba(107,95,82,.2)'">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <button onclick="signInWithFacebook()" style="width:100%;padding:.85rem;border:none;border-radius:12px;background:#1877F2;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;color:white;transition:all .2s" onmouseover="this.style.background='#0d6edb'" onmouseout="this.style.background='#1877F2'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Continue with Facebook
+      </button>
+    </div>
+    <div style="margin-top:1.5rem;font-size:.75rem;color:var(--stone-l);text-align:center;line-height:1.6">
+      By continuing, you agree to RestMalta's Terms of Service.<br>✅ Free for tenants · 🔒 Secure · 🇲🇹 Malta only
+    </div>
+  </div></div>
+</div>
+
+<!-- POST -->
+<div class="page" id="page-post">
+  <div class="pwrap">
+    <div class="ptitle">Post your listing</div>
+    <div class="psub">Reach verified tenants across Malta — interns, expats, nomads. Free to post.</div>
+    <div class="fcard">
+      <h3>📋 Listing details</h3>
+
+      <!-- Type de location — point 1 & 2 -->
+      <div class="fg2">
+        <label>Type de location accepté *</label>
+        <div class="ttog">
+          <button class="tbtn active" onclick="setT(this,'short')">🏠 Short-let uniquement</button>
+          <button class="tbtn" onclick="setT(this,'long')">📅 Long-let uniquement</button>
+          <button class="tbtn" onclick="setT(this,'both')">🔄 Short & Long</button>
+          <button class="tbtn" onclick="setT(this,'sublet')">🔑 Sous-location</button>
+        </div>
+        <input type="hidden" id="pt" value="short">
+        <div id="type-info" style="margin-top:.5rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
+          🏠 Short-let : location courte durée (tourisme, stage, expat). Bail spécifique Malte.
+        </div>
+      </div>
+
+      <!-- Short-let specific options -->
+      <div id="shortlet-opts" style="background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--terra);margin-bottom:.5rem">🏠 Short-let options</div>
+        <div class="frow">
+          <div class="fg2"><label>Min stay</label>
+            <select class="fi" id="p-min-stay" style="cursor:pointer">
+              <option value="1_night">1 night minimum</option>
+              <option value="1_week">1 week minimum</option>
+              <option value="2_weeks">2 weeks minimum</option>
+              <option value="1_month" selected>1 month minimum</option>
+            </select>
+          </div>
+          <div class="fg2"><label>Max stay</label>
+            <select class="fi" id="p-max-stay" style="cursor:pointer">
+              <option value="1_month">1 month</option>
+              <option value="3_months">3 months</option>
+              <option value="6_months" selected>6 months</option>
+              <option value="no_limit">No limit</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Long-let preferred bail duration (point 21) -->
+      <div id="longlet-opts" style="display:none;background:rgba(46,107,138,.05);border:1px solid rgba(46,107,138,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">📅 Long-let preferences</div>
+        <div class="frow">
+          <div class="fg2"><label>Preferred lease duration</label>
+            <select class="fi" id="p-lease-duration" style="cursor:pointer">
+              <option value="1_year">1 year (standard)</option>
+              <option value="2_years">2 years</option>
+              <option value="3_years_plus">3 years or more</option>
+              <option value="flexible">Flexible — open to discussion</option>
+            </select>
+          </div>
+          <div class="fg2"><label>Accept Di Fermo (lock-in period)?</label>
+            <select class="fi" id="p-di-fermo" style="cursor:pointer">
+              <option value="6_months">6 months (standard)</option>
+              <option value="1_year">1 year</option>
+              <option value="none">No lock-in period</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:var(--stone-l);margin-top:.4rem">ℹ️ Di Fermo = minimum lock-in period during which tenant cannot leave without penalty</div>
+      </div>
+
+      <div class="fg2" style="margin-top:.75rem"><label>Title *</label><input class="fi" type="text" id="pti" placeholder="e.g. Bright furnished studio near the sea, St. Julian's"></div>
+      <div class="frow">
+        <div class="fg2"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema...">
+<datalist id="zones-post">
+  <option value="St. Julian's"><option value="Sliema"><option value="Valletta"><option value="Msida">
+  <option value="Gzira"><option value="Gozo"><option value="Birkirkara"><option value="Swieqi">
+  <option value="Paceville"><option value="Bugibba"><option value="St. Paul's Bay"><option value="Mellieha">
+  <option value="Mosta"><option value="Naxxar"><option value="Rabat"><option value="Mdina">
+  <option value="Marsaskala"><option value="Marsaxlokk"><option value="Birgu"><option value="Senglea">
+</datalist></div>
+        <div class="fg2"><label>Spots available</label><input class="fi" type="number" id="psp" value="1" min="1" max="20"></div>
+      </div>
+      <div class="frow">
+        <div class="fg2"><label>Monthly rent (€) *</label><input class="fi" type="number" id="ppr" placeholder="650"></div>
+        <div class="fg2"><label>Deposit (€)</label><input class="fi" type="number" id="pdep" placeholder="650"></div>
+      </div>
+      <div class="frow">
+        <div class="fg2"><label>Available from</label><input class="fi" type="date" id="pfr"></div>
+        <div class="fg2"><label>Available until</label>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <input class="fi" type="date" id="pun" style="flex:1">
+            <label style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;white-space:nowrap;cursor:pointer">
+              <input type="checkbox" id="p-indefinite" onchange="toggleIndefinite(this)"> Indefinitely
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lease Agreement Attestation badge (point 14) -->
+      <div style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation <span style="font-size:.65rem;font-weight:400;color:var(--stone-l)">(Malte — depuis fin 2024)</span></div>
+        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.6rem;line-height:1.5">Certains locataires non-EU ont besoin d'un bail attesté par notaire pour leur titre de séjour. Acceptez-vous ces locataires ?</div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-yes" value="yes" checked> ✅ Oui, j'accepte</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-no" value="no"> ❌ Non, bail standard uniquement</label>
+        </div>
+        <div style="margin-top:.6rem;font-size:.7rem;color:var(--stone-l);line-height:1.4">ℹ️ RestMalta génère le document de base. La validation notariale est gérée entre les parties. <span style="color:var(--sea);cursor:pointer;font-weight:600" onclick="toast('🔍 Fonction \"Trouver un notaire partenaire\" bientôt disponible!')">Trouver un notaire partenaire →</span></div>
+      </div>
+
+      <!-- Sous-location legal notice (point 3) -->
+      <div id="sublet-notice" style="display:none;background:rgba(212,168,71,.07);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--ochre);margin-bottom:.4rem">⚠️ Obligations légales — Sous-location à Malte</div>
+        <div style="font-size:.73rem;color:var(--stone);line-height:1.6">
+          En postant une sous-location, vous confirmez :<br>
+          ✓ Avoir l'accord <strong>écrit</strong> de votre propriétaire<br>
+          ✓ Être en mesure de fournir le contrat signé si demandé<br>
+          ✓ Comprendre que <strong>l'enregistrement auprès de la Housing Authority est votre responsabilité</strong> — RestMalta n'effectue pas cet enregistrement<br>
+          ✓ RestMalta est une plateforme de mise en relation uniquement
+        </div>
+        <label style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem;font-size:.78rem;cursor:pointer">
+          <input type="checkbox" id="sublet-confirm" required> Je confirme avoir lu et accepté ces obligations
+        </label>
+      </div>
+
+      <!-- Agent options (point 15) -->
+      <div style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.5rem">🏆 Service agent RestMalta</div>
+        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.75rem">Choisissez le niveau d'implication de l'agent pour votre bien :</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('none')">
+            <input type="radio" name="agent-service" id="agent-opt-none" value="none" checked style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">❌ Sans agent — je gère moi-même</div><div style="font-size:.7rem;color:var(--stone-l)">Vous gérez les visites et l'état des lieux vous-même</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('visit')">
+            <input type="radio" name="agent-service" id="agent-opt-visit" value="visit" style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">🏠 Agent pour visites uniquement</div><div style="font-size:.7rem;color:var(--stone-l)">L'agent fait les visites à votre place. Vous gérez l'état des lieux.</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
+            <input type="radio" name="agent-service" id="agent-opt-full" value="full" style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">🏆 Agent visites + état des lieux (~120€)</div><div style="font-size:.7rem;color:var(--stone-l)">L'agent gère les visites ET l'état des lieux d'entrée et de sortie.</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('attestation')">
+            <input type="radio" name="agent-service" id="agent-opt-attestation" value="attestation" style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">📋 Agent + visites + état des lieux + attestation</div><div style="font-size:.7rem;color:var(--stone-l)">Service complet. L'agent peut aussi coordonner la Lease Agreement Attestation avec un notaire partenaire.</div></div>
+          </label>
+        </div>
+
+        <!-- Mandat exclusif (points 18 & 19) -->
+        <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(139,92,246,.15)">
+          <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
+            <input type="checkbox" id="p-exclusif" onchange="toggleExclusif(this)" style="margin-top:.2rem">
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:#8B5CF6">🤝 Mandat exclusif RestMalta</div>
+              <div style="font-size:.72rem;color:var(--stone-l);margin-top:.2rem;line-height:1.5">En cochant cette case, vous vous engagez à ne publier ce bien que sur RestMalta pendant 3 mois. En échange : <strong style="color:#8B5CF6">commission réduite + mise en avant prioritaire</strong> dans les résultats. Un contrat de mandat sera généré et signé digitalement.</div>
+            </div>
+          </label>
+          <div id="exclusif-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem 1rem;font-size:.78rem;color:var(--stone)">
+            ✅ Mandat exclusif activé — Vous bénéficiez d'une mise en avant prioritaire et d'une commission réduite. Un contrat de mandat vous sera envoyé par email pour signature électronique à la publication.
+          </div>
+        </div>
+      </div>
+
+      <!-- Visit options (point 16/17) -->
+      <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.5rem">🏠 Présence lors des visites</div>
+        <div class="frow">
+          <div class="fg2">
+            <label>Souhaitez-vous être présent lors des visites ?</label>
+            <select class="fi" id="p-present" style="cursor:pointer" onchange="toggleKeyOptions(this.value)">
+              <option value="not_needed">🚶 Pas besoin — l'agent gère tout</option>
+              <option value="if_possible">👋 Si possible — je veux être informé du RDV</option>
+              <option value="mandatory">✅ Absolument — je dois être présent</option>
+            </select>
+          </div>
+          <div class="fg2" id="key-location-wrap">
+            <label>Où récupérer les clés ?</label>
+            <select class="fi" id="p-key-type" style="cursor:pointer" onchange="toggleKeyDetail(this.value)">
+              <option value="keysafe">🔐 Boîtier à clés sur place</option>
+              <option value="neighbor">🏘️ Chez le voisin / concierge</option>
+              <option value="agent">🏆 L'agent a les clés</option>
+              <option value="landlord">📞 Contacter le propriétaire</option>
+            </select>
+          </div>
+        </div>
+        <div id="key-detail-wrap" style="margin-top:.5rem">
+          <input class="fi" id="p-key-location" placeholder="Ex: Code boîtier 1234, porte d'entrée gauche">
+        </div>
+        <div id="presence-info" style="margin-top:.6rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
+          📋 L'agent organisera la visite directement avec le tenant. Vous recevrez un résumé après.
+        </div>
+      </div>
+
+      <div class="fg2" style="margin-top:.75rem"><label>Description</label><textarea class="fta" id="pde" rows="4" placeholder="Describe your flat — furnished, WiFi, near transport, bills included, house rules…"></textarea></div>
+
+      <!-- Lease conditions — auto-fills the bail -->
+      <div style="background:rgba(46,107,138,.06);border:1px solid rgba(46,107,138,.15);border-radius:12px;padding:1rem;margin-bottom:1rem">
+        <div style="font-size:.85rem;font-weight:700;color:var(--sea);margin-bottom:.75rem">📄 Lease conditions <span style="font-weight:400;font-size:.75rem;color:var(--stone-l)">— used to auto-generate your Malta lease</span></div>
+        <div class="frow">
+          <div class="fg2"><label>Full property address in Malta *</label><input class="fi" id="p-full-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta"></div>
+          <div class="fg2"><label>Rent due day each month</label>
+            <select class="fi" id="p-pay-day" style="cursor:pointer">
+              <option value="1">1st of the month</option>
+              <option value="5">5th of the month</option>
+              <option value="15">15th of the month</option>
+              <option value="last">Last day of the month</option>
+            </select>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fg2"><label>Notice period</label>
+            <select class="fi" id="p-notice" style="cursor:pointer">
+              <option value="1_month">1 month (minimum by Maltese law)</option>
+              <option value="2_months">2 months</option>
+              <option value="3_months">3 months</option>
+            </select>
+          </div>
+          <div class="fg2"><label>Bills situation</label>
+            <select class="fi" id="p-bills" style="cursor:pointer">
+              <option value="included">All bills included in rent</option>
+              <option value="excluded">Bills not included — tenant pays</option>
+              <option value="water_only">Water included, electricity extra</option>
+              <option value="split">Bills split between occupants</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="fg2"><label>Amenities</label>
+        <div class="cbwrap">
+          <label class="cl"><input type="checkbox" id="pfu" checked> 🛋️ Furnished</label>
+          <label class="cl"><input type="checkbox" id="pwi"> 📶 WiFi included</label>
+          <label class="cl"><input type="checkbox" id="pbi"> 💡 Bills included</label>
+          <label class="cl"><input type="checkbox" id="pac"> ❄️ A/C</label>
+          <label class="cl"><input type="checkbox" id="ppk"> 🚗 Parking</label>
+          <label class="cl"><input type="checkbox" id="ppool"> 🏊 Pool</label>
+          <label class="cl"><input type="checkbox" id="pbalc"> 🌿 Balcony/Terrace</label>
+          <label class="cl"><input type="checkbox" id="ppets"> 🐾 Pets allowed</label>
+          <label class="cl"><input type="checkbox" id="pwash"> 🫧 Washing machine</label>
+          <label class="cl"><input type="checkbox" id="pdish"> 🍽️ Dishwasher</label>
+        </div>
+      </div>
+      <div class="fg2">
+        <label>📸 Photos (max 5)</label>
+        <div id="photo-upload-area" style="border:2px dashed rgba(107,95,82,.2);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--warm)" onclick="document.getElementById('photo-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--terra)'" ondragleave="this.style.borderColor='rgba(107,95,82,.2)'" ondrop="handleDrop(event)">
+          <div style="font-size:2rem;margin-bottom:.5rem">📷</div>
+          <div style="font-size:.85rem;color:var(--stone);font-weight:500">Click or drag & drop your photos here</div>
+          <div style="font-size:.72rem;color:var(--stone-l);margin-top:.3rem">JPG, PNG · Max 5MB each · Max 5 photos</div>
+          <input type="file" id="photo-input" multiple accept="image/*" style="display:none" onchange="handlePhotos(this.files)">
+        </div>
+        <div id="photo-previews" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
+      </div>
+      <div class="fg2">
+        <label>🎥 Virtual visit video (optional)</label>
+        <div style="border:2px dashed rgba(107,95,82,.2);border-radius:12px;padding:1rem;text-align:center;cursor:pointer;background:var(--warm)" onclick="document.getElementById('video-input').click()">
+          <div style="font-size:1.5rem;margin-bottom:.3rem">🎥</div>
+          <div style="font-size:.82rem;color:var(--stone)">Upload a video tour of your flat (max 50MB)</div>
+          <div style="font-size:.7rem;color:var(--stone-l);margin-top:.2rem">MP4, MOV · Will be shown on your listing</div>
+          <input type="file" id="video-input" accept="video/*" style="display:none">
+        </div>
+        <div id="video-preview" style="margin-top:.5rem"></div>
+      </div>
+      <div class="aerr" id="poer"></div><div class="aok" id="pook"></div>
+      <div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:1rem;margin-bottom:1rem">
+        <div style="font-size:.85rem;font-weight:700;color:#8B5CF6;margin-bottom:.5rem">🏆 Agent options</div>
+        <div style="font-size:.78rem;color:var(--stone);margin-bottom:.75rem">Choose how much you want a RestMalta agent to handle. You can change this later.</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-none-wrap">
+            <input type="radio" name="agent-option" id="agent-none" value="none" checked onchange="updateAgentOpt('none')">
+            <div><div style="font-weight:600">❌ No agent — I manage myself</div><div style="font-size:.72rem;color:var(--stone-l)">You handle visits, inventory and lease directly</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-visit-wrap">
+            <input type="radio" name="agent-option" id="agent-visit" value="visit" onchange="updateAgentOpt('visit')">
+            <div><div style="font-weight:600">🏠 Agent for visits only</div><div style="font-size:.72rem;color:var(--stone-l)">Agent shows the flat · You handle inventory and lease</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-full-wrap">
+            <input type="radio" name="agent-option" id="agent-full" value="full" onchange="updateAgentOpt('full')">
+            <div><div style="font-weight:600">🏆 Agent for visits + inventory (état des lieux)</div><div style="font-size:.72rem;color:var(--stone-l)">Agent handles visits AND entry/exit inventory · ~120€ for inventory</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-att-wrap">
+            <input type="radio" name="agent-option" id="agent-attestation" value="attestation" onchange="updateAgentOpt('attestation')">
+            <div><div style="font-weight:600">📋 Agent + Lease Agreement Attestation</div><div style="font-size:.72rem;color:var(--stone-l)">Full service including coordination with notary for attestation (non-EU tenants)</div></div>
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;font-size:.95rem" onclick="doPost()">Publish my listing →</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="page" id="page-det">
+  <div class="dwrap">
+    <div class="dhero" id="dh"><button class="bbtn" onclick="go('home')">← Back</button>🏠</div>
+    <div class="dgrid">
+      <div>
+        <div class="dtitle" id="dti"></div>
+        <div class="dzone" id="dzo"></div>
+        <div class="dfeats" id="dfe"></div>
+        <div class="ddesc" id="dde"></div>
+      </div>
+      <div>
+        <div class="ccard">
+          <div class="cprice" id="dpr"></div>
+          <div class="cper">/month</div>
+          <div class="cinfo" id="din"></div>
+
+          <!-- Escrow deposit option — for tenants not on the island -->
+          <div style="margin-bottom:1rem;background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:12px;padding:.9rem 1rem">
+            <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.4rem">🔐 Sécuriser mon dépôt de garantie</div>
+            <div style="font-size:.72rem;color:var(--stone);margin-bottom:.75rem;line-height:1.5">Vous n'êtes pas encore à Malte ? RestMalta peut sécuriser votre dépôt. À votre arrivée vous avez <strong>24h</strong> pour confirmer que le logement correspond. Si tout va bien → dépôt libéré au propriétaire. Sinon → dépôt remboursé.</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid rgba(76,175,125,.2);background:rgba(76,175,125,.04)" id="escrow-yes-wrap">
+                <input type="radio" name="escrow-opt" id="escrow-yes" value="yes" onchange="selectEscrow('yes')" style="margin-top:.15rem">
+                <div>
+                  <div style="font-size:.8rem;font-weight:600">✅ Oui — je veux sécuriser mon dépôt</div>
+                  <div style="font-size:.68rem;color:var(--stone-l)">Recommandé si vous arrivez de l'étranger</div>
+                </div>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid rgba(107,95,82,.1)" id="escrow-no-wrap">
+                <input type="radio" name="escrow-opt" id="escrow-no" value="no" onchange="selectEscrow('no')" style="margin-top:.15rem" checked>
+                <div>
+                  <div style="font-size:.8rem;font-weight:600">❌ Non — je gère le dépôt directement</div>
+                  <div style="font-size:.68rem;color:var(--stone-l)">Je suis déjà sur l'île ou je fais confiance au propriétaire</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
+          <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
+          <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.6rem" onclick="requestLease()">📄 Request lease signing</button>
+          <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.6rem;font-size:.8rem" onclick="requestReference()">📋 Add a landlord reference to my profile</button>
+
+          <!-- Attestation info - point 13 -->
+          <div id="attestation-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem">
+            <div style="font-size:.75rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation</div>
+            <div style="font-size:.72rem;color:var(--stone);line-height:1.5;margin-bottom:.6rem">Since end-2024, non-EU tenants needing a Maltese residence permit require a notary-attested lease. This landlord accepts such tenants.<br><br>RestMalta generates the base document — the notary validation is your responsibility.</div>
+            <button class="btn" style="width:100%;justify-content:center;background:#8B5CF6;color:white;font-size:.78rem" onclick="findNotaire()">🔍 Find a partner notary →</button>
+          </div>
+          <div style="margin-top:.75rem;padding:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px">
+            <div style="font-size:.75rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">🏆 Book a guided visit</div>
+            <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem">A RestMalta agent will show you the property and handle everything — visit, docs, lease.</div>
+            <button class="btn" style="width:100%;justify-content:center;background:#8B5CF6;color:white;font-size:.8rem" onclick="requestAgentVisit()">Book visit with agent →</button>
+          </div>
+          <p style="margin-top:.6rem;font-size:.68rem;color:var(--stone-l);text-align:center">🔒 Your contact details are never shared directly</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="page-dash">
+  <div class="dwrap2">
+    <div class="dh">
+      <div><div class="ptitle" id="dTitle">My Dashboard</div><div style="color:var(--stone);font-size:.9rem;margin-top:.2rem" id="dSub"></div></div>
+      <button class="btn btn-p btn-sm" onclick="chkPost()">+ New listing</button>
+    </div>
+    <div class="dtabs">
+      <button class="dtab active" onclick="swDash(this,'dl')">My listings</button>
+      <button class="dtab" onclick="swDash(this,'dm')">Messages</button>
+    </div>
+    <div class="dpanel active" id="dl"><div id="myl"><div class="loading"><div class="sp"></div></div></div></div>
+    <div class="dpanel" id="dm"><div id="mym"><div class="loading"><div class="sp"></div></div></div></div>
+  </div>
+</div>
+
+<!-- REAL-TIME CHAT MODAL -->
+<div class="mover" id="mo" onclick="cmo(event)">
+  <div class="modal" style="display:flex;flex-direction:column;height:520px;max-height:90vh">
+    <button class="mclose" onclick="closeM()">✕</button>
+    <div class="mt" id="moti"></div>
+    <div class="ms" id="most"></div>
+    <div id="chat-status" style="font-size:.7rem;color:var(--stone-l);margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem">
+      <span id="chat-online-dot" style="width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block"></span>
+      <span id="chat-online-txt">Connecting...</span>
+    </div>
+    <div class="thread" id="moth" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.5rem;padding-right:.3rem"></div>
+    <div style="margin-top:.75rem;display:flex;gap:.5rem">
+      <textarea class="fta" id="mre" rows="2" placeholder="Write your message… (Enter to send)" style="flex:1;resize:none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendR();}"></textarea>
+      <button class="btn btn-p" style="align-self:flex-end;padding:.65rem 1rem" onclick="sendR()">↑</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="t"></div>
+
+<script>
+// ── Supabase (DB only — no auth) ─────────────────────────────
+const SU='https://clfqftbvohwybkrtvylo.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
+const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
+
+// ── DocuSeal ─────────────────────────────────────────────────
+const DOCU_KEY='efpcvv2WCz4z7EbfqWHytwtJygPZP6xv7LTea86tvAK';
+const DOCU_TEMPLATES={sublet:494242,long:494370};
+
+async function generateLease(listingId, tenantEmail, landlordEmail, type) {
+  const templateId = DOCU_TEMPLATES[type] || DOCU_TEMPLATES.sublet;
+  try {
+    const res = await fetch('https://api.docuseal.eu/submissions', {
+      method: 'POST',
+      headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template_id: templateId,
+        send_email: true,
+        submitters: [
+          { role: 'Première partie', email: landlordEmail, name: 'Landlord' },
+          { role: 'Deuxième partie', email: tenantEmail, name: 'Tenant' }
+        ]
+      })
+    });
+    const data = await res.json();
+    if (data.id) {
+      await sb.from('leases').insert({ booking_id: listingId, pdf_url: data.audit_log_url || '' });
+      return data;
+    }
+  } catch(e) { console.error('DocuSeal error:', e); }
+  return null;
+}
+
+// ── Clerk Auth ────────────────────────────────────────────────
+let clerk, U=null, P=null, AL=null, AMI=null;
+
+async function initClerk() {
+  clerk = window.Clerk;
+  await clerk.load();
+
+  let initialUser = clerk.user;
+
+  if (initialUser) {
+    await sU(initialUser, false);
+  }
+  loadL(); updC();
+
+  clerk.addListener(({ user }) => {
+    if (user) {
+      const isNewLogin = !initialUser;
+      initialUser = user;
+      sU(user, isNewLogin);
+    } else {
+      initialUser = null;
+      U = null; P = null; updN();
+    }
+  });
+}
+
+async function sU(clerkUser, showPicker=true) {
+  U = {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    clerk: clerkUser
+  };
+  const { data } = await sb.from('profiles').select('*').eq('clerk_id', U.id).single();
+  if (data) {
+    P = data;
+    updN();
+  } else {
+    // Pas de profil trouvé — affiche le role picker
+    const full_name = clerkUser.fullName || clerkUser.firstName || '';
+    P = { clerk_id: U.id, full_name, email: U.email, role: null };
+    showRolePicker(full_name);
+  }
+}
+
+function showRolePicker(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const firstName = name?.split(' ')[0] || 'there';
+  const modal = document.createElement('div');
+  modal.id = 'role-picker';
+  modal.style.cssText = 'position:fixed;inset:0;background:var(--warm);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:24px;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(26,20,16,.12);text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:1rem">👋</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:900;margin-bottom:.5rem">Welcome, ${firstName}!</div>
+      <div style="color:var(--stone);font-size:.95rem;margin-bottom:2rem">I am joining RestMalta as a...</div>
+      <div style="display:flex;flex-direction:column;gap:.75rem">
+        <button onclick="setRoleAndContinue('tenant')" style="width:100%;padding:1.1rem;border-radius:14px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:1rem" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='rgba(107,95,82,.15)'">
+          <span style="font-size:1.8rem">🎒</span>
+          <div style="text-align:left"><div>Tenant / Intern</div><div style="font-size:.78rem;color:var(--stone-l);font-weight:400">I'm looking for a flat in Malta</div></div>
+        </button>
+        <button onclick="setRoleAndContinue('landlord')" style="width:100%;padding:1.1rem;border-radius:14px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:1rem" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='rgba(107,95,82,.15)'">
+          <span style="font-size:1.8rem">🏠</span>
+          <div style="text-align:left"><div>Landlord</div><div style="font-size:.78rem;color:var(--stone-l);font-weight:400">I want to list my property</div></div>
+        </button>
+        <button onclick="setRoleAndContinue('agent')" style="width:100%;padding:1.1rem;border-radius:14px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:1rem" onmouseover="this.style.borderColor='#6C63FF'" onmouseout="this.style.borderColor='rgba(107,95,82,.15)'">
+          <span style="font-size:1.8rem">🏆</span>
+          <div style="text-align:left"><div>Real Estate Agent</div><div style="font-size:.78rem;color:var(--stone-l);font-weight:400">I do visits and help landlords rent</div></div>
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function setRoleAndContinue(role) {
+  const full_name = P.full_name || '';
+  // Génère un UUID aléatoire pour la colonne id (primary key UUID)
+  const uuid = crypto.randomUUID();
+  const { error } = await sb.from('profiles').insert({
+    id: uuid,
+    clerk_id: U.id,
+    full_name,
+    email: U.email,
+    role
+  });
+  if (error) { toast('❌ Error saving profile: ' + error.message); console.error(error); return; }
+  P = { id: uuid, clerk_id: U.id, full_name, email: U.email, role };
+  document.getElementById('role-picker')?.remove();
+  updN();
+  toast('🎉 Welcome to RestMalta!');
+  loadL(); updC();
+  go('home');
+}
+
+initClerk();
+
+function updN(){
+  const na=document.getElementById('na'),np=document.getElementById('np'),nd=document.getElementById('nd');
+  if(U&&P){
+    const n=P.full_name?.split(' ')[0]||'?';
+    const avatar=`<div style="width:32px;height:32px;border-radius:50%;background:var(--terra);color:white;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;cursor:pointer" onclick="goToDash()">${n[0].toUpperCase()}</div>`;
+    na.innerHTML=avatar+`<span style="font-size:.82rem;color:var(--stone);font-weight:500;cursor:pointer" onclick="goToDash()">${n}</span><button class="btn btn-s btn-sm" onclick="doLogout()">Sign out</button>`;
+    np.style.display=P.role==='landlord'?'inline':'none';
+    nd.style.display='inline';
+  } else {
+    na.innerHTML=`<button class="btn btn-s btn-sm" onclick="go('auth')">Sign in</button><button class="btn btn-p btn-sm" onclick="go('auth')">List your flat →</button>`;
+    np.style.display='none';nd.style.display='none';
+  }
+}
+
+function go(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');window.scrollTo(0,0);}
+function stl(){go('home');setTimeout(()=>document.getElementById('la').scrollIntoView({behavior:'smooth'}),100);}
+
+function swAuth(btn,tab){document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('alog').style.display=tab==='login'?'block':'none';document.getElementById('areg').style.display=tab==='reg'?'block':'none';}
+function setR(btn,r){document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('sr').value=r;}
+
+async function signInWithGoogle(){
+  try { clerk.openSignIn({}); } catch(e) { toast('❌ '+e.message); }
+}
+async function signInWithFacebook(){
+  try { clerk.openSignIn({}); } catch(e) { toast('❌ '+e.message); }
+}
+
+function goToDash(){
+  if(P?.role==='landlord') window.location.href='/landlord-dashboard.html';
+  else if(P?.role==='agent') window.location.href='/agent-dashboard.html';
+  else window.location.href='/tenant-dashboard.html';
+}
+
+async function doLogin(){
+  const e=document.getElementById('le2').value.trim(),p=document.getElementById('lp').value,err=document.getElementById('le');
+  err.style.display='none';
+  if(!e||!p){sA(err,'Please fill in all fields');return;}
+  sA(err,'⏳ Signing in...');
+  err.style.background='rgba(46,107,138,0.1)';err.style.color='var(--sea)';err.style.borderColor='rgba(46,107,138,0.2)';
+  try {
+    const signIn = await clerk.client.signIn.create({ identifier: e, password: p });
+    if (signIn.status === 'complete') {
+      await clerk.setActive({ session: signIn.createdSessionId });
+      err.style.display='none';
+      toast('✅ Welcome back!');
+      await sU(clerk.user);
+      go('home'); updN(); loadL();
+    } else {
+      sA(err,'❌ Sign in incomplete. Please try again.');
+    }
+  } catch(ex) {
+    err.style.background='rgba(201,85,58,0.08)';err.style.color='var(--terra)';err.style.borderColor='rgba(201,85,58,0.15)';
+    const msg = ex.errors?.[0]?.longMessage || ex.errors?.[0]?.message || ex.message || 'Login failed';
+    sA(err,'❌ '+msg);
+  }
+}
+
+async function doReg(){
+  const n=document.getElementById('rn').value.trim(),e=document.getElementById('re2').value.trim(),ph=document.getElementById('rph').value.trim(),p=document.getElementById('rp').value,r=document.getElementById('sr').value,err=document.getElementById('re'),ok=document.getElementById('rok');
+  err.style.display='none';ok.style.display='none';
+  if(!n||!e||!p){sA(err,'Please fill in all required fields');return;}
+  if(p.length<8){sA(err,'Password must be at least 8 characters');return;}
+  sA(ok,'⏳ Creating your account...');ok.style.display='block';
+  try {
+    const parts = n.split(' ');
+    const firstName = parts[0];
+    const lastName = parts.slice(1).join(' ') || '';
+    const signUp = await clerk.client.signUp.create({
+      emailAddress: e,
+      password: p,
+      firstName,
+      lastName
+    });
+    if (signUp.status === 'missing_requirements') {
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      const code = prompt('📧 Check your email and enter the verification code:');
+      if (!code) { ok.style.display='none'; return; }
+      const result = await signUp.attemptEmailAddressVerification({ code });
+      if (result.status === 'complete') {
+        await clerk.setActive({ session: result.createdSessionId });
+        await sb.from('profiles').upsert({ id: result.createdUserId, full_name: n, email: e, phone: ph, role: r });
+        ok.style.display='none';
+        toast('🎉 Welcome to RestMalta!');
+        await sU(clerk.user);
+        setTimeout(()=>go('home'),1000);
+      }
+    } else if (signUp.status === 'complete') {
+      await clerk.setActive({ session: signUp.createdSessionId });
+      await sb.from('profiles').upsert({ id: signUp.createdUserId, full_name: n, email: e, phone: ph, role: r });
+      ok.style.display='none';
+      toast('🎉 Welcome to RestMalta!');
+      await sU(clerk.user);
+      setTimeout(()=>go('home'),1000);
+    }
+  } catch(ex) {
+    ok.style.display='none';
+    const msg = ex.errors?.[0]?.longMessage || ex.errors?.[0]?.message || ex.message || 'Registration failed';
+    sA(err,'❌ '+msg);
+  }
+}
+
+async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
+
+async function loadL(){
+  const g=document.getElementById('lg');g.innerHTML='<div class="loading"><div class="sp"></div> Loading…</div>';
+  const z=document.getElementById('fz')?.value,t=document.getElementById('ft')?.value,p=document.getElementById('fp')?.value,att=document.getElementById('fa')?.value;
+  let q=sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false});
+  if(z)q=q.eq('zone',z);
+  // For type filter: 'both' listings appear when filtering short OR long
+  if(t&&t!=='both')q=q.or(`type.eq.${t},type.eq.both`);
+  else if(t==='both')q=q.eq('type','both');
+  if(p)q=q.lte('price',parseInt(p));
+  if(att==='yes')q=q.eq('accepts_attestation',true);
+  const{data}=await q;
+  window._currentListings=data||[];
+  if(!data||data.length===0){g.innerHTML=`<div class="empty"><div class="emo">🏠</div><p>No listings found. Try adjusting your filters!</p><button class="btn btn-p" onclick="chkPost()">Post your flat →</button></div>`;document.getElementById('lc').textContent='';return;}
+  document.getElementById('lc').textContent=`${data.length} listing${data.length>1?'s':''} found`;
+  g.innerHTML=data.map(rCard).join('');
+  if(mapView)initMap();
+}
+
+async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true);document.getElementById('sc').textContent=count??'0';}
+
+function rCard(l){
+  const ic={short:'🏠',sublet:'🔑',long:'📅',both:'🔄'};
+  const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',sublet:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)',both:'linear-gradient(135deg,#F0EBF8,#E0D4F0)'};
+  const lb={short:'🏠 Short-let',sublet:'🔑 Sous-location',long:'📅 Long-let',both:'🔄 Short & Long'};
+  const lbColor={short:'#C9553A',sublet:'#D4A847',long:'#2E6B8A',both:'#8B5CF6'};
+  const tags=[l.furnished?'Furnished':null,l.wifi?'WiFi':null,l.bills_included?'Bills incl.':null,l.ac?'A/C':null,l.parking?'Parking':null,l.pool?'Pool':null,l.balcony?'Balcony':null,l.spots>1?`${l.spots} spots`:null].filter(Boolean).slice(0,3);
+  const fr=l.available_indefinitely?'Disponible indefiniment':l.available_from?'From '+new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Available now';
+  // Agent service badge
+  const agentLabels={visit:'🏆 Agent visite',full:'🏆 Agent complet',attestation:'🏆 Agent + Att.'};
+  const agentBadge=l.wants_agent&&l.agent_service&&l.agent_service!=='none'?
+    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">${agentLabels[l.agent_service]||'🏆 Agent'}</span>`:'';
+  // Attestation badge
+  const attBadge=l.accepts_attestation?
+    `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(46,107,138,.9);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ✅</span>`:
+    `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(107,95,82,.6);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ❌</span>`;
+  return`<div class="lcard" onclick="openDet('${l.id}')">
+    <div class="limg" style="background:${bg[l.type]||bg.sublet}">
+      ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'🏠'}</span>`}
+      <span style="position:absolute;top:.5rem;right:.5rem;background:${lbColor[l.type]||'#C9553A'};color:white;font-size:.65rem;font-weight:700;padding:.25rem .6rem;border-radius:100px">${lb[l.type]||'Listing'}</span>
+      ${agentBadge}${attBadge}
+    </div>
+    <div class="lbody">
+      <div class="lzone">📍 ${l.zone}</div>
+      <div class="ltitle">${l.title}</div>
+      <div class="ltags">${tags.map(t=>`<span class="ltag">${t}</span>`).join('')}</div>
+      <div class="lfoot"><div><span class="lprice">€${l.price}</span><span class="lper"> /month</span></div><span style="font-size:.7rem;color:var(--stone-l)">${fr}</span></div>
+    </div>
+  </div>`;
+}
+
+async function openDet(id){
+  const{data:l}=await sb.from('listings').select('*').eq('id',id).single();if(!l)return;AL=l;
+  const ic={short:'🏠',sublet:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',sublet:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
+  const h=document.getElementById('dh');h.style.background=bg[l.type]||bg.sublet;
+  // Show video if available, else photos
+  if(l.video_url){
+    h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><video src="${l.video_url}" controls style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:20px" poster="${l.photos?.[0]||''}"></video>`;
+  } else if(l.photos&&l.photos.length>0){
+    h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><div style="position:absolute;inset:0;display:flex;gap:4px;overflow:hidden;border-radius:20px">${l.photos.slice(0,3).map((p,i)=>`<img src="${p}" style="flex:${i===0?2:1};height:100%;object-fit:cover;min-width:0">`).join('')}</div>`;
+  } else {
+    h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><span style="font-size:7rem">${ic[l.type]||'🏠'}</span>`;
+  }
+  document.getElementById('dti').textContent=l.title;
+  document.getElementById('dzo').textContent='📍 '+l.zone+(l.address?' · '+l.address:'');
+  document.getElementById('dde').textContent=l.description||'No description provided.';
+  document.getElementById('dpr').textContent='€'+l.price;
+  const fe=[l.furnished?'✓ Furnished':'✗ Unfurnished',l.wifi?'✓ WiFi':null,l.bills_included?'✓ Bills incl.':null,l.ac?'✓ A/C':null,l.parking?'✓ Parking':null,l.pool?'✓ Pool':null,l.balcony?'✓ Balcony':null,l.pets?'✓ Pets ok':null,l.washing_machine?'✓ Washing machine':null,l.spots>1?`${l.spots} spots`:'1 spot',l.deposit?`Deposit: €${l.deposit}`:'No deposit'].filter(Boolean);
+  if(l.wants_agent)fe.unshift('🏆 Agent visit available');
+  if(l.video_url)fe.unshift('🎥 Virtual visit available');
+  if(l.accepts_attestation)fe.push('📋 Attestation accepted');
+  if(l.min_stay)fe.push(`Min stay: ${l.min_stay.replace('_',' ')}`);
+  if(l.lease_duration)fe.push(`Preferred: ${l.lease_duration.replace(/_/g,' ')}`);
+  document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
+  const tl={short:'Short-let',sublet:'Sous-location',long:'Long-let (6 mois+)',both:'Short-let ou Long-let'};
+  const difermoLabels={'6_months':'6 mois','1_year':'1 an','none':'Aucun'};
+  const durationLabels={'1_year':'1 an','2_years':'2 ans','3_years_plus':'3 ans ou plus','flexible':'Flexible'};
+  const badge=await getLandlordResponseBadge(l.landlord_id);
+  document.getElementById('din').innerHTML=`
+    ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.75rem">${badge}</div>`:''}
+    <div class="crow"><span>Type</span><span>${tl[l.type]||l.type}</span></div>
+    <div class="crow"><span>Available from</span><span>${l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Now'}</span></div>
+    ${l.available_indefinitely?'<div class="crow"><span>Available until</span><span>Indefinitely</span></div>':l.available_until?`<div class="crow"><span>Until</span><span>${new Date(l.available_until).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</span></div>`:''}
+    <div class="crow"><span>Deposit</span><span>${l.deposit?'€'+l.deposit:'None'}</span></div>
+    ${l.di_fermo&&l.di_fermo!=='none'?`<div class="crow"><span>Di Fermo (lock-in)</span><span>${difermoLabels[l.di_fermo]||l.di_fermo}</span></div>`:''}
+    ${l.lease_duration?`<div class="crow"><span>Bail préféré</span><span>${durationLabels[l.lease_duration]||l.lease_duration}</span></div>`:''}
+    ${l.payment_due_day?`<div class="crow"><span>Loyer dû le</span><span>${l.payment_due_day==='last'?'Dernier jour du mois':l.payment_due_day+' du mois'}</span></div>`:''}
+    ${l.notice_period?`<div class="crow"><span>Préavis</span><span>${l.notice_period.replace('_',' ')}</span></div>`:''}
+    ${l.landlord_present?`<div class="crow"><span>Visites</span><span>${l.landlord_present==='mandatory'?'✅ Proprio présent':l.landlord_present==='if_possible'?'👋 Proprio si possible':'🏆 Agent gère'}</span></div>`:''}
+    ${l.mandat_exclusif?'<div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;color:#8B5CF6;margin-top:.5rem">🤝 Mandat exclusif RestMalta — bien vérifié</div>':''}`;
+  go('det');
+  const attBox=document.getElementById('attestation-info');
+  if(attBox)attBox.style.display=l.accepts_attestation?'block':'none';
+}
+
+function findNotaire(){
+  toast('🔍 Opening partner notary directory...');
+  window.open('https://www.notarymalta.com','_blank');
+}
+
+function selectEscrow(val){
+  const yesWrap=document.getElementById('escrow-yes-wrap');
+  const noWrap=document.getElementById('escrow-no-wrap');
+  if(yesWrap)yesWrap.style.background=val==='yes'?'rgba(76,175,125,.1)':'rgba(76,175,125,.04)';
+  if(yesWrap)yesWrap.style.borderColor=val==='yes'?'rgba(76,175,125,.4)':'rgba(76,175,125,.2)';
+  if(noWrap)noWrap.style.background=val==='no'?'rgba(107,95,82,.06)':'';
+  if(noWrap)noWrap.style.borderColor=val==='no'?'rgba(107,95,82,.3)':'rgba(107,95,82,.1)';
+}
+
+async function sendMsg(){
+  if(!U){toast('Please sign in first');go('auth');return;}
+  if(!AL)return;
+  const c=document.getElementById('dmsg').value.trim();
+  if(!c){toast('Please write a message');return;}
+
+  // Check minimum dossier (at least ID uploaded)
+  const{data:docs}=await sb.storage.from('listings').list(`docs/${U.id}/`).catch(()=>({data:[]}));
+  const uploaded=(docs||[]).map(f=>f.name.split('.')[0]);
+  if(!P?.full_name||!P?.passport_number){
+    toast('❌ Please complete your profile (name + passport number) before contacting a landlord.');
+    return;
+  }
+  if(!uploaded.includes('id')){
+    toast('❌ Please upload your ID/passport in your profile before contacting a landlord.');
+    return;
+  }
+
+  const escrowChoice=document.getElementById('escrow-yes')?.checked;
+  // Build message with escrow info
+  let fullMessage=c;
+  if(escrowChoice){
+    fullMessage=c+'\n\n🔐 [Option escrow activée — je souhaite sécuriser mon dépôt via RestMalta. À mon arrivée j\'aurai 24h pour confirmer que tout est conforme.]';
+  }
+
+  const{error}=await sb.from('messages').insert({
+    listing_id:AL.id,
+    sender_id:U.id,
+    receiver_id:AL.landlord_id,
+    content:fullMessage,
+    escrow_requested:escrowChoice||false
+  });
+  if(error){toast('Error: '+error.message);return;}
+
+  // If escrow requested, create a deposit escrow request in Supabase
+  if(escrowChoice&&AL.deposit){
+    await sb.from('escrow_requests').insert({
+      tenant_id:U.id,
+      landlord_id:AL.landlord_id,
+      listing_id:AL.id,
+      listing_title:AL.title,
+      amount:AL.deposit,
+      status:'pending', // pending → paid → confirmed → released
+      created_at:new Date().toISOString()
+    }).catch(()=>{});
+    toast('✅ Message envoyé ! Votre demande d\'escrow dépôt a été enregistrée.');
+  } else {
+    toast('✅ Message sent! The landlord will reply soon.');
+  }
+  document.getElementById('dmsg').value='';
+}
+
+async function requestAgentVisit(){
+  if(!U){toast('Please sign in first');go('auth');return;}
+  if(!AL)return;
+
+  // Check dossier completeness
+  toast('⏳ Vérification de votre dossier...');
+  const{data:docs}=await sb.storage.from('listings').list(`docs/${U.id}/`).catch(()=>({data:[]}));
+  const uploaded=(docs||[]).map(f=>f.name.split('.')[0]);
+  const issues=[];
+  if(!P?.full_name||!P?.passport_number||!P?.date_of_birth||!P?.nationality||!P?.home_address)
+    issues.push('❌ Profil incomplet');
+  if(!uploaded.includes('id'))
+    issues.push('❌ Passeport / ID non uploadé');
+  if(!uploaded.includes('employer_letter'))
+    issues.push('❌ Lettre d\'employeur non uploadée');
+  const required=issues.filter(i=>i.startsWith('❌'));
+  if(required.length>0){
+    toast('❌ Dossier incomplet — visite refusée');
+    alert(`Demande de visite refusée.\n\nDocuments manquants :\n${issues.join('\n')}\n\nComplétez votre profil avant de demander une visite.`);
+    return;
+  }
+
+  // Create visit request
+  const{data:visit,error}=await sb.from('visits').insert({
+    listing_id:AL.id,
+    listing_title:AL.title,
+    tenant_name:P?.full_name||U.email,
+    tenant_id:U.id,
+    landlord_id:AL.landlord_id,
+    status:'requested',
+    landlord_presence:AL.landlord_present||'not_needed',
+    visit_date:new Date(Date.now()+2*24*3600*1000).toISOString()
+  }).select().single();
+
+  if(error&&!error.message.includes('does not exist')){toast('❌ '+error.message);return;}
+
+  const presence=AL.landlord_present||'not_needed';
+
+  // Create group chat based on landlord presence preference
+  const groupData={
+    visit_id:visit?.id||null,
+    listing_id:AL.id,
+    listing_title:AL.title,
+    tenant_id:U.id,
+    tenant_name:P?.full_name||U.email,
+    landlord_id:AL.landlord_id,
+    phone_revealed:false
+  };
+
+  if(presence==='not_needed'){
+    // Agent + tenant only — landlord gets summary after
+    groupData.type='agent_tenant';
+    await sb.from('visit_groups').insert(groupData).catch(()=>{});
+    // Notify landlord by message
+    await sb.from('messages').insert({
+      listing_id:AL.id,
+      sender_id:U.id,
+      receiver_id:AL.landlord_id,
+      content:`📋 Visit requested for your property "${AL.title}". An agent will handle the visit with the tenant. You'll receive a summary after.`
+    });
+    toast('✅ Visite demandée ! Un agent vous contactera pour organiser la visite.');
+
+  } else if(presence==='if_possible'){
+    // Agent + tenant, landlord gets the appointment info
+    groupData.type='agent_tenant_optional';
+    await sb.from('visit_groups').insert(groupData).catch(()=>{});
+    // Notify landlord with appointment details
+    const visitDate=new Date(Date.now()+2*24*3600*1000);
+    await sb.from('messages').insert({
+      listing_id:AL.id,
+      sender_id:U.id,
+      receiver_id:AL.landlord_id,
+      content:`📅 Visit requested for "${AL.title}" on ${visitDate.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}. An agent will be present. You are welcome to join if available — no obligation.`
+    });
+    toast('✅ Visite demandée ! Le rendez-vous vous sera envoyé automatiquement.');
+
+  } else if(presence==='mandatory'){
+    // 3-way group: tenant + agent + landlord
+    groupData.type='three_way';
+    await sb.from('visit_groups').insert(groupData).catch(()=>{});
+    // Notify landlord — confirmation required
+    await sb.from('messages').insert({
+      listing_id:AL.id,
+      sender_id:U.id,
+      receiver_id:AL.landlord_id,
+      content:`👥 Visit requested for "${AL.title}". As you indicated you must be present, a group chat has been created with you, the agent and the tenant. Please confirm your availability.`
+    });
+    toast('👥 Groupe créé ! Vous, l\'agent et le tenant pouvez maintenant coordonner la visite.');
+  }
+}
+
+async function requestLease(){
+  if(!U){toast('Please sign in first');go('auth');return;}
+  if(!AL){return;}
+  const tenantEmail=U.email;
+  const{data:landlord}=await sb.from('profiles').select('email').eq('id',AL.landlord_id).single();
+  if(!landlord?.email){toast('Unable to find landlord email');return;}
+  toast('📄 Generating lease and sending to both parties…');
+  const result=await generateLease(AL.id, tenantEmail, landlord.email, AL.type);
+  if(result){
+    toast('✅ Lease sent to both parties by email for signature!');
+    await sb.from('messages').insert({listing_id:AL.id,sender_id:U.id,receiver_id:AL.landlord_id,content:'📄 I have requested a lease agreement. Please check your email to sign it.'});
+  } else {
+    toast('❌ Error generating lease. Please try again.');
+  }
+}
+
+function setT(el,t){
+  // Handle both button (tbtn) and card (type-opt) styles
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.type-opt').forEach(o=>{
+    o.style.border='2px solid rgba(107,95,82,.2)';
+    o.style.background='';
+    const label=o.querySelector('div:nth-child(2)');
+    if(label)label.style.color='';
+  });
+  if(el.classList.contains('tbtn')) el.classList.add('active');
+  else {
+    el.style.border='2px solid var(--terra)';
+    el.style.background='rgba(201,85,58,.06)';
+    const label=el.querySelector('div:nth-child(2)');
+    if(label)label.style.color='var(--terra)';
+  }
+  document.getElementById('pt').value=t;
+  const shortOpts=document.getElementById('shortlet-opts');
+  const longOpts=document.getElementById('longlet-opts');
+  const subletNotice=document.getElementById('sublet-notice');
+  const subletOpts=document.getElementById('sublet-opts');
+  const typeInfo=document.getElementById('type-info');
+  if(shortOpts)shortOpts.style.display=(t==='short'||t==='both')?'block':'none';
+  if(longOpts)longOpts.style.display=(t==='long'||t==='both')?'block':'none';
+  if(subletNotice)subletNotice.style.display=t==='sublet'?'block':'none';
+  if(subletOpts)subletOpts.style.display=t==='sublet'?'block':'none';
+  const infos={
+    short:'🏠 Short-let : location courte durée (tourisme, stage, expat). Bail short-let spécifique Malte.',
+    long:'📅 Long-let uniquement : bail 6 mois minimum. Vous refusez les locations courte durée.',
+    both:'🔄 Short & Long : vous acceptez les deux. Le locataire choisit la durée au moment du bail.',
+    sublet:'🔑 Sous-location : accord écrit du propriétaire obligatoire. L\'enregistrement HA est votre responsabilité.'
+  };
+  if(typeInfo)typeInfo.textContent=infos[t]||'';
+}
+
+function updateAgentOpt(val){
+  ['none','visit','full','attestation'].forEach(o=>{
+    const radio=document.getElementById(`agent-opt-${o}`);
+    if(radio)radio.checked=(o===val);
+  });
+}
+
+function toggleExclusif(cb){
+  document.getElementById('exclusif-info').style.display=cb.checked?'block':'none';
+}
+
+function toggleIndefinite(cb){
+  const input=document.getElementById('pun');
+  input.disabled=cb.checked;
+  if(cb.checked)input.value='';
+}
+
+function toggleKeyOptions(val){
+  const info=document.getElementById('presence-info');
+  if(!info)return;
+  if(val==='not_needed'){
+    info.textContent='📋 L\'agent organisera la visite directement avec le tenant. Vous recevrez un résumé après.';
+    info.style.color='var(--stone-l)';
+  } else if(val==='if_possible'){
+    info.textContent='📅 L\'agent organisera la visite avec le tenant et vous enverra le rendez-vous. Vous pourrez vous joindre si disponible.';
+    info.style.color='var(--sea)';
+  } else if(val==='mandatory'){
+    info.textContent='👥 Un groupe de chat sera créé avec vous, l\'agent et le tenant. Tout le monde devra confirmer l\'horaire.';
+    info.style.color='var(--green)';
+  }
+}
+
+function toggleKeyDetail(val){
+  const wrap=document.getElementById('key-detail-wrap');
+  const input=document.getElementById('p-key-location');
+  if(val==='keysafe'){input.placeholder='Code du boîtier et localisation exacte';wrap.style.display='block';}
+  else if(val==='neighbor'){input.placeholder='Nom et numéro du voisin / concierge';wrap.style.display='block';}
+  else{wrap.style.display='none';}
+}
+
+function chkPost(){
+  if(!U){toast('Please sign in to post a listing');go('auth');return;}
+  if(P?.role!=='landlord'){toast('You need a landlord account to post. Please sign out and create a new account as landlord.');return;}
+  go('post');
+}
+
+// PHOTO UPLOAD
+let uploadedPhotos = [];
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('photo-upload-area').style.borderColor = 'rgba(107,95,82,.2)';
+  handlePhotos(e.dataTransfer.files);
+}
+
+function handlePhotos(files) {
+  const previews = document.getElementById('photo-previews');
+  Array.from(files).slice(0, 5 - uploadedPhotos.length).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) { toast('❌ File too large — max 5MB'); return; }
+    uploadedPhotos.push(file);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const div = document.createElement('div');
+      div.style.cssText = 'position:relative;width:80px;height:80px';
+      div.innerHTML = `<img src="${e.target.result}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid rgba(107,95,82,.15)"><button onclick="removePhoto(this,${uploadedPhotos.length-1})" style="position:absolute;top:-6px;right:-6px;background:var(--terra);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>`;
+      previews.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+  if (uploadedPhotos.length >= 5) document.getElementById('photo-upload-area').style.opacity = '0.5';
+}
+
+function removePhoto(btn, idx) {
+  uploadedPhotos.splice(idx, 1);
+  btn.parentElement.remove();
+  document.getElementById('photo-upload-area').style.opacity = '1';
+}
+
+// Video preview
+document.addEventListener('DOMContentLoaded',()=>{
+  const vi=document.getElementById('video-input');
+  if(vi)vi.addEventListener('change',function(){
+    const file=this.files[0];
+    if(!file)return;
+    const url=URL.createObjectURL(file);
+    document.getElementById('video-preview').innerHTML=`<video src="${url}" controls style="width:100%;border-radius:8px;max-height:200px;margin-top:.5rem"></video><div style="font-size:.72rem;color:var(--stone-l);margin-top:.3rem">✅ ${file.name} · ${(file.size/1024/1024).toFixed(1)}MB</div>`;
+  });
+});
+
+async function uploadPhotos(listingId) {
+  const urls = [];
+  for (const file of uploadedPhotos) {
+    const ext = file.name.split('.').pop();
+    const path = `${listingId}/${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('listings').upload(path, file, { cacheControl: '3600', upsert: false });
+    if (!error) {
+      const { data } = sb.storage.from('listings').getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+  }
+  return urls;
+}
+
+async function doPost(){
+  const err=document.getElementById('poer'),ok=document.getElementById('pook');err.style.display='none';ok.style.display='none';
+  const ti=document.getElementById('pti').value.trim(),pr=document.getElementById('ppr').value;
+  if(!ti||!pr){sA(err,'Title and price are required');return;}
+  sA(ok,'⏳ Publishing your listing…');
+  ok.style.background='rgba(46,107,138,0.08)';
+  ok.style.color='var(--sea)';
+  const agent_service=document.querySelector('input[name="agent-service"]:checked')?.value||'none';
+  const wants_agent=agent_service!=='none';
+  const accepts_attestation=document.getElementById('att-yes')?.checked!==false;
+  const{data:listing,error}=await sb.from('listings').insert({
+    landlord_id:U.id,
+    title:ti,
+    type:document.getElementById('pt').value,
+    zone:document.getElementById('pz').value,
+    price:parseInt(pr),
+    deposit:parseInt(document.getElementById('pdep').value)||null,
+    spots:parseInt(document.getElementById('psp').value)||1,
+    available_from:document.getElementById('pfr').value||null,
+    available_until:document.getElementById('pun').value||null,
+    description:document.getElementById('pde').value,
+    furnished:document.getElementById('pfu').checked,
+    wifi:document.getElementById('pwi').checked,
+    bills_included:document.getElementById('pbi').checked,
+    active:true,
+    wants_agent,
+    agent_service,
+    accepts_attestation,
+    mandat_exclusif:document.getElementById('p-exclusif')?.checked||false,
+    // Lease fields
+    full_address:document.getElementById('p-full-address').value.trim(),
+    payment_due_day:document.getElementById('p-pay-day').value,
+    notice_period:document.getElementById('p-notice').value,
+    bills_situation:document.getElementById('p-bills').value,
+    // New fields
+    min_stay:document.getElementById('p-min-stay')?.value||null,
+    max_stay:document.getElementById('p-max-stay')?.value||null,
+    lease_duration:document.getElementById('p-lease-duration')?.value||null,
+    di_fermo:document.getElementById('p-di-fermo')?.value||null,
+    available_indefinitely:document.getElementById('p-indefinite')?.checked||false,
+    accepts_attestation:document.getElementById('att-yes')?.checked||true,
+    landlord_present:document.getElementById('p-present')?.value||'yes',
+    key_location:document.getElementById('p-key-location')?.value.trim()||null
+  }).select().single();
+  if(error){sA(err,error.message);ok.style.display='none';return;}
+  // Save extra amenities
+  const extraData = {
+    ac: document.getElementById('pac')?.checked||false,
+    parking: document.getElementById('ppk')?.checked||false,
+    pool: document.getElementById('ppool')?.checked||false,
+    balcony: document.getElementById('pbalc')?.checked||false,
+    pets: document.getElementById('ppets')?.checked||false,
+    washing_machine: document.getElementById('pwash')?.checked||false,
+    dishwasher: document.getElementById('pdish')?.checked||false,
+  };
+  if(listing) await sb.from('listings').update(extraData).eq('id',listing.id);
+  if(uploadedPhotos.length>0&&listing){
+    const photoUrls=await uploadPhotos(listing.id);
+    if(photoUrls.length>0){
+      await sb.from('listings').update({photos:photoUrls}).eq('id',listing.id);
+    }
+  }
+  // Upload video if provided
+  const videoInput=document.getElementById('video-input');
+  if(videoInput?.files[0]&&listing){
+    sA(ok,'⏳ Uploading video...');
+    await uploadVisitVideo(videoInput,listing.id);
+  }
+  uploadedPhotos=[];document.getElementById('photo-previews').innerHTML='';
+  document.getElementById('video-preview').innerHTML='';
+  // Generate mandat exclusif contract if selected
+  if(listing&&document.getElementById('p-exclusif')?.checked){
+    await generateMandatExclusif(listing);
+  }
+  sA(ok,"🎉 Listing published! It's now live on RestMalta.");updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
+}
+
+async function generateMandatExclusif(listing){
+  // Save mandat to Supabase
+  await sb.from('mandats').insert({
+    landlord_id:U.id,
+    listing_id:listing.id,
+    listing_title:listing.title,
+    start_date:new Date().toISOString().split('T')[0],
+    end_date:new Date(Date.now()+90*24*3600*1000).toISOString().split('T')[0], // 3 months
+    status:'active',
+    commission_rate:3.5 // reduced rate for exclusif
+  }).catch(()=>{});
+  // Generate contract document
+  const contractText=`MANDAT EXCLUSIF DE LOCATION
+RestMalta Platform
+
+Date : ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
+
+Mandant (Propriétaire) : ${P?.full_name||'Propriétaire'}
+Email : ${U.email}
+Bien : ${listing.title} — ${listing.zone}, Malte
+Loyer : €${listing.price}/mois
+
+Le propriétaire confie à RestMalta, à titre exclusif, la mission de trouver un locataire pour le bien désigné ci-dessus.
+
+DURÉE : 3 mois à compter de la date ci-dessus.
+
+EXCLUSIVITÉ : Pendant la durée du mandat, le propriétaire s'engage à :
+- Ne publier ce bien sur aucune autre plateforme
+- Diriger vers RestMalta toute demande de location reçue directement
+- Ne pas conclure de location sans passer par RestMalta
+
+AVANTAGES EXCLUSIF :
+- Commission réduite : 3.5% (au lieu de 5%)
+- Mise en avant prioritaire dans les résultats de recherche
+- Badge "Mandat Exclusif" visible sur l'annonce
+- Support prioritaire RestMalta
+
+En publiant ce bien avec le mandat exclusif coché, le propriétaire accepte les présentes conditions.
+
+Généré automatiquement par RestMalta — restmalta.com`;
+  const blob=new Blob([contractText],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`Mandat_Exclusif_RestMalta_${listing.title.replace(/\s/g,'_')}.txt`;a.click();
+  URL.revokeObjectURL(url);
+  setTimeout(()=>toast('📄 Mandat exclusif téléchargé ! Gardez-le précieusement.'),500);
+}
+
+async function loadDash(){
+  if(!U){return;}
+  document.getElementById('dTitle').textContent=P?.role==='landlord'?'Landlord Dashboard':'My Account';
+  document.getElementById('dSub').textContent=`Welcome back, ${P?.full_name?.split(' ')[0]||''}! Here's your overview.`;
+  loadML();loadMM();
+}
+
+async function loadML(){
+  const w=document.getElementById('myl');
+  if(P?.role!=='landlord'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a landlord account to post and manage listings.</p></div>';return;}
+  const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+  if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo">📋</div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
+  const ic={short:'🏠',sublet:'🔑',long:'🏛️'};
+  w.innerHTML=data.map(l=>`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">€${l.price}/mo · ${l.zone} · <span class="dot ${l.active?'dg':'dr'}"></span>${l.active?'Active':'Paused'}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button><button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button></div></div>`).join('');
+}
+
+async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'✅ Listing activated');loadML();updC();}
+
+async function loadMM(){
+  const w=document.getElementById('mym'),field=P?.role==='landlord'?'receiver_id':'sender_id';
+  const{data}=await sb.from('messages').select('*, listings(title,zone,id)').eq(field,U.id).order('created_at',{ascending:false});
+  if(!data||data.length===0){w.innerHTML='<div class="empty"><div class="emo">💬</div><p>No messages yet. When tenants contact you, they\'ll appear here.</p></div>';return;}
+  // Deduplicate by listing
+  const seen=new Set();const unique=[];
+  data.forEach(m=>{if(!seen.has(m.listing_id)){seen.add(m.listing_id);unique.push(m);}});
+  w.innerHTML=unique.map(m=>{
+    const otherId=P?.role==='landlord'?m.sender_id:m.receiver_id;
+    return`<div class="msgcard" onclick="opM('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.content.replace(/'/g,"\\'")}','${m.listings?.zone||''}','${m.listing_id||''}','${otherId||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.15rem">${m.listings?.title||'Listing'}</div><div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.2rem">📍 ${m.listings?.zone||''}</div><div class="mprev">${m.content}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0"><span class="mtime">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>${!m.read?'<div class="ubadge"></div>':''}</div></div>`;
+  }).join('');
+}
+
+function swDash(btn,p){document.querySelectorAll('.dtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.dpanel').forEach(x=>x.classList.remove('active'));document.getElementById(p).classList.add('active');}
+
+// ── Real-time chat ────────────────────────────────────────────
+let chatChannel=null;
+let currentChatListingId=null;
+let currentChatReceiverId=null;
+
+async function opM(id, title, content, zone, listingId, receiverId){
+  AMI=id;
+  currentChatListingId=listingId||null;
+  currentChatReceiverId=receiverId||null;
+  document.getElementById('moti').textContent=title;
+  document.getElementById('most').textContent='📍 '+zone;
+  document.getElementById('mo').classList.add('open');
+
+  // Load all messages for this conversation
+  await loadChatHistory(listingId, receiverId);
+
+  // Mark as read
+  sb.from('messages').update({read:true}).eq('id',id).then(()=>loadMM());
+
+  // Subscribe to real-time new messages
+  if(chatChannel) sb.removeChannel(chatChannel);
+  chatChannel = sb.channel('chat-'+listingId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`listing_id=eq.${listingId}`},
+      payload => {
+        appendChatMessage(payload.new, payload.new.sender_id===U.id);
+      }
+    )
+    .subscribe(status=>{
+      const dot=document.getElementById('chat-online-dot');
+      const txt=document.getElementById('chat-online-txt');
+      if(status==='SUBSCRIBED'){dot.style.background='#4CAF7D';txt.textContent='Connected — messages appear instantly';}
+      else{dot.style.background='#ccc';txt.textContent='Connecting...';}
+    });
+}
+
+async function loadChatHistory(listingId, receiverId){
+  const thread=document.getElementById('moth');
+  thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--stone-l);padding:.5rem">Loading messages...</div>';
+  if(!listingId){thread.innerHTML='';return;}
+  const{data}=await sb.from('messages')
+    .select('*')
+    .eq('listing_id',listingId)
+    .order('created_at',{ascending:true});
+  thread.innerHTML='';
+  (data||[]).forEach(m=>appendChatMessage(m, m.sender_id===U.id, false));
+  thread.scrollTop=thread.scrollHeight;
+}
+
+function appendChatMessage(msg, isMe, scroll=true){
+  const thread=document.getElementById('moth');
+  const div=document.createElement('div');
+  const time=new Date(msg.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.15rem;animation:fu .2s ease`;
+  div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%">${msg.content}</div><div style="font-size:.62rem;color:var(--stone-l)">${time}</div>`;
+  thread.appendChild(div);
+  if(scroll)thread.scrollTop=thread.scrollHeight;
+}
+
+async function sendR(){
+  const r=document.getElementById('mre').value.trim();
+  if(!r||!U)return;
+  document.getElementById('mre').value='';
+  const{error}=await sb.from('messages').insert({
+    listing_id:currentChatListingId||AMI,
+    sender_id:U.id,
+    receiver_id:currentChatReceiverId,
+    content:r,
+    read:false
+  });
+  if(error){toast('❌ Failed to send: '+error.message);return;}
+}
+
+function closeM(){
+  document.getElementById('mo').classList.remove('open');
+  if(chatChannel){sb.removeChannel(chatChannel);chatChannel=null;}
+}
+function cmo(e){if(e.target.id==='mo')closeM();}
+
+function sA(el,msg){el.textContent=msg;el.style.display='block';}
+function toast(msg){const t=document.getElementById('t');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ── Map view ─────────────────────────────────────────────────
+let mapInstance=null;
+let mapView=false;
+
+const ZONE_COORDS={
+  'St. Julian\'s':[35.9181,14.4895],'Sliema':[35.9122,14.5017],'Valletta':[35.8997,14.5148],
+  'Msida':[35.8994,14.4890],'Gzira':[35.9069,14.4953],'Paceville':[35.9233,14.4863],
+  'Bugibba':[35.9511,14.4156],'St. Paul\'s Bay':[35.9481,14.3989],'Mellieha':[35.9564,14.3617],
+  'Mosta':[35.9086,14.4256],'Naxxar':[35.9197,14.4442],'Gozo':[36.0440,14.2400],
+  'Birkirkara':[35.8958,14.4619],'Swieqi':[35.9197,14.4795],'Rabat':[35.8819,14.3990],
+  'Mdina':[35.8869,14.4012],'Marsaskala':[35.8617,14.5556],'Marsaxlokk':[35.8428,14.5442],
+  'Birgu':[35.8897,14.5217],'Senglea':[35.8897,14.5156]
+};
+
+function toggleMapView(){
+  mapView=!mapView;
+  const mc=document.getElementById('map-container');
+  const lg=document.getElementById('lg');
+  const btn=document.getElementById('view-toggle');
+  if(mapView){
+    mc.style.display='block';
+    lg.style.display='none';
+    btn.textContent='📋 List view';
+    initMap();
+  } else {
+    mc.style.display='none';
+    lg.style.display='grid';
+    btn.textContent='🗺 Map view';
+  }
+}
+
+function initMap(){
+  if(mapInstance){mapInstance.remove();mapInstance=null;}
+  mapInstance=L.map('listings-map',{zoomControl:true}).setView([35.9042,14.4700],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:19
+  }).addTo(mapInstance);
+  // Add markers from current listings
+  const grid=document.getElementById('lg');
+  if(window._currentListings){
+    window._currentListings.forEach(l=>{
+      const coords=ZONE_COORDS[l.zone];
+      if(!coords)return;
+      // Slight random offset so pins don't overlap
+      const lat=coords[0]+(Math.random()-0.5)*0.008;
+      const lng=coords[1]+(Math.random()-0.5)*0.008;
+      const marker=L.marker([lat,lng],{
+        icon:L.divIcon({
+          className:'',
+          html:`<div style="background:${l.wants_agent?'#8B5CF6':'#C9553A'};color:white;padding:.3rem .6rem;border-radius:100px;font-size:.72rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.2)">€${l.price}</div>`,
+          iconAnchor:[20,15]
+        })
+      }).addTo(mapInstance);
+      marker.bindPopup(`
+        <div style="min-width:200px">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">${l.title}</div>
+          <div style="font-size:.78rem;color:#666;margin-bottom:.5rem">📍 ${l.zone} · €${l.price}/mo</div>
+          ${l.wants_agent?'<div style="font-size:.7rem;color:#8B5CF6;font-weight:700;margin-bottom:.4rem">🏆 Agent visit available</div>':''}
+          <button onclick="openDet('${l.id}')" style="background:#C9553A;color:white;border:none;padding:.4rem .8rem;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">View listing →</button>
+        </div>
+      `);
+    });
+  }
+  setTimeout(()=>mapInstance.invalidateSize(),100);
+}
+
+// ── Badge "Landlord réactif" ──────────────────────────────────
+async function getLandlordResponseBadge(landlordId){
+  const{data}=await sb.from('messages')
+    .select('created_at,sender_id')
+    .eq('receiver_id',landlordId)
+    .order('created_at',{ascending:false})
+    .limit(20);
+  if(!data||data.length<2)return null;
+  // Check if landlord replied within 2h on average
+  const replies=data.filter(m=>m.sender_id===landlordId);
+  if(replies.length>=3)return'⚡ Fast responder';
+  return null;
+}
+
+// ── Video visite virtuelle ────────────────────────────────────
+async function uploadVisitVideo(input, listingId){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>50*1024*1024){toast('❌ Video max 50MB');return;}
+  toast('⏳ Uploading video...');
+  const ext=file.name.split('.').pop();
+  const path=`videos/${listingId}/visit.${ext}`;
+  const{data,error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
+  if(error){toast('❌ '+error.message);return;}
+  const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+  await sb.from('listings').update({video_url:urlData.publicUrl}).eq('id',listingId);
+  toast('✅ Visit video uploaded!');
+}
+
+// ── Système de références tenant ─────────────────────────────
+async function requestReference(){
+  if(!U){toast('Please sign in first');return;}
+  const email=prompt('Enter your previous landlord\'s email to request a reference:');
+  if(!email||!email.includes('@')){toast('Invalid email');return;}
+  // Store reference request in Supabase
+  const{error}=await sb.from('references').insert({
+    tenant_id:U.id,
+    landlord_email:email,
+    status:'pending',
+    created_at:new Date().toISOString()
+  }).catch(()=>({error:null}));
+  toast('✅ Reference request sent to '+email+'! They\'ll receive an email to confirm.');
+}
+
+// PWA Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
