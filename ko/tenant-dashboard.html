@@ -370,7 +370,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card">
         <div class="ch"><div class="ct">🪪 Identity verification</div><span id="verify-badge" class="badge b-dim">Not verified</span></div>
         <div class="cb">
-          <p style="font-size:.85rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Verified tenants get a ✅ badge visible to all landlords, unlock automatic lease generation, and are prioritised in tenant matching. Takes 30 seconds — completely free.</p>
+          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified tenants get a ✅ badge visible to all landlords and are prioritised in tenant matching.</p>
+          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.75rem;margin-bottom:1rem;font-size:.75rem;color:var(--tm);line-height:1.5">
+            ℹ️ <strong>How it works:</strong> This verification checks that your selfie matches the photo on your ID using face recognition (face-api.js, runs locally in your browser). It does <strong>not</strong> verify that the ID document itself is authentic — that requires a notary or official service. Full document verification will be available soon via Stripe Identity.
+          </div>
 
           <!-- Step 1: ID upload -->
           <div id="verify-step1">
@@ -427,54 +430,54 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">📁 Documents requis avant visite</div><span id="dossier-badge" class="badge b-dim">Incomplet</span></div>
+        <div class="ch"><div class="ct">📁 Required documents before visit</div><span id="dossier-badge" class="badge b-dim">Incomplete</span></div>
         <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Ces documents sont vérifiés automatiquement avant chaque demande de visite. Sans eux, vos demandes seront refusées automatiquement.</p>
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Your ID is required before any visit request. Other documents are highly recommended and may be required by the landlord.</p>
 
-          <!-- ID / Passport -->
+          <!-- ID / Passport — REQUIRED -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🪪</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Passeport / ID card *</div>
-              <div style="font-size:.72rem;color:var(--tm)">Obligatoire — photo recto de votre document</div>
+              <div style="font-size:.85rem;font-weight:600">Passport / ID card <span style="background:var(--terra);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Required</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">Front photo of your ID document</div>
             </div>
-            <div id="doc-id-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <div id="doc-id-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
             <button class="btn bg bsm" onclick="document.getElementById('doc-id-input').click()">Upload</button>
             <input type="file" id="doc-id-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'id','doc-id-status')">
           </div>
 
-          <!-- Bank statement -->
+          <!-- Bank statement — Recommended -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏦</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Relevé bancaire</div>
-              <div style="font-size:.72rem;color:var(--tm)">3 derniers mois — prouve vos revenus réguliers</div>
+              <div style="font-size:.85rem;font-weight:600">Bank statement <span style="background:var(--sea);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Highly recommended</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">Last 3 months — proves regular income</div>
             </div>
-            <div id="doc-bank-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <div id="doc-bank-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
             <button class="btn bg bsm" onclick="document.getElementById('doc-bank-input').click()">Upload</button>
             <input type="file" id="doc-bank-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'bank_statement','doc-bank-status')">
           </div>
 
-          <!-- Employment letter -->
+          <!-- Employment letter — Recommended -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">💼</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Lettre d'employeur / inscription école</div>
-              <div style="font-size:.72rem;color:var(--tm)">Contrat de travail, lettre d'embauche ou lettre d'admission</div>
+              <div style="font-size:.85rem;font-weight:600">Employment letter / school enrollment <span style="background:var(--sea);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Highly recommended</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">Work contract, offer letter or admission letter</div>
             </div>
-            <div id="doc-employer-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <div id="doc-employer-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
             <button class="btn bg bsm" onclick="document.getElementById('doc-employer-input').click()">Upload</button>
             <input type="file" id="doc-employer-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'employer_letter','doc-employer-status')">
           </div>
 
-          <!-- Reference letter (optional) -->
+          <!-- Reference letter — Optional -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">⭐</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Lettre de recommandation landlord <span style="font-weight:400;color:var(--td)">(optionnel)</span></div>
-              <div style="font-size:.72rem;color:var(--tm)">D'un ancien proprio — augmente vos chances d'être accepté</div>
+              <div style="font-size:.85rem;font-weight:600">Landlord reference letter <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">From a previous landlord — increases your chances</div>
             </div>
-            <div id="doc-ref-status" style="font-size:.75rem;color:var(--td)">Non uploadé</div>
+            <div id="doc-ref-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
             <button class="btn bg bsm" onclick="document.getElementById('doc-ref-input').click()">Upload</button>
             <input type="file" id="doc-ref-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'reference_letter','doc-ref-status')">
           </div>
@@ -1032,7 +1035,7 @@ async function submitTicket(){
     for(let i=0;i<ticketPhotos.length;i++){
       const f=ticketPhotos[i];
       const ext=f.name.split('.').pop();
-      await sb.storage.from('listings').upload(`tickets/${ticket.id}/photo_${i}.${ext}`,f,{upsert:true}).catch(()=>{});
+      await sb.storage.from('listings').upload(`tickets/${ticket.id}/photo_${i}.${ext}`,f,{upsert:true});
     }
   }
   document.getElementById('tick-modal').classList.remove('open');
@@ -1232,7 +1235,7 @@ Généré par RestMalta — restmalta.com`;
             status:'notice_given',
             notes:`Départ prévu le ${leave.toLocaleDateString('fr-FR')}`,
             visit_date:leave.toISOString()
-          }).catch(()=>{});
+          });
         }
       });
   }
@@ -1344,7 +1347,7 @@ async function confirmEntry(){
       sender_id:U.id,
       receiver_id:escrows[0].landlord_id,
       content:`✅ ${P?.full_name||'Le locataire'} a confirmé son entrée dans le logement. Le dépôt de €${(escrows[0].amount||0).toLocaleString()} sera libéré dans les 24h.${notes?'\n\nNote : '+notes:''}`
-    }).catch(()=>{});
+    });
   }
   toast('✅ Entrée confirmée ! Le dépôt sera libéré au propriétaire dans les 24h.');
   loadDeposit();
@@ -1485,7 +1488,7 @@ function loadDossier(){
 }
 
 function copyDossierLink(){
-  navigator.clipboard.writeText(window.location.origin+'/dossier/'+U.id).catch(()=>{});
+  navigator.clipboard.writeText(window.location.origin+'/dossier/'+U.id);
   toast('📋 Dossier link copied!');
 }
 
@@ -1793,3 +1796,4 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
