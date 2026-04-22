@@ -737,7 +737,7 @@ footer ul a:hover{color:var(--terra)}
           <label class="cl"><input type="checkbox" id="ppk"> 🚗 Parking</label>
           <label class="cl"><input type="checkbox" id="ppool"> 🏊 Pool</label>
           <label class="cl"><input type="checkbox" id="pbalc"> 🌿 Balcony/Terrace</label>
-          <label class="cl"><input type="checkbox" id="ppets"> 🐾 Pets allowed</label>
+          <label class="cl"><input type="checkbox" id="ppets" style="display:none"> </label>
           <label class="cl"><input type="checkbox" id="pwash"> 🫧 Washing machine</label>
           <label class="cl"><input type="checkbox" id="pdish"> 🍽️ Dishwasher</label>
         </div>
@@ -763,28 +763,6 @@ footer ul a:hover{color:var(--terra)}
         <div id="video-preview" style="margin-top:.5rem"></div>
       </div>
       <div class="aerr" id="poer"></div><div class="aok" id="pook"></div>
-      <div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:1rem;margin-bottom:1rem">
-        <div style="font-size:.85rem;font-weight:700;color:#8B5CF6;margin-bottom:.5rem">🏆 Agent options</div>
-        <div style="font-size:.78rem;color:var(--stone);margin-bottom:.75rem">Choose how much you want a RestMalta agent to handle. You can change this later.</div>
-        <div style="display:flex;flex-direction:column;gap:.5rem">
-          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-none-wrap">
-            <input type="radio" name="agent-option" id="agent-none" value="none" checked onchange="updateAgentOpt('none')">
-            <div><div style="font-weight:600">❌ No agent — I manage myself</div><div style="font-size:.72rem;color:var(--stone-l)">You handle visits, inventory and lease directly</div></div>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-visit-wrap">
-            <input type="radio" name="agent-option" id="agent-visit" value="visit" onchange="updateAgentOpt('visit')">
-            <div><div style="font-weight:600">🏠 Agent for visits only</div><div style="font-size:.72rem;color:var(--stone-l)">Agent shows the flat · You handle inventory and lease</div></div>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-full-wrap">
-            <input type="radio" name="agent-option" id="agent-full" value="full" onchange="updateAgentOpt('full')">
-            <div><div style="font-weight:600">🏆 Agent for visits + inventory (état des lieux)</div><div style="font-size:.72rem;color:var(--stone-l)">Agent handles visits AND entry/exit inventory · ~120€ for inventory</div></div>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;cursor:pointer;padding:.6rem;border-radius:8px;border:1px solid transparent" id="agent-opt-att-wrap">
-            <input type="radio" name="agent-option" id="agent-attestation" value="attestation" onchange="updateAgentOpt('attestation')">
-            <div><div style="font-weight:600">📋 Agent + Lease Agreement Attestation</div><div style="font-size:.72rem;color:var(--stone-l)">Full service including coordination with notary for attestation (non-EU tenants)</div></div>
-          </label>
-        </div>
-      </div>
       <button class="btn btn-p" style="width:100%;justify-content:center;font-size:.95rem" onclick="doPost()">Publish my listing →</button>
     </div>
   </div>
@@ -840,10 +818,10 @@ footer ul a:hover{color:var(--terra)}
             <div style="font-size:.72rem;color:var(--stone);line-height:1.5;margin-bottom:.6rem">Since end-2024, non-EU tenants needing a Maltese residence permit require a notary-attested lease. This landlord accepts such tenants.<br><br>RestMalta generates the base document — the notary validation is your responsibility.</div>
             <button class="btn" style="width:100%;justify-content:center;background:#8B5CF6;color:white;font-size:.78rem" onclick="findNotaire()">🔍 Find a partner notary →</button>
           </div>
-          <div style="margin-top:.75rem;padding:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px">
-            <div style="font-size:.75rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">🏆 Book a guided visit</div>
-            <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem">A RestMalta agent will show you the property and handle everything — visit, docs, lease.</div>
-            <button class="btn" style="width:100%;justify-content:center;background:#8B5CF6;color:white;font-size:.8rem" onclick="requestAgentVisit()">Book visit with agent →</button>
+          <div id="visit-action-wrap" style="margin-top:.75rem;padding:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px">
+            <div style="font-size:.75rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem" id="visit-action-title">🏆 Book a guided visit</div>
+            <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem" id="visit-action-sub">A RestMalta agent will show you the property and handle everything.</div>
+            <button class="btn" id="visit-action-btn" style="width:100%;justify-content:center;background:#8B5CF6;color:white;font-size:.8rem" onclick="requestAgentVisit()">Book visit with agent →</button>
           </div>
           <p style="margin-top:.6rem;font-size:.68rem;color:var(--stone-l);text-align:center">🔒 Your contact details are never shared directly</p>
         </div>
@@ -894,32 +872,60 @@ const SU='https://clfqftbvohwybkrtvylo.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
 const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 
-// ── DocuSeal ─────────────────────────────────────────────────
-const DOCU_KEY='efpcvv2WCz4z7EbfqWHytwtJygPZP6xv7LTea86tvAK';
-const DOCU_TEMPLATES={sublet:494242,long:494370};
-
+// ── Lease Generation via Netlify Function ──────────────────────
 async function generateLease(listingId, tenantEmail, landlordEmail, type) {
-  const templateId = DOCU_TEMPLATES[type] || DOCU_TEMPLATES.sublet;
   try {
-    const res = await fetch('https://api.docuseal.eu/submissions', {
+    const res = await fetch('/.netlify/functions/generate-lease', {
       method: 'POST',
-      headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        template_id: templateId,
-        send_email: true,
-        submitters: [
-          { role: 'Première partie', email: landlordEmail, name: 'Landlord' },
-          { role: 'Deuxième partie', email: tenantEmail, name: 'Tenant' }
-        ]
+        type: type || 'long',
+        landlord: {
+          email: landlordEmail,
+          name: AL?.landlord_name || 'Landlord',
+          address: AL?.full_address || AL?.zone || '',
+          price: AL?.price || 0
+        },
+        tenant: {
+          email: tenantEmail,
+          name: P?.full_name || 'Tenant',
+          passport: P?.passport_number || '',
+          nationality: P?.nationality || '',
+          dob: P?.date_of_birth || '',
+          address: P?.home_address || '',
+          phone: P?.phone || ''
+        },
+        listing: {
+          address: AL?.full_address || AL?.zone || '',
+          price: AL?.price || 0,
+          deposit: AL?.deposit || 0,
+          payment_due_day: AL?.payment_due_day || '1',
+          notice_period: AL?.notice_period || '1 month',
+          bills: AL?.bills_situation || 'excluded'
+        },
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now()+365*24*3600*1000).toISOString().split('T')[0]
       })
     });
     const data = await res.json();
-    if (data.id) {
-      await sb.from('leases').insert({ booking_id: listingId, pdf_url: data.audit_log_url || '' });
+    if (data.success) {
+      await sb.from('leases').insert({
+        listing_id: listingId,
+        tenant_id: U?.id,
+        landlord_id: AL?.landlord_id,
+        listing_title: AL?.title,
+        type,
+        rent: AL?.price,
+        docuseal_id: String(data.submission_id || ''),
+        status: 'pending'
+      });
       return data;
     }
-  } catch(e) { console.error('DocuSeal error:', e); }
-  return null;
+    return null;
+  } catch(e) {
+    console.error('Lease error:', e);
+    return null;
+  }
 }
 
 // ── Clerk Auth ────────────────────────────────────────────────
@@ -1148,13 +1154,13 @@ function rCard(l){
   const tags=[l.furnished?'Furnished':null,l.wifi?'WiFi':null,l.bills_included?'Bills incl.':null,l.ac?'A/C':null,l.parking?'Parking':null,l.pool?'Pool':null,l.balcony?'Balcony':null,l.spots>1?`${l.spots} spots`:null].filter(Boolean).slice(0,3);
   const fr=l.available_indefinitely?'Disponible indefiniment':l.available_from?'From '+new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Available now';
   // Agent service badge
-  const agentLabels={visit:'🏆 Agent visite',full:'🏆 Agent complet',attestation:'🏆 Agent + Att.'};
+  const agentLabels={visit:'🏆 Agent visits',full:'🏆 Agent full service',attestation:'🏆 Agent + Att.'};
   const agentBadge=l.wants_agent&&l.agent_service&&l.agent_service!=='none'?
-    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">${agentLabels[l.agent_service]||'🏆 Agent'}</span>`:'';
-  // Attestation badge
+    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">${agentLabels[l.agent_service]||'🏆 Agent'}</span>`:
+    `<span style="position:absolute;top:.5rem;left:.5rem;background:rgba(76,175,125,.9);color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏠 Direct from owner</span>`;
+  // Attestation badge — only show when accepted
   const attBadge=l.accepts_attestation?
-    `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(46,107,138,.9);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ✅</span>`:
-    `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(107,95,82,.6);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ❌</span>`;
+    `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(46,107,138,.9);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ✅</span>`:'';
   return`<div class="lcard" onclick="openDet('${l.id}')">
     <div class="limg" style="background:${bg[l.type]||bg.sublet}">
       ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'🏠'}</span>`}
@@ -1186,7 +1192,7 @@ async function openDet(id){
   document.getElementById('dzo').textContent='📍 '+l.zone+(l.address?' · '+l.address:'');
   document.getElementById('dde').textContent=l.description||'No description provided.';
   document.getElementById('dpr').textContent='€'+l.price;
-  const fe=[l.furnished?'✓ Furnished':'✗ Unfurnished',l.wifi?'✓ WiFi':null,l.bills_included?'✓ Bills incl.':null,l.ac?'✓ A/C':null,l.parking?'✓ Parking':null,l.pool?'✓ Pool':null,l.balcony?'✓ Balcony':null,l.pets?'✓ Pets ok':null,l.washing_machine?'✓ Washing machine':null,l.spots>1?`${l.spots} spots`:'1 spot',l.deposit?`Deposit: €${l.deposit}`:'No deposit'].filter(Boolean);
+  const fe=[l.furnished?'✓ Furnished':'✗ Unfurnished',l.wifi?'✓ WiFi':null,l.bills_included?'✓ Bills incl.':null,l.ac?'✓ A/C':null,l.parking?'✓ Parking':null,l.pool?'✓ Pool':null,l.balcony?'✓ Balcony':null,l.washing_machine?'✓ Washing machine':null,l.spots>1?`${l.spots} spots`:'1 spot',l.deposit?`Deposit: €${l.deposit}`:'No deposit'].filter(Boolean);
   if(l.wants_agent)fe.unshift('🏆 Agent visit available');
   if(l.video_url)fe.unshift('🎥 Virtual visit available');
   if(l.accepts_attestation)fe.push('📋 Attestation accepted');
@@ -1212,6 +1218,19 @@ async function openDet(id){
   go('det');
   const attBox=document.getElementById('attestation-info');
   if(attBox)attBox.style.display=l.accepts_attestation?'block':'none';
+  // Problem 10 — show correct visit button based on agent choice
+  const visitTitle=document.getElementById('visit-action-title');
+  const visitSub=document.getElementById('visit-action-sub');
+  const visitBtn=document.getElementById('visit-action-btn');
+  if(l.wants_agent&&l.agent_service&&l.agent_service!=='none'){
+    if(visitTitle)visitTitle.textContent='🏆 Book a guided visit';
+    if(visitSub)visitSub.textContent='A RestMalta agent will show you the property and handle everything.';
+    if(visitBtn){visitBtn.textContent='Book visit with agent →';visitBtn.onclick=requestAgentVisit;}
+  } else {
+    if(visitTitle)visitTitle.textContent='📅 Schedule a visit';
+    if(visitSub)visitSub.textContent='The landlord manages visits directly. Send a message to arrange a time.';
+    if(visitBtn){visitBtn.style.background='var(--sea)';visitBtn.textContent='Request a visit →';visitBtn.onclick=()=>{document.getElementById('dmsg').value='Hi! I would like to schedule a visit for this property. When would you be available?';document.getElementById('dmsg').focus();};}
+  }
 }
 
 function findNotaire(){
@@ -1234,15 +1253,9 @@ async function sendMsg(){
   const c=document.getElementById('dmsg').value.trim();
   if(!c){toast('Please write a message');return;}
 
-  // Check minimum dossier (at least ID uploaded)
-  const{data:docs}=await sb.storage.from('listings').list(`docs/${U.id}/`).catch(()=>({data:[]}));
-  const uploaded=(docs||[]).map(f=>f.name.split('.')[0]);
+  // Check minimum profile before contact
   if(!P?.full_name||!P?.passport_number){
-    toast('❌ Please complete your profile (name + passport number) before contacting a landlord.');
-    return;
-  }
-  if(!uploaded.includes('id')){
-    toast('❌ Please upload your ID/passport in your profile before contacting a landlord.');
+    toast('❌ Complétez votre profil (nom + passeport) avant de contacter un landlord.');
     return;
   }
 
@@ -1264,18 +1277,20 @@ async function sendMsg(){
 
   // If escrow requested, create a deposit escrow request in Supabase
   if(escrowChoice&&AL.deposit){
-    await sb.from('escrow_requests').insert({
-      tenant_id:U.id,
-      landlord_id:AL.landlord_id,
-      listing_id:AL.id,
-      listing_title:AL.title,
-      amount:AL.deposit,
-      status:'pending', // pending → paid → confirmed → released
-      created_at:new Date().toISOString()
-    }).catch(()=>{});
+    try{
+      await sb.from('escrow_requests').insert({
+        tenant_id:U.id,
+        landlord_id:AL.landlord_id,
+        listing_id:AL.id,
+        listing_title:AL.title,
+        amount:AL.deposit,
+        status:'pending',
+        created_at:new Date().toISOString()
+      });
+    }catch(e){}
     toast('✅ Message envoyé ! Votre demande d\'escrow dépôt a été enregistrée.');
   } else {
-    toast('✅ Message sent! The landlord will reply soon.');
+    toast('✅ Message envoyé !');
   }
   document.getElementById('dmsg').value='';
 }
@@ -1284,23 +1299,17 @@ async function requestAgentVisit(){
   if(!U){toast('Please sign in first');go('auth');return;}
   if(!AL)return;
 
-  // Check dossier completeness
-  toast('⏳ Vérification de votre dossier...');
-  const{data:docs}=await sb.storage.from('listings').list(`docs/${U.id}/`).catch(()=>({data:[]}));
-  const uploaded=(docs||[]).map(f=>f.name.split('.')[0]);
+  // Check dossier completeness — check profile only (storage check removed)
   const issues=[];
-  if(!P?.full_name||!P?.passport_number||!P?.date_of_birth||!P?.nationality||!P?.home_address)
-    issues.push('❌ Profil incomplet');
-  if(!uploaded.includes('id'))
-    issues.push('❌ Passeport / ID non uploadé');
-  if(!uploaded.includes('employer_letter'))
-    issues.push('❌ Lettre d\'employeur non uploadée');
-  const required=issues.filter(i=>i.startsWith('❌'));
-  if(required.length>0){
-    toast('❌ Dossier incomplet — visite refusée');
-    alert(`Demande de visite refusée.\n\nDocuments manquants :\n${issues.join('\n')}\n\nComplétez votre profil avant de demander une visite.`);
+  if(!P?.full_name) issues.push('❌ Nom complet manquant dans votre profil');
+  if(!P?.passport_number) issues.push('❌ Numéro de passeport manquant');
+  if(!P?.nationality) issues.push('❌ Nationalité manquante');
+  if(issues.length>0){
+    toast('❌ Profil incomplet');
+    alert(`Demande de visite refusée.\n\n${issues.join('\n')}\n\nComplétez votre profil d'abord.`);
     return;
   }
+  toast('✅ Dossier vérifié...');
 
   // Create visit request
   const{data:visit,error}=await sb.from('visits').insert({
@@ -1332,7 +1341,7 @@ async function requestAgentVisit(){
   if(presence==='not_needed'){
     // Agent + tenant only — landlord gets summary after
     groupData.type='agent_tenant';
-    await sb.from('visit_groups').insert(groupData).catch(()=>{});
+    try{await sb.from('visit_groups').insert(groupData);}catch(e){}
     // Notify landlord by message
     await sb.from('messages').insert({
       listing_id:AL.id,
@@ -1345,7 +1354,7 @@ async function requestAgentVisit(){
   } else if(presence==='if_possible'){
     // Agent + tenant, landlord gets the appointment info
     groupData.type='agent_tenant_optional';
-    await sb.from('visit_groups').insert(groupData).catch(()=>{});
+    try{await sb.from('visit_groups').insert(groupData);}catch(e){}
     // Notify landlord with appointment details
     const visitDate=new Date(Date.now()+2*24*3600*1000);
     await sb.from('messages').insert({
@@ -1359,7 +1368,7 @@ async function requestAgentVisit(){
   } else if(presence==='mandatory'){
     // 3-way group: tenant + agent + landlord
     groupData.type='three_way';
-    await sb.from('visit_groups').insert(groupData).catch(()=>{});
+    try{await sb.from('visit_groups').insert(groupData);}catch(e){}
     // Notify landlord — confirmation required
     await sb.from('messages').insert({
       listing_id:AL.id,
@@ -1373,17 +1382,27 @@ async function requestAgentVisit(){
 
 async function requestLease(){
   if(!U){toast('Please sign in first');go('auth');return;}
-  if(!AL){return;}
-  const tenantEmail=U.email;
-  const{data:landlord}=await sb.from('profiles').select('email').eq('id',AL.landlord_id).single();
-  if(!landlord?.email){toast('Unable to find landlord email');return;}
-  toast('📄 Generating lease and sending to both parties…');
-  const result=await generateLease(AL.id, tenantEmail, landlord.email, AL.type);
-  if(result){
-    toast('✅ Lease sent to both parties by email for signature!');
-    await sb.from('messages').insert({listing_id:AL.id,sender_id:U.id,receiver_id:AL.landlord_id,content:'📄 I have requested a lease agreement. Please check your email to sign it.'});
-  } else {
-    toast('❌ Error generating lease. Please try again.');
+  if(!AL)return;
+  toast('📄 Generating lease...');
+  try {
+    // Get landlord email from profiles using clerk_id
+    const{data:landlord}=await sb.from('profiles').select('*').eq('clerk_id',AL.landlord_id).single();
+    const landlordEmail=landlord?.email||'landlord@restmalta.com';
+    const tenantEmail=U.email;
+    const result=await generateLease(AL.id, tenantEmail, landlordEmail, AL.type);
+    if(result){
+      toast('✅ Lease generated and downloaded!');
+      await sb.from('messages').insert({
+        listing_id:AL.id,
+        sender_id:U.id,
+        receiver_id:AL.landlord_id,
+        content:'📄 I have requested a lease agreement. Please check your RestMalta dashboard.'
+      });
+    } else {
+      toast('❌ Error generating lease. Please try again.');
+    }
+  } catch(e) {
+    toast('❌ Error: '+e.message);
   }
 }
 
@@ -1604,16 +1623,17 @@ async function doPost(){
 }
 
 async function generateMandatExclusif(listing){
-  // Save mandat to Supabase
-  await sb.from('mandats').insert({
-    landlord_id:U.id,
-    listing_id:listing.id,
-    listing_title:listing.title,
-    start_date:new Date().toISOString().split('T')[0],
-    end_date:new Date(Date.now()+90*24*3600*1000).toISOString().split('T')[0], // 3 months
-    status:'active',
-    commission_rate:3.5 // reduced rate for exclusif
-  }).catch(()=>{});
+  try{
+    await sb.from('mandats').insert({
+      landlord_id:U.id,
+      listing_id:listing.id,
+      listing_title:listing.title,
+      start_date:new Date().toISOString().split('T')[0],
+      end_date:new Date(Date.now()+90*24*3600*1000).toISOString().split('T')[0],
+      status:'active',
+      commission_rate:3.5
+    });
+  }catch(e){}
   // Generate contract document
   const contractText=`MANDAT EXCLUSIF DE LOCATION
 RestMalta Platform
@@ -1877,7 +1897,7 @@ async function requestReference(){
 
 // PWA Service Worker
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  navigator.serviceWorker.register('/sw.js');
 }
 </script>
 </body>
