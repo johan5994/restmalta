@@ -603,14 +603,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         </div>
       </div>
 
-      <!-- Agent for état des lieux (point 10) -->
+      <!-- Agent for état des lieux (point 10) — exit only -->
       <div style="margin-top:1rem;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:1rem">
-        <div style="font-size:.82rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">🏆 Faire appel à un agent pour l'état des lieux (~120€)</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem;line-height:1.5">Un agent RestMalta certifié effectue l'état des lieux à votre place. Il documente tout, prend les photos, et fait signer les deux parties. Disponible pour l'entrée et la sortie.</div>
-        <div style="display:flex;gap:.75rem">
-          <button class="btn bg bsm" onclick="bookAgentInventory('entry')">📥 Agent — entrée</button>
-          <button class="btn bg bsm" onclick="bookAgentInventory('exit')">📤 Agent — sortie</button>
-        </div>
+        <div style="font-size:.82rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">🏆 Book an agent for exit inventory (~120€)</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem;line-height:1.5">A certified RestMalta agent handles the exit inventory — documents everything, takes photos, and gets both parties to sign. Available for exit check only (entry templates are already provided above).</div>
+        <button class="btn bg bsm" onclick="bookAgentInventory('exit')">📤 Book agent — exit inventory</button>
       </div>
     </div>
 
@@ -792,8 +789,7 @@ const SU='https://clfqftbvohwybkrtvylo.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
 const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 
-const DOCU_KEY='efpcvv2WCz4z7EbfqWHytwtJygPZP6xv7LTea86tvAK';
-const DOCU_TPL={sublet:494242,long:494370};
+// ── Lease Generation ────────────────────────────────────────
 
 let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingId=null;
 
@@ -1035,7 +1031,7 @@ async function sendMsg(){
       sender_role:'landlord',
       content,
       // Phone numbers are hidden - never include them
-    }).catch(()=>{});
+    });
   } else {
     const{error}=await sb.from('messages').insert({
       listing_id:activeChatListingId,
@@ -1057,7 +1053,7 @@ async function joinVisit(groupId){
     sender_name:P?.full_name||'Landlord',
     sender_role:'landlord',
     content:'👋 Le propriétaire a rejoint la conversation et sera présent lors de la visite.'
-  }).catch(()=>{});
+  });
   toast('✅ Vous avez rejoint la visite !');
   loadVisitGroups();
 }
@@ -1152,46 +1148,50 @@ async function generateAndSendLease(){
   const start=document.getElementById('lease-start').value;
   const end=document.getElementById('lease-end').value;
   if(!start||!end){toast('Please select start and end dates');return;}
-  const tenantEmail=selectedTenant.email;
-  if(!tenantEmail){toast('Tenant has no email — cannot send lease');return;}
-  toast('📄 Generating lease and sending for e-signature...');
+  toast('📄 Generating lease for e-signature...');
   try{
     const type=document.getElementById('lease-type').value;
-    const res=await fetch('https://api.docuseal.eu/submissions',{
+
+    // Call Netlify function — bypasses CORS
+    const res=await fetch('/.netlify/functions/generate-lease',{
       method:'POST',
-      headers:{'X-Auth-Token':DOCU_KEY,'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        template_id:DOCU_TPL[type]||DOCU_TPL.sublet,
-        send_email:true,
-        submitters:[
-          {role:'Première partie',email:U.email,name:P.full_name||'Landlord'},
-          {role:'Deuxième partie',email:tenantEmail,name:selectedTenant.full_name||'Tenant'}
-        ],
-        values:{
-          landlord_name:P.full_name||'',
-          landlord_passport:P.passport_number||'',
-          landlord_address:P.malta_address||'',
-          landlord_phone:P.phone||'',
-          landlord_iban:P.iban||'',
-          tenant_name:selectedTenant.full_name||'',
-          tenant_passport:selectedTenant.passport_number||'',
-          tenant_nationality:selectedTenant.nationality||'',
-          tenant_dob:selectedTenant.date_of_birth||'',
-          tenant_address:selectedTenant.home_address||'',
-          tenant_phone:selectedTenant.phone||'',
-          property_address:selectedListing.full_address||selectedListing.zone||'',
-          monthly_rent:String(selectedListing.price||''),
-          deposit:String(selectedListing.deposit||''),
-          start_date:start,
-          end_date:end,
+        type,
+        landlord:{
+          email:U.email,
+          name:P.full_name||'',
+          passport:P.passport_number||'',
+          address:P.malta_address||'',
+          phone:P.phone||'',
+          iban:P.iban||''
+        },
+        tenant:{
+          email:selectedTenant.email||'',
+          name:selectedTenant.full_name||'',
+          passport:selectedTenant.passport_number||'',
+          nationality:selectedTenant.nationality||'',
+          dob:selectedTenant.date_of_birth||'',
+          address:selectedTenant.home_address||'',
+          phone:selectedTenant.phone||''
+        },
+        listing:{
+          address:selectedListing.full_address||selectedListing.zone||'',
+          price:selectedListing.price||0,
+          deposit:selectedListing.deposit||0,
           payment_due_day:selectedListing.payment_due_day||'1',
           notice_period:selectedListing.notice_period||'1 month',
           bills:selectedListing.bills_situation||'excluded'
-        }
+        },
+        start_date:start,
+        end_date:end
       })
     });
+
     const data=await res.json();
-    if(data.id){
+
+    if(data.success){
+      // Save to Supabase
       await sb.from('leases').insert({
         landlord_id:U.id,
         tenant_id:selectedTenant.clerk_id,
@@ -1202,15 +1202,22 @@ async function generateAndSendLease(){
         start_date:start,
         end_date:end,
         rent:selectedListing.price,
-        deposit:selectedListing.deposit,
-        signed_landlord:false,
-        signed_tenant:false,
-        docuseal_id:data.id
+        docuseal_id:String(data.submission_id),
+        status:'pending'
       });
       toast('✅ Lease sent to both parties for e-signature!');
+      // Show signing link if available
+      if(data.signing_url){
+        setTimeout(()=>{
+          if(confirm('Lease sent! Do you want to open the signing page now?')){
+            window.open(data.signing_url,'_blank');
+          }
+        },500);
+      }
       loadLeases();
     } else {
-      toast('❌ Error generating lease. Check DocuSeal setup.');
+      console.error('DocuSeal error:', data);
+      toast('❌ Error: '+(data.error||'DocuSeal failed'));
     }
   }catch(e){
     toast('❌ Error: '+e.message);
@@ -1423,31 +1430,39 @@ async function openMsgChat(id, title, listingId, senderId){
   document.getElementById('msg-chat-name').textContent=title;
   document.getElementById('msg-chat-sub').innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><span id="ll-dot" style="width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block"></span><span id="ll-txt">Connecting...</span></span>';
 
-  // Load history
   const body=document.getElementById('msg-chat-body');
+  // Fix problem 3 — ensure scroll works
+  body.style.cssText='flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;max-height:400px';
   body.innerHTML='<div style="text-align:center;color:var(--td);font-size:.78rem">Loading...</div>';
+
   const{data}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
   body.innerHTML='';
   (data||[]).forEach(m=>{
     const isMe=m.sender_id===U.id;
     const div=document.createElement('div');
     div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
-    div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     body.appendChild(div);
   });
   body.scrollTop=body.scrollHeight;
-  sb.from('messages').update({read:true}).eq('id',id).then(()=>loadMessages());
+
+  // Fix problem 2 — mark ALL unread messages in this conversation as read
+  await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);
+  loadMessages(); // refresh badge count
 
   // Real-time subscription
   if(landlordChatChannel)sb.removeChannel(landlordChatChannel);
   landlordChatChannel=sb.channel('landlord-chat-'+listingId)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`listing_id=eq.${listingId}`},payload=>{
       const m=payload.new;
+      if(m.sender_id===U.id)return; // already shown optimistically
       const isMe=m.sender_id===U.id;
       const div=document.createElement('div');
       div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem;animation:fi .2s ease`;
-      div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
       body.appendChild(div);body.scrollTop=body.scrollHeight;
+      // Mark as read immediately
+      sb.from('messages').update({read:true}).eq('id',m.id);
     })
     .subscribe(s=>{
       const dot=document.getElementById('ll-dot');
@@ -1459,9 +1474,20 @@ async function openMsgChat(id, title, listingId, senderId){
 function insertTpl(text){document.getElementById('msg-input').value=text;}
 
 async function sendMsg(){
-  const content=document.getElementById('msg-input').value.trim();
+  const input=document.getElementById('msg-input');
+  const content=input?.value.trim();
   if(!content||!activeChatListingId)return;
-  document.getElementById('msg-input').value='';
+
+  // Fix problem 1 — optimistic UI: show message immediately
+  const body=document.getElementById('msg-chat-body');
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;animation:fi .2s ease';
+  div.innerHTML=`<div class="bm" style="max-width:80%;word-wrap:break-word">${content}</div><div style="font-size:.6rem;color:var(--td)">${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  body.appendChild(div);
+  body.scrollTop=body.scrollHeight;
+  input.value='';
+
+  // Fix problem 4 — send and show confirmation
   const{error}=await sb.from('messages').insert({
     listing_id:activeChatListingId,
     sender_id:U.id,
@@ -1469,7 +1495,11 @@ async function sendMsg(){
     content,
     read:false
   });
-  if(error)toast('❌ '+error.message);
+  if(error){
+    div.style.opacity='0.5';
+    div.title='Failed to send';
+    toast('❌ Failed to send: '+error.message);
+  }
 }
 
 async function sendModalReply(){
@@ -1540,7 +1570,7 @@ async function handleTicket(id, action){
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
         content:`🔧 Votre ticket "${ticket.title}" a été pris en charge. Le propriétaire va s'occuper de la réparation. Vous serez contacté pour convenir d'un rendez-vous si nécessaire.`
-      }).catch(()=>{});
+      });
     }
     toast('🔧 Ticket pris en charge — locataire notifié.');
   } else if(action==='mandate_self'){
@@ -1552,7 +1582,7 @@ async function handleTicket(id, action){
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
         content:`📋 Votre ticket "${ticket.title}" est en cours de traitement. Un prestataire externe va intervenir. Vous serez contacté pour la date d'intervention.`
-      }).catch(()=>{});
+      });
     }
     toast('📋 Prestataire mandaté — locataire notifié.');
   } else if(action==='mandate_app'){
@@ -1563,7 +1593,7 @@ async function handleTicket(id, action){
       landlord_id:U.id,
       status:'pending',
       created_at:new Date().toISOString()
-    }).catch(()=>{});
+    });
     const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).single().catch(()=>({data:null}));
     if(ticket?.tenant_id){
       await sb.from('messages').insert({
@@ -1571,7 +1601,7 @@ async function handleTicket(id, action){
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
         content:`🏆 RestMalta recherche des prestataires pour votre ticket "${ticket.title}". Plusieurs devis vous seront présentés sous 24-48h.`
-      }).catch(()=>{});
+      });
     }
     toast('🏆 Demande de devis envoyée ! Vous recevrez plusieurs offres sous 24-48h.');
   }
