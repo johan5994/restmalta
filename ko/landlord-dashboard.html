@@ -1092,14 +1092,62 @@ async function loadLeases(){
   // Load existing leases
   const{data}=await sb.from('leases').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   const tb=document.getElementById('leases-tbody');
-  tb.innerHTML=(data||[]).map(l=>`<tr>
-    <td style="color:var(--txt)">${l.tenant_name||l.tenant_id||'—'}</td>
-    <td style="color:var(--td);font-size:.78rem">${l.listing_title||'—'}</td>
-    <td><span class="badge b-sea">${l.type==='long'?'Long-let':'Short-let'}</span></td>
-    <td style="font-size:.75rem;color:var(--td)">${l.start_date?new Date(l.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'} → ${l.end_date?new Date(l.end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</td>
-    <td><span class="badge ${l.signed_landlord&&l.signed_tenant?'b-green':l.signed_landlord?'b-gold':'b-red'}">${l.signed_landlord&&l.signed_tenant?'✅ Fully signed':l.signed_landlord?'⏳ Awaiting tenant':'📤 Sent'}</span></td>
-    <td>${l.pdf_url?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View</a>`:''}</td>
-  </tr>`).join('')||'<tr><td colspan="6"><div class="empty"><div class="em">📄</div><p>No leases yet. Generate your first!</p></div></td></tr>';
+
+  // Check for leases needing HA registration reminder
+  const today=new Date();
+  (data||[]).forEach(l=>{
+    if(l.start_date&&!l.ha_registered){
+      const start=new Date(l.start_date);
+      const daysSince=Math.floor((today-start)/(1000*60*60*24));
+      if([1,5,9].includes(daysSince)){
+        // Show reminder alert
+        const alertsWrap=document.getElementById('alerts-list');
+        if(alertsWrap){
+          const alert=document.createElement('div');
+          alert.style.cssText='display:flex;align-items:center;gap:.75rem;padding:.75rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:10px;margin-bottom:.5rem';
+          alert.innerHTML=`<div style="font-size:1.2rem">⚠️</div><div style="flex:1;font-size:.8rem"><strong>Register your lease!</strong> "${l.listing_title||'Your lease'}" started ${daysSince} day${daysSince>1?'s':''} ago. You have ${Math.max(0,10-daysSince)} days left to register with the Housing Authority or face a €120 fine.</div><a href="https://rentregistration.mt" target="_blank" class="btn bp bsm" style="flex-shrink:0">Register now →</a>`;
+          alertsWrap.prepend(alert);
+        }
+      }
+    }
+  });
+
+  tb.innerHTML=(data||[]).map(l=>{
+    const daysSinceStart=l.start_date?Math.floor((today-new Date(l.start_date))/(1000*60*60*24)):0;
+    const daysLeft=Math.max(0,10-daysSinceStart);
+    const haStatus=l.ha_registered
+      ?'<span class="badge b-green">✅ HA Registered</span>'
+      :daysSinceStart>10
+        ?'<span class="badge b-red">⚠️ Overdue</span>'
+        :`<span class="badge b-gold">⏳ ${daysLeft}d left</span>`;
+    return`<tr>
+      <td style="color:var(--txt)">${l.tenant_name||l.tenant_id||'—'}</td>
+      <td style="color:var(--td);font-size:.78rem">${l.listing_title||'—'}</td>
+      <td><span class="badge b-sea">${l.type==='long'?'Long-let':'Short-let'}</span></td>
+      <td style="font-size:.75rem;color:var(--td)">${l.start_date?new Date(l.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'} → ${l.end_date?new Date(l.end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</td>
+      <td>
+        ${haStatus}
+        ${!l.ha_registered?`
+        <div style="display:flex;gap:.3rem;margin-top:.3rem">
+          <a href="https://rentregistration.mt" target="_blank" class="btn bg bsm" style="font-size:.65rem">Register →</a>
+          <button class="btn bp bsm" style="font-size:.65rem" onclick="markHARegistered('${l.id}')">✅ Mark done</button>
+        </div>`:''}
+      </td>
+      <td>${l.pdf_url?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View</a>`:''}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="6"><div class="empty"><div class="em">📄</div><p>No leases yet. Generate your first!</p></div></td></tr>';
+}
+
+async function markHARegistered(leaseId){
+  await sb.from('leases').update({ha_registered:true,ha_registered_at:new Date().toISOString()}).eq('id',leaseId);
+  toast('✅ Lease marked as registered with the Housing Authority!');
+  // Update listing badge
+  const{data:lease}=await sb.from('leases').select('listing_id').eq('id',leaseId).single().catch(()=>({data:null}));
+  if(lease?.listing_id){
+    await sb.from('listings').update({ha_registered:true}).eq('id',lease.listing_id);
+  }
+  loadLeases();
+  loadListings();
 }
 
 function onLeaseListingChange(id){
