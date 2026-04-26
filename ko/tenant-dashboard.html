@@ -1049,8 +1049,32 @@ async function submitTicket(){
 async function loadDocuments(){
   const wrap=document.getElementById('docs-list');
   const{data}=await sb.from('leases').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
-  if(!data||!data.length){wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No signed leases yet.<br>When you sign a lease it will appear here.</p></div>';return;}
-  wrap.innerHTML=data.map(l=>'<div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)"><div style="width:40px;height:40px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📜</div><div style="flex:1"><div style="font-size:.85rem;font-weight:600">Lease agreement</div><div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">'+new Date(l.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+' · '+(l.signed_tenant?'✅ Signed':'⏳ Awaiting your signature')+'</div></div>'+(l.pdf_url?'<a href="'+l.pdf_url+'" target="_blank" class="btn bg bsm">View PDF</a>':'')+'<span class="badge '+(l.signed_tenant?'b-green':'b-gold')+'">'+(l.signed_tenant?'Signed':'Pending')+'</span></div>').join('');
+  if(!data||!data.length){
+    wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No leases yet.<br>When your landlord generates a lease it will appear here for signature.</p></div>';
+    return;
+  }
+  const typeLabels={long:'Long-let',short:'Short-let',sublet:'Subletting',both:'Lease'};
+  wrap.innerHTML=data.map(l=>`
+    <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+      <div style="width:40px;height:40px;border-radius:10px;background:${l.status==='signed'?'rgba(76,175,125,.15)':'var(--tdim)'};display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">${l.status==='signed'?'✅':'📜'}</div>
+      <div style="flex:1">
+        <div style="font-size:.85rem;font-weight:600">${typeLabels[l.type]||'Lease'} — ${l.listing_title||'Your property'}</div>
+        <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">
+          ${l.start_date?new Date(l.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}
+          ${l.end_date?'→ '+new Date(l.end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}
+        </div>
+        ${l.status==='signed'?'<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Fully signed — legally binding</div>':''}
+        ${l.status!=='signed'?'<div style="font-size:.68rem;color:var(--gold);margin-top:.1rem">⏳ Awaiting signatures — check your email</div>':''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end">
+        ${l.status==='signed'&&l.pdf_url
+          ?`<a href="${l.pdf_url}" target="_blank" class="btn bp bsm">📄 Download signed lease</a>`
+          :l.pdf_url
+            ?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View draft</a>`
+            :''}
+        <span class="badge ${l.status==='signed'?'b-green':l.status==='pending'?'b-gold':'b-dim'}">${l.status==='signed'?'✅ Signed':l.status==='pending'?'⏳ Pending':'📤 Sent'}</span>
+      </div>
+    </div>`).join('');
 }
 
 async function loadPaymentsData(){
@@ -1796,4 +1820,3 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
-
