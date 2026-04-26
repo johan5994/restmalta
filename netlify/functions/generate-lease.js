@@ -12,7 +12,7 @@ exports.handler = async (event) => {
     const { type, landlord, tenant, coTenants, listing, start_date, end_date, submitters } = JSON.parse(event.body);
 
     const DOCU_KEY = process.env.DOCUSEAL_KEY;
-    const DOCU_TEMPLATES = { sublet: 494242, long: 494370, short: 494242, both: 494370 };
+    const DOCU_TEMPLATES = { long: 520700, short: 520701, sublet: 520701, both: 520700 };
     const templateId = DOCU_TEMPLATES[type] || DOCU_TEMPLATES.long;
 
     // Build submitters — use custom list if provided, otherwise default
@@ -102,7 +102,7 @@ exports.handler = async (event) => {
 };
 
     const DOCU_KEY = process.env.DOCUSEAL_KEY;
-    const DOCU_TEMPLATES = { sublet: 494242, long: 494370, short: 494242, both: 494370 };
+    const DOCU_TEMPLATES = { long: 520700, short: 520701, sublet: 520701, both: 520700 };
     const templateId = DOCU_TEMPLATES[type] || DOCU_TEMPLATES.sublet;
 
     const res = await fetch('https://api.docuseal.eu/submissions', {
@@ -170,4 +170,3 @@ exports.handler = async (event) => {
     };
   }
 };
-     
