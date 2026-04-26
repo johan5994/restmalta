@@ -807,6 +807,30 @@ footer ul a:hover{color:var(--terra)}
             </div>
           </div>
 
+          <!-- Group visit — co-tenants -->
+          <div style="margin-bottom:1rem;background:rgba(46,107,138,.07);border:1px solid rgba(46,107,138,.2);border-radius:12px;padding:.9rem 1rem">
+            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.4rem">👥 Visiting alone or as a group?</div>
+            <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
+              <button class="btn bg bsm" id="grp-solo-btn" onclick="setGroupMode('solo')" style="flex:1;background:var(--sea);color:white">🧍 Alone</button>
+              <button class="btn bg bsm" id="grp-group-btn" onclick="setGroupMode('group')" style="flex:1">👥 With others</button>
+            </div>
+            <div id="group-invite-section" style="display:none">
+              <div style="font-size:.72rem;color:var(--stone);margin-bottom:.5rem;line-height:1.4">Invite your co-tenants by their RestMalta email. They'll be added to the visit and co-sign the lease.</div>
+              <div id="co-tenant-list">
+                <div class="co-tenant-row" style="display:flex;gap:.4rem;margin-bottom:.4rem">
+                  <input class="fi" placeholder="Co-tenant 2 email (RestMalta account)" style="flex:1;font-size:.78rem" id="cotenant-2">
+                </div>
+                <div class="co-tenant-row" style="display:flex;gap:.4rem;margin-bottom:.4rem">
+                  <input class="fi" placeholder="Co-tenant 3 email (optional)" style="flex:1;font-size:.78rem" id="cotenant-3">
+                </div>
+                <div class="co-tenant-row" style="display:flex;gap:.4rem;margin-bottom:.4rem">
+                  <input class="fi" placeholder="Co-tenant 4 email (optional)" style="flex:1;font-size:.78rem" id="cotenant-4">
+                </div>
+                <div style="font-size:.68rem;color:var(--stone-l);line-height:1.4">⚠️ They must have a RestMalta account. They'll receive an invitation and be added to the visit group and lease as co-signatories.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
           <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
           <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.6rem" onclick="requestLease()">📄 Request lease signing</button>
@@ -1238,6 +1262,60 @@ function findNotaire(){
   window.open('https://www.notarymalta.com','_blank');
 }
 
+function setGroupMode(mode){
+  const soloBtn=document.getElementById('grp-solo-btn');
+  const groupBtn=document.getElementById('grp-group-btn');
+  const section=document.getElementById('group-invite-section');
+  if(mode==='solo'){
+    soloBtn.style.background='var(--sea)';soloBtn.style.color='white';
+    groupBtn.style.background='';groupBtn.style.color='';
+    if(section)section.style.display='none';
+  } else {
+    groupBtn.style.background='var(--sea)';groupBtn.style.color='white';
+    soloBtn.style.background='';soloBtn.style.color='';
+    if(section)section.style.display='block';
+  }
+}
+
+function getCoTenants(){
+  const emails=[];
+  for(let i=2;i<=4;i++){
+    const val=document.getElementById(`cotenant-${i}`)?.value.trim();
+    if(val)emails.push(val);
+  }
+  return emails;
+}
+
+async function inviteCoTenants(listingId, coTenantEmails){
+  if(!coTenantEmails.length)return [];
+  const invited=[];
+  for(const email of coTenantEmails){
+    // Check if user exists in profiles
+    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').eq('email',email).single().catch(()=>({data:null}));
+    if(profile){
+      // Add to visit group
+      await sb.from('co_tenants').insert({
+        listing_id:listingId,
+        invited_by:U.id,
+        tenant_id:profile.clerk_id,
+        tenant_email:email,
+        status:'pending'
+      }).catch(()=>{});
+      invited.push({email,name:profile.full_name,found:true});
+    } else {
+      // User doesn't have RestMalta account yet
+      await sb.from('co_tenants').insert({
+        listing_id:listingId,
+        invited_by:U.id,
+        tenant_email:email,
+        status:'invited' // waiting for them to create account
+      }).catch(()=>{});
+      invited.push({email,found:false});
+    }
+  }
+  return invited;
+}
+
 function selectEscrow(val){
   const yesWrap=document.getElementById('escrow-yes-wrap');
   const noWrap=document.getElementById('escrow-no-wrap');
@@ -1264,6 +1342,17 @@ async function sendMsg(){
   let fullMessage=c;
   if(escrowChoice){
     fullMessage=c+'\n\n🔐 [Option escrow activée — je souhaite sécuriser mon dépôt via RestMalta. À mon arrivée j\'aurai 24h pour confirmer que tout est conforme.]';
+  }
+
+  // Handle co-tenants
+  const coTenantEmails=getCoTenants();
+  if(coTenantEmails.length){
+    const invited=await inviteCoTenants(AL.id, coTenantEmails);
+    const notFound=invited.filter(i=>!i.found).map(i=>i.email);
+    if(notFound.length){
+      setTimeout(()=>toast(`⚠️ ${notFound.length} co-tenant(s) don't have a RestMalta account yet — invite them to sign up.`),1000);
+    }
+    fullMessage+=`\n\n👥 Group visit — co-tenants: ${coTenantEmails.join(', ')}`;
   }
 
   const{error}=await sb.from('messages').insert({
