@@ -393,10 +393,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
 
           <!-- Step 2: Select tenant -->
-          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Step 2 — Select the tenant</div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Step 2 — Select the tenant(s)</div>
           <div class="fgrid2" style="margin-bottom:.75rem">
             <div class="fg" style="grid-column:1/-1">
-              <label class="fl">Tenant</label>
+              <label class="fl">Primary Tenant (Lessee 1)</label>
               <select class="fsel" id="lease-tenant-select" onchange="onLeaseTenantChange(this.value)">
                 <option value="">Select a tenant who contacted you...</option>
               </select>
@@ -404,7 +404,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
 
           <!-- Auto-filled from tenant profile -->
-          <div id="lease-tenant-preview" style="display:none;background:var(--tdim);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.2rem;font-size:.83rem">
+          <div id="lease-tenant-preview" style="display:none;background:var(--tdim);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem;font-size:.83rem">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
               <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">FULL NAME</div><div id="tp-name" style="font-weight:600;color:var(--txt)">—</div></div>
               <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">EMAIL</div><div id="tp-email" style="font-weight:600;color:var(--txt)">—</div></div>
@@ -417,6 +417,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               ⚠️ This tenant's profile is incomplete. The lease will have missing fields.
             </div>
           </div>
+
+          <!-- Co-tenants section -->
+          <div id="co-tenants-section" style="display:none;background:rgba(46,107,138,.06);border:1px solid rgba(46,107,138,.15);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.2rem">
+            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">👥 Co-tenants (Lessee 2, 3, 4)</div>
+            <div style="font-size:.72rem;color:var(--tm);margin-bottom:.75rem">Select additional tenants who will co-sign the lease. They must have a RestMalta account.</div>
+            <div id="co-tenants-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
+            <div style="font-size:.7rem;color:var(--td);margin-top:.5rem">Co-tenants are jointly and severally liable for all lease obligations.</div>
+          </div>
+
+          <button class="btn bg bsm" id="add-cotenant-btn" style="display:none;margin-bottom:1.2rem" onclick="toggleCoTenants()">👥 Add co-tenants to lease</button>
 
           <!-- Step 3: Dates -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Step 3 — Lease dates</div>
@@ -1165,10 +1175,61 @@ function onLeaseListingChange(id){
   checkLeaseReady();
 }
 
+let coTenants=[];
+
+function toggleCoTenants(){
+  const sec=document.getElementById('co-tenants-section');
+  const btn=document.getElementById('add-cotenant-btn');
+  if(sec.style.display==='none'){
+    sec.style.display='block';
+    btn.textContent='👥 Hide co-tenants';
+    loadCoTenantOptions();
+  } else {
+    sec.style.display='none';
+    btn.textContent='👥 Add co-tenants to lease';
+  }
+}
+
+async function loadCoTenantOptions(){
+  const wrap=document.getElementById('co-tenants-list');
+  if(!wrap)return;
+  // Load all tenants who contacted this landlord except selected one
+  const available=leaseTenants.filter(t=>t.clerk_id!==selectedTenant?.clerk_id);
+  if(!available.length){
+    wrap.innerHTML='<div style="font-size:.78rem;color:var(--td)">No other tenants available. Co-tenants must contact you first through RestMalta.</div>';
+    return;
+  }
+  wrap.innerHTML=available.slice(0,3).map((t,i)=>`
+    <label style="display:flex;align-items:center;gap:.6rem;padding:.5rem;border:1px solid var(--b);border-radius:8px;cursor:pointer;font-size:.82rem">
+      <input type="checkbox" value="${t.clerk_id}" onchange="toggleCoTenant(this,'${t.clerk_id}','${t.full_name||''}','${t.email||''}','${t.passport_number||''}','${t.nationality||''}','${t.date_of_birth||''}')">
+      <div>
+        <div style="font-weight:600">${t.full_name||'—'} ${t.verified?'✅':''}</div>
+        <div style="font-size:.7rem;color:var(--td)">${t.email||'—'} · ${t.nationality||'—'}</div>
+      </div>
+    </label>`).join('');
+}
+
+function toggleCoTenant(cb, clerkId, name, email, passport, nationality, dob){
+  if(cb.checked){
+    if(coTenants.length>=3){cb.checked=false;toast('Maximum 3 co-tenants (4 total with primary)');return;}
+    coTenants.push({clerk_id:clerkId,full_name:name,email,passport_number:passport,nationality,date_of_birth:dob});
+  } else {
+    coTenants=coTenants.filter(t=>t.clerk_id!==clerkId);
+  }
+  toast(`✅ ${coTenants.length} co-tenant(s) selected`);
+}
+
 function onLeaseTenantChange(clerkId){
   selectedTenant=leaseTenants.find(t=>t.clerk_id===clerkId)||null;
   const preview=document.getElementById('lease-tenant-preview');
-  if(!selectedTenant){preview.style.display='none';checkLeaseReady();return;}
+  if(!selectedTenant){
+    preview.style.display='none';
+    document.getElementById('add-cotenant-btn').style.display='none';
+    document.getElementById('co-tenants-section').style.display='none';
+    coTenants=[];
+    checkLeaseReady();return;
+  }
+  document.getElementById('add-cotenant-btn').style.display='inline-flex';
   document.getElementById('tp-name').textContent=selectedTenant.full_name||'—';
   document.getElementById('tp-email').textContent=selectedTenant.email||'—';
   document.getElementById('tp-passport').textContent=selectedTenant.passport_number||'—';
@@ -1200,12 +1261,23 @@ async function generateAndSendLease(){
   try{
     const type=document.getElementById('lease-type').value;
 
+    // Build submitters list for DocuSeal
+    const submitters=[
+      { role:'Lessor', email:U.email, name:P.full_name||'Landlord' },
+      { role:'Lessee 1', email:selectedTenant.email||'', name:selectedTenant.full_name||'Tenant' }
+    ];
+    // Add co-tenants as additional signatories
+    coTenants.forEach((ct,i)=>{
+      submitters.push({role:`Co-Lessee ${i+2}`, email:ct.email||'', name:ct.full_name||`Co-Tenant ${i+2}`});
+    });
+
     // Call Netlify function — bypasses CORS
     const res=await fetch('/.netlify/functions/generate-lease',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type,
+        submitters,
         landlord:{
           email:U.email,
           name:P.full_name||'',
@@ -1223,6 +1295,13 @@ async function generateAndSendLease(){
           address:selectedTenant.home_address||'',
           phone:selectedTenant.phone||''
         },
+        coTenants:coTenants.map((ct,i)=>({
+          name:ct.full_name||'',
+          passport:ct.passport_number||'',
+          nationality:ct.nationality||'',
+          dob:ct.date_of_birth||'',
+          email:ct.email||''
+        })),
         listing:{
           address:selectedListing.full_address||selectedListing.zone||'',
           price:selectedListing.price||0,
