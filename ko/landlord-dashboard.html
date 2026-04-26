@@ -1143,7 +1143,13 @@ async function loadLeases(){
           <button class="btn bp bsm" style="font-size:.65rem" onclick="markHARegistered('${l.id}')">✅ Mark done</button>
         </div>`:''}
       </td>
-      <td>${l.pdf_url?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View</a>`:''}</td>
+      <td>
+        ${l.status==='signed'&&l.pdf_url
+          ?`<a href="${l.pdf_url}" target="_blank" class="btn bp bsm">📄 Download signed</a>`
+          :l.pdf_url
+            ?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View</a>`
+            :`<span style="font-size:.72rem;color:var(--td)">⏳ Awaiting signatures</span>`}
+      </td>
     </tr>`;
   }).join('')||'<tr><td colspan="6"><div class="empty"><div class="em">📄</div><p>No leases yet. Generate your first!</p></div></td></tr>';
 }
