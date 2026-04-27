@@ -691,17 +691,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="cb">
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">🪪 Identity</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">Full legal name *</label><input class="fi" id="prof-name" placeholder="Jean Dupont"></div>
+            <div class="fg"><label class="fl">Full legal name * <span style="font-size:.68rem;color:var(--td)">(as on passport)</span></label><input class="fi" id="prof-name" placeholder="Jean Dupont"></div>
             <div class="fg"><label class="fl">Email</label><input class="fi" id="prof-email" readonly style="opacity:.6"></div>
             <div class="fg"><label class="fl">Phone *</label><input class="fi" id="prof-phone" placeholder="+356 9999 1234"></div>
             <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="prof-nat" placeholder="French"></div>
             <div class="fg"><label class="fl">ID / Passport number *</label><input class="fi" id="prof-id" placeholder="e.g. 12345678A"></div>
             <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="prof-dob"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address *</label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta"></div>
+            <div class="fg"><label class="fl">Place of birth *</label><input class="fi" id="prof-pob" placeholder="Paris, France"></div>
+            <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="prof-father" placeholder="Pierre"></div>
+            <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="prof-mother" placeholder="Marie"></div>
+            <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="prof-mother-maiden" placeholder="Martin"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address * <span style="font-size:.68rem;color:var(--td)">(full address)</span></label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta"></div>
           </div>
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">💶 Financial</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">IBAN (for receiving rent)</label><input class="fi" id="prof-iban" placeholder="MT84 MALT 0110 0001 2345 MTLC AST0 01"></div>
+            <div class="fg"><label class="fl">IBAN (for receiving rent) *</label><input class="fi" id="prof-iban" placeholder="MT84 MALT 0110 0001 2345 MTLC AST0 01"></div>
             <div class="fg"><label class="fl">Revolut / bank name</label><input class="fi" id="prof-bank" placeholder="Revolut @handle or Bank of Valletta"></div>
           </div>
           <button class="btn bp" onclick="saveProfile()" style="margin-top:.75rem">Save changes →</button>
@@ -1335,18 +1339,31 @@ async function generateAndSendLease(){
         start_date:start,
         end_date:end,
         rent:selectedListing.price,
-        docuseal_id:String(data.submission_id),
+        docuseal_id:data.submission_id?String(data.submission_id):'local',
         status:'pending'
       });
-      toast('✅ Lease sent to both parties for e-signature!');
-      // Show signing link if available
-      if(data.signing_url){
-        setTimeout(()=>{
-          if(confirm('Lease sent! Do you want to open the signing page now?')){
-            window.open(data.signing_url,'_blank');
-          }
-        },500);
+
+      if(data.fallback){
+        // DocuSeal had an issue — download HTML as fallback
+        toast('⚠️ DocuSeal unavailable — downloading lease as HTML file.');
+        const blob=new Blob([data.html],{type:'text/html'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url;
+        a.download=`Lease_${selectedTenant.full_name?.replace(/\s/g,'_')||'tenant'}_${selectedListing.title?.replace(/\s/g,'_')||'listing'}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        toast('✅ Lease sent to both parties for e-signature via DocuSeal!');
+        if(data.signing_url){
+          setTimeout(()=>{
+            if(confirm('Lease sent! Open the signing page now?')){
+              window.open(data.signing_url,'_blank');
+            }
+          },500);
+        }
       }
+      coTenants=[];
       loadLeases();
     } else {
       console.error('DocuSeal error:', data);
@@ -1868,6 +1885,10 @@ async function loadProfile(){
   document.getElementById('prof-nat').value=P.nationality||'';
   document.getElementById('prof-id').value=P.passport_number||'';
   document.getElementById('prof-dob').value=P.date_of_birth||'';
+  document.getElementById('prof-pob').value=P.place_of_birth||'';
+  document.getElementById('prof-father').value=P.father_name||'';
+  document.getElementById('prof-mother').value=P.mother_name||'';
+  document.getElementById('prof-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('prof-malta-address').value=P.malta_address||'';
   document.getElementById('prof-iban').value=P.iban||'';
   document.getElementById('prof-bank').value=P.bank_details||'';
@@ -1881,6 +1902,10 @@ async function saveProfile(){
     nationality:document.getElementById('prof-nat').value.trim(),
     passport_number:document.getElementById('prof-id').value.trim(),
     date_of_birth:document.getElementById('prof-dob').value||null,
+    place_of_birth:document.getElementById('prof-pob').value.trim(),
+    father_name:document.getElementById('prof-father').value.trim(),
+    mother_name:document.getElementById('prof-mother').value.trim(),
+    mother_maiden:document.getElementById('prof-mother-maiden').value.trim(),
     malta_address:document.getElementById('prof-malta-address').value.trim(),
     iban:document.getElementById('prof-iban').value.trim(),
     bank_details:document.getElementById('prof-bank').value.trim()
