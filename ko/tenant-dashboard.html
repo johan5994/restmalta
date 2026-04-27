@@ -313,26 +313,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- PROFILE -->
     <div class="page" id="page-profile">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My profile</div>
-      <div class="aw">📋 Complete your profile once — all this info is used to auto-generate your lease. No need to retype anything.</div>
+      <div class="aw">📋 Complete your profile once — all this info is used to auto-generate your lease. Fields marked * are required before you can contact a landlord or request a visit.</div>
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">Personal information</div><span id="complete-pct" style="font-size:.75rem;color:var(--td)"></span></div>
         <div class="cb">
           <!-- Identity -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">🪪 Identity</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">Full legal name *</label><input class="fi" id="p-name" placeholder="Marie Dupont"></div>
+            <div class="fg"><label class="fl">Full legal name * <span style="font-size:.68rem;color:var(--td)">(as on passport)</span></label><input class="fi" id="p-name" placeholder="Marie Dupont"></div>
             <div class="fg"><label class="fl">Email</label><input class="fi" id="p-email" readonly style="opacity:.6"></div>
             <div class="fg"><label class="fl">Phone *</label><input class="fi" id="p-phone" placeholder="+356 9999 0000"></div>
             <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="p-nat" placeholder="French"></div>
             <div class="fg"><label class="fl">Passport / ID number *</label><input class="fi" id="p-passport" placeholder="e.g. 12345678A"></div>
             <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="p-dob"></div>
+            <div class="fg"><label class="fl">Place of birth *</label><input class="fi" id="p-pob" placeholder="Paris, France"></div>
+            <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="p-father" placeholder="Jean"></div>
+            <div class="fg"><label class="fl">Mother's first name * <span style="font-size:.68rem;color:var(--td)">(maiden name)</span></label><input class="fi" id="p-mother" placeholder="Sophie"></div>
+            <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="p-mother-maiden" placeholder="Martin"></div>
           </div>
 
           <!-- Address -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">🏠 Address</div>
           <div class="fgrid2">
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Current address (home country) *</label><input class="fi" id="p-address" placeholder="123 Rue de Paris, 75001 Paris, France"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address (if already in Malta)</label><input class="fi" id="p-malta-address" placeholder="e.g. 12 Triq il-Kbira, St. Julian's STJ 1234"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Current address (home country) * <span style="font-size:.68rem;color:var(--td)">(full address)</span></label><input class="fi" id="p-address" placeholder="123 Rue de Paris, 75001 Paris, France"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address <span style="font-size:.68rem;color:var(--td)">(if already in Malta)</span></label><input class="fi" id="p-malta-address" placeholder="e.g. 12 Triq il-Kbira, St. Julian's STJ 1234"></div>
           </div>
 
           <!-- Stay in Malta -->
@@ -340,7 +344,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="fgrid2">
             <div class="fg"><label class="fl">Employer / University</label><input class="fi" id="p-employer" placeholder="Company or university name"></div>
             <div class="fg"><label class="fl">Reason for stay *</label>
-              <select class="fsel" id="p-reason"><option value="">Select...</option><option>Internship</option><option>Work</option><option>Studies</option><option>Remote work / Digital nomad</option><option>Relocation</option><option>Retirement</option><option>Other</option></select>
+              <select class="fsel" id="p-reason">
+                <option value="">Select...</option>
+                <option value="work_short">Non-resident worker (less than 6 months)</option>
+                <option value="study_short">Non-resident student (less than 6 months)</option>
+                <option value="work_long">Worker / Long-term employment</option>
+                <option value="study_long">Student / Long-term studies</option>
+                <option value="nomad">Remote work / Digital nomad</option>
+                <option value="relocation">Relocation / Long-term residence</option>
+                <option value="temp_resident">Resident needing temporary alternative residence</option>
+                <option value="non_resident_short">Non-resident (less than 6 months, not establishing residence)</option>
+                <option value="retirement">Retirement</option>
+                <option value="other">Other</option>
+              </select>
             </div>
             <div class="fg"><label class="fl">How long do you plan to stay? *</label>
               <select class="fsel" id="p-stay-duration">
@@ -359,6 +375,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
                 <option value="yes">Yes — I need notary attestation (non-EU residence permit)</option>
               </select>
             </div>
+          </div>
+
+          <!-- Profile completeness indicator -->
+          <div id="profile-completeness" style="margin-top:1rem;background:var(--tdim);border-radius:10px;padding:.85rem 1rem;font-size:.8rem">
+            <div style="font-weight:700;margin-bottom:.5rem">Profile completeness</div>
+            <div id="completeness-bar-wrap" style="background:var(--b);border-radius:100px;height:8px;margin-bottom:.5rem">
+              <div id="completeness-bar" style="background:var(--terra);height:8px;border-radius:100px;width:0%;transition:width .3s"></div>
+            </div>
+            <div id="completeness-text" style="color:var(--td)">Fill in all required fields to contact landlords</div>
           </div>
 
           <div style="margin-top:1rem;display:flex;align-items:center;gap:1rem">
@@ -1405,17 +1430,49 @@ async function loadProfile(){
   document.getElementById('p-nat').value=P.nationality||'';
   document.getElementById('p-passport').value=P.passport_number||'';
   document.getElementById('p-dob').value=P.date_of_birth||'';
+  document.getElementById('p-pob').value=P.place_of_birth||'';
+  document.getElementById('p-father').value=P.father_name||'';
+  document.getElementById('p-mother').value=P.mother_name||'';
+  document.getElementById('p-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('p-address').value=P.home_address||'';
   document.getElementById('p-malta-address').value=P.malta_address||'';
   document.getElementById('p-employer').value=P.employer||'';
   if(P.reason_for_stay)document.getElementById('p-reason').value=P.reason_for_stay;
   if(P.stay_duration)document.getElementById('p-stay-duration').value=P.stay_duration;
   if(P.needs_attestation)document.getElementById('p-attestation').value='yes';
-  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address,P.reason_for_stay];
-  const filled=fields.filter(Boolean).length;
-  const pct=Math.round(filled/fields.length*100);
-  document.getElementById('complete-pct').textContent=pct+'% complete';
+  updateProfileCompleteness();
   if(P.verified){document.getElementById('verify-badge').className='badge b-green';document.getElementById('verify-badge').textContent='✅ Verified';}
+}
+
+function updateProfileCompleteness(){
+  const required=[
+    document.getElementById('p-name')?.value,
+    document.getElementById('p-phone')?.value,
+    document.getElementById('p-nat')?.value,
+    document.getElementById('p-passport')?.value,
+    document.getElementById('p-dob')?.value,
+    document.getElementById('p-pob')?.value,
+    document.getElementById('p-father')?.value,
+    document.getElementById('p-mother')?.value,
+    document.getElementById('p-mother-maiden')?.value,
+    document.getElementById('p-address')?.value,
+    document.getElementById('p-reason')?.value,
+    document.getElementById('p-stay-duration')?.value,
+  ];
+  const filled=required.filter(v=>v&&v.trim()!=='').length;
+  const pct=Math.round(filled/required.length*100);
+  const bar=document.getElementById('completeness-bar');
+  const text=document.getElementById('completeness-text');
+  const pctEl=document.getElementById('complete-pct');
+  if(bar)bar.style.width=pct+'%';
+  if(bar)bar.style.background=pct===100?'var(--green)':pct>50?'var(--sea)':'var(--terra)';
+  if(text){
+    if(pct===100)text.innerHTML='✅ Profile complete — you can contact landlords and request visits';
+    else text.innerHTML=`${pct}% complete — fill in all required fields to unlock contact & visits`;
+    text.style.color=pct===100?'var(--green)':'var(--td)';
+  }
+  if(pctEl)pctEl.textContent=pct+'% complete';
+  return pct;
 }
 
 async function saveProfile(){
@@ -1425,6 +1482,10 @@ async function saveProfile(){
     nationality:document.getElementById('p-nat').value.trim(),
     passport_number:document.getElementById('p-passport').value.trim(),
     date_of_birth:document.getElementById('p-dob').value||null,
+    place_of_birth:document.getElementById('p-pob').value.trim(),
+    father_name:document.getElementById('p-father').value.trim(),
+    mother_name:document.getElementById('p-mother').value.trim(),
+    mother_maiden:document.getElementById('p-mother-maiden').value.trim(),
     home_address:document.getElementById('p-address').value.trim(),
     malta_address:document.getElementById('p-malta-address').value.trim(),
     employer:document.getElementById('p-employer').value.trim(),
@@ -1436,6 +1497,7 @@ async function saveProfile(){
   if(error){toast('Error: '+error.message);return;}
   Object.assign(P,updates);
   updateScore();
+  updateProfileCompleteness();
   const ok=document.getElementById('prof-ok');ok.style.display='inline';setTimeout(()=>ok.style.display='none',3000);
   toast('✅ Profile saved!');
 }
