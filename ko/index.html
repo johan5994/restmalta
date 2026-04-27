@@ -1332,8 +1332,15 @@ async function sendMsg(){
   if(!c){toast('Please write a message');return;}
 
   // Check minimum profile before contact
-  if(!P?.full_name||!P?.passport_number){
-    toast('❌ Complétez votre profil (nom + passeport) avant de contacter un landlord.');
+  const missingFields=[];
+  if(!P?.full_name)missingFields.push('Full name');
+  if(!P?.passport_number)missingFields.push('Passport/ID');
+  if(!P?.nationality)missingFields.push('Nationality');
+  if(!P?.date_of_birth)missingFields.push('Date of birth');
+  if(!P?.home_address)missingFields.push('Home address');
+  if(missingFields.length>0){
+    toast('❌ Complete your profile before contacting a landlord');
+    alert(`Please complete your profile first.\n\nMissing: ${missingFields.join(', ')}\n\nGo to your dashboard → Profile → fill in all fields → Save.`);
     return;
   }
 
@@ -1388,17 +1395,27 @@ async function requestAgentVisit(){
   if(!U){toast('Please sign in first');go('auth');return;}
   if(!AL)return;
 
-  // Check dossier completeness — check profile only (storage check removed)
+  // Check dossier completeness — all required fields
   const issues=[];
-  if(!P?.full_name) issues.push('❌ Nom complet manquant dans votre profil');
-  if(!P?.passport_number) issues.push('❌ Numéro de passeport manquant');
-  if(!P?.nationality) issues.push('❌ Nationalité manquante');
+  if(!P?.full_name) issues.push('Full legal name');
+  if(!P?.phone) issues.push('Phone number');
+  if(!P?.passport_number) issues.push('Passport / ID number');
+  if(!P?.nationality) issues.push('Nationality');
+  if(!P?.date_of_birth) issues.push('Date of birth');
+  if(!P?.place_of_birth) issues.push('Place of birth');
+  if(!P?.father_name) issues.push("Father's first name");
+  if(!P?.mother_name) issues.push("Mother's first name");
+  if(!P?.mother_maiden) issues.push("Mother's maiden name");
+  if(!P?.home_address) issues.push('Home address');
+  if(!P?.reason_for_stay) issues.push('Reason for stay');
+  if(!P?.stay_duration) issues.push('Planned duration of stay');
+
   if(issues.length>0){
-    toast('❌ Profil incomplet');
-    alert(`Demande de visite refusée.\n\n${issues.join('\n')}\n\nComplétez votre profil d'abord.`);
+    toast('❌ Profile incomplete — please complete your profile first');
+    alert(`Complete your profile before requesting a visit.\n\nMissing fields:\n• ${issues.join('\n• ')}\n\nGo to Profile → fill in all required fields → Save.`);
     return;
   }
-  toast('✅ Dossier vérifié...');
+  toast('✅ Profile verified...');
 
   // Create visit request
   const{data:visit,error}=await sb.from('visits').insert({
