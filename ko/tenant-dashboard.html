@@ -119,7 +119,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('documents',this)"><span class="nico">📄</span>My leases</button>
     <button class="ni" onclick="sp('payments',this)"><span class="nico">💶</span>Payments</button>
     <button class="ni" onclick="sp('deposit',this)"><span class="nico">🔐</span>My deposit</button>
-    <div class="nl">Reviews & Profile</div>
+    <div class="nl">Reviews & Profilee</div>
     <button class="ni" onclick="sp('reviews',this)"><span class="nico">⭐</span>Leave a review</button>
     <button class="ni" onclick="sp('profile',this)"><span class="nico">👤</span>My profile</button>
   </nav>
@@ -246,7 +246,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- DEPOSIT -->
     <div class="page" id="page-deposit">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Mon dépôt de garantie</div>
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My deposit de garantie</div>
 
       <!-- Escrow status -->
       <div id="escrow-status-card"></div>
@@ -255,28 +255,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><div class="ct">🔐 Comment fonctionne l'escrow RestMalta</div></div>
         <div class="cb">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.5rem">
-            <div style="background:var(--tdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">💶</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">1. Vous payez</div><div style="font-size:.62rem;color:var(--tm)">Dépôt à RestMalta</div></div>
+            <div style="background:var(--tdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">💶</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">1. You payez</div><div style="font-size:.62rem;color:var(--tm)">Dépôt à RestMalta</div></div>
             <div style="background:var(--gdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🔒</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">2. Sécurisé</div><div style="font-size:.62rem;color:var(--tm)">RestMalta retient</div></div>
-            <div style="background:var(--sdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">⏰</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">3. 24h pour confirmer</div><div style="font-size:.62rem;color:var(--tm)">À votre arrivée</div></div>
-            <div style="background:var(--grdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🏠</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">4. Libéré</div><div style="font-size:.62rem;color:var(--tm)">Au proprio si OK</div></div>
+            <div style="background:var(--sdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">⏰</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">3. 24h for confirmer</div><div style="font-size:.62rem;color:var(--tm)">À your arrivée</div></div>
+            <div style="background:var(--grdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🏠</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">4. Libéré</div><div style="font-size:.62rem;color:var(--tm)">Au owner si OK</div></div>
           </div>
           <div id="deposit-info"><div class="ld"><div class="sp"></div></div></div>
         </div>
       </div>
 
       <div class="card">
-        <div class="ch"><div class="ct">✅ Confirmer mon entrée dans le logement</div></div>
+        <div class="ch"><div class="ct">✅ Confirm mon entrée dans le logement</div></div>
         <div class="cb">
           <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-            ⏰ <strong>Vous avez 24h après votre arrivée</strong> pour confirmer que le logement correspond à l'annonce. Passé ce délai, le dépôt est automatiquement libéré au propriétaire.
+            ⏰ <strong>You avez 24h après your arrivée</strong> for confirmer que le logement correspond à l'annonce. Passé ce délai, le dépôt est automatiquement libéré au propriétaire.
           </div>
-          <div class="fg"><label class="fl">Tout est conforme ? Des remarques ?</label><textarea class="fta" id="entry-notes" rows="2" placeholder="Tout est parfait — aucun problème (ou décrivez les problèmes constatés)"></textarea></div>
+          <div class="fg"><label class="fl">Tout est conforme ? Des remarques ?</label><textarea class="fta" id="entry-notes" rows="2" placeholder="Everything is fine — no issues (or describe any problems found)"></textarea></div>
           <div style="display:flex;gap:.75rem">
             <button class="btn bp" onclick="confirmEntry()">✅ Tout est OK — libérer le dépôt</button>
             <button class="btn bg" onclick="sp('maintenance',document.querySelectorAll('.ni')[3]);openTicketModal()">⚠️ Signaler un problème</button>
           </div>
           <div style="margin-top:.75rem;font-size:.72rem;color:var(--td);line-height:1.5">
-            En cas de problème grave (logement inexistant, état très différent de l'annonce), votre dépôt sera remboursé intégralement après examen de votre signalement par RestMalta.
+            En cas de problème grave (logement inexistant, état très différent de l'annonce), your dépôt sera remboursé intégralement après examen de your signalement par RestMalta.
           </div>
         </div>
       </div>
@@ -377,9 +377,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
           </div>
 
-          <!-- Profile completeness indicator -->
+          <!-- Profilee completeness indicator -->
           <div id="profile-completeness" style="margin-top:1rem;background:var(--tdim);border-radius:10px;padding:.85rem 1rem;font-size:.8rem">
-            <div style="font-weight:700;margin-bottom:.5rem">Profile completeness</div>
+            <div style="font-weight:700;margin-bottom:.5rem">Profilee completeness</div>
             <div id="completeness-bar-wrap" style="background:var(--b);border-radius:100px;height:8px;margin-bottom:.5rem">
               <div id="completeness-bar" style="background:var(--terra);height:8px;border-radius:100px;width:0%;transition:width .3s"></div>
             </div>
@@ -387,7 +387,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
 
           <div style="margin-top:1rem;display:flex;align-items:center;gap:1rem">
-            <button class="btn bp" onclick="saveProfile()">Save profile →</button>
+            <button class="btn bp" onclick="saveProfilee()">Save profile →</button>
             <span id="prof-ok" style="font-size:.82rem;color:var(--green);display:none">✅ Saved!</span>
           </div>
         </div>
@@ -566,7 +566,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               </div>
               <div style="font-size:.82rem;color:var(--stone);margin-bottom:1rem">Your tenant score</div>
               <div style="display:flex;flex-direction:column;gap:.5rem;text-align:left">
-                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Profile complete</span><span id="sc-profile" style="color:var(--terra)">—</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Profilee complete</span><span id="sc-profile" style="color:var(--terra)">—</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">ID verified</span><span id="sc-id" style="color:var(--terra)">❌</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Reviews received</span><span id="sc-reviews">0</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0"><span style="color:var(--tm)">Member since</span><span id="sc-since">Today</span></div>
@@ -631,7 +631,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="modal" style="max-height:90vh;overflow-y:auto">
     <button class="mclose" onclick="document.getElementById('tick-modal').classList.remove('open')">✕</button>
     <div class="mt">🔧 Signaler un problème</div>
-    <div class="ms">Décrivez le problème — votre propriétaire sera notifié immédiatement</div>
+    <div class="ms">Décrivez le problème — your propriétaire sera notifié immédiatement</div>
 
     <div class="fg"><label class="fl">Type de problème *</label>
       <select class="fsel" id="tick-type">
@@ -650,7 +650,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- Diagnostic questions -->
     <div id="tick-questions" style="background:var(--tdim);border-radius:10px;padding:.85rem;margin:.5rem 0;font-size:.82rem">
-      <div style="font-weight:700;margin-bottom:.5rem">❓ Quelques questions pour aider votre propriétaire :</div>
+      <div style="font-weight:700;margin-bottom:.5rem">❓ Quelques questions for aider your propriétaire :</div>
       <div id="tick-q-list" style="display:flex;flex-direction:column;gap:.4rem">
         <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-sudden"> Problème apparu soudainement</label>
         <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-recurring"> Problème récurrent</label>
@@ -668,7 +668,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <div class="fg"><label class="fl">Description détaillée *</label>
-      <textarea class="fta" id="tick-desc" rows="3" placeholder="Décrivez précisément le problème, depuis quand, ce que vous avez essayé..."></textarea>
+      <textarea class="fta" id="tick-desc" rows="3" placeholder="Décrivez précisément le problème, since quand, ce que you avez essayé..."></textarea>
     </div>
 
     <!-- Photo upload -->
@@ -676,14 +676,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <label class="fl">📸 Photos du problème (recommandé)</label>
       <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('tick-photos-input').click()">
         <div style="font-size:1.5rem;margin-bottom:.3rem">📷</div>
-        <div style="font-size:.8rem;color:var(--tm)">Cliquez pour ajouter des photos</div>
+        <div style="font-size:.8rem;color:var(--tm)">Cliquez for ajouter des photos</div>
         <div style="font-size:.7rem;color:var(--td)">Max 5 photos · JPG, PNG</div>
         <input type="file" id="tick-photos-input" accept="image/*" multiple style="display:none" onchange="addTicketPhotos(this)">
       </div>
       <div id="tick-photos-preview" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
     </div>
 
-    <button class="btn bp" style="width:100%;justify-content:center" onclick="submitTicket()">📤 Envoyer au propriétaire →</button>
+    <button class="btn bp" style="width:100%;justify-content:center" onclick="submitTicket()">📤 Send au propriétaire →</button>
   </div>
 </div>
 
@@ -694,7 +694,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="mt">🔐 Sécuriser mon dépôt</div>
     <div class="ms" id="stripe-modal-sub">Paiement sécurisé via Stripe</div>
     <div style="background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-      ✅ Votre argent est <strong>bloqué</strong> — RestMalta ne le libère au propriétaire qu'après votre confirmation d'entrée dans les 24h.<br>
+      ✅ Your argent est <strong>bloqué</strong> — RestMalta ne le libère au propriétaire qu'après your confirmation d'entrée dans les 24h.<br>
       ⚠️ Si problème grave → remboursement intégral.
     </div>
     <div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:1rem">
@@ -730,7 +730,7 @@ function initStripe() {
 async function openStripeModal(escrowData) {
   initStripe();
   currentEscrowData = escrowData;
-  document.getElementById('stripe-modal-sub').textContent = `Dépôt pour : ${escrowData.listing_title}`;
+  document.getElementById('stripe-modal-sub').textContent = `Dépôt for : ${escrowData.listing_title}`;
   document.getElementById('stripe-amount-display').textContent = `€${(escrowData.amount||0).toLocaleString()}`;
   document.getElementById('stripe-modal').classList.add('open');
 
@@ -821,7 +821,7 @@ async function confirmStripePayment() {
   }
 
   closeStripeModal();
-  toast('✅ Dépôt sécurisé ! À votre arrivée vous avez 24h pour confirmer.');
+  toast('✅ Dépôt sécurisé ! À your arrivée you avez 24h for confirmer.');
   loadDeposit();
 }
 
@@ -842,12 +842,12 @@ async function confirmEntryStripe(escrowId, paymentIntentId) {
     toast('✅ Dépôt libéré au propriétaire !');
     loadDeposit();
   } catch (e) {
-    toast('❌ Erreur: ' + e.message);
+    toast('❌ Error: ' + e.message);
   }
 }
 
 async function refundDeposit(escrowId, paymentIntentId) {
-  if (!confirm('Confirmer le remboursement du dépôt ?')) return;
+  if (!confirm('Confirm le remboursement du dépôt ?')) return;
   try {
     const res = await fetch('/.netlify/functions/handle-deposit', {
       method: 'POST',
@@ -857,10 +857,10 @@ async function refundDeposit(escrowId, paymentIntentId) {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     await sb.from('escrow_requests').update({ status: 'refunded' }).eq('id', escrowId);
-    toast('↩ Remboursement initié — vous recevrez le dépôt sous 5-10 jours ouvrés.');
+    toast('↩ Remboursement initié — you recevrez le dépôt sous 5-10 jours ouvrés.');
     loadDeposit();
   } catch (e) {
-    toast('❌ Erreur: ' + e.message);
+    toast('❌ Error: ' + e.message);
   }
 }
 
@@ -876,7 +876,7 @@ let clerk,U=null,P=null,selectedRating=5;
   if(!clerk.user){window.location.href='/';return;}
   U={id:clerk.user.id,email:clerk.user.primaryEmailAddress?.emailAddress||'',clerk:clerk.user};
 
-  // Retry jusqu'à 5 fois pour attendre que le profil Supabase soit créé
+  // Retry until'à 5 fois for attendre que le profil Supabase soit créé
   let P_data = null;
   for(let i=0; i<5; i++){
     const{data}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();
@@ -896,20 +896,20 @@ function initUI(){
   if(!P?.full_name||!P?.passport_number)setTimeout(()=>toast('⚠️ Complete your profile to unlock automatic lease generation!'),1000);
 }
 
-async function loadAll(){await Promise.all([loadOverview(),loadPaymentsData(),loadMyReviews(),loadProfile()]);}
+async function loadAll(){await Promise.all([loadOverview(),loadPaymentsData(),loadMyReviews(),loadProfilee()]);}
 
 function sp(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={overview:'My Rentals',messages:'Messages',maintenance:'Maintenance',documents:'My Leases',payments:'Payments',deposit:'My Deposit',reviews:'Reviews',profile:'My Profile',search:'Find a Flat',dossier:'My Dossier'};
+  const titles={overview:'My Rentals',messages:'Messages',maintenance:'Maintenance',documents:'My Leases',payments:'Payments',deposit:'My Deposit',reviews:'Reviews',profile:'My Profilee',search:'Find a Flat',dossier:'My Dossier'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')loadMessages();
   if(id==='maintenance')loadTickets();
   if(id==='documents')loadDocuments();
   if(id==='deposit')loadDeposit();
-  if(id==='profile'){loadProfile();loadDossierStatus();loadReferences();}
+  if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();}
 }
 
 async function loadOverview(){
@@ -999,6 +999,16 @@ async function sendReply(){
   const reply=document.getElementById('mm-reply').value.trim();
   if(!reply||!tenantChatListingId)return;
   document.getElementById('mm-reply').value='';
+
+  // Show message immediately in UI
+  const thread=document.getElementById('mm-thread');
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;animation:fi .2s ease';
+  div.innerHTML=`<div class="bm">${reply}</div><div style="font-size:.6rem;color:var(--td)">${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  thread.appendChild(div);
+  thread.scrollTop=thread.scrollHeight;
+
+  // Then save to DB
   await sb.from('messages').insert({
     listing_id:tenantChatListingId,
     sender_id:U.id,
@@ -1067,7 +1077,7 @@ async function submitTicket(){
   document.getElementById('tick-desc').value='';
   document.getElementById('tick-photos-preview').innerHTML='';
   ticketPhotos=[];
-  toast('✅ Ticket envoyé ! Votre propriétaire a été notifié.');
+  toast('✅ Ticket envoyé ! Your propriétaire a été notifié.');
   loadTickets();
 }
 
@@ -1079,8 +1089,24 @@ async function loadDocuments(){
     return;
   }
   const typeLabels={long:'Long-let',short:'Short-let',sublet:'Subletting',both:'Lease'};
-  wrap.innerHTML=data.map(l=>`
-    <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+
+  // Load commission status for each lease
+  const commissions={};
+  for(const l of data){
+    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).single().catch(()=>({data:null}));
+    if(comm)commissions[l.id]=comm;
+  }
+
+  wrap.innerHTML=data.map(l=>{
+    const comm=commissions[l.id];
+    const commHtml=l.status==='signed'
+      ?comm
+        ?comm.tenant_paid
+          ?'<span style="font-size:.72rem;color:var(--green)">✅ Commission paid</span>'
+          :`<a href="${comm.tenant_payment_url}" target="_blank" class="btn bp bsm" style="margin-top:.4rem">💳 Pay commission €${comm.tenant_amount} →</a>`
+        :'<span style="font-size:.72rem;color:var(--gold)">⏳ Commission payment pending</span>'
+      :'';
+    return`<div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
       <div style="width:40px;height:40px;border-radius:10px;background:${l.status==='signed'?'rgba(76,175,125,.15)':'var(--tdim)'};display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">${l.status==='signed'?'✅':'📜'}</div>
       <div style="flex:1">
         <div style="font-size:.85rem;font-weight:600">${typeLabels[l.type]||'Lease'} — ${l.listing_title||'Your property'}</div>
@@ -1090,6 +1116,7 @@ async function loadDocuments(){
         </div>
         ${l.status==='signed'?'<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Fully signed — legally binding</div>':''}
         ${l.status!=='signed'?'<div style="font-size:.68rem;color:var(--gold);margin-top:.1rem">⏳ Awaiting signatures — check your email</div>':''}
+        ${commHtml}
       </div>
       <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end">
         ${l.status==='signed'&&l.pdf_url
@@ -1099,7 +1126,8 @@ async function loadDocuments(){
             :''}
         <span class="badge ${l.status==='signed'?'b-green':l.status==='pending'?'b-gold':'b-dim'}">${l.status==='signed'?'✅ Signed':l.status==='pending'?'⏳ Pending':'📤 Sent'}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function loadPaymentsData(){
@@ -1136,20 +1164,20 @@ async function loadPaymentsData(){
   }
 
   const sc={paid:'b-green',declared:'b-gold',pending:'b-dim',late:'b-red'};
-  const sl={paid:'✅ Confirmé',declared:'💬 Déclaré — en attente landlord',pending:'⏳ En attente',late:'⚠️ En retard'};
+  const sl={paid:'✅ Confirmed',declared:'💬 Déclaré — en attente landlord',pending:'⏳ Pending',late:'⚠️ En retard'};
   document.getElementById('pay-list').innerHTML=payments.length
     ?'<div style="padding:0 1.2rem">'+payments.map(p=>`
       <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='rent'?'(loyer)':''}</div>
           <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">Échéance : ${p.due_date?new Date(p.due_date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—'}</div>
-          ${p.paid_at?`<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Confirmé le ${new Date(p.paid_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
+          ${p.paid_at?`<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Confirmed le ${new Date(p.paid_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
         </div>
         <span class="badge ${sc[p.status]||'b-dim'}">${sl[p.status]||p.status}</span>
-        ${p.status==='pending'||p.status==='late'?`<button class="btn bp bsm" onclick="declarePaid('${p.id}')">J'ai payé →</button>`:''}
+        ${p.status==='pending'||p.status==='late'?`<button class="btn bp bsm" onclick="declarePaid('${p.id}')">I paid →</button>`:''}
         ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Quittance</button>`:''}
       </div>`).join('')+'</div>'
-    :'<div class="empty"><div class="em">💶</div><p>Aucun paiement enregistré</p></div>';
+    :'<div class="empty"><div class="em">💶</div><p>None paiement enregistré</p></div>';
 }
 
 async function payAdvance(months){
@@ -1232,17 +1260,17 @@ function downloadNotice(leaveDate,noticePeriod){
 
 Date : ${today.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
 
-Locataire : ${P?.full_name||'Tenant'}
+Tenant : ${P?.full_name||'Tenant'}
 Adresse à Malte : ${P?.malta_address||'[Adresse Malte]'}
 Passeport / ID : ${P?.passport_number||'[ID]'}
 
-Propriétaire / Adresse du bien : [Adresse du bien]
+Landlord / Adresse du bien : [Adresse du bien]
 
 Madame, Monsieur,
 
-Je vous informe par la présente de mon intention de quitter le logement que j'occupe actuellement.
+Je you informe par la présente de mon intention de quitter le logement que j'occupe actuellement.
 
-Conformément aux dispositions du bail et à la loi maltaise sur les baux résidentiels (Private Residential Leases Act), je vous donne un préavis de ${noticePeriod} mois.
+Conformément aux dispositions du bail et à la loi maltaise sur les baux résidentiels (Private Residential Leases Act), je you donne un préavis de ${noticePeriod} mois.
 
 Date de remise des clés : ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
 
@@ -1274,7 +1302,7 @@ Généré par RestMalta — restmalta.com`;
             listing_id,
             sender_id:U.id,
             receiver_id:landlord_id,
-            content:`📤 Préavis officiel envoyé : ${P?.full_name||'Votre locataire'} quittera le logement le ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}. Vous pouvez dès maintenant republier votre bien sur RestMalta.`
+            content:`📤 Notice period officiel envoyé : ${P?.full_name||'Your locataire'} quittera le logement le ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}. You pouvez dès maintenant republier your bien sur RestMalta.`
           }).then(()=>{});
           // Update payment status to signal departure
           sb.from('visits').insert({
@@ -1288,7 +1316,7 @@ Généré par RestMalta — restmalta.com`;
         }
       });
   }
-  toast('✅ Préavis téléchargé et propriétaire notifié !');
+  toast('✅ Notice period téléchargé et propriétaire notifié !');
 }
 
 function downloadTenantReceipt(id, amount, paidAt){
@@ -1299,14 +1327,14 @@ RestMalta Platform
 
 Date : ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
 
-Locataire : ${P?.full_name||'Tenant'}
+Tenant : ${P?.full_name||'Tenant'}
 Adresse à Malte : ${P?.malta_address||'[Adresse Malte]'}
 
 Je soussigné(e) reconnais avoir reçu la somme de €${parseFloat(amount).toLocaleString()}
-au titre du loyer du mois de ${month}.
+au titre du loyer of the month de ${month}.
 
 Quittance générée automatiquement par RestMalta — restmalta.com
-Cette quittance atteste du bon paiement du loyer pour la période mentionnée.`;
+Cette quittance atteste du bon paiement du loyer for la période mentionnée.`;
   const blob=new Blob([text],{type:'text/plain'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1333,7 +1361,7 @@ async function loadDeposit(){
 
   if(escrows&&escrows.length){
     const e=escrows[0];
-    const statusLabels={pending:'⏳ En attente de paiement',paid:'🔒 Sécurisé par RestMalta',confirmed:'✅ Libéré au propriétaire',disputed:'⚠️ Litige en cours',refunded:'↩ Remboursé'};
+    const statusLabels={pending:'⏳ Pending de paiement',paid:'🔒 Sécurisé par RestMalta',confirmed:'✅ Libéré au propriétaire',disputed:'⚠️ Litige en cours',refunded:'↩ Remboursé'};
     const statusColors={pending:'var(--gold)',paid:'var(--sea)',confirmed:'var(--green)',disputed:'var(--terra)',refunded:'var(--stone)'};
     if(statusCard){
       statusCard.innerHTML=`
@@ -1341,7 +1369,7 @@ async function loadDeposit(){
           <div class="cb">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
               <div>
-                <div style="font-size:.9rem;font-weight:700">${e.listing_title||'Votre logement'}</div>
+                <div style="font-size:.9rem;font-weight:700">${e.listing_title||'Your logement'}</div>
                 <div style="font-size:.75rem;color:var(--tm);margin-top:.15rem">Dépôt escrow RestMalta</div>
               </div>
               <div style="text-align:right">
@@ -1355,14 +1383,14 @@ async function loadDeposit(){
             </button>`:''}
             ${e.status==='paid'?`
             <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--tm);margin-bottom:.75rem">
-              ⏰ Vous avez <strong>24h après votre arrivée</strong> pour confirmer. Allez dans "Confirmer mon entrée" ci-dessous.
+              ⏰ You avez <strong>24h après your arrivée</strong> for confirmer. Allez dans "Confirm mon entrée" ci-dessous.
             </div>
             <div style="display:flex;gap:.5rem">
               <button class="btn bp bsm" onclick="confirmEntryStripe('${e.id}','${e.stripe_payment_intent_id||''}')">✅ Tout est OK</button>
               <button class="btn bg bsm" onclick="refundDeposit('${e.id}','${e.stripe_payment_intent_id||''}')">⚠️ Problème — rembourser</button>
             </div>`:''}
             ${e.status==='confirmed'?`<div style="font-size:.78rem;color:var(--green)">✅ Dépôt libéré au propriétaire le ${new Date(e.confirmed_at||e.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
-            ${e.status==='refunded'?`<div style="font-size:.78rem;color:var(--sea)">↩ Remboursement en cours — 5-10 jours ouvrés</div>`:''}
+            ${e.status==='refunded'?`<div style="font-size:.78rem;color:var(--sea)">↩ Refund in progress — 5-10 jours ouvrés</div>`:''}
           </div>
         </div>`;
     }
@@ -1371,12 +1399,12 @@ async function loadDeposit(){
     // Also check payments table for backward compat
     const{data}=await sb.from('payments').select('*').eq('tenant_id',U.id).eq('type','deposit').catch(()=>({data:[]}));
     if(!data||!data.length){
-      if(wrap)wrap.innerHTML='<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">Aucun dépôt escrow. Activez l\'option lors de votre prochaine demande de logement.</div>';
+      if(wrap)wrap.innerHTML='<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">None dépôt escrow. Activez l\'option lors de your prochaine demande de logement.</div>';
       if(statusCard)statusCard.innerHTML='';
       return;
     }
     const dep=data[0];
-    if(wrap)wrap.innerHTML=`<div style="background:var(--sdim);border:1px solid rgba(46,107,138,.2);border-radius:12px;padding:1.2rem;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:.9rem;font-weight:700">Votre dépôt</div><div style="font-size:.82rem;color:var(--tm)">Depuis ${new Date(dep.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div></div><div style="text-align:right"><div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--sea)">€${(dep.amount||0).toLocaleString()}</div><span class="badge b-sea">En escrow</span></div></div>`;
+    if(wrap)wrap.innerHTML=`<div style="background:var(--sdim);border:1px solid rgba(46,107,138,.2);border-radius:12px;padding:1.2rem;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:.9rem;font-weight:700">Your dépôt</div><div style="font-size:.82rem;color:var(--tm)">Since ${new Date(dep.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div></div><div style="text-align:right"><div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--sea)">€${(dep.amount||0).toLocaleString()}</div><span class="badge b-sea">En escrow</span></div></div>`;
   }
 }
 
@@ -1422,7 +1450,7 @@ async function loadMyReviews(){
   document.getElementById('my-reviews').innerHTML=(data||[]).map(r=>'<div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem"><div style="color:var(--gold);font-size:1rem;letter-spacing:2px">'+'⭐'.repeat(r.rating)+'</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">'+r.comment+'</div><div style="font-size:.72rem;color:var(--td);margin-top:.3rem">'+new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</div></div>').join('')||'<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">No reviews submitted yet</div>';
 }
 
-async function loadProfile(){
+async function loadProfilee(){
   if(!P)return;
   document.getElementById('p-name').value=P.full_name||'';
   document.getElementById('p-email').value=P.email||U.email||'';
@@ -1440,11 +1468,11 @@ async function loadProfile(){
   if(P.reason_for_stay)document.getElementById('p-reason').value=P.reason_for_stay;
   if(P.stay_duration)document.getElementById('p-stay-duration').value=P.stay_duration;
   if(P.needs_attestation)document.getElementById('p-attestation').value='yes';
-  updateProfileCompleteness();
+  updateProfileeCompleteness();
   if(P.verified){document.getElementById('verify-badge').className='badge b-green';document.getElementById('verify-badge').textContent='✅ Verified';}
 }
 
-function updateProfileCompleteness(){
+function updateProfileeCompleteness(){
   const required=[
     document.getElementById('p-name')?.value,
     document.getElementById('p-phone')?.value,
@@ -1467,7 +1495,7 @@ function updateProfileCompleteness(){
   if(bar)bar.style.width=pct+'%';
   if(bar)bar.style.background=pct===100?'var(--green)':pct>50?'var(--sea)':'var(--terra)';
   if(text){
-    if(pct===100)text.innerHTML='✅ Profile complete — you can contact landlords and request visits';
+    if(pct===100)text.innerHTML='✅ Profilee complete — you can contact landlords and request visits';
     else text.innerHTML=`${pct}% complete — fill in all required fields to unlock contact & visits`;
     text.style.color=pct===100?'var(--green)':'var(--td)';
   }
@@ -1475,7 +1503,7 @@ function updateProfileCompleteness(){
   return pct;
 }
 
-async function saveProfile(){
+async function saveProfilee(){
   const updates={
     full_name:document.getElementById('p-name').value.trim(),
     phone:document.getElementById('p-phone').value.trim(),
@@ -1497,9 +1525,9 @@ async function saveProfile(){
   if(error){toast('Error: '+error.message);return;}
   Object.assign(P,updates);
   updateScore();
-  updateProfileCompleteness();
+  updateProfileeCompleteness();
   const ok=document.getElementById('prof-ok');ok.style.display='inline';setTimeout(()=>ok.style.display='none',3000);
-  toast('✅ Profile saved!');
+  toast('✅ Profilee saved!');
 }
 
 async function uploadID(input){
@@ -1538,16 +1566,24 @@ async function loadMatchListings(){
   }).join('');
 }
 
-function updateScore(){
+async function updateScore(){
   if(!P)return;
-  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address];
+  // Score is based on real reviews from landlords, not profile completeness
+  const{data:reviews}=await sb.from('reviews').select('rating').eq('tenant_id',U.id).catch(()=>({data:[]}));
+  const hasReviews=reviews&&reviews.length>0;
+  const avgScore=hasReviews?(reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length).toFixed(1):'—';
+  const scoreNum=hasReviews?parseFloat(avgScore):0;
+
+  document.getElementById('score-val').textContent=hasReviews?avgScore:'New';
+  const offset=213.6-(213.6*(scoreNum/5));
+  document.getElementById('score-arc').setAttribute('stroke-dashoffset',Math.max(0,offset));
+
+  // Profilee completeness bar
+  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address,P.place_of_birth,P.father_name,P.mother_name];
   const filled=fields.filter(Boolean).length;
   const pct=Math.round(filled/fields.length*100);
-  const score=(pct/100*5+2.5).toFixed(1);
-  document.getElementById('score-val').textContent=score;
-  document.getElementById('sc-profile').textContent=pct+'%';
-  const offset=213.6-(213.6*(parseFloat(score)/10));
-  document.getElementById('score-arc').setAttribute('stroke-dashoffset',offset);
+  const scEl=document.getElementById('sc-profile');
+  if(scEl)scEl.textContent=pct+'%';
 }
 
 function saveAlert(){
@@ -1641,7 +1677,7 @@ async function uploadDossierDoc(input, docType, statusId){
   const path=`docs/${U.id}/${docType}.${ext}`;
   const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true});
   if(error){
-    if(statusEl){statusEl.textContent='❌ Erreur';statusEl.style.color='var(--red)';}
+    if(statusEl){statusEl.textContent='❌ Error';statusEl.style.color='var(--red)';}
     toast('❌ Upload failed: '+error.message);
     return;
   }
@@ -1671,7 +1707,7 @@ function checkDossierComplete(){
   if(!res)return;
   const missing=DOCS_REQUIRED.filter(d=>!uploadedDocs[d]);
   if(!missing.length){
-    res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)">✅ Dossier complet — vous pouvez demander des visites !</div>`;
+    res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)">✅ Dossier complet — you pouvez demander des visites !</div>`;
   } else {
     res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--gold)">⚠️ Documents manquants : ${missing.map(d=>d==='id'?'Passeport/ID':'Lettre employeur').join(', ')}</div>`;
   }
@@ -1687,7 +1723,7 @@ async function checkDossierBeforeVisit(){
   // Check identity verified
   const idVerified=P?.verified||false;
   const issues=[];
-  if(!profileComplete)issues.push('Profil incomplet (nom, passeport, date de naissance, nationalité, adresse)');
+  if(!profileComplete)issues.push('Incomplete profile (nom, passeport, date de naissance, nationalité, adresse)');
   if(!uploadedDocs['id'])issues.push('Passeport / ID non uploadé');
   if(!uploadedDocs['employer_letter'])issues.push('Lettre d\'employeur ou d\'admission non uploadée');
   if(!idVerified)issues.push('Identité non vérifiée (selfie + ID requis)');
@@ -1785,20 +1821,33 @@ async function runVerification(){
   const loadingDiv=document.getElementById('verify-loading');
 
   try{
-    // Load models
-    loadingDiv.innerHTML='<div class="sp" style="margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--tm)">Loading AI models...</div>';
+    loadingDiv.style.display='block';
+    resultDiv.style.display='none';
+    loadingDiv.innerHTML='<div class="sp" style="margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--tm)">Loading AI models... (first time may take 30 seconds)</div>';
+
     const loaded=await loadFaceModels();
-    if(!loaded)throw new Error('Models failed to load');
+    if(!loaded){
+      loadingDiv.style.display='none';
+      resultDiv.style.display='block';
+      resultDiv.innerHTML=failResult('Could not load face detection models. Check your internet connection and try again.');
+      return;
+    }
 
-    loadingDiv.innerHTML='<div class="sp" style="margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--tm)">Detecting faces...</div>';
+    loadingDiv.innerHTML='<div class="sp" style="margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--tm)">Analysing faces...</div>';
 
-    // Load images
-    const idImg=await faceapi.fetchImage(idImageData);
-    const selfieImg=await faceapi.fetchImage(selfieImageData);
+    // Create Image elements from base64 data (face-api can't fetchImage base64)
+    const loadImg=(src)=>new Promise((res,rej)=>{
+      const img=new Image();
+      img.onload=()=>res(img);
+      img.onerror=()=>rej(new Error('Image failed to load'));
+      img.src=src;
+    });
 
-    const opts=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.3});
+    const [idImg, selfieImg]=await Promise.all([loadImg(idImageData), loadImg(selfieImageData)]);
 
-    // Detect faces in both
+    const opts=new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.3});
+
+    // Detect faces
     const [idDetection, selfieDetection]=await Promise.all([
       faceapi.detectSingleFace(idImg,opts).withFaceLandmarks(true).withFaceDescriptor(),
       faceapi.detectSingleFace(selfieImg,opts).withFaceLandmarks(true).withFaceDescriptor()
@@ -1808,21 +1857,19 @@ async function runVerification(){
     resultDiv.style.display='block';
 
     if(!idDetection){
-      resultDiv.innerHTML=failResult('No face detected in your ID photo. Make sure your ID is clearly visible and well-lit.');
+      resultDiv.innerHTML=failResult('No face detected in your ID photo. Make sure your ID is clearly visible, well-lit and not blurry.');
       return;
     }
     if(!selfieDetection){
-      resultDiv.innerHTML=failResult('No face detected in your selfie. Make sure your face is clearly visible.');
+      resultDiv.innerHTML=failResult('No face detected in your selfie. Make sure your face is clearly visible and well-lit.');
       return;
     }
 
-    // Compare face descriptors
     const distance=faceapi.euclideanDistance(idDetection.descriptor, selfieDetection.descriptor);
     const similarity=Math.round((1-Math.min(distance,1))*100);
     const match=distance<0.55;
 
     if(match){
-      // Save verified status to Supabase
       await sb.from('profiles').update({verified:true}).eq('clerk_id',U.id);
       document.getElementById('verify-badge').textContent='✅ Verified';
       document.getElementById('verify-badge').className='badge b-green';
