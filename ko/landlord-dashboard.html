@@ -205,7 +205,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Communication</div>
     <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-msg" style="display:none">0</span></button>
     <button class="ni" onclick="sp('maintenance',this)"><span class="nico">🔧</span>Maintenance<span class="nbadge g" id="nb-tick" style="display:none">0</span></button>
-    <div class="nl">Reviews & Profile</div>
+    <div class="nl">Reviews & Profilee</div>
     <button class="ni" onclick="sp('reviews',this)"><span class="nico">⭐</span>Reviews</button>
     <button class="ni" onclick="sp('profile',this)"><span class="nico">👤</span>My profile</button>
     <button class="ni" onclick="window.location.href='/'"><span class="nico">🌐</span>Back to site</button>
@@ -260,7 +260,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
       <!-- Visit groups -->
       <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">👥 Visites en cours</div><span id="visit-groups-count" class="badge b-sea">0</span></div>
+        <div class="ch"><div class="ct">👥 Visits en cours</div><span id="visit-groups-count" class="badge b-sea">0</span></div>
         <div class="cb" id="visit-groups-list"><div class="ld"><div class="sp"></div></div></div>
       </div>
 
@@ -294,7 +294,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
         <div class="kcard"><div class="klabel">Rent collected</div><div class="kval" id="rep-rent" style="color:var(--green)">€0</div><div class="ksub">This month</div></div>
-        <div class="kcard"><div class="klabel">Occupancy rate</div><div class="kval" id="rep-occ" style="color:var(--sea)">—</div><div class="ksub">Active listings</div></div>
+        <div class="kcard"><div class="klabel">Occupancy rate</div><div class="kval" id="rep-occ" style="color:var(--sea)">—</div><div class="ksub">Rented / Active listings</div></div>
         <div class="kcard"><div class="klabel">Open tickets</div><div class="kval" id="rep-tick" style="color:var(--gold)">0</div><div class="ksub">Maintenance</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -376,7 +376,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               </select>
             </div>
             <div class="fg"><label class="fl">Lease type</label>
-              <select class="fsel" id="lease-type">
+              <select class="fsel" id="lease-type" onchange="autoSetEndDate()">
                 <option value="sublet">Short-let (under 6 months)</option>
                 <option value="long">Long-let (6 months+)</option>
               </select>
@@ -431,8 +431,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <!-- Step 3: Dates -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Step 3 — Lease dates</div>
           <div class="fgrid2" style="margin-bottom:1.2rem">
-            <div class="fg"><label class="fl">Start date *</label><input class="fi" id="lease-start" type="date"></div>
-            <div class="fg"><label class="fl">End date *</label><input class="fi" id="lease-end" type="date"></div>
+            <div class="fg"><label class="fl">Start date *</label><input class="fi" id="lease-start" type="date" onchange="autoSetEndDate()"></div>
+            <div class="fg"><label class="fl">End date * <span id="end-date-hint" style="font-size:.68rem;color:var(--sea)"></span></label><input class="fi" id="lease-end" type="date"></div>
           </div>
 
           <!-- Hidden fields auto-filled -->
@@ -538,17 +538,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between">
             <div><div style="font-size:.9rem;font-weight:600" id="msg-chat-name">Select a conversation</div><div style="font-size:.72rem;color:var(--tm)" id="msg-chat-sub"></div></div>
           </div>
-          <div style="flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem" id="msg-chat-body"><div style="text-align:center;color:var(--td);font-size:.85rem;margin-top:2rem">Select a message to view the conversation</div></div>
-          <div style="padding:.5rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-wrap:wrap">
+          <div style="flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;min-height:0;max-height:380px" id="msg-chat-body"><div style="text-align:center;color:var(--td);font-size:.85rem;margin-top:2rem">Select a message to view the conversation</div></div>
+          <div style="padding:.5rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-wrap:wrap;flex-shrink:0">
             <button class="btn bg bsm" onclick="insertTpl('Hi! Just a reminder that your rent is due.')">💶 Rent reminder</button>
             <button class="btn bg bsm" onclick="insertTpl('Your receipt has been sent to your email.')">🧾 Receipt sent</button>
             <button class="btn bg bsm" onclick="insertTpl('A technician will visit to fix the issue. Please confirm availability.')">🔧 Maintenance</button>
             <button class="btn bg bsm" onclick="insertTpl('Your lease is expiring soon. Would you like to renew?')">📄 Renewal</button>
             <button class="btn bg bsm" onclick="insertTpl('Welcome to the flat! Here is everything you need to know.')">👋 Welcome</button>
           </div>
-          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-shrink:0">
             <textarea class="fta" id="msg-input" rows="2" placeholder="Write a message..." style="flex:1;resize:none;font-size:.83rem"></textarea>
-            <button class="btn bp" onclick="sendMsg()" style="align-self:flex-end">➤</button>
+            <button class="btn bp" onclick="sendMsg()" style="align-self:flex-end;padding:.6rem 1rem">➤ Send</button>
           </div>
         </div>
       </div>
@@ -574,14 +574,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- INVENTORY -->
     <div class="page" id="page-inventory">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">Inventaire / État des lieux</div>
+        <div style="font-size:1rem;font-weight:700">Inventaire / Inventory / État des lieux</div>
         <div style="display:flex;gap:.5rem">
-          <select class="fsel" style="width:auto;font-size:.78rem;padding:.35rem .7rem" id="inv-listing" onchange="loadInventory()"><option value="">Sélectionner un bien...</option></select>
+          <select class="fsel" style="width:auto;font-size:.78rem;padding:.35rem .7rem" id="inv-listing" onchange="loadInventory()"><option value="">Select un bien...</option></select>
           <button class="btn bg bsm" onclick="exportInventory()">📥 Export PDF</button>
         </div>
       </div>
       <div style="background:var(--sdim);border:1px solid rgba(58,143,181,.15);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.2rem;font-size:.82rem;color:var(--tm);line-height:1.6">
-        📋 Documentez l'état de chaque pièce et meuble à l'entrée et à la sortie. Le locataire signe digitalement — ce document vous protège en cas de litige sur le dépôt.
+        📋 Documentez l'état de chaque pièce et meuble à l'entrée et à la sortie. Le locataire signe digitalement — ce document you protège en cas de litige sur le dépôt.
       </div>
 
       <!-- Entry / Exit toggle -->
@@ -597,7 +597,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <!-- Photo upload per room -->
       <div style="margin-top:1rem;background:var(--tdim);border-radius:10px;padding:1rem">
         <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem">📸 Photos par pièce</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Ajoutez des photos pour chaque pièce — elles seront annexées à l'état des lieux signé.</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Ajoutez des photos for chaque pièce — elles seront annexées à l'état des lieux signé.</div>
         <div id="inv-photos" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem"></div>
         <button class="btn bg bsm" onclick="document.getElementById('inv-photo-input').click()">📷 Ajouter photos</button>
         <input type="file" id="inv-photo-input" accept="image/*" multiple style="display:none" onchange="addInvPhotos(this)">
@@ -606,10 +606,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <!-- Signature section -->
       <div style="margin-top:1rem;background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:1rem">
         <div style="font-size:.82rem;font-weight:700;color:var(--green);margin-bottom:.5rem">✍️ Signature digitale</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Une fois l'état des lieux complété, envoyez-le au locataire pour signature électronique via DocuSeal.</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Une fois l'état des lieux complété, envoyez-le au locataire for signature électronique via DocuSeal.</div>
         <div style="display:flex;gap:.75rem">
-          <button class="btn bg" onclick="saveInventory()">💾 Sauvegarder</button>
-          <button class="btn bp" onclick="sendInventoryForSignature()">📤 Envoyer pour signature →</button>
+          <button class="btn bg" onclick="saveInventory()">💾 Save</button>
+          <button class="btn bp" onclick="sendInventoryForSignature()">📤 Send for signature →</button>
         </div>
       </div>
 
@@ -685,7 +685,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- PROFILE -->
     <div class="page" id="page-profile">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My Profile & Settings</div>
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My Profilee & Settings</div>
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">Personal information</div><span style="font-size:.75rem;color:var(--td)">Used to auto-generate leases</span></div>
         <div class="cb">
@@ -708,7 +708,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">IBAN (for receiving rent) *</label><input class="fi" id="prof-iban" placeholder="MT84 MALT 0110 0001 2345 MTLC AST0 01"></div>
             <div class="fg"><label class="fl">Revolut / bank name</label><input class="fi" id="prof-bank" placeholder="Revolut @handle or Bank of Valletta"></div>
           </div>
-          <button class="btn bp" onclick="saveProfile()" style="margin-top:.75rem">Save changes →</button>
+          <button class="btn bp" onclick="saveProfilee()" style="margin-top:.75rem">Save changes →</button>
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem">
@@ -813,7 +813,7 @@ let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingI
   if(!clerk.user){window.location.href='/';return;}
   U={id:clerk.user.id,email:clerk.user.primaryEmailAddress?.emailAddress||'',clerk:clerk.user};
   
-  // Retry jusqu'à 5 fois pour attendre que le profil Supabase soit créé
+  // Retry until'à 5 fois for attendre que le profil Supabase soit créé
   let P_data = null;
   for(let i=0; i<5; i++){
     const{data}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();
@@ -834,7 +834,7 @@ function initUI(){
 }
 
 async function loadAll(){
-  await Promise.all([loadDash(),loadListings(),loadMessages(),loadMaintenance(),loadPaymentsData(),loadSublets(),loadReviews(),loadProfile()]);
+  await Promise.all([loadDash(),loadListings(),loadMessages(),loadMaintenance(),loadPaymentsData(),loadSublets(),loadReviews(),loadProfilee()]);
 }
 
 function sp(id,btn){
@@ -842,7 +842,7 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',tenantmatch:'Tenant Matching',leases:'Leases & Documents',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',inventory:'Inventory',sublet:'Sous-location',reviews:'Reviews',profile:'Profile & Settings'};
+  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',tenantmatch:'Tenant Matching',leases:'Leases & Documents',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',inventory:'Inventory',sublet:'Sous-location',reviews:'Reviews',profile:'Profilee & Settings'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
@@ -916,11 +916,14 @@ async function loadDash(){
 }
 
 function renderChart(collected){
+  // Only show real data — no mock numbers
   const months=['Jun','Jul','Aug','Sep','Oct','Nov'];
-  const vals=[65,72,58,80,78,Math.max(20,Math.min(100,collected/50||40))];
-  const max=Math.max(...vals);
-  document.getElementById('rev-chart').innerHTML=months.map((m,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.4rem"><div class="cbar ${i===5?'cur':''}" style="height:${(vals[i]/max*90)+10}px" title="€${vals[i]*50}"></div><span class="clabel">${m}</span></div>`).join('');
-  document.getElementById('rev-total').textContent=`€${(vals.reduce((a,b)=>a+b,0)*50).toLocaleString()} collected`;
+  const max=Math.max(collected||1, 100);
+  // Real data: only last bar (current month) has real value, rest are 0
+  const vals=[0,0,0,0,0,Math.max(0,collected||0)];
+  document.getElementById('rev-chart').innerHTML=months.map((m,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.4rem"><div class="cbar ${i===5?'cur':''}" style="height:${Math.max(4,(vals[i]/max*90))+4}px" title="€${vals[i]}"></div><span class="clabel">${m}</span></div>`).join('');
+  const total=vals.reduce((a,b)=>a+b,0);
+  document.getElementById('rev-total').textContent=total>0?`€${total.toLocaleString()} collected`:'€0 — no payments yet';
 }
 
 /* LISTINGS */
@@ -935,7 +938,7 @@ async function loadListings(){
     <td><span class="badge b-sea">${tl[l.type]||l.type}</span></td>
     <td style="color:var(--txt);font-weight:600">€${l.price}/mo</td>
     <td><span class="badge ${l.active?'b-green':'b-dim'}">${l.active?'🟢 Active':'⚫ Paused'}</span></td>
-    <td style="font-size:.75rem;color:var(--td)">${l.available_indefinitely?'Indéfiniment':l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Now'}</td>
+    <td style="font-size:.75rem;color:var(--td)">${l.available_indefinitely?'Indefinitely':l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Now'}</td>
     <td><div style="display:flex;gap:.4rem">
       <button class="btn bg bsm" onclick="viewListing('${l.id}')">View</button>
       <button class="btn bg bsm" onclick="toggleListing('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>
@@ -965,35 +968,63 @@ async function loadVisitGroups(){
   const wrap=document.getElementById('visit-groups-list');
   const cnt=document.getElementById('visit-groups-count');
   if(!wrap)return;
-  const{data}=await sb.from('visit_groups').select('*').eq('landlord_id',U.id).eq('status','active').order('created_at',{ascending:false});
-  const groups=data||[];
+
+  // Load new visit requests
+  const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).neq('status','done').order('visit_date',{ascending:true}).catch(()=>({data:[]}));
+  const groups=visits||[];
   if(cnt)cnt.textContent=groups.length;
+
   if(!groups.length){
-    wrap.innerHTML='<div style="text-align:center;padding:1.5rem;font-size:.83rem;color:var(--td)">Aucune visite en cours</div>';
+    wrap.innerHTML='<div style="text-align:center;padding:1.5rem;font-size:.83rem;color:var(--td)">No visit requests yet</div>';
     return;
   }
-  const typeLabels={
-    agent_tenant:'🚶 Agent gère la visite — résumé après',
-    agent_tenant_optional:'👋 RDV envoyé — vous pouvez vous joindre',
-    three_way:'👥 Groupe 3 — votre présence requise'
-  };
-  const typeColors={agent_tenant:'var(--td)',agent_tenant_optional:'var(--sea)',three_way:'var(--green)'};
-  wrap.innerHTML=groups.map(g=>`
-    <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
-      <div style="width:42px;height:42px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">🏠</div>
-      <div style="flex:1">
-        <div style="font-size:.88rem;font-weight:600;margin-bottom:.1rem">${g.listing_title||'Listing'}</div>
-        <div style="font-size:.72rem;color:var(--tm)">Tenant : ${g.tenant_name||'—'}</div>
-        <div style="font-size:.72rem;color:${typeColors[g.type]||'var(--td)'};margin-top:.1rem">${typeLabels[g.type]||g.type}</div>
-        ${g.landlord_joined?'<div style="font-size:.65rem;color:var(--green);margin-top:.1rem">✅ Vous avez rejoint</div>':''}
+
+  wrap.innerHTML=groups.map(g=>{
+    const statusColor={pending:'var(--gold)',agent_assigned:'var(--sea)',confirmed:'var(--green)'}[g.status]||'var(--td)';
+    const statusLabel={pending:'⏳ Awaiting confirmation',agent_assigned:'🏆 Agent assigned',confirmed:'✅ Confirmed'}[g.status]||g.status;
+    const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+(g.visit_time||'TBD'):'TBD';
+    return`<div style="padding:.85rem 0;border-bottom:1px solid var(--b)">
+      <div style="display:flex;align-items:flex-start;gap:.75rem">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🏠</div>
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:600">${g.listing_id||'Listing'}</div>
+          <div style="font-size:.75rem;color:var(--tm);margin:.1rem 0">👤 ${g.tenant_name||'Tenant'} · 📅 ${visitDateStr}</div>
+          <div style="font-size:.72rem;color:${statusColor};font-weight:600">${statusLabel}</div>
+          ${g.wants_agent?'<div style="font-size:.68rem;color:#8B5CF6;margin-top:.1rem">🏆 Agent requested — agents have been notified</div>':''}
+        </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:.4rem;flex-shrink:0">
-        ${g.type==='three_way'?`<button class="btn bp bsm" onclick="openGroupChatModal('${g.id}','${g.listing_title||''}','${g.tenant_name||''}')">💬 Chat groupe</button>`:''}
-        ${g.type==='agent_tenant_optional'&&!g.landlord_joined?`<button class="btn bg bsm" onclick="joinVisit('${g.id}')">👋 Me joindre</button>`:''}
-        <button class="btn bg bsm" style="font-size:.68rem" onclick="markVisitDone('${g.id}')">✅ Visite faite</button>
-        <span style="font-size:.62rem;color:var(--td)">${new Date(g.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+      <div style="display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap">
+        ${g.status==='pending'?`
+          <button class="btn bp bsm" onclick="confirmVisit('${g.id}')">✅ Confirm visit</button>
+          <button class="btn bg bsm" onclick="declineVisit('${g.id}')">❌ Decline</button>
+        `:''}
+        ${g.status==='confirmed'||g.status==='agent_assigned'?`
+          <button class="btn bg bsm" onclick="markVisitDone('${g.id}')">✅ Visit done</button>
+        `:''}
+        <button class="btn bg bsm" style="font-size:.68rem" onclick="openMsgChatById('${g.tenant_id}','${g.listing_id}')">💬 Message tenant</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+async function confirmVisit(visitId){
+  await sb.from('visits').update({status:'confirmed'}).eq('id',visitId).catch(()=>{});
+  toast('✅ Visit confirmed! Tenant has been notified.');
+  loadVisitGroups();
+}
+
+async function declineVisit(visitId){
+  await sb.from('visits').update({status:'declined'}).eq('id',visitId).catch(()=>{});
+  toast('Visit declined.');
+  loadVisitGroups();
+}
+
+function openMsgChatById(tenantId, listingId){
+  sp('messages');
+  setTimeout(()=>{
+    const match=allMsgs.find(m=>m.listing_id===listingId&&(m.sender_id===tenantId||m.receiver_id===tenantId));
+    if(match)openMsgChat(match.id,match.listings?.title||'Visit',listingId,tenantId);
+  },500);
 }
 
 // Real-time group chat
@@ -1002,7 +1033,7 @@ let groupChatChannel=null;
 async function openGroupChatModal(groupId, listingTitle, tenantName){
   // Use the messages modal but for group context
   document.getElementById('msg-chat-name').textContent=`👥 Groupe — ${listingTitle}`;
-  document.getElementById('msg-chat-sub').innerHTML=`<span style="font-size:.7rem;color:var(--td)">Tenant: ${tenantName} · Téléphones masqués jusqu\'au bail signé</span>`;
+  document.getElementById('msg-chat-sub').innerHTML=`<span style="font-size:.7rem;color:var(--td)">Tenant: ${tenantName} · Phone numbers hidden until lease is signed</span>`;
   activeChatListingId=groupId; // use groupId as channel key
   activeChatSenderId=null;
   // Load group messages
@@ -1068,13 +1099,28 @@ async function joinVisit(groupId){
     sender_role:'landlord',
     content:'👋 Le propriétaire a rejoint la conversation et sera présent lors de la visite.'
   });
-  toast('✅ Vous avez rejoint la visite !');
+  toast('✅ You joined la visite !');
   loadVisitGroups();
+}
+
+async function loadCommissionStatus(leases){
+  for(const l of (leases||[])){
+    const cell=document.getElementById(`comm-${l.id}`);
+    if(!cell)continue;
+    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).single().catch(()=>({data:null}));
+    if(!comm){
+      cell.innerHTML=l.status==='signed'?'<span style="font-size:.7rem;color:var(--gold)">⏳ Pending</span>':'<span style="font-size:.7rem;color:var(--td)">—</span>';
+    } else if(comm.landlord_paid){
+      cell.innerHTML='<span style="font-size:.7rem;color:var(--green)">✅ Paid</span>';
+    } else {
+      cell.innerHTML=`<a href="${comm.landlord_payment_url}" target="_blank" class="btn bp bsm" style="font-size:.65rem">💳 Pay €${comm.landlord_amount}</a>`;
+    }
+  }
 }
 
 async function markVisitDone(groupId){
   await sb.from('visit_groups').update({status:'visit_done'}).eq('id',groupId);
-  toast('✅ Visite marquée comme effectuée.');
+  toast('✅ Visit marquée comme effectuée.');
   loadVisitGroups();
 }
 let leaseListings=[];
@@ -1154,8 +1200,14 @@ async function loadLeases(){
             ?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View</a>`
             :`<span style="font-size:.72rem;color:var(--td)">⏳ Awaiting signatures</span>`}
       </td>
+      <td id="comm-${l.id}">
+        <div class="sp" style="width:12px;height:12px"></div>
+      </td>
     </tr>`;
-  }).join('')||'<tr><td colspan="6"><div class="empty"><div class="em">📄</div><p>No leases yet. Generate your first!</p></div></td></tr>';
+  }).join('')||'<tr><td colspan="7"><div class="empty"><div class="em">📄</div><p>No leases yet. Generate your first!</p></div></td></tr>';
+
+  // Load commission status for each signed lease
+  loadCommissionStatus(data||[]);
 }
 
 async function markHARegistered(leaseId){
@@ -1168,6 +1220,29 @@ async function markHARegistered(leaseId){
   }
   loadLeases();
   loadListings();
+}
+
+function autoSetEndDate(){
+  const type=document.getElementById('lease-type')?.value;
+  const startVal=document.getElementById('lease-start')?.value;
+  const endInput=document.getElementById('lease-end');
+  const hint=document.getElementById('end-date-hint');
+  if(!startVal||!endInput)return;
+  const start=new Date(startVal);
+  if(type==='short'||type==='sublet'){
+    // Short-let: exactly 6 months
+    const end=new Date(start);
+    end.setMonth(end.getMonth()+6);
+    endInput.value=end.toISOString().split('T')[0];
+    if(hint)hint.textContent='(auto: +6 months)';
+  } else {
+    // Long-let: minimum 1 year
+    const end=new Date(start);
+    end.setFullYear(end.getFullYear()+1);
+    endInput.value=end.toISOString().split('T')[0];
+    if(hint)hint.textContent='(auto: +1 year minimum)';
+  }
+  checkLeaseReady();
 }
 
 function onLeaseListingChange(id){
@@ -1365,6 +1440,14 @@ async function generateAndSendLease(){
       }
       coTenants=[];
       loadLeases();
+      // Also add commission column header to leases table
+      const th=document.querySelector('#leases-tbody')?.closest('table')?.querySelector('thead tr');
+      if(th&&!document.getElementById('comm-header')){
+        const td=document.createElement('th');
+        td.id='comm-header';
+        td.textContent='Commission';
+        th.appendChild(td);
+      }
     } else {
       console.error('DocuSeal error:', data);
       toast('❌ Error: '+(data.error||'DocuSeal failed'));
@@ -1581,8 +1664,7 @@ async function openMsgChat(id, title, listingId, senderId){
   document.getElementById('msg-chat-sub').innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><span id="ll-dot" style="width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block"></span><span id="ll-txt">Connecting...</span></span>';
 
   const body=document.getElementById('msg-chat-body');
-  // Fix problem 3 — ensure scroll works
-  body.style.cssText='flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;max-height:400px';
+  body.style.cssText='overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;max-height:380px;min-height:0';
   body.innerHTML='<div style="text-align:center;color:var(--td);font-size:.78rem">Loading...</div>';
 
   const{data}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
@@ -1683,7 +1765,7 @@ async function loadMaintenance(){
   const sc={open:'to',in_progress:'tip',resolved:'tr'};
   const sl={open:'⚠️ Open',in_progress:'🔧 In progress',resolved:'✅ Resolved'};
   const ico={Plomberie:'🚰',Électricité:'💡',Climatisation:'❄️','Portes/Fenêtres':'🚪',Nuisibles:'🪲',Structure:'🏗️',Serrure:'🔒',Électroménager:'🍳',Internet:'📶'};
-  if(!allTickets.length){wrap.innerHTML='<div class="empty"><div class="em">✅</div><p>Aucun ticket de maintenance</p></div>';return;}
+  if(!allTickets.length){wrap.innerHTML='<div class="empty"><div class="em">✅</div><p>None ticket de maintenance</p></div>';return;}
   wrap.innerHTML=allTickets.map(t=>`
     <div class="tcard" style="flex-direction:column;gap:.75rem">
       <div style="display:flex;align-items:center;gap:.75rem">
@@ -1698,7 +1780,7 @@ async function loadMaintenance(){
       </div>
       ${t.status==='open'?`
       <div style="background:var(--tdim);border-radius:8px;padding:.75rem;font-size:.8rem">
-        <div style="font-weight:700;margin-bottom:.5rem;color:var(--txt)">Comment souhaitez-vous gérer ce problème ?</div>
+        <div style="font-weight:700;margin-bottom:.5rem;color:var(--txt)">Comment souhaitez-you gérer ce problème ?</div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <button class="btn bg bsm" onclick="handleTicket('${t.id}','self')">🔧 Je répare moi-même</button>
           <button class="btn bg bsm" onclick="handleTicket('${t.id}','mandate_self')">📋 Mandater un prestataire (moi)</button>
@@ -1719,7 +1801,7 @@ async function handleTicket(id, action){
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
-        content:`🔧 Votre ticket "${ticket.title}" a été pris en charge. Le propriétaire va s'occuper de la réparation. Vous serez contacté pour convenir d'un rendez-vous si nécessaire.`
+        content:`🔧 Your ticket "${ticket.title}" a été pris en charge. Le propriétaire va s'occuper de la réparation. You serez contacté for convenir d'un rendez-you si nécessaire.`
       });
     }
     toast('🔧 Ticket pris en charge — locataire notifié.');
@@ -1731,7 +1813,7 @@ async function handleTicket(id, action){
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
-        content:`📋 Votre ticket "${ticket.title}" est en cours de traitement. Un prestataire externe va intervenir. Vous serez contacté pour la date d'intervention.`
+        content:`📋 Your ticket "${ticket.title}" est en cours de traitement. Un prestataire externe va intervenir. You serez contacté for la date d'intervention.`
       });
     }
     toast('📋 Prestataire mandaté — locataire notifié.');
@@ -1750,10 +1832,10 @@ async function handleTicket(id, action){
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
-        content:`🏆 RestMalta recherche des prestataires pour votre ticket "${ticket.title}". Plusieurs devis vous seront présentés sous 24-48h.`
+        content:`🏆 RestMalta recherche des prestataires for your ticket "${ticket.title}". Plusieurs devis you seront présentés sous 24-48h.`
       });
     }
-    toast('🏆 Demande de devis envoyée ! Vous recevrez plusieurs offres sous 24-48h.');
+    toast('🏆 Demande de devis envoyée ! You recevrez plusieurs offres sous 24-48h.');
   }
   loadMaintenance();
 }
@@ -1826,14 +1908,14 @@ function addInvPhotos(input){
 }
 
 async function sendInventoryForSignature(){
-  toast('📤 Envoi de l\'état des lieux pour signature...');
-  setTimeout(()=>toast('✅ Email envoyé au locataire pour signature via DocuSeal !'),1500);
+  toast('📤 Envoi de l\'état des lieux for signature...');
+  setTimeout(()=>toast('✅ Email envoyé au locataire for signature via DocuSeal !'),1500);
 }
 
 function showExitCheck(){setInvType('exit',document.getElementById('inv-exit-btn'));}
 
 function bookAgentInventory(type){
-  toast(`🏆 Demande d'agent pour état des lieux de ${type==='entry'?'sortie':'sortie'} envoyée ! Un agent vous contactera sous 24h. (~120€)`);
+  toast(`🏆 Demande d'agent for état des lieux de ${type==='entry'?'sortie':'sortie'} envoyée ! Un agent you contactera sous 24h. (~120€)`);
 }
 function exportInventory(){toast('📥 Inventory PDF generated!');}
 function showExitCheck(){toast('Exit check will be done at end of lease');}
@@ -1877,7 +1959,7 @@ async function submitReview(){
 }
 
 /* PROFILE */
-async function loadProfile(){
+async function loadProfilee(){
   if(!P)return;
   document.getElementById('prof-name').value=P.full_name||'';
   document.getElementById('prof-email').value=P.email||U.email||'';
@@ -1895,7 +1977,7 @@ async function loadProfile(){
   if(P.verified){document.getElementById('verify-badge-ll').textContent='✅ Verified';document.getElementById('verify-badge-ll').className='badge b-green';}
 }
 
-async function saveProfile(){
+async function saveProfilee(){
   const updates={
     full_name:document.getElementById('prof-name').value.trim(),
     phone:document.getElementById('prof-phone').value.trim(),
@@ -1913,7 +1995,7 @@ async function saveProfile(){
   const{error}=await sb.from('profiles').update(updates).eq('clerk_id',U.id);
   if(error){toast('Error: '+error.message);return;}
   Object.assign(P,updates);
-  toast('✅ Profile saved!');
+  toast('✅ Profilee saved!');
 }
 
 async function uploadDoc(input,type){
@@ -1937,8 +2019,12 @@ async function loadReport(){
   const collected=(pays||[]).filter(p=>p.status==='paid'&&new Date(p.paid_at||p.created_at)>=thisMonth).reduce((s,p)=>s+(p.amount||0),0);
   const active=(listings||[]).filter(l=>l.active).length;
   const total=(listings||[]).length;
+  // Occupancy = listings with an active signed lease / total active listings
+  const{data:activeLeases}=await sb.from('leases').select('listing_id').eq('landlord_id',U.id).eq('status','signed');
+  const occupiedIds=new Set((activeLeases||[]).map(l=>l.listing_id));
+  const occupied=(listings||[]).filter(l=>occupiedIds.has(l.id)).length;
   document.getElementById('rep-rent').textContent='€'+collected.toLocaleString();
-  document.getElementById('rep-occ').textContent=total?Math.round(active/total*100)+'%':'—';
+  document.getElementById('rep-occ').textContent=active>0?Math.round(occupied/active*100)+'%':'—';
   document.getElementById('rep-tick').textContent=(tickets||[]).length;
   document.getElementById('rep-total').textContent='€'+collected.toLocaleString();
   document.getElementById('rep-longlet').textContent='€'+(pays||[]).filter(p=>p.type==='rent'&&p.status==='paid').reduce((s,p)=>s+(p.amount||0),0).toLocaleString();
