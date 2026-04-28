@@ -58,14 +58,13 @@ exports.handler = async (event) => {
             });
 
           if (!uploadError) {
-            // Get public URL
             const { data: urlData } = sb.storage
               .from('listings')
               .getPublicUrl(fileName);
 
             const signedPdfUrl = urlData?.publicUrl;
 
-            // Update lease record with signed PDF URL and status
+            // Update lease record
             await sb.from('leases').update({
               pdf_url: signedPdfUrl,
               status: 'signed',
@@ -74,13 +73,98 @@ exports.handler = async (event) => {
               signed_tenant: true
             }).eq('id', lease.id);
 
-            // Notify landlord and tenant via messages
+            // ── Trigger commission payments ──────────────────
+            // Get full lease details with profiles
+            const { data: fullLease } = await sb
+              .from('leases')
+              .select('*, listings(*, profiles!listings_landlord_id_fkey(*))')
+              .eq('id', lease.id)
+              .single()
+              .catch(() => ({ data: null }));
+
+            if (fullLease) {
+              const { data: landlordProfile } = await sb
+                .from('profiles')
+                .select('*')
+                .eq('clerk_id', fullLease.landlord_id)
+                .single()
+                .catch(() => ({ data: null }));
+
+              const { data: tenantProfile } = await sb
+                .from('profiles')
+                .select('*')
+                .eq('clerk_id', fullLease.tenant_id)
+                .single()
+                .catch(() => ({ data: null }));
+
+              const { data: listing } = await sb
+                .from('listings')
+                .select('*')
+                .eq('id', fullLease.listing_id)
+                .single()
+                .catch(() => ({ data: null }));
+
+              if (landlordProfile && tenantProfile && listing) {
+                // Create commission payment links
+                const commissionRes = await fetch(`${process.env.URL}/.netlify/functions/create-commission`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    lease_id: lease.id,
+                    monthly_rent: fullLease.rent || listing.price || 0,
+                    landlord_email: landlordProfile.email || '',
+                    landlord_name: landlordProfile.full_name || '',
+                    tenant_email: tenantProfile.email || '',
+                    tenant_name: tenantProfile.full_name || '',
+                    property_address: listing.full_address || listing.zone || '',
+                    has_agent: listing.wants_agent && listing.agent_service === 'full',
+                    exclusive_mandate: listing.exclusive_mandate || false,
+                    has_escrow: listing.escrow_enabled || false,
+                    agent_email: '',
+                    agent_name: ''
+                  })
+                });
+
+                const commissionData = await commissionRes.json();
+
+                if (commissionData.success) {
+                  // Save commission links to Supabase
+                  await sb.from('commissions').insert({
+                    lease_id: lease.id,
+                    landlord_amount: commissionData.landlord.amount,
+                    tenant_amount: commissionData.tenant.amount,
+                    agent_amount: commissionData.agent_amount,
+                    landlord_payment_url: commissionData.landlord.payment_url,
+                    tenant_payment_url: commissionData.tenant.payment_url,
+                    status: 'pending'
+                  }).catch(() => {});
+
+                  // Send payment link to landlord via message
+                  await sb.from('messages').insert({
+                    listing_id: fullLease.listing_id,
+                    sender_id: 'system',
+                    receiver_id: fullLease.landlord_id,
+                    content: `✅ Your lease has been signed by all parties!\n\n📄 Download your signed lease: ${signedPdfUrl}\n\n💳 Please pay your RestMalta commission of €${commissionData.landlord.amount}:\n${commissionData.landlord.payment_url}\n\nYou can pay by card or SEPA bank transfer.`
+                  }).catch(() => {});
+
+                  // Send payment link to tenant via message
+                  await sb.from('messages').insert({
+                    listing_id: fullLease.listing_id,
+                    sender_id: 'system',
+                    receiver_id: fullLease.tenant_id,
+                    content: `✅ Your lease has been signed!\n\n📄 Download your signed lease: ${signedPdfUrl}\n\n💳 Please pay your RestMalta commission of €${commissionData.tenant.amount}:\n${commissionData.tenant.payment_url}\n\nYou can pay by card or SEPA bank transfer (recommended — lowest fees).`
+                  }).catch(() => {});
+                }
+              }
+            }
+
+            // Notify both parties
             if (lease.landlord_id && lease.listing_id) {
               await sb.from('messages').insert({
                 listing_id: lease.listing_id,
                 sender_id: 'system',
                 receiver_id: lease.landlord_id,
-                content: `✅ Lease fully signed! Download your signed lease here: ${signedPdfUrl}`
+                content: `✅ Lease fully signed! Your signed copy: ${signedPdfUrl}`
               }).catch(() => {});
             }
 
@@ -89,21 +173,11 @@ exports.handler = async (event) => {
                 listing_id: lease.listing_id,
                 sender_id: 'system',
                 receiver_id: lease.tenant_id,
-                content: `✅ Your lease has been fully signed! Download your copy here: ${signedPdfUrl}`
+                content: `✅ Your lease has been fully signed! Your copy: ${signedPdfUrl}`
               }).catch(() => {});
             }
 
-            console.log(`Lease ${lease.id} signed PDF stored at ${signedPdfUrl}`);
-          } else {
-            console.error('Upload error:', uploadError);
-            // Still update status even if upload failed
-            await sb.from('leases').update({
-              pdf_url: pdfUrl,
-              status: 'signed',
-              signed_at: new Date().toISOString(),
-              signed_landlord: true,
-              signed_tenant: true
-            }).eq('id', lease.id);
+            console.log(`Lease ${lease.id} signed — commission links sent`);
           }
         }
       }
