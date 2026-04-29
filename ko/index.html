@@ -621,15 +621,14 @@ footer ul a:hover{color:var(--terra)}
         </div>
       </div>
 
-      <!-- Lease Agreement Attestation badge (point 14) -->
+      <!-- Lease Agreement Attestation -->
       <div style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation <span style="font-size:.65rem;font-weight:400;color:var(--stone-l)">(Malte — since fin 2024)</span></div>
-        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.6rem;line-height:1.5">Certains locataires non-EU ont besoin d'un bail attesté par notaire for leur titre de séjour. Acceptez-you ces locataires ?</div>
+        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation <span style="font-size:.65rem;font-weight:400;color:var(--stone-l)">(Malta — required for some non-EU residence permits)</span></div>
+        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.6rem;line-height:1.5">Some non-EU tenants need a notary-attested lease for their residence permit. Do you accept these tenants? If yes, a badge will appear on your listing. The tenant manages the notary process themselves — RestMalta does not handle this.</div>
         <div style="display:flex;gap:1rem;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-yes" value="yes" checked> ✅ Oui, j'accepte</label>
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-no" value="no"> ❌ No — standard lease only</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-no" value="no" checked> ❌ No — standard lease only</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-yes" value="yes"> ✅ Yes — I accept tenants needing attestation</label>
         </div>
-        <div style="margin-top:.6rem;font-size:.7rem;color:var(--stone-l);line-height:1.4">ℹ️ RestMalta génère le document de base. La validation notariale est gérée entre les parties. <span style="color:var(--sea);cursor:pointer;font-weight:600" onclick="toast('🔍 Fonction \"Trouver un notaire partenaire\" bientôt disponible!')">Trouver un notaire partenaire →</span></div>
       </div>
 
       <!-- Sous-location legal notice (point 3) -->
@@ -658,7 +657,7 @@ footer ul a:hover{color:var(--terra)}
           </label>
           <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
             <input type="radio" name="agent-service" id="agent-opt-full" value="full" style="margin-top:.1rem">
-            <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry & exit inventory (~€120)</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and both inventories on your behalf. Attestation is NOT included — contact a notary directly for that.</div></div>
+            <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry inventory</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and the entry inventory on your behalf. Commission: 30% from landlord + 30% from tenant. Attestation is NOT included.</div></div>
           </label>
         </div>
 
@@ -1248,16 +1247,30 @@ async function openDet(id){
   document.getElementById('dzo').textContent='📍 '+l.zone+(l.address?' · '+l.address:'');
   document.getElementById('dde').textContent=l.description||'No description provided.';
   document.getElementById('dpr').textContent='€'+l.price;
-  const fe=[l.furnished?'✓ Furnished':'✗ Unfurnished',l.wifi?'✓ WiFi':null,l.bills_included?'✓ Bills incl.':null,l.ac?'✓ A/C':null,l.parking?'✓ Parking':null,l.pool?'✓ Pool':null,l.balcony?'✓ Balcony':null,l.washing_machine?'✓ Washing machine':null,l.spots>1?`${l.spots} spots`:'1 spot',l.deposit?`Deposit: €${l.deposit}`:'No deposit'].filter(Boolean);
-  if(l.wants_agent)fe.unshift('🏆 Agent visit available');
-  if(l.video_url)fe.unshift('🎥 Virtual visit available');
-  if(l.accepts_attestation)fe.push('📋 Attestation accepted');
-  if(l.min_stay)fe.push(`Min stay: ${l.min_stay.replace('_',' ')}`);
-  if(l.lease_duration)fe.push(`Preferred: ${l.lease_duration.replace(/_/g,' ')}`);
+  const fe=[
+    l.furnished?'✅ Furnished':'❌ Unfurnished',
+    l.wifi?'✅ WiFi':null,
+    l.bills_included?'✅ Bills included':null,
+    l.ac?'✅ A/C':null,
+    l.parking?'✅ Parking':null,
+    l.pool?'✅ Pool':null,
+    l.balcony?'✅ Balcony/Terrace':null,
+    l.washing_machine?'✅ Washing machine':null,
+    l.dishwasher?'✅ Dishwasher':null,
+    l.elevator?'✅ Elevator':null,
+    l.garden?'✅ Garden':null,
+    l.sea_view?'✅ Sea view':null,
+    (l.bedrooms||l.spots)?`🛏 ${l.bedrooms||l.spots} bedroom${(l.bedrooms||l.spots)>1?'s':''}`:null,
+    l.deposit?`💰 Deposit: €${l.deposit}`:'No deposit',
+    l.accepts_attestation?'📋 Attestation accepted':null,
+    l.min_stay?`⏱ Min stay: ${l.min_stay.replace(/_/g,' ')}`:null,
+  ].filter(Boolean);
+  if(l.wants_agent&&l.agent_service!=='none')fe.unshift('🏆 Agent visits available');
+  if(l.video_url)fe.unshift('🎥 Virtual tour available');
   document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
-  const tl={short:'Short-let',sublet:'Sous-location',long:'Long-let (6 mois+)',both:'Short-let ou Long-let'};
-  const difermoLabels={'6_months':'6 mois','1_year':'1 an','none':'None'};
-  const durationLabels={'1_year':'1 an','2_years':'2 ans','3_years_plus':'3 ans ou plus','flexible':'Flexible'};
+  const tl={short:'Short-let',sublet:'Subletting',long:'Long-let (1 year+)',both:'Short-let or Long-let'};
+  const difermoLabels={'6_months':'6 months','9_months':'9 months','1_year':'1 year','none':'None'};
+  const durationLabels={'1_year':'1 year (minimum)','2_years':'2 years','3_years':'3 years','flexible':'Flexible'};
   const badge=await getLandlordResponseBadge(l.landlord_id);
   document.getElementById('din').innerHTML=`
     ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.75rem">${badge}</div>`:''}
@@ -1267,8 +1280,8 @@ async function openDet(id){
     <div class="crow"><span>Deposit</span><span>${l.deposit?'€'+l.deposit:'None'}</span></div>
     ${l.di_fermo&&l.di_fermo!=='none'?`<div class="crow"><span>Di Fermo (lock-in)</span><span>${difermoLabels[l.di_fermo]||l.di_fermo}</span></div>`:''}
     ${l.lease_duration?`<div class="crow"><span>Lease préféré</span><span>${durationLabels[l.lease_duration]||l.lease_duration}</span></div>`:''}
-    ${l.payment_due_day?`<div class="crow"><span>Rent due on the</span><span>${l.payment_due_day==='last'?'Dernier jour of the month':l.payment_due_day+' of the month'}</span></div>`:''}
-    ${l.notice_period?`<div class="crow"><span>Notice period</span><span>${l.notice_period.replace('_',' ')}</span></div>`:''}
+    ${l.payment_due_day?`<div class="crow"><span>Rent due on the</span><span>${l.payment_due_day==='last'?'Last day of the month':l.payment_due_day+' of the month'}</span></div>`:''}
+    ${l.notice_period?`<div class="crow"><span>Notice period</span><span>${l.notice_period.replace(/_/g,' ')}</span></div>`:''}
     ${l.landlord_present?`<div class="crow"><span>Visits</span><span>${l.landlord_present==='mandatory'?'✅ Owner present':l.landlord_present==='if_possible'?'👋 Owner if possible':l.wants_agent&&l.agent_service&&l.agent_service!=='none'?'🏆 Agent handles visits':'📅 Direct with owner'}</span></div>`:''}
     ${l.mandat_exclusif?'<div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;color:#8B5CF6;margin-top:.5rem">🤝 RestMalta Exclusive Mandate — verified listing</div>':''}`;
   go('det');
@@ -1427,71 +1440,80 @@ async function requestVisit(){
   if(!U){toast('Please sign in first');go('auth');return;}
   if(!AL)return;
 
-  // Profilee check
-  const missingFields=[];
-  if(!P?.full_name)missingFields.push('Full name');
-  if(!P?.passport_number)missingFields.push('Passport/ID');
-  if(!P?.nationality)missingFields.push('Nationality');
-  if(!P?.date_of_birth)missingFields.push('Date of birth');
-  if(!P?.home_address)missingFields.push('Home address');
-  if(missingFields.length>0){
+  const missing=[];
+  if(!P?.full_name)missing.push('Full name');
+  if(!P?.passport_number)missing.push('Passport/ID');
+  if(!P?.nationality)missing.push('Nationality');
+  if(!P?.date_of_birth)missing.push('Date of birth');
+  if(!P?.home_address)missing.push('Home address');
+  if(missing.length>0){
     toast('❌ Complete your profile before requesting a visit');
-    alert(`Please complete your profile first.\n\nMissing: ${missingFields.join(', ')}`);
+    alert(`Please complete your profile first.\n\nMissing: ${missing.join(', ')}`);
     return;
   }
 
   const visitDate=document.getElementById('visit-date')?.value;
   const visitTime=document.getElementById('visit-time')?.value||'14:00';
-  if(!visitDate){toast('Please select a visit date');return;}
+  if(!visitDate){toast('⚠️ Please select a preferred visit date');return;}
 
   const today=new Date();today.setHours(0,0,0,0);
-  if(new Date(visitDate)<today){toast('Please select a future date');return;}
+  if(new Date(visitDate)<today){toast('⚠️ Please select a future date');return;}
 
-  toast('📅 Sending visit request...');
+  toast('📅 Sending visit request to available agents...');
 
   try{
-    // 1 — Save visit request to Supabase
-    await sb.from('visits').insert({
+    // 1 — Save visit request
+    const{data:visit}=await sb.from('visits').insert({
       listing_id:AL.id,
       tenant_id:U.id,
       landlord_id:AL.landlord_id,
+      tenant_name:P.full_name||'',
+      tenant_email:P.email||U.email||'',
       visit_date:visitDate,
       visit_time:visitTime,
       zone:AL.zone||'',
       wants_agent:AL.wants_agent&&AL.agent_service==='full',
-      status:'pending', // pending → agent_assigned → confirmed
-      tenant_name:P.full_name||'',
-      tenant_email:P.email||U.email||''
-    }).catch(()=>{});
+      status:'pending'
+    }).select().single().catch(()=>({data:null}));
 
-    // 2 — Notify landlord
-    await sb.from('messages').insert({
-      listing_id:AL.id,
-      sender_id:U.id,
-      receiver_id:AL.landlord_id,
-      content:`📅 Visit request for "${AL.title}"\nDate: ${new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}\nTime: ${visitTime}\nTenant: ${P.full_name||'—'}\n\nPlease confirm if the property is available on this date.`
-    });
+    const visitId=visit?.id||null;
+    const listingAddress=AL.full_address||AL.zone||'Malta';
+    const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
-    // 3 — If agent service selected, notify availabthe agents in zone
-    if(AL.wants_agent&&AL.agent_service==='full'){
-      const{data:agents}=await sb.from('profiles').select('clerk_id,email,full_name').eq('role','agent').eq('active',true).catch(()=>({data:[]}));
-      for(const agent of (agents||[])){
-        await sb.from('messages').insert({
-          listing_id:AL.id,
-          sender_id:'system',
-          receiver_id:agent.clerk_id,
-          content:`🏆 New visit request!\n"${AL.title}" — ${AL.zone||'Malta'}\nDate: ${new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})} at ${visitTime}\n\nIf you are available, respond "I can do this visit" in this chat. The landlord will choose the agent.`
-        }).catch(()=>{});
-      }
-      toast('✅ Visit requested! Availabthe agents have been notified. The landlord will confirm your visit.');
-    } else {
-      toast('✅ Visit request sent! The landlord will confirm your preferred date and time.');
+    // 2 — Notify ALL registered agents (NO message to landlord yet)
+    const{data:agents}=await sb.from('profiles')
+      .select('clerk_id,full_name,email')
+      .eq('role','agent')
+      .catch(()=>({data:[]}));
+
+    let agentsNotified=0;
+    for(const agent of (agents||[])){
+      await sb.from('messages').insert({
+        listing_id:AL.id,
+        sender_id:'system',
+        receiver_id:agent.clerk_id,
+        content:`🏠 NEW VISIT REQUEST — Action required!\n\nProperty: ${AL.title||'Listing'}\nAddress: ${listingAddress}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'}\n\nAre you available for this visit?\nReply "✅ Available" to apply.\nThe landlord will select which agent conducts the visit.`,
+        visit_id:visitId,
+        type:'visit_request'
+      }).catch(()=>{});
+      agentsNotified++;
     }
 
-    // Clear form
+    // 3 — Notify landlord (info only — agent applications coming)
+    await sb.from('messages').insert({
+      listing_id:AL.id,
+      sender_id:'system',
+      receiver_id:AL.landlord_id,
+      content:`📅 New visit request!\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\n${agentsNotified>0?`${agentsNotified} agent(s) have been notified and will apply. Go to your dashboard → Visits to choose an agent and confirm.`:'No agents available yet. You will need to handle this visit yourself.'}`,
+      type:'visit_info'
+    }).catch(()=>{});
+
     if(document.getElementById('visit-date'))document.getElementById('visit-date').value='';
 
+    toast(`✅ Visit requested for ${visitDateStr} at ${visitTime}! ${agentsNotified>0?agentsNotified+' agent(s) notified.':''} The landlord will confirm once an agent is selected.`);
+
   }catch(e){
+    console.error('Visit error:',e);
     toast('✅ Visit request sent!');
   }
 }
