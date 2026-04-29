@@ -529,26 +529,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- MESSAGES -->
     <div class="page" id="page-messages">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Messages</div>
-      <div style="display:grid;grid-template-columns:280px 1fr;background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;height:520px">
-        <div style="border-right:1px solid var(--b);overflow-y:auto">
-          <div style="padding:.75rem;border-bottom:1px solid var(--b)"><input class="fi" placeholder="Search..." oninput="filterMsgs(this.value)" style="font-size:.82rem;padding:.5rem .75rem"></div>
-          <div id="msg-list"><div class="ld"><div class="sp"></div></div></div>
+      <div style="display:grid;grid-template-columns:280px 1fr;background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;height:560px">
+        <div style="border-right:1px solid var(--b);display:flex;flex-direction:column;min-height:0">
+          <div style="padding:.75rem;border-bottom:1px solid var(--b);flex-shrink:0"><input class="fi" placeholder="Search..." oninput="filterMsgs(this.value)" style="font-size:.82rem;padding:.5rem .75rem"></div>
+          <div id="msg-list" style="overflow-y:auto;flex:1"></div>
         </div>
-        <div style="display:flex;flex-direction:column">
-          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;flex-direction:column;min-height:0">
+          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
             <div><div style="font-size:.9rem;font-weight:600" id="msg-chat-name">Select a conversation</div><div style="font-size:.72rem;color:var(--tm)" id="msg-chat-sub"></div></div>
           </div>
-          <div style="flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;min-height:0;max-height:380px" id="msg-chat-body"><div style="text-align:center;color:var(--td);font-size:.85rem;margin-top:2rem">Select a message to view the conversation</div></div>
-          <div style="padding:.5rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-wrap:wrap;flex-shrink:0">
-            <button class="btn bg bsm" onclick="insertTpl('Hi! Just a reminder that your rent is due.')">💶 Rent reminder</button>
-            <button class="btn bg bsm" onclick="insertTpl('Your receipt has been sent to your email.')">🧾 Receipt sent</button>
-            <button class="btn bg bsm" onclick="insertTpl('A technician will visit to fix the issue. Please confirm availability.')">🔧 Maintenance</button>
-            <button class="btn bg bsm" onclick="insertTpl('Your lease is expiring soon. Would you like to renew?')">📄 Renewal</button>
-            <button class="btn bg bsm" onclick="insertTpl('Welcome to the flat! Here is everything you need to know.')">👋 Welcome</button>
+          <div style="flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;min-height:0" id="msg-chat-body"><div style="text-align:center;color:var(--td);font-size:.85rem;margin-top:2rem">Select a conversation to start messaging</div></div>
+          <div style="padding:.4rem .75rem;border-top:1px solid var(--b);display:flex;gap:.4rem;flex-wrap:wrap;flex-shrink:0;background:var(--warm)">
+            <button class="btn bg bsm" style="font-size:.65rem" onclick="insertTpl('Hi! Just a reminder that your rent is due.')">💶 Rent</button>
+            <button class="btn bg bsm" style="font-size:.65rem" onclick="insertTpl('Your receipt has been sent to your email.')">🧾 Receipt</button>
+            <button class="btn bg bsm" style="font-size:.65rem" onclick="insertTpl('A technician will visit to fix the issue. Please confirm availability.')">🔧 Maintenance</button>
+            <button class="btn bg bsm" style="font-size:.65rem" onclick="insertTpl('Your lease is expiring soon. Would you like to renew?')">📄 Renewal</button>
+            <button class="btn bg bsm" style="font-size:.65rem" onclick="insertTpl('Welcome to the flat! Here is everything you need to know.')">👋 Welcome</button>
           </div>
-          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-shrink:0">
-            <textarea class="fta" id="msg-input" rows="2" placeholder="Write a message..." style="flex:1;resize:none;font-size:.83rem"></textarea>
-            <button class="btn bp" onclick="sendMsg()" style="align-self:flex-end;padding:.6rem 1rem">➤ Send</button>
+          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-shrink:0;align-items:flex-end">
+            <textarea class="fta" id="msg-input" rows="2" placeholder="Write a message..." style="flex:1;resize:none;font-size:.83rem;min-height:48px"></textarea>
+            <button class="btn bp" onclick="sendMsg()" style="padding:.6rem 1rem;flex-shrink:0">➤ Send</button>
           </div>
         </div>
       </div>
@@ -1636,18 +1636,44 @@ let activeChatListingId=null;
 let activeChatSenderId=null;
 
 async function loadMessages(){
-  const{data}=await sb.from('messages').select('*, listings(title,zone,id)').eq('receiver_id',U.id).order('created_at',{ascending:false});
-  allMsgs=data||[];
-  // Deduplicate by listing+sender
-  const seen=new Set();
-  const unique=allMsgs.filter(m=>{const k=m.listing_id+'-'+m.sender_id;if(seen.has(k))return false;seen.add(k);return true;});
-  allMsgs=unique;
+  // Get all messages involving this landlord
+  const{data:received}=await sb.from('messages').select('*, listings(title,zone,id)').eq('receiver_id',U.id).order('created_at',{ascending:false});
+  const{data:sent}=await sb.from('messages').select('*, listings(title,zone,id)').eq('sender_id',U.id).order('created_at',{ascending:false});
+
+  const all=[...(received||[]),...(sent||[])];
+
+  // Group by conversation key: listing_id + other party ID
+  const convMap=new Map();
+  all.forEach(m=>{
+    const otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
+    const key=`${m.listing_id}-${otherId}`;
+    if(!convMap.has(key)||new Date(m.created_at)>new Date(convMap.get(key).created_at)){
+      convMap.set(key,{...m,_other_id:otherId});
+    }
+  });
+
+  allMsgs=Array.from(convMap.values()).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   renderMessages();
 }
 
 function renderMessages(){
   const wrap=document.getElementById('msg-list');
-  wrap.innerHTML=allMsgs.map(m=>`<div class="mitem ${!m.read?'unread':''}" onclick="openMsgChat('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.listing_id||''}','${m.sender_id||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.83rem;font-weight:600">${m.listings?.title||'Listing'}</div><div class="mprev">${m.content}</div></div><div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:.3rem"><span style="font-size:.65rem;color:var(--td)">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>${!m.read?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra)"></div>':''}</div></div>`).join('')||'<div style="padding:2rem;text-align:center;color:var(--td);font-size:.85rem">No messages yet</div>';
+  if(!wrap)return;
+  wrap.innerHTML=allMsgs.map(m=>{
+    const otherId=m._other_id||m.sender_id;
+    const isUnread=!m.read&&m.receiver_id===U.id;
+    return`<div class="mitem ${isUnread?'unread':''}" onclick="openMsgChat('${m.id}','${(m.listings?.title||'Listing').replace(/'/g,"\\'")}','${m.listing_id||''}','${otherId}')">
+      <div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.83rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.listings?.title||'Listing'}</div>
+        <div class="mprev" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${m.sender_id===U.id?'You: ':''}${m.content}</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:.3rem">
+        <span style="font-size:.65rem;color:var(--td)">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+        ${isUnread?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra)"></div>':''}
+      </div>
+    </div>`;
+  }).join('')||'<div style="padding:2rem;text-align:center;color:var(--td);font-size:.85rem">No messages yet</div>';
 }
 
 function filterMsgs(q){
@@ -1664,7 +1690,7 @@ async function openMsgChat(id, title, listingId, senderId){
   document.getElementById('msg-chat-sub').innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><span id="ll-dot" style="width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block"></span><span id="ll-txt">Connecting...</span></span>';
 
   const body=document.getElementById('msg-chat-body');
-  body.style.cssText='overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;max-height:380px;min-height:0';
+  body.style.cssText='overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;flex:1;min-height:0';
   body.innerHTML='<div style="text-align:center;color:var(--td);font-size:.78rem">Loading...</div>';
 
   const{data}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
