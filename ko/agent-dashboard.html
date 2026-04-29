@@ -459,43 +459,102 @@ function initUI(){
 async function loadAll(){await Promise.all([loadVisits(),loadListings()]);renderRevChart();}
 
 async function loadVisits(){
-  // Load real visits from Supabase
-  const{data:realVisits}=await sb.from('visits').select('*').eq('agent_id',U.id).order('visit_date',{ascending:true}).catch(()=>({data:[]}));
-  // Also load visit groups where agent is assigned
-  const{data:groups}=await sb.from('visit_groups').select('*').eq('agent_id',U.id).eq('status','active').catch(()=>({data:[]}));
+  // Load visit requests sent to this agent
+  const{data:visitMsgs}=await sb.from('messages')
+    .select('*,listings(title,zone,id,full_address)')
+    .eq('receiver_id',U.id)
+    .eq('type','visit_request')
+    .order('created_at',{ascending:false})
+    .catch(()=>({data:[]}));
+
+  // Load confirmed visits (agent assigned)
+  const{data:confirmedVisits}=await sb.from('visits')
+    .select('*')
+    .eq('agent_id',U.id)
+    .order('visit_date',{ascending:true})
+    .catch(()=>({data:[]}));
+
+  visits=confirmedVisits||[];
+  const pendingRequests=visitMsgs||[];
 
   const today=new Date().toISOString().split('T')[0];
-  visits=realVisits||[];
+  const todayV=visits.filter(v=>v.visit_date===today);
 
-  // If no real visits yet, show mock
-  if(!visits.length){
-    visits=[
-      {id:1,listing_title:'Sliema Studio',visit_date:new Date().toISOString(),tenant_name:'Marie D.',status:'confirmed',landlord_presence:'not_needed'},
-      {id:2,listing_title:"St Julian's 2BR",visit_date:new Date().toISOString(),tenant_name:'Tom H.',status:'pending',landlord_presence:'mandatory'},
-    ];
+  document.getElementById('k-visits').textContent=visits.length+pendingRequests.length;
+  document.getElementById('today-count').textContent=`${todayV.length} today`;
+
+  const pending=pendingRequests.length;
+  const nbBadge=document.getElementById('nb-visits');
+  if(pending>0&&nbBadge){nbBadge.textContent=pending;nbBadge.style.display='inline';}
+
+  // Render pending visit requests (apply or decline)
+  const rw=document.getElementById('visit-requests');
+  if(!pendingRequests.length){
+    rw.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests — you\'ll be notified when tenants request visits</p></div>';
+  } else {
+    rw.innerHTML=pendingRequests.map(m=>{
+      // Parse content to extract details
+      const lines=m.content.split('\n');
+      const property=lines.find(l=>l.includes('Property:'))?.replace('Property:','').trim()||m.listings?.title||'Property';
+      const address=lines.find(l=>l.includes('Address:'))?.replace('Address:','').trim()||m.listings?.zone||'Malta';
+      const dateTime=lines.find(l=>l.includes('Date:'))?.replace('Date:','').trim()||'TBD';
+      const tenant=lines.find(l=>l.includes('Tenant:'))?.replace('Tenant:','').trim()||'Tenant';
+      return`<div style="padding:.85rem;background:var(--tdim);border-radius:10px;margin-bottom:.6rem;border:1px solid var(--b)">
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:.3rem">🏠 ${property}</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
+        <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
+        <div style="font-size:.75rem;color:var(--td);margin-bottom:.6rem">👤 Tenant: ${tenant}</div>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I'm available — Apply</button>
+          <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="declineVisitRequest('${m.id}')">❌ Not available</button>
+        </div>
+      </div>`;
+    }).join('');
   }
 
-  const todayV=visits.filter(v=>v.visit_date?.startsWith(today));
-  document.getElementById('k-visits').textContent=visits.length;
-  document.getElementById('today-count').textContent=`${todayV.length} visite${todayV.length!==1?'s':''}`;
-  const pending=visits.filter(v=>v.status==='pending'||v.status==='requested').length;
-  if(pending>0){document.getElementById('nb-visits').textContent=pending;document.getElementById('nb-visits').style.display='inline';}
+  document.getElementById('req-count').textContent=`${pending} new`;
+  renderUpcoming();
+  renderAllVisits();
+  renderCalendar();
+}
 
-  // Show visit groups info
-  const groupsWrap=document.getElementById('visit-groups-agent');
-  if(groupsWrap&&groups?.length){
-    const typeLabels={agent_tenant:'Vous gérez seul',agent_tenant_optional:'RDV envoyé au proprio',three_way:'👥 Groupe 3 — proprio présent'};
-    groupsWrap.innerHTML=`<div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem">
-      <div style="font-size:.8rem;font-weight:700;color:#8B85FF;margin-bottom:.5rem">👥 Vos groupes de visite actifs (${groups.length})</div>
-      ${groups.map(g=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid rgba(108,99,255,.1);font-size:.8rem">
-        <div style="flex:1"><strong>${g.listing_title||'Listing'}</strong> — ${g.tenant_name||'Tenant'}</div>
-        <span style="font-size:.72rem;color:#8B85FF">${typeLabels[g.type]||g.type}</span>
-        ${g.type==='three_way'?`<button onclick="openAgentGroupChat('${g.id}','${g.listing_title||''}','${g.tenant_name||''}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;cursor:pointer;font-weight:600">💬 Chat</button>`:''}
-      </div>`).join('')}
-    </div>`;
+async function applyForVisit(msgId, listingId, visitId){
+  // Mark message as read and send application to landlord
+  await sb.from('messages').update({read:true}).eq('id',msgId).catch(()=>{});
+
+  // Get visit details
+  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).single().catch(()=>({data:null})):{data:null};
+  const landlordId=visit?.landlord_id;
+
+  if(landlordId){
+    // Notify landlord of agent application
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:U.id,
+      receiver_id:landlordId,
+      content:`🏆 Agent application!\n\nAgent: ${P?.full_name||'Agent'}\nFor visit: ${visit?.visit_date||'TBD'} at ${visit?.visit_time||'TBD'}\n\nThis agent is available to conduct the visit. Go to your dashboard → Visits to accept or choose another agent.`,
+      type:'agent_application',
+      visit_id:visitId
+    }).catch(()=>{});
   }
 
-  renderTodayVisits(todayV);renderUpcoming();renderAllVisits();renderCalendar();
+  // Update visit with agent application
+  if(visitId){
+    await sb.from('visits').update({
+      agent_id:U.id,
+      agent_name:P?.full_name||'Agent',
+      status:'agent_applied'
+    }).eq('id',visitId).eq('status','pending').catch(()=>{});
+  }
+
+  toast('✅ Application sent! The landlord will confirm if you are selected.');
+  loadVisits();
+}
+
+async function declineVisitRequest(msgId){
+  await sb.from('messages').update({read:true}).eq('id',msgId).catch(()=>{});
+  toast('Visit request declined.');
+  loadVisits();
 }
 
 function renderTodayVisits(v){
