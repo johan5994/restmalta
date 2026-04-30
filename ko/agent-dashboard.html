@@ -108,7 +108,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="sb-logo">
     <div class="logo" onclick="window.location.href='/'">Rest<span style="color:var(--txt)">Malta</span></div>
     <div class="logo-sub">Agent Dashboard</div>
-    <div class="agent-badge">🏆 Certified Agent</div>
+    <div class="agent-badge" id="agent-cert-badge">🏆 RestMalta Agent</div>
   </div>
   <nav class="sb-nav">
     <div class="nl">Overview</div>
@@ -156,18 +156,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="card">
           <div class="ch"><span class="ct">🔔 Notifications</span></div>
           <div class="cb">
-            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)">
-              <span style="width:8px;height:8px;border-radius:50%;background:var(--terra);display:inline-block;margin-top:.3rem;flex-shrink:0"></span>
-              <div><div style="font-size:.82rem">Visit requests appear here</div><div style="font-size:.7rem;color:var(--td);margin-top:.15rem">Check the Visits tab</div></div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)">
-              <span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-top:.3rem;flex-shrink:0"></span>
-              <div><div style="font-size:.82rem">Lease signed — <strong>St Julian's flat</strong></div><div style="font-size:.7rem;color:var(--td);margin-top:.15rem">1 hour ago · Commission: €240</div></div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0">
-              <span style="width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-top:.3rem;flex-shrink:0"></span>
-              <div><div style="font-size:.82rem">Review received — <strong>4.8 ⭐</strong></div><div style="font-size:.7rem;color:var(--td);margin-top:.15rem">Yesterday</div></div>
-            </div>
+            <div id="notifications-list"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">🔔</div><p style="font-size:.78rem">No notifications yet</p></div></div>
           </div>
         </div>
       </div>
@@ -232,9 +221,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- REVENUE -->
     <div class="page" id="page-revenue">
       <div class="kgrid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kcard"><div class="kico">💰</div><div class="klabel">Total earned</div><div class="kval">€1,240</div><div class="ksub">All time</div></div>
-        <div class="kcard"><div class="kico">📅</div><div class="klabel">This month</div><div class="kval">€480</div><div class="ksub">Commission on leases</div></div>
-        <div class="kcard"><div class="kico">⏳</div><div class="klabel">Pending</div><div class="kval">€240</div><div class="ksub">Awaiting signature</div></div>
+        <div class="kcard"><div class="kico">💰</div><div class="klabel">Total earned</div><div class="kval" id="rev-total">—</div><div class="ksub">All time</div></div>
+        <div class="kcard"><div class="kico">📅</div><div class="klabel">This month</div><div class="kval" id="rev-month">—</div><div class="ksub">Commission on leases</div></div>
+        <div class="kcard"><div class="kico">⏳</div><div class="klabel">Pending</div><div class="kval" id="rev-pending">—</div><div class="ksub">Awaiting signature</div></div>
       </div>
       <div class="card">
         <div class="ch"><span class="ct">📊 Revenue — last 6 months</span></div>
@@ -267,22 +256,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div class="score-ring" style="margin-bottom:1rem">
                 <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
                   <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="8"/>
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--terra)" stroke-width="8" stroke-dasharray="213.6" stroke-dashoffset="42.7" stroke-linecap="round"/>
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--terra)" stroke-width="8" stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" id="score-arc"/>
                 </svg>
-                <div class="score-val">8.2</div>
+                <div class="score-val" id="score-val">—</div>
               </div>
-              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.5rem">Overall score / 10</div>
-              <div class="badge b-green" style="display:inline-block">Top Agent 🏆</div>
-              <div style="font-size:.72rem;color:var(--td);margin-top:.75rem">Based on 12 reviews</div>
+              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.5rem">Overall score / 10</div><div class="badge b-dim" style="display:inline-block" id="score-badge">No reviews yet</div><div style="font-size:.72rem;color:var(--td);margin-top:.75rem" id="score-reviews">Complete visits to get reviews</div>
             </div>
           </div>
           <div class="card">
             <div class="ch"><span class="ct">🏅 Zone ranking</span></div>
             <div class="cb">
-              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem">Zone: <strong style="color:var(--terra)">St Julian's</strong></div>
+              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem">Zone: <strong style="color:var(--terra)" id="zone-name-2">Not set</strong></div>
               <div style="background:var(--s2);border-radius:10px;padding:1rem;display:flex;align-items:center;justify-content:space-between">
                 <span style="font-size:.82rem;color:var(--tm)">Your rank</span>
-                <span style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--gold)">#1</span>
+                <span style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--gold)" id="zone-rank">—</span>
               </div>
             </div>
           </div>
@@ -291,24 +278,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="card">
             <div class="ch"><span class="ct">📊 Score breakdown</span></div>
             <div class="cb">
-              <div class="sbar-row"><span class="sbar-label">Response time</span><div class="sbar-track"><div class="sbar-fill" style="width:92%;background:var(--green)"></div></div><span style="font-size:.75rem;color:var(--green);width:30px;text-align:right">9.2</span></div>
-              <div class="sbar-row"><span class="sbar-label">Tenant satisfaction</span><div class="sbar-track"><div class="sbar-fill" style="width:85%"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right">8.5</span></div>
-              <div class="sbar-row"><span class="sbar-label">Conversion rate</span><div class="sbar-track"><div class="sbar-fill" style="width:78%"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right">7.8</span></div>
-              <div class="sbar-row"><span class="sbar-label">Punctuality</span><div class="sbar-track"><div class="sbar-fill" style="width:88%;background:var(--green)"></div></div><span style="font-size:.75rem;color:var(--green);width:30px;text-align:right">8.8</span></div>
-              <div class="sbar-row"><span class="sbar-label">Profile completeness</span><div class="sbar-track"><div class="sbar-fill" style="width:70%;background:var(--gold)"></div></div><span style="font-size:.75rem;color:var(--gold);width:30px;text-align:right">7.0</span></div>
+              <div class="sbar-row"><span class="sbar-label">Response time</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-response"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-response">—</span></div>
+              <div class="sbar-row"><span class="sbar-label">Tenant satisfaction</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-satisfaction"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-satisfaction">—</span></div>
+              <div class="sbar-row"><span class="sbar-label">Conversion rate</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-conversion"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-conversion">—</span></div>
+              <div class="sbar-row"><span class="sbar-label">Punctuality</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-punctuality"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-punctuality">—</span></div>
+              <div class="sbar-row"><span class="sbar-label">Profile completeness</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-profile"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-profile">—</span></div>
             </div>
           </div>
           <div class="card">
             <div class="ch"><span class="ct">💬 Recent reviews</span></div>
             <div class="cb">
-              <div style="padding:.75rem 0;border-bottom:1px solid var(--b)">
-                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem"><span>⭐⭐⭐⭐⭐</span><span style="font-size:.7rem;color:var(--td)">2 days ago</span></div>
-                <div style="font-size:.82rem;color:var(--tm)">"Very professional, showed up on time and knew the property well."</div>
-              </div>
-              <div style="padding:.75rem 0">
-                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem"><span>⭐⭐⭐⭐</span><span style="font-size:.7rem;color:var(--td)">1 week ago</span></div>
-                <div style="font-size:.82rem;color:var(--tm)">"Quick response, very helpful during the visit."</div>
-              </div>
+              <div id="reviews-list"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">⭐</div><p style="font-size:.78rem">No reviews yet — complete visits to receive reviews</p></div></div>
             </div>
           </div>
         </div>
@@ -382,8 +362,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="cb">
             <div style="background:var(--s2);border-radius:12px;padding:2rem;text-align:center;margin-bottom:1rem">
               <div style="font-size:3rem;margin-bottom:.5rem">🗺️</div>
-              <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--terra)">St Julian's</div>
-              <div style="font-size:.75rem;color:var(--td);margin-top:.3rem">Exclusive territory · 1 agent per zone</div>
+              <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--terra)" id="zone-name">Your zone</div><div style="font-size:.75rem;color:var(--td);margin-top:.3rem">Set in your profile → My Zone</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:.25rem">
               <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Active listings</span><strong id="zone-listings-count">0</strong></div>
@@ -456,7 +435,22 @@ function initUI(){
   document.getElementById('tbs').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
-async function loadAll(){await Promise.all([loadVisits(),loadListings()]);renderRevChart();}
+async function loadAll(){await Promise.all([loadVisits(),loadListings()]);await renderRevChart();await loadNotifications();}
+
+async function loadNotifications(){
+  const wrap=document.getElementById('notifications-list');
+  if(!wrap)return;
+  const{data:msgs}=await sb.from('messages').select('*').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false}).limit(5).catch(()=>({data:[]}));
+  if(!msgs||!msgs.length){
+    wrap.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">🔔</div><p style="font-size:.78rem">No notifications yet</p></div>';
+    return;
+  }
+  const colors={agent_application:'var(--sea)',system:'var(--gold)',message:'var(--green)'};
+  wrap.innerHTML=msgs.map(m=>`<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)">
+    <span style="width:8px;height:8px;border-radius:50%;background:${colors[m.type]||'var(--terra)'};display:inline-block;margin-top:.3rem;flex-shrink:0"></span>
+    <div><div style="font-size:.82rem">${m.content?.split('\n')[0]||'New message'}</div><div style="font-size:.7rem;color:var(--td);margin-top:.1rem">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>
+  </div>`).join('');
+}
 
 async function loadVisits(){
   // Load visit requests sent to this agent
@@ -519,35 +513,97 @@ async function loadVisits(){
 }
 
 async function applyForVisit(msgId, listingId, visitId){
-  // Mark message as read and send application to landlord
   await sb.from('messages').update({read:true}).eq('id',msgId).catch(()=>{});
 
-  // Get visit details
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).single().catch(()=>({data:null})):{data:null};
+  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
   const landlordId=visit?.landlord_id;
 
-  if(landlordId){
-    // Notify landlord of agent application
-    await sb.from('messages').insert({
-      listing_id:listingId,
-      sender_id:U.id,
-      receiver_id:landlordId,
-      content:`🏆 Agent application!\n\nAgent: ${P?.full_name||'Agent'}\nFor visit: ${visit?.visit_date||'TBD'} at ${visit?.visit_time||'TBD'}\n\nThis agent is available to conduct the visit. Go to your dashboard → Visits to accept or choose another agent.`,
-      type:'agent_application',
-      visit_id:visitId
-    }).catch(()=>{});
+  // Get my score
+  const{data:myReviews}=await sb.from('reviews').select('rating').eq('agent_id',U.id).catch(()=>({data:[]}));
+  const myScore=myReviews&&myReviews.length?(myReviews.reduce((s,r)=>s+(r.rating||0),0)/myReviews.length):0;
+
+  // Check if another agent already applied with better score
+  const{data:existingApps}=visitId?await sb.from('messages')
+    .select('sender_id')
+    .eq('type','agent_application')
+    .eq('visit_id',visitId)
+    .neq('sender_id',U.id)
+    .catch(()=>({data:[]})):{data:[]};
+
+  let bestAgentId=U.id;
+  let bestAgentName=P?.full_name||'Agent';
+  let bestScore=myScore;
+  let iAmBest=true;
+
+  for(const app of (existingApps||[])){
+    const{data:theirReviews}=await sb.from('reviews').select('rating').eq('agent_id',app.sender_id).catch(()=>({data:[]}));
+    const theirScore=theirReviews&&theirReviews.length?(theirReviews.reduce((s,r)=>s+(r.rating||0),0)/theirReviews.length):0;
+    if(theirScore>bestScore){
+      bestScore=theirScore;
+      bestAgentId=app.sender_id;
+      iAmBest=false;
+      const{data:ap}=await sb.from('profiles').select('full_name').eq('clerk_id',app.sender_id).maybeSingle();
+      bestAgentName=ap?.full_name||'Agent';
+    }
   }
 
-  // Update visit with agent application
+  // Save application
+  await sb.from('messages').insert({
+    listing_id:listingId,
+    sender_id:U.id,
+    receiver_id:landlordId||'system',
+    content:`🏆 Agent available: ${P?.full_name||'Agent'} (score: ${myScore>0?myScore.toFixed(1):'New'})`,
+    type:'agent_application',
+    visit_id:visitId
+  }).catch(()=>{});
+
+  // Auto-assign best agent to visit
   if(visitId){
     await sb.from('visits').update({
-      agent_id:U.id,
-      agent_name:P?.full_name||'Agent',
-      status:'agent_applied'
-    }).eq('id',visitId).eq('status','pending').catch(()=>{});
+      agent_id:bestAgentId,
+      agent_name:bestAgentName,
+      status:'agent_assigned'
+    }).eq('id',visitId).catch(()=>{});
+
+    if(visit){
+      const dateStr=`${visit.visit_date||'TBD'} at ${visit.visit_time||'TBD'}`;
+
+      // Notify selected agent
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:bestAgentId,
+        content:`🎉 You are assigned to this visit!\n\nDate: ${dateStr}\nTenant: ${visit.tenant_name||'—'}\nAddress: ${listingId}\n\nContact the tenant through RestMalta platform.`,
+        type:'agent_selected'
+      }).catch(()=>{});
+
+      // Notify tenant
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:visit.tenant_id,
+        content:`✅ Your visit is confirmed!\n\nDate: ${dateStr}\nAgent: ${bestAgentName}\n\nThe agent will contact you through RestMalta to confirm details.`,
+        type:'visit_confirmed'
+      }).catch(()=>{});
+
+      // Info to landlord
+      if(landlordId){
+        await sb.from('messages').insert({
+          listing_id:listingId,
+          sender_id:'system',
+          receiver_id:landlordId,
+          content:`✅ Visit assigned automatically!\n\nAgent: ${bestAgentName} (score: ${bestScore>0?bestScore.toFixed(1):'New'})\nDate: ${dateStr}\nTenant: ${visit.tenant_name||'—'}\n\nNo action needed.`,
+          type:'visit_info'
+        }).catch(()=>{});
+      }
+    }
   }
 
-  toast('✅ Application sent! The landlord will confirm if you are selected.');
+  if(iAmBest){
+    toast('🎉 You are automatically selected for this visit!');
+  } else {
+    toast('✅ Application registered. A higher-rated agent was selected.');
+  }
   loadVisits();
 }
 
@@ -560,26 +616,30 @@ async function declineVisitRequest(msgId){
 function renderTodayVisits(v){
   const w=document.getElementById('today-visits');
   if(!v.length){w.innerHTML='<div class="empty" style="padding:2rem"><div class="em" style="font-size:1.5rem">✅</div><p style="font-size:.78rem">No visits today</p></div>';return;}
-  w.innerHTML=v.map(v=>`<div class="vcard" style="margin-bottom:.5rem"><div class="vtime"><div class="vt-h">${v.time.split(':')[0]}</div><div class="vt-m">${v.time.split(':')[1]}</div></div><div class="vinfo"><div class="vtitle">${v.listing}</div><div class="vtenant"><div class="vav">${v.tenant[0]}</div>${v.tenant}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`).join('');
+  w.innerHTML=v.map(v=>{
+    const time=(v.visit_time||'00:00').split(':');
+    const name=v.tenant_name||'Tenant';
+    return`<div class="vcard" style="margin-bottom:.5rem"><div class="vtime"><div class="vt-h">${time[0]}</div><div class="vt-m">${time[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||v.listing_id||'Property'}</div><div class="vtenant"><div class="vav">${name[0].toUpperCase()}</div>${name}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`;
+  }).join('');
 }
 
 function renderUpcoming(){
   const today=new Date().toISOString().split('T')[0];
-  const up=visits.filter(v=>v.date>=today).slice(0,3);
+  const up=visits.filter(v=>(v.visit_date||'')>=today).slice(0,3);
   const w=document.getElementById('upcoming-visits');
   if(!up.length){w.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📅</div><p style="font-size:.78rem">No upcoming visits</p></div>';return;}
-  w.innerHTML=up.map(v=>`<div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="background:var(--tdim);border-radius:8px;padding:.4rem .7rem;text-align:center;flex-shrink:0"><div style="font-size:.6rem;color:var(--td)">${new Date(v.date).toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase()}</div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--terra)">${new Date(v.date).getDate()}</div></div><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${v.listing}</div><div style="font-size:.75rem;color:var(--tm)">${v.time} · ${v.tenant}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`).join('');
+  w.innerHTML=up.map(v=>`<div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="background:var(--tdim);border-radius:8px;padding:.4rem .7rem;text-align:center;flex-shrink:0"><div style="font-size:.6rem;color:var(--td)">${new Date(v.visit_date||Date.now()).toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase()}</div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--terra)">${new Date(v.visit_date||Date.now()).getDate()}</div></div><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${v.listing_title||'Property'}</div><div style="font-size:.75rem;color:var(--tm)">${v.visit_time||'TBD'} · ${v.tenant_name||'Tenant'}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`).join('');
 }
 
 function renderAllVisits(){
   const w=document.getElementById('all-visits-list');
   if(!visits.length){w.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet</p></div>';return;}
-  w.innerHTML=visits.map(v=>`<div class="vcard"><div class="vtime"><div class="vt-h">${v.time.split(':')[0]}</div><div class="vt-m">${v.time.split(':')[1]}</div></div><div class="vinfo"><div class="vtitle">${v.listing}</div><div class="vsub">${new Date(v.date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="vtenant"><div class="vav">${v.tenant[0]}</div>${v.tenant} · ${v.tenant_email}</div></div><div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end"><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span><button class="btn bg bsm" onclick="toast('✅ Confirmed!')">Confirm</button></div></div>`).join('');
+  w.innerHTML=visits.map(v=>`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${new Date(v.visit_date||Date.now()).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'} · ${v.tenant_email||''}</div></div><div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end"><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span><button class="btn bg bsm" onclick="toast('✅ Confirmed!')">Confirm</button></div></div>`).join('');
   const pending=visits.filter(v=>v.status==='pending');
   document.getElementById('req-count').textContent=`${pending.length} pending`;
   const rw=document.getElementById('visit-requests');
   if(!pending.length){rw.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests</p></div>';return;}
-  rw.innerHTML=pending.map(v=>`<div style="padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${v.listing}</div><div style="font-size:.72rem;color:var(--td);margin-bottom:.5rem">${v.tenant} · ${v.time}</div><div style="display:flex;gap:.5rem"><button class="btn bp bsm" style="flex:1;justify-content:center" onclick="toast('✅ Confirmed!')">Accept</button><button class="btn bg bsm" style="flex:1;justify-content:center" onclick="toast('❌ Declined')">Decline</button></div></div>`).join('');
+  rw.innerHTML=pending.map(v=>`<div style="padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${v.listing_title||'Property'}</div><div style="font-size:.72rem;color:var(--td);margin-bottom:.5rem">${v.tenant} · ${v.time}</div><div style="display:flex;gap:.5rem"><button class="btn bp bsm" style="flex:1;justify-content:center" onclick="toast('✅ Confirmed!')">Accept</button><button class="btn bg bsm" style="flex:1;justify-content:center" onclick="toast('❌ Declined')">Decline</button></div></div>`).join('');
 }
 
 async function loadListings(){
@@ -596,14 +656,68 @@ async function loadListings(){
   zw.innerHTML=listings.slice(0,6).map(l=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="font-size:1.1rem">🏠</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.7rem;color:var(--td)">€${l.price}/mo</div></div></div>`).join('');
 }
 
-function renderRevChart(){
-  document.getElementById('k-rev').textContent='€480';
-  document.getElementById('k-conv').textContent='67%';
-  const months=['Nov','Dec','Jan','Feb','Mar','Apr'];
-  const vals=[120,0,360,240,480,480];
+async function renderRevChart(){
+  // Load real commission data
+  const{data:comms}=await sb.from('commissions').select('*').eq('agent_id',U.id).catch(()=>({data:[]}));
+  const totalEarned=(comms||[]).reduce((s,c)=>s+(c.agent_amount||0),0);
+  const now=new Date();
+  const thisMonth=(comms||[]).filter(c=>new Date(c.created_at).getMonth()===now.getMonth()).reduce((s,c)=>s+(c.agent_amount||0),0);
+  const pending=(comms||[]).filter(c=>c.status==='pending').reduce((s,c)=>s+(c.agent_amount||0),0);
+  
+  if(document.getElementById('rev-total'))document.getElementById('rev-total').textContent=totalEarned>0?'€'+totalEarned.toLocaleString():'€0';
+  if(document.getElementById('rev-month'))document.getElementById('rev-month').textContent=thisMonth>0?'€'+thisMonth.toLocaleString():'€0';
+  if(document.getElementById('rev-pending'))document.getElementById('rev-pending').textContent=pending>0?'€'+pending.toLocaleString():'€0';
+  document.getElementById('k-rev').textContent=thisMonth>0?'€'+thisMonth.toLocaleString():'€0';
+  document.getElementById('k-conv').textContent='—';
+  
+  // Build 6-month chart from real data
+  const months=[];const vals=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push(d.toLocaleDateString('en-GB',{month:'short'}));
+    const monthTotal=(comms||[]).filter(c=>{const cd=new Date(c.created_at);return cd.getMonth()===d.getMonth()&&cd.getFullYear()===d.getFullYear();}).reduce((s,c)=>s+(c.agent_amount||0),0);
+    vals.push(monthTotal);
+  }
   const max=Math.max(...vals)||1;
-  document.getElementById('rev-chart').innerHTML=months.map((m,i)=>`<div class="rev-bar ${i===5?'active':''}" style="height:${Math.max(4,(vals[i]/max)*100)}%;flex:1" title="€${vals[i]}"></div>`).join('');
+  document.getElementById('rev-chart').innerHTML=vals.map((v,i)=>`<div class="rev-bar ${i===5?'active':''}" style="height:${Math.max(4,(v/max)*100)}%;flex:1" title="€${v}"></div>`).join('');
   document.getElementById('rev-labels').innerHTML=months.map(m=>`<div style="text-align:center;font-size:.65rem;color:var(--td);margin-top:.3rem">${m}</div>`).join('');
+  
+  // Load commission table
+  const tb=document.getElementById('comm-table');
+  if(tb){
+    if(!(comms||[]).length){
+      tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--td);font-size:.82rem;padding:.75rem">No earnings yet — complete visits to earn commissions</td></tr>';
+    } else {
+      tb.innerHTML=(comms||[]).map(c=>`<tr><td>${c.property_address||'—'}</td><td>${c.tenant_name||'—'}</td><td>${c.lease_type||'—'}</td><td style="color:var(--green)">€${c.agent_amount||0}</td><td><span class="badge ${c.status==='paid'?'b-green':'b-gold'}">${c.status==='paid'?'Paid':'Pending'}</span></td><td style="color:var(--td)">${new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td></tr>`).join('');
+    }
+  }
+  
+  // Load score from reviews
+  const{data:reviews}=await sb.from('reviews').select('*').eq('agent_id',U.id).catch(()=>({data:[]}));
+  if(reviews&&reviews.length){
+    const avg=(reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length);
+    const score=(avg*2).toFixed(1); // convert 5-star to /10
+    const pct=parseFloat(score)/10;
+    if(document.getElementById('score-val'))document.getElementById('score-val').textContent=score;
+    if(document.getElementById('score-arc'))document.getElementById('score-arc').setAttribute('stroke-dashoffset',Math.max(0,213.6-(213.6*pct)));
+    if(document.getElementById('score-badge'))document.getElementById('score-badge').textContent=parseFloat(score)>=8?'🏆 Top Agent':parseFloat(score)>=6?'⭐ Good Agent':'📈 Building reputation';
+    if(document.getElementById('score-reviews'))document.getElementById('score-reviews').textContent=`Based on ${reviews.length} review${reviews.length>1?'s':''}`;
+    if(document.getElementById('reviews-list')){
+      document.getElementById('reviews-list').innerHTML=reviews.slice(0,5).map(r=>`<div style="padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem"><span>${'⭐'.repeat(r.rating||0)}</span><span style="font-size:.7rem;color:var(--td)">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span></div><div style="font-size:.82rem;color:var(--tm)">${r.comment||'No comment'}</div></div>`).join('');
+    }
+  }
+  
+  // Load zone
+  if(P?.agent_zone){
+    if(document.getElementById('zone-name'))document.getElementById('zone-name').textContent=P.agent_zone;
+    if(document.getElementById('zone-name-2'))document.getElementById('zone-name-2').textContent=P.agent_zone;
+  }
+  
+  // Profile completeness for score bar
+  const fields=[P?.full_name,P?.phone,P?.passport_number];
+  const pct2=Math.round(fields.filter(Boolean).length/fields.length*100);
+  if(document.getElementById('sbar-profile'))document.getElementById('sbar-profile').style.width=pct2+'%';
+  if(document.getElementById('sval-profile'))document.getElementById('sval-profile').textContent=Math.round(pct2/10*10)/10;
 }
 
 function renderCalendar(){
@@ -612,7 +726,7 @@ function renderCalendar(){
   const firstDay=(new Date(currentYear,currentMonth,1).getDay()+6)%7;
   const days=new Date(currentYear,currentMonth+1,0).getDate();
   const today=new Date();
-  const visitDays=new Set(visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===currentMonth&&d.getFullYear()===currentYear;}).map(v=>new Date(v.date).getDate()));
+  const visitDays=new Set(visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===currentMonth&&d.getFullYear()===currentYear;}).map(v=>new Date(v.visit_date||Date.now()).getDate()));
   let html='';
   for(let i=0;i<firstDay;i++)html+=`<div class="cal-day empty"></div>`;
   for(let d=1;d<=days;d++){
