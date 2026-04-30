@@ -199,7 +199,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('tenantmatch',this)"><span class="nico">🎯</span>Tenant matching</button>
     <button class="ni" onclick="sp('leases',this)"><span class="nico">📄</span>Leases & docs<span class="nbadge" id="nb-leases" style="display:none">0</span></button>
     <button class="ni" onclick="sp('inventory',this)"><span class="nico">📋</span>Inventory</button>
-    <button class="ni" onclick="sp('sublet',this)"><span class="nico">🔑</span>Sous-location<span class="nbadge gold" id="nb-sublet" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('sublet',this)"><span class="nico">🔑</span>Subletting<span class="nbadge gold" id="nb-sublet" style="display:none">0</span></button>
     <div class="nl">Finance</div>
     <button class="ni" onclick="sp('payments',this)"><span class="nico">💶</span>Payments<span class="nbadge" id="nb-pay" style="display:none">0</span></button>
     <div class="nl">Communication</div>
@@ -361,7 +361,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
       <!-- Lease generator -->
       <div class="card" style="margin-bottom:1.5rem">
-        <div class="ch"><div class="ct">⚡ Auto Lease Generator</div><span style="font-size:.75rem;color:var(--td)">PRL Act compliant · Maltese law · E-sign via DocuSeal</span></div>
+        <div class="ch"><div class="ct">⚡ Auto Lease Generator</div><span style="font-size:.75rem;color:var(--td)">PRL Act compliant · Maltase law · E-sign via DocuSeal</span></div>
         <div class="cb">
           <div style="background:var(--grdim);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.2rem;font-size:.8rem;color:var(--green);line-height:1.6">
             ✅ Select your property and the tenant — everything fills in automatically from their profiles. No retyping needed.
@@ -581,7 +581,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         </div>
       </div>
       <div style="background:var(--sdim);border:1px solid rgba(58,143,181,.15);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.2rem;font-size:.82rem;color:var(--tm);line-height:1.6">
-        📋 Documentez l'état de chaque pièce et meuble à l'entrée et à la sortie. Le locataire signe digitalement — ce document you protège en cas de litige sur le dépôt.
+        📋 Documentez l'état de chaque pièce et meuble à l'at entry and exit. The tenant signs digitally — this document protects you in case of dispute.r le dépôt.
       </div>
 
       <!-- Entry / Exit toggle -->
@@ -599,14 +599,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem">📸 Photos par pièce</div>
         <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Ajoutez des photos for chaque pièce — elles seront annexées à l'état des lieux signé.</div>
         <div id="inv-photos" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem"></div>
-        <button class="btn bg bsm" onclick="document.getElementById('inv-photo-input').click()">📷 Ajouter photos</button>
+        <button class="btn bg bsm" onclick="document.getElementById('inv-photo-input').click()">📷 Add photos</button>
         <input type="file" id="inv-photo-input" accept="image/*" multiple style="display:none" onchange="addInvPhotos(this)">
       </div>
 
       <!-- Signature section -->
       <div style="margin-top:1rem;background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:1rem">
         <div style="font-size:.82rem;font-weight:700;color:var(--green);margin-bottom:.5rem">✍️ Signature digitale</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Une fois l'état des lieux complété, envoyez-le au locataire for signature électronique via DocuSeal.</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Une fois l'inventory completed, send it to the tenant for electronic signature via DocuSeal.</div>
         <div style="display:flex;gap:.75rem">
           <button class="btn bg" onclick="saveInventory()">💾 Save</button>
           <button class="btn bp" onclick="sendInventoryForSignature()">📤 Send for signature →</button>
@@ -624,7 +624,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- SOUS-LOCATION -->
     <div class="page" id="page-sublet">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">Sous-location</div>
+        <div style="font-size:1rem;font-weight:700">Subletting</div>
         <button class="btn bp bsm" onclick="openNewSublet()">+ Post sublet vacancy</button>
       </div>
 
@@ -632,7 +632,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div style="background:var(--sdim);border:1px solid rgba(58,143,181,.2);border-radius:14px;padding:1.5rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:1rem">
         <div style="font-size:2rem;flex-shrink:0">⚖️</div>
         <div>
-          <div style="font-size:.95rem;font-weight:700;margin-bottom:.3rem;color:var(--sea)">Maltese Law — Subletting rules</div>
+          <div style="font-size:.95rem;font-weight:700;margin-bottom:.3rem;color:var(--sea)">Maltase Law — Subletting rules</div>
           <div style="font-size:.82rem;color:var(--tm);line-height:1.6">Subletting is only permitted with the landlord's <strong style="color:var(--txt)">written consent</strong>. RestMalta generates the sub-lease agreement and the landlord consent document automatically.</div>
         </div>
       </div>
@@ -842,7 +842,7 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',tenantmatch:'Tenant Matching',leases:'Leases & Documents',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',inventory:'Inventory',sublet:'Sous-location',reviews:'Reviews',profile:'Profilee & Settings'};
+  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',tenantmatch:'Tenant Matching',leases:'Leases & Documents',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',inventory:'Inventory',sublet:'Subletting',reviews:'Reviews',profile:'Profilee & Settings'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
@@ -1097,9 +1097,9 @@ async function joinVisit(groupId){
     sender_id:U.id,
     sender_name:P?.full_name||'Landlord',
     sender_role:'landlord',
-    content:'👋 Le propriétaire a rejoint la conversation et sera présent lors de la visite.'
+    content:'👋 The landlord has joined the conversation and will be present during the visit.'
   });
-  toast('✅ You joined la visite !');
+  toast('✅ You joined the visit!');
   loadVisitGroups();
 }
 
@@ -1536,7 +1536,7 @@ Landlord signature: ${P?.full_name||''}`;
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download=`Quittance_loyer_${month.replace(' ','_')}.txt`;
+  a.download=`Quittance_rent_${month.replace(' ','_')}.txt`;
   a.click();
   URL.revokeObjectURL(url);
   setTimeout(()=>toast('🧾 Receipt downloaded automatically!'),1500);
@@ -1806,7 +1806,7 @@ async function loadMaintenance(){
       </div>
       ${t.status==='open'?`
       <div style="background:var(--tdim);border-radius:8px;padding:.75rem;font-size:.8rem">
-        <div style="font-weight:700;margin-bottom:.5rem;color:var(--txt)">Comment souhaitez-you gérer ce problème ?</div>
+        <div style="font-weight:700;margin-bottom:.5rem;color:var(--txt)">How would you like to handle this issue?</div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <button class="btn bg bsm" onclick="handleTicket('${t.id}','self')">🔧 Je répare moi-même</button>
           <button class="btn bg bsm" onclick="handleTicket('${t.id}','mandate_self')">📋 Mandater un prestataire (moi)</button>
@@ -1827,10 +1827,10 @@ async function handleTicket(id, action){
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
-        content:`🔧 Your ticket "${ticket.title}" a été pris en charge. Le propriétaire va s'occuper de la réparation. You serez contacté for convenir d'un rendez-you si nécessaire.`
+        content:`🔧 Your ticket "${ticket.title}" has been taken care of. The landlord will'occuper de la réparation. You serez contacté for convenir d'un appointment si nécessaire.`
       });
     }
-    toast('🔧 Ticket pris en charge — locataire notifié.');
+    toast('🔧 Ticket handled — tenant notified.');
   } else if(action==='mandate_self'){
     await sb.from('tickets').update({status:'in_progress',resolution:'mandate_self'}).eq('id',id);
     const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).single().catch(()=>({data:null}));
@@ -1842,7 +1842,7 @@ async function handleTicket(id, action){
         content:`📋 Your ticket "${ticket.title}" est en cours de traitement. Un prestataire externe va intervenir. You serez contacté for la date d'intervention.`
       });
     }
-    toast('📋 Prestataire mandaté — locataire notifié.');
+    toast('📋 Contractor assigned — tenant notified.');
   } else if(action==='mandate_app'){
     await sb.from('tickets').update({status:'in_progress',resolution:'mandate_app'}).eq('id',id);
     // Create devis request in Supabase
@@ -1930,12 +1930,12 @@ function addInvPhotos(input){
     div.innerHTML=`<img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--b)"><button onclick="this.parentElement.remove()" style="position:absolute;top:-5px;right:-5px;background:var(--terra);color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:.65rem;cursor:pointer">✕</button>`;
     wrap.appendChild(div);
   });
-  toast(`✅ ${input.files.length} photo(s) ajoutée(s)`);
+  toast(`✅ ${input.files.length} photo(s) added`);
 }
 
 async function sendInventoryForSignature(){
   toast('📤 Envoi de l\'état des lieux for signature...');
-  setTimeout(()=>toast('✅ Email envoyé au locataire for signature via DocuSeal !'),1500);
+  setTimeout(()=>toast('✅ Email sent to tenant for signature via DocuSeal!'),1500);
 }
 
 function showExitCheck(){setInvType('exit',document.getElementById('inv-exit-btn'));}
@@ -2078,7 +2078,7 @@ async function loadTenantMatch(){
   const tenants=(msgs||[]).filter(m=>{if(seen.has(m.sender_id))return false;seen.add(m.sender_id);return true;}).map(m=>m.profiles).filter(Boolean);
   if(!tenants.length){wrap.innerHTML='<div class="empty"><div class="em">🎯</div><p>No tenant matches yet.<br>When tenants contact you, their compatibility score will appear here.</p></div>';return;}
   wrap.innerHTML=tenants.map(t=>{
-    const fields=[t.full_name,t.phone,t.nationality,t.passport_number,t.date_of_birth,t.home_address,t.employer];
+    const fields=[t.full_name,t.phone,t.nationality,t.passport_number,t.date_of_birth,t.home_address,t.emprent];
     const score=Math.round(fields.filter(Boolean).length/fields.length*90+10);
     const color=score>75?'var(--green)':score>50?'var(--gold)':'var(--red)';
     return`<div class="card" style="margin-bottom:.75rem">
@@ -2086,7 +2086,7 @@ async function loadTenantMatch(){
         <div style="width:44px;height:44px;border-radius:50%;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--terra);font-size:1rem;flex-shrink:0">${(t.full_name||'T')[0].toUpperCase()}</div>
         <div style="flex:1">
           <div style="font-size:.9rem;font-weight:600">${t.full_name||'Unknown tenant'}</div>
-          <div style="font-size:.75rem;color:var(--tm);margin-top:.15rem">${t.nationality||''} ${t.employer?'· '+t.employer:''}</div>
+          <div style="font-size:.75rem;color:var(--tm);margin-top:.15rem">${t.nationality||''} ${t.emprent?'· '+t.emprent:''}</div>
         </div>
         <div style="text-align:center;min-width:60px">
           <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:${color}">${score}%</div>
