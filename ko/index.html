@@ -1339,7 +1339,7 @@ async function inviteCoTenants(listingId, coTenantEmails){
   const invited=[];
   for(const email of coTenantEmails){
     // Check if user exists in profiles
-    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').eq('email',email).single().catch(()=>({data:null}));
+    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').eq('email',email).single().then(r=>r).catch(()=>({data:null}));
     if(profile){
       // Add to visit group
       await sb.from('co_tenants').insert({
@@ -1465,20 +1465,24 @@ async function requestVisit(){
   toast('📅 Sending visit request to available agents...');
 
   try{
-    // 1 — Save visit request
-    const{data:visit}=await sb.from('visits').insert({
-      listing_id:AL.id,
-      tenant_id:U.id,
-      landlord_id:AL.landlord_id,
-      tenant_name:P.full_name||'',
-      tenant_email:P.email||U.email||'',
-      visit_date:visitDate,
-      visit_time:visitTime,
-      zone:AL.zone||'',
-      wants_agent:AL.wants_agent&&AL.agent_service==='full',
-      status:'pending'
-    }).select().single().catch(()=>({data:null}));
-
+    let visit=null;
+    try{
+      const{data:visitData}=await sb.from('visits').insert({
+        listing_id:AL.id,
+        tenant_id:U.id,
+        landlord_id:AL.landlord_id,
+        tenant_name:P.full_name||'',
+        tenant_email:P.email||U.email||'',
+        visit_date:visitDate,
+        visit_time:visitTime,
+        zone:AL.zone||'',
+        wants_agent:AL.wants_agent&&AL.agent_service==='full',
+        status:'pending'
+      }).select().single();
+      visit=visitData;
+    }catch(e){
+      console.warn('Visit insert warning:',e.message);
+    }
     const visitId=visit?.id||null;
     const listingAddress=AL.full_address||AL.zone||'Malta';
     const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
@@ -1775,8 +1779,8 @@ async function doPost(){
     // New fields
     min_stay:document.getElementById('p-min-stay')?.value||null,
     max_stay:document.getElementById('p-max-stay')?.value||null,
-    lease_duration:type==='short'?null:document.getElementById('p-lease-duration')?.value||null,
-    di_fermo:type==='short'?null:document.getElementById('p-di-fermo')?.value||null,
+    lease_duration:document.getElementById('pt')?.value==='short'?null:document.getElementById('p-lease-duration')?.value||null,
+    di_fermo:document.getElementById('pt')?.value==='short'?null:document.getElementById('p-di-fermo')?.value||null,
     available_indefinitely:document.getElementById('p-indefinite')?.checked||false,
     accepts_attestation:document.getElementById('att-yes')?.checked===true,
     landlord_present:document.getElementById('p-present')?.value||'yes',
