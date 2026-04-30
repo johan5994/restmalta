@@ -969,9 +969,16 @@ async function loadVisitGroups(){
   const cnt=document.getElementById('visit-groups-count');
   if(!wrap)return;
 
-  // Load new visit requests
-  const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).neq('status','done').order('visit_date',{ascending:true}).catch(()=>({data:[]}));
-  const groups=visits||[];
+  // Load visit requests
+  const{data:visitData}=await sb.from('visits')
+    .select('*,listings(title,zone,full_address)')
+    .eq('landlord_id',U.id)
+    .neq('status','done')
+    .neq('status','declined')
+    .order('visit_date',{ascending:true})
+    .catch(()=>({data:[]}));
+
+  const groups=visitData||[];
   if(cnt)cnt.textContent=groups.length;
 
   if(!groups.length){
@@ -980,28 +987,26 @@ async function loadVisitGroups(){
   }
 
   wrap.innerHTML=groups.map(g=>{
-    const statusColor={pending:'var(--gold)',agent_assigned:'var(--sea)',confirmed:'var(--green)'}[g.status]||'var(--td)';
-    const statusLabel={pending:'⏳ Awaiting confirmation',agent_assigned:'🏆 Agent assigned',confirmed:'✅ Confirmed'}[g.status]||g.status;
+    const statusColor={pending:'var(--gold)',agent_applied:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)'}[g.status]||'var(--td)';
+    const statusLabel={pending:'⏳ Waiting for agents',agent_applied:'🏆 Agent assigned automatically',agent_assigned:'🏆 Agent assigned',confirmed:'✅ Confirmed'}[g.status]||g.status;
     const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+(g.visit_time||'TBD'):'TBD';
+    const listingTitle=g.listings?.title||g.listing_id||'Listing';
+
     return`<div style="padding:.85rem 0;border-bottom:1px solid var(--b)">
       <div style="display:flex;align-items:flex-start;gap:.75rem">
         <div style="width:40px;height:40px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🏠</div>
         <div style="flex:1">
-          <div style="font-size:.85rem;font-weight:600">${g.listing_id||'Listing'}</div>
+          <div style="font-size:.85rem;font-weight:600">${listingTitle}</div>
           <div style="font-size:.75rem;color:var(--tm);margin:.1rem 0">👤 ${g.tenant_name||'Tenant'} · 📅 ${visitDateStr}</div>
           <div style="font-size:.72rem;color:${statusColor};font-weight:600">${statusLabel}</div>
-          ${g.wants_agent?'<div style="font-size:.68rem;color:#8B5CF6;margin-top:.1rem">🏆 Agent requested — agents have been notified</div>':''}
+          ${g.agent_name?`<div style="font-size:.72rem;color:var(--green);margin-top:.2rem">🏆 Agent: <strong>${g.agent_name}</strong> (best rated — auto-assigned)</div>`:''}
+          ${!g.agent_name&&g.wants_agent?'<div style="font-size:.68rem;color:var(--td);margin-top:.2rem">⏳ Waiting for agents to apply — best rated will be auto-assigned</div>':''}
         </div>
       </div>
       <div style="display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap">
-        ${g.status==='pending'?`
-          <button class="btn bp bsm" onclick="confirmVisit('${g.id}')">✅ Confirm visit</button>
-          <button class="btn bg bsm" onclick="declineVisit('${g.id}')">❌ Decline</button>
-        `:''}
-        ${g.status==='confirmed'||g.status==='agent_assigned'?`
-          <button class="btn bg bsm" onclick="markVisitDone('${g.id}')">✅ Visit done</button>
-        `:''}
-        <button class="btn bg bsm" style="font-size:.68rem" onclick="openMsgChatById('${g.tenant_id}','${g.listing_id}')">💬 Message tenant</button>
+        ${g.status==='confirmed'||g.status==='agent_assigned'||g.status==='agent_applied'?`<button class="btn bg bsm" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>`:''}
+        <button class="btn bg bsm" style="font-size:.68rem" onclick="declineVisit('${g.id}')">❌ Cancel</button>
+        <button class="btn bg bsm" style="font-size:.68rem" onclick="openMsgChatById('${g.tenant_id}','${g.listing_id}')">💬 Tenant</button>
       </div>
     </div>`;
   }).join('');
@@ -1009,11 +1014,12 @@ async function loadVisitGroups(){
 
 async function confirmVisit(visitId){
   await sb.from('visits').update({status:'confirmed'}).eq('id',visitId).catch(()=>{});
-  toast('✅ Visit confirmed! Tenant has been notified.');
+  toast('✅ Visit confirmed!');
   loadVisitGroups();
 }
 
 async function declineVisit(visitId){
+  if(!confirm('Decline this visit request?'))return;
   await sb.from('visits').update({status:'declined'}).eq('id',visitId).catch(()=>{});
   toast('Visit declined.');
   loadVisitGroups();
@@ -1024,6 +1030,7 @@ function openMsgChatById(tenantId, listingId){
   setTimeout(()=>{
     const match=allMsgs.find(m=>m.listing_id===listingId&&(m.sender_id===tenantId||m.receiver_id===tenantId));
     if(match)openMsgChat(match.id,match.listings?.title||'Visit',listingId,tenantId);
+    else toast('Send a message to this tenant first to start the conversation.');
   },500);
 }
 
@@ -1107,7 +1114,7 @@ async function loadCommissionStatus(leases){
   for(const l of (leases||[])){
     const cell=document.getElementById(`comm-${l.id}`);
     if(!cell)continue;
-    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).single().catch(()=>({data:null}));
+    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).maybeSingle();
     if(!comm){
       cell.innerHTML=l.status==='signed'?'<span style="font-size:.7rem;color:var(--gold)">⏳ Pending</span>':'<span style="font-size:.7rem;color:var(--td)">—</span>';
     } else if(comm.landlord_paid){
@@ -1214,7 +1221,7 @@ async function markHARegistered(leaseId){
   await sb.from('leases').update({ha_registered:true,ha_registered_at:new Date().toISOString()}).eq('id',leaseId);
   toast('✅ Lease marked as registered with the Housing Authority!');
   // Update listing badge
-  const{data:lease}=await sb.from('leases').select('listing_id').eq('id',leaseId).single().catch(()=>({data:null}));
+  const{data:lease}=await sb.from('leases').select('listing_id').eq('id',leaseId).maybeSingle();
   if(lease?.listing_id){
     await sb.from('listings').update({ha_registered:true}).eq('id',lease.listing_id);
   }
@@ -1821,7 +1828,7 @@ async function handleTicket(id, action){
   if(action==='self'){
     await sb.from('tickets').update({status:'in_progress',resolution:'self'}).eq('id',id);
     // Notify tenant
-    const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).single().catch(()=>({data:null}));
+    const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).maybeSingle();
     if(ticket?.tenant_id){
       await sb.from('messages').insert({
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
@@ -1833,7 +1840,7 @@ async function handleTicket(id, action){
     toast('🔧 Ticket handled — tenant notified.');
   } else if(action==='mandate_self'){
     await sb.from('tickets').update({status:'in_progress',resolution:'mandate_self'}).eq('id',id);
-    const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).single().catch(()=>({data:null}));
+    const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).maybeSingle();
     if(ticket?.tenant_id){
       await sb.from('messages').insert({
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
@@ -1852,7 +1859,7 @@ async function handleTicket(id, action){
       status:'pending',
       created_at:new Date().toISOString()
     });
-    const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).single().catch(()=>({data:null}));
+    const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).maybeSingle();
     if(ticket?.tenant_id){
       await sb.from('messages').insert({
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
