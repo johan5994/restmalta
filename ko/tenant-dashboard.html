@@ -185,7 +185,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- DOCUMENTS -->
     <div class="page" id="page-documents">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My leases & documents</div>
-      <div class="ai">📄 Your signed lease agreements appear here. Generated automatically, compliant with Maltese law (PRL Act), and e-signed by both parties via DocuSeal.</div>
+      <div class="ai">📄 Your signed lease agreements appear here. Generated automatically, compliant with Maltase law (PRL Act), and e-signed by both parties via DocuSeal.</div>
       <div class="card"><div class="cb" id="docs-list"><div class="ld"><div class="sp"></div></div></div></div>
     </div>
 
@@ -268,7 +268,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><div class="ct">✅ Confirm mon entrée dans le logement</div></div>
         <div class="cb">
           <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-            ⏰ <strong>You avez 24h après your arrivée</strong> for confirmer que le logement correspond à l'annonce. Passé ce délai, le dépôt est automatiquement libéré au propriétaire.
+            ⏰ <strong>You avez 24h après your arrivée</strong> for confirmer que le logement correspond à l'listing. After this period, the deposit is automatically released to the landlord.
           </div>
           <div class="fg"><label class="fl">Tout est conforme ? Des remarques ?</label><textarea class="fta" id="entry-notes" rows="2" placeholder="Everything is fine — no issues (or describe any problems found)"></textarea></div>
           <div style="display:flex;gap:.75rem">
@@ -276,7 +276,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <button class="btn bg" onclick="sp('maintenance',document.querySelectorAll('.ni')[3]);openTicketModal()">⚠️ Signaler un problème</button>
           </div>
           <div style="margin-top:.75rem;font-size:.72rem;color:var(--td);line-height:1.5">
-            En cas de problème grave (logement inexistant, état très différent de l'annonce), your dépôt sera remboursé intégralement après examen de your signalement par RestMalta.
+            En cas de problème grave (logement inexistant, état très différent de l'listing), your deposit will be fully refunded after RestMalta reviews your report.
           </div>
         </div>
       </div>
@@ -342,7 +342,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <!-- Stay in Malta -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">🇲🇹 Stay in Malta</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">Employer / University</label><input class="fi" id="p-employer" placeholder="Company or university name"></div>
+            <div class="fg"><label class="fl">Emprent / University</label><input class="fi" id="p-emprent" placeholder="Company or university name"></div>
             <div class="fg"><label class="fl">Reason for stay *</label>
               <select class="fsel" id="p-reason">
                 <option value="">Select...</option>
@@ -490,9 +490,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div style="font-size:.85rem;font-weight:600">Employment letter / school enrollment <span style="background:var(--sea);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Highly recommended</span></div>
               <div style="font-size:.72rem;color:var(--tm)">Work contract, offer letter or admission letter</div>
             </div>
-            <div id="doc-employer-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
-            <button class="btn bg bsm" onclick="document.getElementById('doc-employer-input').click()">Upload</button>
-            <input type="file" id="doc-employer-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'employer_letter','doc-employer-status')">
+            <div id="doc-emprent-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-emprent-input').click()">Upload</button>
+            <input type="file" id="doc-emprent-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'emprent_letter','doc-emprent-status')">
           </div>
 
           <!-- Reference letter — Optional -->
@@ -598,7 +598,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Nationality</div><div style="font-size:.85rem" id="dos-nat">—</div></div>
               <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Email</div><div style="font-size:.85rem" id="dos-email">—</div></div>
               <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Phone</div><div style="font-size:.85rem" id="dos-phone">—</div></div>
-              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Employer</div><div style="font-size:.85rem" id="dos-employer">—</div></div>
+              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Emprent</div><div style="font-size:.85rem" id="dos-emprent">—</div></div>
               <div><div style="font-size:.68nm;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Reason for stay</div><div style="font-size:.85rem" id="dos-reason">—</div></div>
               <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Tenant score</div><div style="font-size:.85rem;color:var(--terra);font-weight:700" id="dos-score">—</div></div>
             </div>
@@ -631,7 +631,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="modal" style="max-height:90vh;overflow-y:auto">
     <button class="mclose" onclick="document.getElementById('tick-modal').classList.remove('open')">✕</button>
     <div class="mt">🔧 Signaler un problème</div>
-    <div class="ms">Décrivez le problème — your propriétaire sera notifié immédiatement</div>
+    <div class="ms">Describe the issue — your landlord will be notified immediately</div>
 
     <div class="fg"><label class="fl">Type de problème *</label>
       <select class="fsel" id="tick-type">
@@ -650,7 +650,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- Diagnostic questions -->
     <div id="tick-questions" style="background:var(--tdim);border-radius:10px;padding:.85rem;margin:.5rem 0;font-size:.82rem">
-      <div style="font-weight:700;margin-bottom:.5rem">❓ Quelques questions for aider your propriétaire :</div>
+      <div style="font-weight:700;margin-bottom:.5rem">❓ A few questions to help your landlord:</div>
       <div id="tick-q-list" style="display:flex;flex-direction:column;gap:.4rem">
         <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-sudden"> Problème apparu soudainement</label>
         <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-recurring"> Problème récurrent</label>
@@ -683,7 +683,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div id="tick-photos-preview" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
     </div>
 
-    <button class="btn bp" style="width:100%;justify-content:center" onclick="submitTicket()">📤 Send au propriétaire →</button>
+    <button class="btn bp" style="width:100%;justify-content:center" onclick="submitTicket()">📤 Send to landlord →</button>
   </div>
 </div>
 
@@ -694,7 +694,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="mt">🔐 Sécuriser mon dépôt</div>
     <div class="ms" id="stripe-modal-sub">Paiement sécurisé via Stripe</div>
     <div style="background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-      ✅ Your argent est <strong>bloqué</strong> — RestMalta ne le libère au propriétaire qu'après your confirmation d'entrée dans les 24h.<br>
+      ✅ Your argent est <strong>bloqué</strong> — RestMalta only releases it to the landlord after'après your confirmation d'entrée dans les 24h.<br>
       ⚠️ Si problème grave → remboursement intégral.
     </div>
     <div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:1rem">
@@ -839,7 +839,7 @@ async function confirmEntryStripe(escrowId, paymentIntentId) {
       status: 'confirmed',
       confirmed_at: new Date().toISOString()
     }).eq('id', escrowId);
-    toast('✅ Dépôt libéré au propriétaire !');
+    toast('✅ Deposit released to landlord!');
     loadDeposit();
   } catch (e) {
     toast('❌ Error: ' + e.message);
@@ -927,7 +927,7 @@ async function loadOverview(){
   document.getElementById('k-contacts').textContent=ul.length;
   const wrap=document.getElementById('my-contacts');
   if(!ul.length){wrap.innerHTML='<div class="empty"><div class="em">🔍</div><p>No listings contacted yet.<br>Browse flats and send a message!</p></div>';return;}
-  const tl={short:'Short-let',sublet:'Sous-location',long:'Long-let'};
+  const tl={short:'Short-let',sublet:'Subletting',long:'Long-let'};
   wrap.innerHTML=ul.map(l=>'<div class="lrow"><div class="limg">'+(l.photos&&l.photos[0]?'<img src="'+l.photos[0]+'">':"🏠")+'</div><div style="flex:1;min-width:0"><div class="ltit">'+l.title+'</div><div class="lsub">📍 '+l.zone+' · €'+l.price+'/mo · '+(tl[l.type]||l.type)+'</div></div><button class="btn bg bsm" onclick="window.location.href=\'/\'">View</button></div>').join('');
 }
 
@@ -1077,7 +1077,7 @@ async function submitTicket(){
   document.getElementById('tick-desc').value='';
   document.getElementById('tick-photos-preview').innerHTML='';
   ticketPhotos=[];
-  toast('✅ Ticket envoyé ! Your propriétaire a été notifié.');
+  toast('✅ Ticket sent! Your landlord has been notified.');
   loadTickets();
 }
 
@@ -1169,13 +1169,13 @@ async function loadPaymentsData(){
     ?'<div style="padding:0 1.2rem">'+payments.map(p=>`
       <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
         <div style="flex:1">
-          <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='rent'?'(loyer)':''}</div>
+          <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='rent'?'(rent)':''}</div>
           <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">Échéance : ${p.due_date?new Date(p.due_date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—'}</div>
           ${p.paid_at?`<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Confirmed le ${new Date(p.paid_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
         </div>
         <span class="badge ${sc[p.status]||'b-dim'}">${sl[p.status]||p.status}</span>
         ${p.status==='pending'||p.status==='late'?`<button class="btn bp bsm" onclick="declarePaid('${p.id}')">I paid →</button>`:''}
-        ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Quittance</button>`:''}
+        ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Receipt</button>`:''}
       </div>`).join('')+'</div>'
     :'<div class="empty"><div class="em">💶</div><p>None paiement enregistré</p></div>';
 }
@@ -1261,16 +1261,16 @@ function downloadNotice(leaveDate,noticePeriod){
 Date : ${today.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
 
 Tenant : ${P?.full_name||'Tenant'}
-Adresse à Malte : ${P?.malta_address||'[Adresse Malte]'}
+Adresse à Malta : ${P?.malta_address||'[Adresse Malta]'}
 Passeport / ID : ${P?.passport_number||'[ID]'}
 
-Landlord / Adresse du bien : [Adresse du bien]
+Landlord / Adresse du property: [Adresse du bien]
 
 Madame, Monsieur,
 
 Je you informe par la présente de mon intention de quitter le logement que j'occupe actuellement.
 
-Conformément aux dispositions du bail et à la loi maltaise sur les baux résidentiels (Private Residential Leases Act), je you donne un préavis de ${noticePeriod} mois.
+Conformément aux dispositions du bail et à la loi maltaise sur les baux résidentiels (Private Residential Leases Act), je you donne un préavis de ${noticePeriod} months.
 
 Date de remise des clés : ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
 
@@ -1302,7 +1302,7 @@ Généré par RestMalta — restmalta.com`;
             listing_id,
             sender_id:U.id,
             receiver_id:landlord_id,
-            content:`📤 Notice period officiel envoyé : ${P?.full_name||'Your locataire'} quittera le logement le ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}. You pouvez dès maintenant republier your bien sur RestMalta.`
+            content:`📤 Notice period officiel envoyé : ${P?.full_name||'Your tenant'} quittera le logement le ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}. You pouvez dès maintenant republier your bien sur RestMalta.`
           }).then(()=>{});
           // Update payment status to signal departure
           sb.from('visits').insert({
@@ -1316,7 +1316,7 @@ Généré par RestMalta — restmalta.com`;
         }
       });
   }
-  toast('✅ Notice period téléchargé et propriétaire notifié !');
+  toast('✅ Notice to vacate downloaded and landlord notified!');
 }
 
 function downloadTenantReceipt(id, amount, paidAt){
@@ -1328,27 +1328,34 @@ RestMalta Platform
 Date : ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
 
 Tenant : ${P?.full_name||'Tenant'}
-Adresse à Malte : ${P?.malta_address||'[Adresse Malte]'}
+Adresse à Malta : ${P?.malta_address||'[Adresse Malta]'}
 
 Je soussigné(e) reconnais avoir reçu la somme de €${parseFloat(amount).toLocaleString()}
-au titre du loyer of the month de ${month}.
+au titre du rent of the month de ${month}.
 
-Quittance générée automatiquement par RestMalta — restmalta.com
-Cette quittance atteste du bon paiement du loyer for la période mentionnée.`;
+Receipt générée automatiquement par RestMalta — restmalta.com
+Cette quittance atteste du bon paiement du rent for la période mentionnée.`;
   const blob=new Blob([text],{type:'text/plain'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download=`Quittance_${month.replace(' ','_')}.txt`;a.click();
+  a.href=url;a.download=`Receipt_${month.replace(' ','_')}.txt`;a.click();
   URL.revokeObjectURL(url);
-  toast('🧾 Quittance téléchargée !');
+  toast('🧾 Receipt téléchargée !');
 }
 
-async function declarePaid(paymentId){  const{error}=await sb.from('payments').update({
+async function declarePaid(paymentId){
+  const btn=event?.target;
+  if(btn){btn.disabled=true;btn.textContent='⏳ Sending...';}
+  const{error}=await sb.from('payments').update({
     status:'declared',
     declared_at:new Date().toISOString(),
     tenant_id:U.id
   }).eq('id',paymentId);
-  if(error){toast('❌ '+error.message);return;}
+  if(error){
+    toast('❌ '+error.message);
+    if(btn){btn.disabled=false;btn.textContent='✅ I paid →';}
+    return;
+  }
   toast('✅ Payment declared! Your landlord will confirm receipt.');
   loadPaymentsData();
 }
@@ -1361,7 +1368,7 @@ async function loadDeposit(){
 
   if(escrows&&escrows.length){
     const e=escrows[0];
-    const statusLabels={pending:'⏳ Pending de paiement',paid:'🔒 Sécurisé par RestMalta',confirmed:'✅ Libéré au propriétaire',disputed:'⚠️ Litige en cours',refunded:'↩ Remboursé'};
+    const statusLabels={pending:'⏳ Awaiting payment',paid:'🔒 Sécurisé par RestMalta',confirmed:'✅ Released to landlord',disputed:'⚠️ Dispute in progress',refunded:'↩ Refunded'};
     const statusColors={pending:'var(--gold)',paid:'var(--sea)',confirmed:'var(--green)',disputed:'var(--terra)',refunded:'var(--stone)'};
     if(statusCard){
       statusCard.innerHTML=`
@@ -1389,7 +1396,7 @@ async function loadDeposit(){
               <button class="btn bp bsm" onclick="confirmEntryStripe('${e.id}','${e.stripe_payment_intent_id||''}')">✅ Tout est OK</button>
               <button class="btn bg bsm" onclick="refundDeposit('${e.id}','${e.stripe_payment_intent_id||''}')">⚠️ Problème — rembourser</button>
             </div>`:''}
-            ${e.status==='confirmed'?`<div style="font-size:.78rem;color:var(--green)">✅ Dépôt libéré au propriétaire le ${new Date(e.confirmed_at||e.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
+            ${e.status==='confirmed'?`<div style="font-size:.78rem;color:var(--green)">✅ Deposit released to landlord on ${new Date(e.confirmed_at||e.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
             ${e.status==='refunded'?`<div style="font-size:.78rem;color:var(--sea)">↩ Refund in progress — 5-10 jours ouvrés</div>`:''}
           </div>
         </div>`;
@@ -1423,10 +1430,10 @@ async function confirmEntry(){
       listing_id:escrows[0].listing_id,
       sender_id:U.id,
       receiver_id:escrows[0].landlord_id,
-      content:`✅ ${P?.full_name||'Le locataire'} a confirmé son entrée dans le logement. Le dépôt de €${(escrows[0].amount||0).toLocaleString()} sera libéré dans les 24h.${notes?'\n\nNote : '+notes:''}`
+      content:`✅ ${P?.full_name||'The tenant'} a confirmé son entrée dans le logement. Le dépôt de €${(escrows[0].amount||0).toLocaleString()} sera libéré dans les 24h.${notes?'\n\nNote : '+notes:''}`
     });
   }
-  toast('✅ Entrée confirmée ! Le dépôt sera libéré au propriétaire dans les 24h.');
+  toast('✅ Entry confirmed! The deposit will be released to the landlord within 24h.');
   loadDeposit();
 }
 
@@ -1464,7 +1471,7 @@ async function loadProfilee(){
   document.getElementById('p-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('p-address').value=P.home_address||'';
   document.getElementById('p-malta-address').value=P.malta_address||'';
-  document.getElementById('p-employer').value=P.employer||'';
+  document.getElementById('p-emprent').value=P.emprent||'';
   if(P.reason_for_stay)document.getElementById('p-reason').value=P.reason_for_stay;
   if(P.stay_duration)document.getElementById('p-stay-duration').value=P.stay_duration;
   if(P.needs_attestation)document.getElementById('p-attestation').value='yes';
@@ -1516,7 +1523,7 @@ async function saveProfilee(){
     mother_maiden:document.getElementById('p-mother-maiden').value.trim(),
     home_address:document.getElementById('p-address').value.trim(),
     malta_address:document.getElementById('p-malta-address').value.trim(),
-    employer:document.getElementById('p-employer').value.trim(),
+    emprent:document.getElementById('p-emprent').value.trim(),
     reason_for_stay:document.getElementById('p-reason').value,
     stay_duration:document.getElementById('p-stay-duration').value,
     needs_attestation:document.getElementById('p-attestation').value==='yes'
@@ -1602,7 +1609,7 @@ function loadDossier(){
   document.getElementById('dos-nat').textContent=P.nationality||'—';
   document.getElementById('dos-email').textContent=P.email||U.email||'—';
   document.getElementById('dos-phone').textContent=P.phone||'—';
-  document.getElementById('dos-employer').textContent=P.employer||'—';
+  document.getElementById('dos-emprent').textContent=P.emprent||'—';
   document.getElementById('dos-reason').textContent=P.reason_for_stay||'—';
   const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address];
   const score=((fields.filter(Boolean).length/fields.length)*5+2.5).toFixed(1);
@@ -1647,7 +1654,7 @@ async function loadReferences(){
 }
 
 // ── Dossier complet — uploads & vérification ─────────────────
-const DOCS_REQUIRED=['id','employer_letter'];
+const DOCS_REQUIRED=['id','emprent_letter'];
 const DOCS_OPTIONAL=['bank_statement','reference_letter'];
 let uploadedDocs={};
 
@@ -1707,13 +1714,13 @@ function checkDossierComplete(){
   if(!res)return;
   const missing=DOCS_REQUIRED.filter(d=>!uploadedDocs[d]);
   if(!missing.length){
-    res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)">✅ Dossier complet — you pouvez demander des visites !</div>`;
+    res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)">✅ Profile complete — you can now request visits!</div>`;
   } else {
     res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--gold)">⚠️ Documents manquants : ${missing.map(d=>d==='id'?'Passeport/ID':'Lettre employeur').join(', ')}</div>`;
   }
 }
 
-// ── Vérification dossier avant demande de visite ──────────────
+// ── Vérification dossier avant demande de visit ──────────────
 async function checkDossierBeforeVisit(){
   // Check profile completeness
   const profileFields=[P?.full_name,P?.passport_number,P?.date_of_birth,P?.nationality,P?.home_address];
@@ -1725,7 +1732,7 @@ async function checkDossierBeforeVisit(){
   const issues=[];
   if(!profileComplete)issues.push('Incomplete profile (nom, passeport, date de naissance, nationalité, adresse)');
   if(!uploadedDocs['id'])issues.push('Passeport / ID non uploadé');
-  if(!uploadedDocs['employer_letter'])issues.push('Lettre d\'employeur ou d\'admission non uploadée');
+  if(!uploadedDocs['emprent_letter'])issues.push('Lettre d\'employeur ou d\'admission non uploadée');
   if(!idVerified)issues.push('Identité non vérifiée (selfie + ID requis)');
   return{ok:issues.length===0,issues};
 }
