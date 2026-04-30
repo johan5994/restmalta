@@ -1093,7 +1093,7 @@ async function loadDocuments(){
   // Load commission status for each lease
   const commissions={};
   for(const l of data){
-    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).single().catch(()=>({data:null}));
+    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).maybeSingle();
     if(comm)commissions[l.id]=comm;
   }
 
