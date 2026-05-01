@@ -440,7 +440,7 @@ async function loadAll(){await Promise.all([loadVisits(),loadListings()]);await 
 async function loadNotifications(){
   const wrap=document.getElementById('notifications-list');
   if(!wrap)return;
-  const{data:msgs}=await sb.from('messages').select('*').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false}).limit(5).catch(()=>({data:[]}));
+  let msgs=[];try{const{data:_msgs}=await sb.from('messages').select('*').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false}).limit(5);msgs=_msgs||[];}catch(e){}
   if(!msgs||!msgs.length){
     wrap.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">🔔</div><p style="font-size:.78rem">No notifications yet</p></div>';
     return;
@@ -454,22 +454,27 @@ async function loadNotifications(){
 
 async function loadVisits(){
   // Load visit requests sent to this agent
-  const{data:visitMsgs}=await sb.from('messages')
-    .select('*,listings(title,zone,id,full_address)')
-    .eq('receiver_id',U.id)
-    .eq('type','visit_request')
-    .order('created_at',{ascending:false})
-    .catch(()=>({data:[]}));
+  let visitMsgs=[];
+  let confirmedVisits=[];
+  try{
+    const{data:vm}=await sb.from('messages')
+      .select('*,listings(title,zone,id,full_address)')
+      .eq('receiver_id',U.id)
+      .eq('type','visit_request')
+      .order('created_at',{ascending:false});
+    visitMsgs=vm||[];
+  }catch(e){console.warn('loadVisitMsgs:',e.message);}
 
-  // Load confirmed visits (agent assigned)
-  const{data:confirmedVisits}=await sb.from('visits')
-    .select('*')
-    .eq('agent_id',U.id)
-    .order('visit_date',{ascending:true})
-    .catch(()=>({data:[]}));
+  try{
+    const{data:cv}=await sb.from('visits')
+      .select('*')
+      .eq('agent_id',U.id)
+      .order('visit_date',{ascending:true});
+    confirmedVisits=cv||[];
+  }catch(e){console.warn('loadConfirmedVisits:',e.message);}
 
-  visits=confirmedVisits||[];
-  const pendingRequests=visitMsgs||[];
+  visits=confirmedVisits;
+  const pendingRequests=visitMsgs;
 
   const today=new Date().toISOString().split('T')[0];
   const todayV=visits.filter(v=>v.visit_date===today);
@@ -513,13 +518,13 @@ async function loadVisits(){
 }
 
 async function applyForVisit(msgId, listingId, visitId){
-  await sb.from('messages').update({read:true}).eq('id',msgId).catch(()=>{});
+  await sb.from('messages').update({read:true}).eq('id',msgId);
 
   const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
   const landlordId=visit?.landlord_id;
 
   // Get my score
-  const{data:myReviews}=await sb.from('reviews').select('rating').eq('agent_id',U.id).catch(()=>({data:[]}));
+  let myReviews=[];try{const{data:_mr}=await sb.from('reviews').select('rating').eq('agent_id',U.id);myReviews=_mr||[];}catch(e){}
   const myScore=myReviews&&myReviews.length?(myReviews.reduce((s,r)=>s+(r.rating||0),0)/myReviews.length):0;
 
   // Check if another agent already applied with better score
@@ -528,7 +533,7 @@ async function applyForVisit(msgId, listingId, visitId){
     .eq('type','agent_application')
     .eq('visit_id',visitId)
     .neq('sender_id',U.id)
-    .catch(()=>({data:[]})):{data:[]};
+    :{data:[]};
 
   let bestAgentId=U.id;
   let bestAgentName=P?.full_name||'Agent';
@@ -536,7 +541,7 @@ async function applyForVisit(msgId, listingId, visitId){
   let iAmBest=true;
 
   for(const app of (existingApps||[])){
-    const{data:theirReviews}=await sb.from('reviews').select('rating').eq('agent_id',app.sender_id).catch(()=>({data:[]}));
+    const{data:theirReviews}=await sb.from('reviews').select('rating').eq('agent_id',app.sender_id);
     const theirScore=theirReviews&&theirReviews.length?(theirReviews.reduce((s,r)=>s+(r.rating||0),0)/theirReviews.length):0;
     if(theirScore>bestScore){
       bestScore=theirScore;
@@ -555,7 +560,7 @@ async function applyForVisit(msgId, listingId, visitId){
     content:`🏆 Agent available: ${P?.full_name||'Agent'} (score: ${myScore>0?myScore.toFixed(1):'New'})`,
     type:'agent_application',
     visit_id:visitId
-  }).catch(()=>{});
+  });
 
   // Auto-assign best agent to visit
   if(visitId){
@@ -563,7 +568,7 @@ async function applyForVisit(msgId, listingId, visitId){
       agent_id:bestAgentId,
       agent_name:bestAgentName,
       status:'agent_assigned'
-    }).eq('id',visitId).catch(()=>{});
+    }).eq('id',visitId);
 
     if(visit){
       const dateStr=`${visit.visit_date||'TBD'} at ${visit.visit_time||'TBD'}`;
@@ -575,7 +580,7 @@ async function applyForVisit(msgId, listingId, visitId){
         receiver_id:bestAgentId,
         content:`🎉 You are assigned to this visit!\n\nDate: ${dateStr}\nTenant: ${visit.tenant_name||'—'}\nAddress: ${listingId}\n\nContact the tenant through RestMalta platform.`,
         type:'agent_selected'
-      }).catch(()=>{});
+      });
 
       // Notify tenant
       await sb.from('messages').insert({
@@ -584,7 +589,7 @@ async function applyForVisit(msgId, listingId, visitId){
         receiver_id:visit.tenant_id,
         content:`✅ Your visit is confirmed!\n\nDate: ${dateStr}\nAgent: ${bestAgentName}\n\nThe agent will contact you through RestMalta to confirm details.`,
         type:'visit_confirmed'
-      }).catch(()=>{});
+      });
 
       // Info to landlord
       if(landlordId){
@@ -594,7 +599,7 @@ async function applyForVisit(msgId, listingId, visitId){
           receiver_id:landlordId,
           content:`✅ Visit assigned automatically!\n\nAgent: ${bestAgentName} (score: ${bestScore>0?bestScore.toFixed(1):'New'})\nDate: ${dateStr}\nTenant: ${visit.tenant_name||'—'}\n\nNo action needed.`,
           type:'visit_info'
-        }).catch(()=>{});
+        });
       }
     }
   }
@@ -608,7 +613,7 @@ async function applyForVisit(msgId, listingId, visitId){
 }
 
 async function declineVisitRequest(msgId){
-  await sb.from('messages').update({read:true}).eq('id',msgId).catch(()=>{});
+  await sb.from('messages').update({read:true}).eq('id',msgId);
   toast('Visit request declined.');
   loadVisits();
 }
@@ -658,7 +663,7 @@ async function loadListings(){
 
 async function renderRevChart(){
   // Load real commission data
-  const{data:comms}=await sb.from('commissions').select('*').eq('agent_id',U.id).catch(()=>({data:[]}));
+  let comms=[];try{const{data:_c}=await sb.from('commissions').select('*').eq('agent_id',U.id);comms=_c||[];}catch(e){}
   const totalEarned=(comms||[]).reduce((s,c)=>s+(c.agent_amount||0),0);
   const now=new Date();
   const thisMonth=(comms||[]).filter(c=>new Date(c.created_at).getMonth()===now.getMonth()).reduce((s,c)=>s+(c.agent_amount||0),0);
@@ -693,7 +698,7 @@ async function renderRevChart(){
   }
   
   // Load score from reviews
-  const{data:reviews}=await sb.from('reviews').select('*').eq('agent_id',U.id).catch(()=>({data:[]}));
+  let reviews=[];try{const{data:_r}=await sb.from('reviews').select('*').eq('agent_id',U.id);reviews=_r||[];}catch(e){}
   if(reviews&&reviews.length){
     const avg=(reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length);
     const score=(avg*2).toFixed(1); // convert 5-star to /10
@@ -790,7 +795,7 @@ async function openAgentGroupChat(groupId, listingTitle, tenantName){
   document.body.appendChild(modal);
   // Load history
   const body=document.getElementById('agent-group-body');
-  const{data}=await sb.from('group_messages').select('*').eq('group_id',groupId).order('created_at',{ascending:true}).catch(()=>({data:[]}));
+  let data=[];try{const{data:_gm}=await sb.from('group_messages').select('*').eq('group_id',groupId).order('created_at',{ascending:true});data=_gm||[];}catch(e){}
   (data||[]).forEach(m=>appendAgentGroupMsg(m,body));
   body.scrollTop=body.scrollHeight;
   // Subscribe realtime
@@ -828,7 +833,7 @@ async function sendAgentGroupMessage(groupId){
     sender_name:P?.full_name||'Agent',
     sender_role:'agent',
     content
-  }).catch(e=>toast('❌ '+e.message));
+  });
 }
 
 function sp(id,btn){
