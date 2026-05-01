@@ -1348,7 +1348,7 @@ async function inviteCoTenants(listingId, coTenantEmails){
         tenant_id:profile.clerk_id,
         tenant_email:email,
         status:'pending'
-      }).catch(()=>{});
+      });
       invited.push({email,name:profile.full_name,found:true});
     } else {
       // User doesn't have RestMalta account yet
@@ -1357,7 +1357,7 @@ async function inviteCoTenants(listingId, coTenantEmails){
         invited_by:U.id,
         tenant_email:email,
         status:'invited' // waiting for them to create account
-      }).catch(()=>{});
+      });
       invited.push({email,found:false});
     }
   }
@@ -1467,20 +1467,17 @@ async function requestVisit(){
   try{
     let visit=null;
     try{
-      const insertData={
+      // Only insert columns that exist in DB
+      const{data:visitData,error:visitErr}=await sb.from('visits').insert({
         listing_id:AL.id,
         tenant_id:U.id,
         landlord_id:AL.landlord_id,
         tenant_name:P.full_name||'',
-        tenant_email:P.email||U.email||'',
         visit_date:visitDate,
         visit_time:visitTime,
         zone:AL.zone||'',
         status:'pending'
-      };
-      // Only add wants_agent if column exists
-      try{insertData.wants_agent=!!(AL.wants_agent&&AL.agent_service==='full');}catch(e){}
-      const{data:visitData,error:visitErr}=await sb.from('visits').insert(insertData).select().maybeSingle();
+      }).select().maybeSingle();
       if(visitErr)console.warn('Visit insert:',visitErr.message);
       visit=visitData;
     }catch(e){
@@ -1501,15 +1498,17 @@ async function requestVisit(){
     let agentsNotified=0;
     for(const agent of (agents||[])){
       if(!agent.clerk_id)continue;
-      await sb.from('messages').insert({
-        listing_id:AL.id,
-        sender_id:'system',
-        receiver_id:agent.clerk_id,
-        content:`🏠 NEW VISIT REQUEST — Action required!\n\nProperty: ${AL.title||'Listing'}\nAddress: ${listingAddress}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'}\n\nAre you available for this visit?\nReply "✅ Available" to apply.\nThe landlord will select which agent conducts the visit.`,
-        visit_id:visitId,
-        type:'visit_request'
-      }).catch(e=>console.error('Agent notify error:',e));
-      agentsNotified++;
+      try{
+        await sb.from('messages').insert({
+          listing_id:AL.id,
+          sender_id:'system',
+          receiver_id:agent.clerk_id,
+          content:`🏠 NEW VISIT REQUEST\n\nProperty: ${AL.title||'Listing'}\nAddress: ${listingAddress}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'}\n\nAre you available?\nClick "I'm available" in your dashboard → Visits`,
+          visit_id:visitId,
+          type:'visit_request'
+        });
+        agentsNotified++;
+      }catch(e){console.warn('Agent notify:',e.message);}
     }
 
 
@@ -1521,7 +1520,7 @@ async function requestVisit(){
       receiver_id:AL.landlord_id,
       content:`📅 New visit request!\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\n${agentsNotified>0?`${agentsNotified} agent(s) have been notified and will apply. Go to your dashboard → Visits to choose an agent and confirm.`:'No agents available yet. You will need to handle this visit yourself.'}`,
       type:'visit_info'
-    }).catch(()=>{});
+    });
 
     if(document.getElementById('visit-date'))document.getElementById('visit-date').value='';
 
