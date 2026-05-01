@@ -1467,7 +1467,7 @@ async function requestVisit(){
   try{
     let visit=null;
     try{
-      const{data:visitData}=await sb.from('visits').insert({
+      const insertData={
         listing_id:AL.id,
         tenant_id:U.id,
         landlord_id:AL.landlord_id,
@@ -1476,9 +1476,12 @@ async function requestVisit(){
         visit_date:visitDate,
         visit_time:visitTime,
         zone:AL.zone||'',
-        wants_agent:AL.wants_agent&&AL.agent_service==='full',
         status:'pending'
-      }).select().single();
+      };
+      // Only add wants_agent if column exists
+      try{insertData.wants_agent=!!(AL.wants_agent&&AL.agent_service==='full');}catch(e){}
+      const{data:visitData,error:visitErr}=await sb.from('visits').insert(insertData).select().maybeSingle();
+      if(visitErr)console.warn('Visit insert:',visitErr.message);
       visit=visitData;
     }catch(e){
       console.warn('Visit insert warning:',e.message);
@@ -1488,13 +1491,12 @@ async function requestVisit(){
     const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
     // 2 — Notify ALL registered agents
-    // Query by role='agent' OR role='Agent'
-    const{data:agents}=await sb.from('profiles')
-      .select('clerk_id,full_name,email,role')
-      .or('role.eq.agent,role.eq.Agent')
-      .catch(()=>({data:[]}));
-
-
+    let agents=[];
+    try{
+      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','agent');
+      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','Agent');
+      agents=[...(a1||[]),...(a2||[])];
+    }catch(e){agents=[];}
 
     let agentsNotified=0;
     for(const agent of (agents||[])){
