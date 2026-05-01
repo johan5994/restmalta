@@ -685,30 +685,47 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- PROFILE -->
     <div class="page" id="page-profile">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My Profilee & Settings</div>
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My Profile & Settings</div>
+
+      <!-- Profile completeness banner -->
+      <div id="profile-incomplete-banner" style="display:none;background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1rem">
+        <div style="font-weight:700;font-size:.88rem;color:var(--gold);margin-bottom:.4rem">⚠️ Complete your profile to unlock all features</div>
+        <div style="font-size:.78rem;color:var(--tm);margin-bottom:.75rem">You need a complete profile to publish listings, generate leases and use RestMalta.</div>
+        <div style="background:rgba(255,255,255,.07);border-radius:100px;height:10px;margin-bottom:.4rem">
+          <div id="ll-completeness-bar" style="background:var(--terra);height:10px;border-radius:100px;width:0%;transition:width .4s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--td)">
+          <span id="ll-completeness-text">0% complete</span>
+          <span id="ll-missing-count"></span>
+        </div>
+      </div>
+
       <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">Personal information</div><span style="font-size:.75rem;color:var(--td)">Used to auto-generate leases</span></div>
+        <div class="ch">
+          <div class="ct">Personal information</div>
+          <span id="ll-profile-pct" style="font-size:.75rem;color:var(--td)">Used to auto-generate leases</span>
+        </div>
         <div class="cb">
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">🪪 Identity</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">Full legal name * <span style="font-size:.68rem;color:var(--td)">(as on passport)</span></label><input class="fi" id="prof-name" placeholder="Jean Dupont"></div>
+            <div class="fg"><label class="fl">Full legal name * <span style="font-size:.68rem;color:var(--td)">(as on passport)</span></label><input class="fi" id="prof-name" placeholder="Jean Dupont" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Email</label><input class="fi" id="prof-email" readonly style="opacity:.6"></div>
-            <div class="fg"><label class="fl">Phone *</label><input class="fi" id="prof-phone" placeholder="+356 9999 1234"></div>
-            <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="prof-nat" placeholder="French"></div>
-            <div class="fg"><label class="fl">ID / Passport number *</label><input class="fi" id="prof-id" placeholder="e.g. 12345678A"></div>
-            <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="prof-dob"></div>
-            <div class="fg"><label class="fl">Place of birth *</label><input class="fi" id="prof-pob" placeholder="Paris, France"></div>
-            <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="prof-father" placeholder="Pierre"></div>
-            <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="prof-mother" placeholder="Marie"></div>
-            <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="prof-mother-maiden" placeholder="Martin"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address * <span style="font-size:.68rem;color:var(--td)">(full address)</span></label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta"></div>
+            <div class="fg"><label class="fl">Phone *</label><input class="fi" id="prof-phone" placeholder="+356 9999 1234" oninput="updateLLCompleteness()"></div>
+            <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="prof-nat" placeholder="French" oninput="updateLLCompleteness()"></div>
+            <div class="fg"><label class="fl">ID / Passport number *</label><input class="fi" id="prof-id" placeholder="e.g. 12345678A" oninput="updateLLCompleteness()"></div>
+            <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="prof-dob" oninput="updateLLCompleteness()"></div>
+            <div class="fg"><label class="fl">Place of birth *</label><input class="fi" id="prof-pob" placeholder="Paris, France" oninput="updateLLCompleteness()"></div>
+            <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="prof-father" placeholder="Pierre" oninput="updateLLCompleteness()"></div>
+            <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="prof-mother" placeholder="Marie" oninput="updateLLCompleteness()"></div>
+            <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="prof-mother-maiden" placeholder="Martin" oninput="updateLLCompleteness()"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address * <span style="font-size:.68rem;color:var(--td)">(full address)</span></label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta" oninput="updateLLCompleteness()"></div>
           </div>
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">💶 Financial</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">IBAN (for receiving rent) *</label><input class="fi" id="prof-iban" placeholder="MT84 MALT 0110 0001 2345 MTLC AST0 01"></div>
+            <div class="fg"><label class="fl">IBAN (for receiving rent) *</label><input class="fi" id="prof-iban" placeholder="MT84 MALT 0110 0001 2345 MTLC AST0 01" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Revolut / bank name</label><input class="fi" id="prof-bank" placeholder="Revolut @handle or Bank of Valletta"></div>
           </div>
-          <button class="btn bp" onclick="saveProfilee()" style="margin-top:.75rem">Save changes →</button>
+          <button class="btn bp" onclick="saveProfilee()" style="margin-top:.75rem;width:100%;justify-content:center">Save profile →</button>
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem">
@@ -890,12 +907,14 @@ async function loadDash(){
   // Alerts
   const alerts=document.getElementById('alerts-list');
   const alertItems=[];
+  // Profile completeness check first
+  if(!checkLLProfileComplete())alertItems.push({dot:'var(--terra)',text:'<strong>Complete your profile</strong> — required to publish listings and generate leases',time:'Go to Profile tab →',action:"sp('profile',document.querySelector('.ni[onclick*=profile]'))"});
   if(pending>0)alertItems.push({dot:'var(--red)',text:`<strong>${pending} payment(s)</strong> overdue or due soon`,time:'Check payments tab'});
   if(unread>0)alertItems.push({dot:'var(--sea)',text:`<strong>${unread} unread message(s)</strong> from tenants`,time:'Check messages tab'});
   if((tickets||[]).length>0)alertItems.push({dot:'var(--gold)',text:`<strong>${(tickets||[]).length} maintenance ticket(s)</strong> open`,time:'Check maintenance tab'});
   const expiring=(listings||[]).filter(l=>l.available_until&&new Date(l.available_until)-new Date()<30*24*3600*1000&&new Date(l.available_until)>new Date());
   if(expiring.length>0)alertItems.push({dot:'var(--terra)',text:`<strong>${expiring.length} listing(s)</strong> expiring within 30 days`,time:'Consider renewing'});
-  alerts.innerHTML=alertItems.length?alertItems.map(a=>`<div class="alert"><div class="adot" style="background:${a.dot}"></div><div><div class="atxt">${a.text}</div><div class="atime">${a.time}</div></div></div>`).join(''):'<div class="atxt" style="color:var(--td);font-size:.82rem;padding:.5rem 0">✅ Everything looks good!</div>';
+  alerts.innerHTML=alertItems.length?alertItems.map(a=>`<div class="alert" ${a.action?`onclick="${a.action}" style="cursor:pointer"`:''}><div class="adot" style="background:${a.dot}"></div><div><div class="atxt">${a.text}</div><div class="atime">${a.time}</div></div></div>`).join(''):'<div class="atxt" style="color:var(--td);font-size:.82rem;padding:.5rem 0">✅ Everything looks good!</div>';
 
   // Props
   const dp=document.getElementById('dash-props');
@@ -976,7 +995,7 @@ async function loadVisitGroups(){
     .neq('status','done')
     .neq('status','declined')
     .order('visit_date',{ascending:true})
-    .catch(()=>({data:[]}));
+    ;
 
   const groups=visitData||[];
   if(cnt)cnt.textContent=groups.length;
@@ -1046,7 +1065,7 @@ async function openGroupChatModal(groupId, listingTitle, tenantName){
   // Load group messages
   const body=document.getElementById('msg-chat-body');
   body.innerHTML='';
-  const{data}=await sb.from('group_messages').select('*').eq('group_id',groupId).order('created_at',{ascending:true}).catch(()=>({data:[]}));
+  const{data}=await sb.from('group_messages').select('*').eq('group_id',groupId).order('created_at',{ascending:true});
   (data||[]).forEach(m=>{
     const isMe=m.sender_id===U.id;
     const div=document.createElement('div');
@@ -1345,6 +1364,7 @@ function checkLeaseReady(){
 }
 
 async function generateAndSendLease(){
+  if(!requireCompleteProfile('generate a lease'))return;
   if(!selectedListing||!selectedTenant){toast('Please select a property and a tenant');return;}
   const start=document.getElementById('lease-start').value;
   const end=document.getElementById('lease-end').value;
@@ -1992,6 +2012,54 @@ async function submitReview(){
 }
 
 /* PROFILE */
+function updateLLCompleteness(){
+  const required=[
+    {id:'prof-name',label:'Full legal name'},
+    {id:'prof-phone',label:'Phone'},
+    {id:'prof-nat',label:'Nationality'},
+    {id:'prof-id',label:'ID/Passport'},
+    {id:'prof-dob',label:'Date of birth'},
+    {id:'prof-pob',label:'Place of birth'},
+    {id:'prof-father',label:"Father's first name"},
+    {id:'prof-mother',label:"Mother's first name"},
+    {id:'prof-mother-maiden',label:"Mother's maiden name"},
+    {id:'prof-malta-address',label:'Malta address'},
+    {id:'prof-iban',label:'IBAN'},
+  ];
+  const missing=required.filter(f=>!document.getElementById(f.id)?.value?.trim());
+  const filled=required.length-missing.length;
+  const pct=Math.round(filled/required.length*100);
+  const bar=document.getElementById('ll-completeness-bar');
+  const text=document.getElementById('ll-completeness-text');
+  const pctEl=document.getElementById('ll-profile-pct');
+  const banner=document.getElementById('profile-incomplete-banner');
+  const missingEl=document.getElementById('ll-missing-count');
+  if(bar){bar.style.width=pct+'%';bar.style.background=pct===100?'var(--green)':pct>60?'var(--sea)':'var(--terra)';}
+  if(text)text.textContent=pct+'% complete';
+  if(pctEl)pctEl.textContent=pct+'% complete';
+  if(banner)banner.style.display=pct<100?'block':'none';
+  if(missingEl&&missing.length)missingEl.textContent=`${missing.length} field${missing.length>1?'s':''} missing`;
+  return pct===100;
+}
+
+function checkLLProfileComplete(){
+  const req=[P?.full_name,P?.phone,P?.nationality,P?.passport_number,P?.date_of_birth,P?.place_of_birth,P?.father_name,P?.mother_name,P?.mother_maiden,P?.malta_address,P?.iban];
+  return req.every(Boolean);
+}
+
+function requireCompleteProfile(action){
+  if(!checkLLProfileComplete()){
+    toast('⚠️ Complete your profile first to '+action);
+    sp('profile',document.querySelector('.ni[onclick*="profile"]'));
+    setTimeout(()=>{
+      const banner=document.getElementById('profile-incomplete-banner');
+      if(banner){banner.style.display='block';banner.scrollIntoView({behavior:'smooth',block:'center'});}
+    },300);
+    return false;
+  }
+  return true;
+}
+
 async function loadProfilee(){
   if(!P)return;
   document.getElementById('prof-name').value=P.full_name||'';
@@ -2008,6 +2076,7 @@ async function loadProfilee(){
   document.getElementById('prof-iban').value=P.iban||'';
   document.getElementById('prof-bank').value=P.bank_details||'';
   if(P.verified){document.getElementById('verify-badge-ll').textContent='✅ Verified';document.getElementById('verify-badge-ll').className='badge b-green';}
+  updateLLCompleteness();
 }
 
 async function saveProfilee(){
@@ -2028,7 +2097,13 @@ async function saveProfilee(){
   const{error}=await sb.from('profiles').update(updates).eq('clerk_id',U.id);
   if(error){toast('Error: '+error.message);return;}
   Object.assign(P,updates);
-  toast('✅ Profilee saved!');
+  updateLLCompleteness();
+  const complete=checkLLProfileComplete();
+  if(complete){
+    toast('✅ Profile saved and complete! You can now publish listings.');
+  } else {
+    toast('✅ Profile saved — fill in remaining fields to unlock all features.');
+  }
 }
 
 async function uploadDoc(input,type){
