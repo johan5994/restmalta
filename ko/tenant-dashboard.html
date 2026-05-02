@@ -730,7 +730,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 <script>
 // ── Supabase (DB only) ────────────────────────────────────────
 // ── Stripe ────────────────────────────────────────────────────
-const STRIPE_PK = 'pk_live_51PCmBIRohPPRcIAMcaYRnrJVJb4GFZK8mvgHMXFIJUdCCj1GWZTAXaJCJrAfNHFaRtIV6HqS0kDQnqfCZO4H4U500yUqPHIPf';
+const STRIPE_PK = 'pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ';
 let stripeInstance = null;
 let stripeCardElement = null;
 let stripeClientSecret = null;
@@ -1182,7 +1182,7 @@ let cardElement=null;
 async function initStripeCard(){
   if(!window.Stripe)return;
   try{
-    if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMcaYRnrJVJb4GFZK8mvgHMXFIJUdCCj1GWZTAXaJCJrAfNHFaRtIV6HqS0kDQnqfCZO4H4U500yUqPHIPf');
+    if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
     const elements=stripeInstance.elements();
     cardElement=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'#E05A5A'}}});
     cardElement.mount('#card-element');
