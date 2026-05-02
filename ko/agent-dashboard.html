@@ -515,10 +515,11 @@ async function loadVisits(){
         </div>
         <div style="font-size:.73rem;color:var(--td);margin-bottom:.6rem">📞 Call the landlord to confirm availability before validating</div>
         <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-          <button class="btn bp bsm" style="flex:1;justify-content:center;min-width:120px" onclick="validateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ Visit confirmed</button>
+          <button class="btn bp bsm" style="flex:1;justify-content:center;min-width:120px" onclick="validateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I'm available</button>
           <button class="btn bg bsm" style="flex:1;justify-content:center;min-width:120px" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
           <button class="btn bsm" style="flex:1;justify-content:center;min-width:120px;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Property unavailable</button>
         </div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem;text-align:center">⏱ Agents have 1 hour to apply — best rated is auto-selected</div>
       </div>`;
     }).join('');
   }
@@ -530,140 +531,44 @@ async function loadVisits(){
 }
 
 async function applyForVisit(msgId, listingId, visitId){
-  await sb.from('messages').update({read:true}).eq('id',msgId);
-
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
-  const landlordId=visit?.landlord_id;
-
-  // Get my score
-  let myReviews=[];try{const{data:_mr}=await sb.from('reviews').select('rating').eq('agent_id',U.id);myReviews=_mr||[];}catch(e){}
-  const myScore=myReviews&&myReviews.length?(myReviews.reduce((s,r)=>s+(r.rating||0),0)/myReviews.length):0;
-
-  // Check if another agent already applied with better score
-  const{data:existingApps}=visitId?await sb.from('messages')
-    .select('sender_id')
-    .eq('type','agent_application')
-    .eq('visit_id',visitId)
-    .neq('sender_id',U.id)
-    :{data:[]};
-
-  let bestAgentId=U.id;
-  let bestAgentName=P?.full_name||'Agent';
-  let bestScore=myScore;
-  let iAmBest=true;
-
-  for(const app of (existingApps||[])){
-    const{data:theirReviews}=await sb.from('reviews').select('rating').eq('agent_id',app.sender_id);
-    const theirScore=theirReviews&&theirReviews.length?(theirReviews.reduce((s,r)=>s+(r.rating||0),0)/theirReviews.length):0;
-    if(theirScore>bestScore){
-      bestScore=theirScore;
-      bestAgentId=app.sender_id;
-      iAmBest=false;
-      const{data:ap}=await sb.from('profiles').select('full_name').eq('clerk_id',app.sender_id).maybeSingle();
-      bestAgentName=ap?.full_name||'Agent';
-    }
-  }
+  // Just register availability — selection happens after 1 hour
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
   // Save application
-  await sb.from('messages').insert({
-    listing_id:listingId,
-    sender_id:U.id,
-    receiver_id:landlordId||'system',
-    content:`🏆 Agent available: ${P?.full_name||'Agent'} (score: ${myScore>0?myScore.toFixed(1):'New'})`,
-    type:'agent_application',
-    visit_id:visitId
-  });
+  try{
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:U.id,
+      receiver_id:'system',
+      content:`🏆 Agent available: ${P?.full_name||'Agent'}`,
+      type:'agent_application',
+      visit_id:visitId
+    });
+  }catch(e){}
 
-  // Auto-assign best agent to visit
-  if(visitId){
-    await sb.from('visits').update({
-      agent_id:bestAgentId,
-      agent_name:bestAgentName,
-      status:'agent_assigned'
-    }).eq('id',visitId);
+  // Mark visit as collecting applications
+  try{
+    await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId).eq('status','pending');
+  }catch(e){}
 
-    if(visit){
-      const dateStr=`${visit.visit_date||'TBD'} at ${visit.visit_time||'TBD'}`;
-
-      // Get listing details
-      let ld=null;
-      try{const{data:_ld}=await sb.from('listings').select('title,full_address,zone,key_type,key_location,landlord_present').eq('id',listingId).maybeSingle();ld=_ld;}catch(e){}
-      const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 You (agent) have the keys',landlord:'📞 Contact landlord for keys'};
-      const presenceLabels={not_needed:'🚶 Owner not present',if_possible:'👋 Owner may join if available',mandatory:'✅ OWNER MUST BE PRESENT'};
-      const keyInfo=keyLabels[ld?.key_type]||'Contact landlord for key access';
-      const keyDetail=ld?.key_location?`\nKey details: ${ld.key_location}`:'';
-      const presenceInfo=presenceLabels[ld?.landlord_present]||'';
-      const address=ld?.full_address||ld?.zone||'See listing';
-
-      // Notify selected agent
-      await sb.from('messages').insert({
-        listing_id:listingId,
-        sender_id:'system',
-        receiver_id:bestAgentId,
-        content:`🎉 You are assigned to this visit!\n\nProperty: ${ld?.title||'Listing'}\nAddress: ${address}\nDate: ${dateStr}\nTenant: ${visit.tenant_name||'—'} (${visit.tenant_email||'—'})\n\n🔑 Key access: ${keyInfo}${keyDetail}\n👤 Owner: ${presenceInfo}\n\n${ld?.landlord_present==='mandatory'?'⚠️ Owner must be present — coordinate availability before confirming.\n\n':''}Reply to the tenant through RestMalta to confirm the visit.`,
-        type:'agent_selected'
+  // Schedule selection after 1 hour via Netlify function
+  try{
+    setTimeout(async()=>{
+      await fetch('/.netlify/functions/select-best-agent',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({visit_id:visitId})
       });
+    }, 60*60*1000); // 1 hour
+  }catch(e){}
 
-      // Notify tenant
-      await sb.from('messages').insert({
-        listing_id:listingId,
-        sender_id:'system',
-        receiver_id:visit.tenant_id,
-        content:`✅ Your visit is confirmed!\n\nProperty: ${ld?.title||'Listing'}\nAddress: ${address}\nDate: ${dateStr}\nAgent: ${bestAgentName}\n\nThe agent will contact you through RestMalta to confirm final details. Please do not exchange personal contact details outside the platform.`,
-        type:'visit_confirmed'
-      });
-
-      // Info to landlord
-      if(landlordId){
-        await sb.from('messages').insert({
-          listing_id:listingId,
-          sender_id:'system',
-          receiver_id:landlordId,
-          content:`✅ Visit assigned automatically!\n\nAgent: ${bestAgentName} (score: ${bestScore>0?bestScore.toFixed(1):'New'})\nDate: ${dateStr}\nTenant: ${visit.tenant_name||'—'}\n\n${ld?.landlord_present==='mandatory'?'⚠️ Remember: you must be present. The agent will coordinate with you.':ld?.landlord_present==='if_possible'?'👋 Let the agent know if you can join.':'✅ No action needed — agent handles everything.'}`,
-          type:'visit_info'
-        });
-      }
-    }
-  }
-
-  if(iAmBest){
-    toast('🎉 You are automatically selected for this visit!');
-  } else {
-    toast('✅ Application registered. A higher-rated agent was selected.');
-  }
+  toast('✅ You applied! If you are the best rated agent after 1 hour you will be automatically selected.');
   loadVisits();
 }
 
 async function validateVisit(msgId, listingId, visitId){
-  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
-
-  // Get listing details for visit sheet
-  let ld=null;
-  try{const{data:_ld}=await sb.from('listings').select('*').eq('id',listingId).maybeSingle();ld=_ld;}catch(e){}
-
-  // Auto-select this agent
+  // Register as available — same as applyForVisit
   await applyForVisit(msgId, listingId, visitId);
-
-  // Generate visit sheet
-  const visitSheet=generateVisitSheet(visit, ld);
-
-  // Send no-show policy + visit sheet to tenant
-  if(visit?.tenant_id){
-    try{
-      await sb.from('messages').insert({
-        listing_id:listingId,
-        sender_id:'system',
-        receiver_id:visit.tenant_id,
-        content:`✅ Your visit is CONFIRMED!\n\n${visitSheet}\n\n⚠️ NO-SHOW POLICY\nIf you do not attend without cancelling 24h before, a €50 fee will be charged. Cancel anytime in your dashboard → My Visits.`,
-        type:'visit_confirmed_noshow'
-      });
-    }catch(e){}
-  }
-
-  toast('✅ Visit confirmed! Visit sheet generated and sent to tenant.');
-  loadVisits();
 }
 
 function generateVisitSheet(visit, listing){
