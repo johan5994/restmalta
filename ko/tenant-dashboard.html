@@ -202,10 +202,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">💶 Pay rent in advance</div><span style="font-size:.72rem;color:var(--td)">Optional — save time</span></div>
         <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Pay 1 or 3 months in advance. Your landlord is notified and you won't receive reminders for the covered months.</p>
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Pay 1 month in advance. Your landlord is notified automatically.</p>
           <div style="display:flex;gap:.75rem">
             <button class="btn bp" style="flex:1;justify-content:center" onclick="payAdvance(1)">Pay 1 month in advance</button>
-            <button class="btn bg" style="flex:1;justify-content:center" onclick="payAdvance(3)">Pay 3 months in advance</button>
           </div>
         </div>
       </div>
@@ -1052,6 +1051,22 @@ async function sendReply(){
 
 async function loadTickets(){
   const wrap=document.getElementById('tickets-list');
+
+  // Check if tenant has active lease
+  let hasLease=false;
+  try{
+    const{data:leases}=await sb.from('leases').select('id,status').eq('tenant_id',U.id).eq('status','signed');
+    hasLease=(leases&&leases.length>0);
+  }catch(e){}
+
+  if(!hasLease){
+    wrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>You don\'t have an active lease yet.<br>Maintenance tickets are only available once you have a signed lease.</p></div>';
+    // Also hide the + button in the topbar
+    const tickBtn=document.getElementById('open-ticket-btn');
+    if(tickBtn)tickBtn.style.display='none';
+    return;
+  }
+
   const{data}=await sb.from('tickets').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
   if(!data||!data.length){wrap.innerHTML='<div class="empty"><div class="em">✅</div><p>No maintenance tickets.<br>Report a problem if something needs fixing.</p><button class="btn bp bsm" onclick="openTicketModal()">+ Report problem</button></div>';return;}
   const pc={high:'ph',medium:'pm',low:'pl'};
