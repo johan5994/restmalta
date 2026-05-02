@@ -1569,15 +1569,10 @@ async function requestVisit(){
 
 
 
-    // 3 — Notify landlord based on their presence preference
-    let landlordMsg='';
-    if(AL.landlord_present==='mandatory'){
-      landlordMsg=`📅 New visit request — YOUR PRESENCE REQUIRED\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\nYou indicated you must be present during visits. Please confirm your availability for this date.\n\n${agentsNotified>0?`${agentsNotified} agent(s) notified — best rated will be auto-assigned. The agent will coordinate with you.`:''}`;
-    } else if(AL.landlord_present==='if_possible'){
-      landlordMsg=`📅 New visit request\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\nYou indicated you'd like to join if possible. Let us know if you're available — no obligation.\n\n${agentsNotified>0?`${agentsNotified} agent(s) notified and will handle the visit.`:''}`;
-    } else {
-      landlordMsg=`📅 New visit request — no action needed\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\n${agentsNotified>0?`${agentsNotified} agent(s) notified. Best rated agent auto-assigned. You will receive a summary after the visit.`:'No agents available — you may need to handle this visit yourself.'}`;
-    }
+    // 3 — Notify landlord
+    const landlordMsg=agentsNotified>0
+      ?`📅 New visit request\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\n${agentsNotified} agent(s) notified. The best rated agent will be auto-selected after 1 hour. You will receive a confirmation once assigned.\n\n${AL.landlord_present==='mandatory'?'⚠️ You indicated you must be present — the agent will coordinate with you.':AL.landlord_present==='if_possible'?'👋 Let the agent know if you can join.':'✅ No action needed — agent handles everything.'}`
+      :`📅 New visit request — no agents available yet\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\nNo agents are registered yet. You may need to handle this visit yourself.`;
 
     try{
       await sb.from('messages').insert({
@@ -1588,6 +1583,19 @@ async function requestVisit(){
         type:'visit_info'
       });
     }catch(e){}
+
+    // 4 — Schedule auto-selection after 1 hour
+    if(visitId){
+      setTimeout(async()=>{
+        try{
+          await fetch('/.netlify/functions/select-best-agent',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({visit_id:visitId})
+          });
+        }catch(e){}
+      }, 60*60*1000); // 1 hour
+    }
 
     if(document.getElementById('visit-date'))document.getElementById('visit-date').value='';
 
