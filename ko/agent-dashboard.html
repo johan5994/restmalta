@@ -134,7 +134,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div><div class="tb-title" id="tbt">Dashboard</div><div class="tb-sub" id="tbs"></div></div>
     <div style="display:flex;gap:.75rem">
       <button class="btn bg bsm" onclick="window.location.href='/'">← Back to site</button>
-      <button class="btn bp bsm" onclick="openVisitModal()">+ Schedule visit</button>
+
     </div>
   </div>
 
@@ -186,7 +186,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
           </div>
           <div class="card">
-            <div class="ch"><span class="ct">All visits</span><button class="btn bp bsm" onclick="openVisitModal()">+ Schedule</button></div>
+            <div class="ch"><span class="ct">All visits</span></div>
             <div class="cb" id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
           </div>
         </div>
@@ -635,45 +635,63 @@ async function applyForVisit(msgId, listingId, visitId){
 }
 
 async function validateVisit(msgId, listingId, visitId){
-  // Mark message as read
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
   const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
 
-  // Auto-assign this agent (best rated)
+  // Get listing details for visit sheet
+  let ld=null;
+  try{const{data:_ld}=await sb.from('listings').select('*').eq('id',listingId).maybeSingle();ld=_ld;}catch(e){}
+
+  // Auto-select this agent
   await applyForVisit(msgId, listingId, visitId);
 
-  // Send no-show setup to tenant
+  // Generate visit sheet
+  const visitSheet=generateVisitSheet(visit, ld);
+
+  // Send no-show policy + visit sheet to tenant
   if(visit?.tenant_id){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:visit.tenant_id,
-        content:`✅ Your visit is CONFIRMED!\n\nDate: ${visit.visit_date} at ${visit.visit_time||'TBD'}\n\n⚠️ NO-SHOW POLICY\nIf you do not attend and have not cancelled at least 24 hours before, a €50 no-show fee will be charged to your registered card.\n\nTo cancel: go to your dashboard → Visits → Cancel (free if 24h+ before).\n\nPlease register your card to confirm your visit.`,
+        content:`✅ Your visit is CONFIRMED!\n\n${visitSheet}\n\n⚠️ NO-SHOW POLICY\nIf you do not attend without cancelling 24h before, a €50 fee will be charged. Cancel anytime in your dashboard → My Visits.`,
         type:'visit_confirmed_noshow'
-      });
-    }catch(e){}
-
-    // Send no-show DocuSeal document
-    try{
-      await fetch('/.netlify/functions/generate-noshow-doc',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          tenant_email:visit.tenant_email||'',
-          tenant_name:visit.tenant_name||'',
-          visit_id:visitId,
-          visit_date:visit.visit_date,
-          visit_time:visit.visit_time,
-          listing_id:listingId
-        })
       });
     }catch(e){}
   }
 
-  toast('✅ Visit confirmed! Tenant notified with no-show policy.');
+  toast('✅ Visit confirmed! Visit sheet generated and sent to tenant.');
   loadVisits();
+}
+
+function generateVisitSheet(visit, listing){
+  if(!visit||!listing)return'Visit details pending.';
+  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
+  const inventoryLabels={mandatory:'✅ Owner will be present',if_possible:'👋 Owner if possible (agent signs if absent)',not_needed:'❌ Agent signs on behalf of owner'};
+  return`━━━━━━━━━━━━━━━━━━━━━━━━
+📋 VISIT SHEET — RestMalta
+━━━━━━━━━━━━━━━━━━━━━━━━
+🏠 Property: ${listing.title||'—'}
+📍 Address: ${listing.full_address||listing.zone||'—'}
+📅 Date: ${visit.visit_date||'—'} at ${visit.visit_time||'TBD'}
+👤 Tenant: ${visit.tenant_name||'—'}
+🏆 Agent: ${P?.full_name||'RestMalta Agent'}
+
+🛏 Bedrooms: ${listing.bedrooms||listing.spots||'—'}
+🏷 Type: ${listing.type==='short'?'Short-let':'Long-let'}
+💰 Rent: €${listing.price||'—'}/month
+${listing.furnished?'✅ Furnished':'❌ Unfurnished'}
+${listing.bills_included?'✅ Bills included':''}
+${listing.parking?'✅ Parking':''}
+${listing.pool?'✅ Pool':''}
+
+🔑 Key access: ${keyLabels[listing.key_type]||'Contact landlord'}
+${listing.key_location?'└ '+listing.key_location:''}
+
+📝 Entry inventory: ${inventoryLabels[listing.inventory_presence]||'Owner present'}
+━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
 
 async function wrongDateVisit(msgId, listingId, visitId){
@@ -789,7 +807,7 @@ async function loadListings(){
   document.getElementById('vm-listing').innerHTML='<option value="">Select a listing...</option>'+listings.map(l=>`<option value="${l.id}">${l.title} — ${l.zone}</option>`).join('');
   const w=document.getElementById('agent-listings');
   if(!listings.length){w.innerHTML='<div class="empty"><div class="em">🏠</div><p>No listings yet</p></div>';return;}
-  w.innerHTML=listings.map(l=>`<div class="pcard-agent"><div class="pimg-sm">${l.photos&&l.photos[0]?`<img src="${l.photos[0]}">`:'🏠'}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.75rem;color:var(--tm)">📍 ${l.zone} · €${l.price}/mo</div></div><div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end"><span class="badge b-green">Active</span><button class="btn bg bsm" onclick="openVisitModal()">Schedule visit</button></div></div>`).join('');
+  w.innerHTML=listings.map(l=>`<div class="pcard-agent"><div class="pimg-sm">${l.photos&&l.photos[0]?`<img src="${l.photos[0]}">`:'🏠'}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.75rem;color:var(--tm)">📍 ${l.zone} · €${l.price}/mo</div></div><div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end"><span class="badge b-green">Active</span></div></div>`).join('');
   const zw=document.getElementById('zone-listings-list');
   zw.innerHTML=listings.slice(0,6).map(l=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="font-size:1.1rem">🏠</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.7rem;color:var(--td)">€${l.price}/mo</div></div></div>`).join('');
 }
