@@ -1267,10 +1267,13 @@ async function loadDocuments(){
 
 async function loadPaymentsData(){
   // Try by tenant_id (clerk_id) or by email match
-  const{data}=await sb.from('payments').select('*').or(`tenant_id.eq.${U.id},tenant_email.eq.${U.email}`).catch(async()=>{
-    const{data}=await sb.from('payments').select('*').eq('tenant_id',U.id);
-    return{data};
-  });
+  let data=[];
+  try{
+    const{data:d1}=await sb.from('payments').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
+    const{data:d2}=await sb.from('payments').select('*').eq('tenant_email',U.email).order('created_at',{ascending:false});
+    const seen=new Set();
+    data=[...(d1||[]),...(d2||[])].filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true;});
+  }catch(e){data=[];}
   const payments=data||[];
   const total=payments.filter(p=>p.status==='paid').reduce((s,p)=>s+(p.amount||0),0);
   const pend=payments.filter(p=>p.status==='pending'||p.status==='late').length;
