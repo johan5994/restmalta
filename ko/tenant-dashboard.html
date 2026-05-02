@@ -199,21 +199,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div id="pay-due-now"></div>
 
       <!-- Advance payment option (points 7/8) -->
-      <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">💶 Pay rent in advance</div><span style="font-size:.72rem;color:var(--td)">Optional — save time</span></div>
-        <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Pay 1 month in advance. Your landlord is notified automatically.</p>
-          <div style="display:flex;gap:.75rem">
-            <button class="btn bp" style="flex:1;justify-content:center" onclick="payAdvance(1)">Pay 1 month in advance</button>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
-        <div class="kcard"><div class="klabel">Total paid</div><div class="kval" id="pay-total" style="color:var(--green)">—</div></div>
-        <div class="kcard"><div class="klabel">Pending</div><div class="kval" id="pay-pend" style="color:var(--gold)">—</div></div>
-        <div class="kcard"><div class="klabel">Next payment</div><div class="kval" id="pay-next" style="color:var(--sea);font-size:1.2rem">—</div></div>
-      </div>
       <div class="card" style="margin-bottom:1rem"><div class="ch"><div class="ct">Payment history</div></div><div id="pay-list"><div class="ld"><div class="sp"></div></div></div></div>
 
       <!-- Notice generator (point 22) -->
@@ -1197,7 +1182,7 @@ let cardElement=null;
 async function initStripeCard(){
   if(!window.Stripe)return;
   try{
-    if(!stripeInstance)stripeInstance=Stripe('pk_test_51PCmBIRohPPRcIAMCTNnHNLUlwhDiBHpdf8q0iybP4pxInSoNPTeYLScRGHZBgHEEA4rtWfzsxzOBEkUltT3Ym6M000cxhmA9K');
+    if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMcaYRnrJVJb4GFZK8mvgHMXFIJUdCCj1GWZTAXaJCJrAfNHFaRtIV6HqS0kDQnqfCZO4H4U500yUqPHIPf');
     const elements=stripeInstance.elements();
     cardElement=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'#E05A5A'}}});
     cardElement.mount('#card-element');
@@ -1328,169 +1313,6 @@ async function loadPaymentsData(){
         ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Receipt</button>`:''}
       </div>`).join('')+'</div>'
     :'<div class="empty"><div class="em">💶</div><p>None paiement enregistré</p></div>';
-}
-
-async function payAdvance(months){
-  const{data:payments}=await sb.from('payments').select('*').or(`tenant_id.eq.${U.id},tenant_email.eq.${U.email}`).eq('status','pending').limit(1);
-  const p=payments?.[0];
-  if(!p){toast('No pending rent found. Ask your landlord to add your rent first.');return;}
-  const amount=(p.amount||0)*months;
-  if(!confirm(`Pay ${months} month${months>1?'s':''} in advance — €${amount.toLocaleString()}?\n\nYour landlord will be notified and you won't receive reminders for ${months} month${months>1?'s':''}.`))return;
-  // Create advance payment entries
-  const entries=[];
-  for(let i=0;i<months;i++){
-    const due=new Date(p.due_date||new Date());
-    due.setMonth(due.getMonth()+i);
-    entries.push({
-      landlord_id:p.landlord_id,
-      tenant_id:U.id,
-      tenant_name:P?.full_name||U.email,
-      amount:p.amount,
-      type:'rent',
-      status:'declared',
-      declared_at:new Date().toISOString(),
-      due_date:due.toISOString().split('T')[0]
-    });
-  }
-  const{error}=await sb.from('payments').insert(entries);
-  if(error){toast('❌ '+error.message);return;}
-  toast(`✅ ${months} month${months>1?'s':''} declared paid! Your landlord will confirm receipt.`);
-  loadPaymentsData();
-}
-
-function generateNotice(){
-  const start=document.getElementById('notice-start').value;
-  const departure=document.getElementById('notice-departure').value;
-  const difermo=parseInt(document.getElementById('notice-difermo').value);
-  const noticePeriod=parseInt(document.getElementById('notice-period').value);
-  if(!start||!departure){toast('Please fill in lease start date and desired departure date');return;}
-  const startDate=new Date(start);
-  const departureDate=new Date(departure);
-  const today=new Date();
-  // Calculate Di Fermo end
-  const difermoEnd=new Date(startDate);
-  difermoEnd.setMonth(difermoEnd.getMonth()+difermo);
-  // Calculate earliest possible leave date
-  const earliestLeave=new Date(today);
-  earliestLeave.setMonth(earliestLeave.getMonth()+noticePeriod);
-  const inDifermo=today<difermoEnd;
-  const actualLeave=inDifermo&&departureDate<difermoEnd?difermoEnd:departureDate;
-  // Add notice period to today
-  const noticeDate=new Date(today);
-  const res=document.getElementById('notice-result');
-  res.style.display='block';
-  if(inDifermo){
-    const daysLeft=Math.ceil((difermoEnd-today)/(1000*60*60*24));
-    res.innerHTML=`
-      <div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:12px;padding:1.2rem">
-        <div style="font-weight:700;color:var(--gold);margin-bottom:.5rem">⚠️ You are still in your Di Fermo period</div>
-        <div style="font-size:.83rem;color:var(--tm);line-height:1.6;margin-bottom:.75rem">
-          Your Di Fermo ends on <strong>${difermoEnd.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong> (${daysLeft} days remaining).<br>
-          You cannot leave before this date without penalty. The earliest you can hand back the keys is <strong>${actualLeave.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong>.
-        </div>
-        <button class="btn bp bsm" onclick="downloadNotice('${actualLeave.toISOString().split('T')[0]}','${noticePeriod}')">📄 Generate notice letter anyway →</button>
-      </div>`;
-  } else {
-    res.innerHTML=`
-      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem">
-        <div style="font-weight:700;color:var(--green);margin-bottom:.5rem">✅ You can leave on ${actualLeave.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
-        <div style="font-size:.83rem;color:var(--tm);line-height:1.6;margin-bottom:.75rem">
-          Your ${noticePeriod}-month notice must be sent today. Your landlord will receive the official notice letter.<br>
-          <strong>Key handover date: ${actualLeave.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong>
-        </div>
-        <button class="btn bp bsm" onclick="downloadNotice('${actualLeave.toISOString().split('T')[0]}','${noticePeriod}')">📄 Generate & send notice to landlord →</button>
-      </div>`;
-  }
-}
-
-function downloadNotice(leaveDate,noticePeriod){
-  const leave=new Date(leaveDate);
-  const today=new Date();
-  const noticeText=`NOTICE TO VACATE — PRÉAVIS DE DÉPART
-
-Date : ${today.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
-
-Tenant : ${P?.full_name||'Tenant'}
-Adresse à Malta : ${P?.malta_address||'[Adresse Malta]'}
-Passeport / ID : ${P?.passport_number||'[ID]'}
-
-Landlord / Adresse du property: [Adresse du bien]
-
-Madame, Monsieur,
-
-Je you informe par la présente de mon intention de quitter le logement que j'occupe actuellement.
-
-Conformément aux dispositions du bail et à la loi maltaise sur les baux résidentiels (Private Residential Leases Act), je you donne un préavis de ${noticePeriod} months.
-
-Date de remise des clés : ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
-
-Je m'engage à remettre le logement dans l'état où je l'ai trouvé, déduction faite de l'usure normale, et demande le remboursement de mon dépôt de garantie dans les délais légaux.
-
-Veuillez agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
-
-${P?.full_name||'Tenant'}
-${today.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
-
----
-Généré par RestMalta — restmalta.com`;
-
-  const blob=new Blob([noticeText],{type:'text/plain'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='Preavis_RestMalta.txt';a.click();
-  URL.revokeObjectURL(url);
-
-  // Notify landlord via Supabase message + trigger re-list prompt
-  if(U&&P){
-    // Find active listings rented to this tenant and notify landlord
-    sb.from('payments').select('landlord_id,listing_id').eq('tenant_id',U.id).eq('status','paid').limit(1)
-      .then(({data})=>{
-        if(data&&data[0]){
-          const{landlord_id,listing_id}=data[0];
-          // Send message to landlord
-          sb.from('messages').insert({
-            listing_id,
-            sender_id:U.id,
-            receiver_id:landlord_id,
-            content:`📤 Notice period officiel envoyé : ${P?.full_name||'Your tenant'} quittera le logement le ${leave.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}. You pouvez dès maintenant republier your bien sur RestMalta.`
-          }).then(()=>{});
-          // Update payment status to signal departure
-          sb.from('visits').insert({
-            tenant_id:U.id,
-            landlord_id,
-            listing_id,
-            status:'notice_given',
-            notes:`Départ prévu le ${leave.toLocaleDateString('fr-FR')}`,
-            visit_date:leave.toISOString()
-          });
-        }
-      });
-  }
-  toast('✅ Notice to vacate downloaded and landlord notified!');
-}
-
-function downloadTenantReceipt(id, amount, paidAt){
-  const date=new Date(paidAt);
-  const month=date.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-  const text=`QUITTANCE DE LOYER
-RestMalta Platform
-
-Date : ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
-
-Tenant : ${P?.full_name||'Tenant'}
-Adresse à Malta : ${P?.malta_address||'[Adresse Malta]'}
-
-Je soussigné(e) reconnais avoir reçu la somme de €${parseFloat(amount).toLocaleString()}
-au titre du rent of the month de ${month}.
-
-Receipt générée automatiquement par RestMalta — restmalta.com
-Cette quittance atteste du bon paiement du rent for la période mentionnée.`;
-  const blob=new Blob([text],{type:'text/plain'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`Receipt_${month.replace(' ','_')}.txt`;a.click();
-  URL.revokeObjectURL(url);
-  toast('🧾 Receipt téléchargée !');
 }
 
 async function declarePaid(paymentId){
