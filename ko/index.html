@@ -865,9 +865,16 @@ footer ul a:hover{color:var(--terra)}
             </div>
           </div>
 
-          <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
-          <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
-          <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.6rem;font-size:.8rem" onclick="requestReference()">📋 Add a landlord reference to my profile</button>
+          <!-- Contact card — changes based on agent or direct -->
+          <div id="contact-agent-notice" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem">
+            <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.3rem">🏆 Agent-managed listing</div>
+            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5">This listing is managed by a RestMalta agent. Direct contact with the landlord is not available. Request a visit below — the agent will handle everything.</div>
+          </div>
+          <div id="contact-direct-wrap">
+            <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
+            <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
+            <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.6rem;font-size:.8rem" onclick="requestReference()">📋 Add a landlord reference to my profile</button>
+          </div>
 
           <!-- Attestation info — tenant manages themselves -->
           <div id="attestation-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem">
@@ -1309,7 +1316,14 @@ async function openDet(id){
   const vdInput=document.getElementById('visit-date');
   if(vdInput)vdInput.min=new Date().toISOString().split('T')[0];
   const attBox=document.getElementById('attestation-info');
-  if(attBox)attBox.style.display='none'; // hidden — info shown in features list only
+  if(attBox)attBox.style.display='none';
+
+  // Show agent notice or direct contact
+  const hasAgent=AL.wants_agent&&AL.agent_service==='full';
+  const agentNotice=document.getElementById('contact-agent-notice');
+  const directWrap=document.getElementById('contact-direct-wrap');
+  if(agentNotice)agentNotice.style.display=hasAgent?'block':'none';
+  if(directWrap)directWrap.style.display=hasAgent?'none':'block';
   // Problem 10 — show correct visit button based on agent choice
   const visitTitle=document.getElementById('visit-action-title');
   const visitSub=document.getElementById('visit-action-sub');
@@ -1408,7 +1422,13 @@ async function sendMsg(){
   if(!P?.home_address)missingFields.push('Home address');
   if(missingFields.length>0){
     toast('❌ Complete your profile before contacting a landlord');
-    alert(`Please complete your profile first.\n\nMissing: ${missingFields.join(', ')}\n\nGo to your dashboard → Profilee → fill in all fields → Save.`);
+    alert(`Please complete your profile first.\n\nMissing: ${missingFields.join(', ')}\n\nGo to your dashboard → Profile → fill in all fields → Save.`);
+    return;
+  }
+
+  // Block direct message if agent is selected on this listing
+  if(AL.wants_agent && AL.agent_service==='full'){
+    toast('⚠️ This listing uses a RestMalta agent. Contact happens through the agent after your visit is confirmed.');
     return;
   }
 
