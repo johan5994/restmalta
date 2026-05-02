@@ -196,7 +196,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('report',this)"><span class="nico">📈</span>Monthly report</button>
     <div class="nl">Properties</div>
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My listings</button>
-    <button class="ni" onclick="sp('tenantmatch',this)"><span class="nico">🎯</span>Tenant matching</button>
     <button class="ni" onclick="sp('leases',this)"><span class="nico">📄</span>Leases & docs<span class="nbadge" id="nb-leases" style="display:none">0</span></button>
     <button class="ni" onclick="sp('inventory',this)"><span class="nico">📋</span>Inventory</button>
     <button class="ni" onclick="sp('sublet',this)"><span class="nico">🔑</span>Subletting<span class="nbadge gold" id="nb-sublet" style="display:none">0</span></button>
@@ -331,15 +330,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <!-- TENANT MATCHING -->
-    <div class="page" id="page-tenantmatch">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">🎯 Tenant matching</div>
-      <div style="background:var(--tdim);border:1px solid rgba(224,90,58,.2);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.5rem;font-size:.83rem;color:var(--tm)">
-        🎯 RestMalta automatically matches your listings with verified tenants based on their profile, budget, and preferences. Here are the best matches for your properties.
-      </div>
-      <div id="match-list"><div class="ld"><div class="sp"></div></div></div>
-    </div>
-
-    <!-- LISTINGS -->
     <div class="page" id="page-listings">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
         <div style="font-size:1rem;font-weight:700">My Listings</div>
