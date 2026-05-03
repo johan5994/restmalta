@@ -435,7 +435,12 @@ function initUI(){
   document.getElementById('tbs').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
-async function loadAll(){await Promise.all([loadVisits(),loadListings()]);await renderRevChart();await loadNotifications();}
+async function loadAll(){
+  await loadVisits();
+  await loadListings();
+  try{await renderRevChart();}catch(e){}
+  try{await loadNotifications();}catch(e){}
+}
 
 async function loadNotifications(){
   const wrap=document.getElementById('notifications-list');
@@ -895,10 +900,12 @@ async function sendAgentGroupMessage(groupId){
 function sp(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
-  document.getElementById('page-'+id).classList.add('act');
+  document.getElementById('page-'+id)?.classList.add('act');
   if(btn)btn.classList.add('act');
   const titles={dash:'Dashboard',visits:'My Visits',listings:'Listings',revenue:'Revenue',score:'My Score',profile:'Profile',zone:'My Zone'};
   document.getElementById('tbt').textContent=titles[id]||id;
+  if(id==='visits')loadVisits();
+  if(id==='revenue')renderRevChart().catch(()=>{});
 }
 
 // ── Agent Identity Verification ───────────────────────────────
