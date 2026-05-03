@@ -463,7 +463,7 @@ async function loadVisits(){
   let confirmedVisits=[];
   try{
     const{data:vm}=await sb.from('messages')
-      .select('*,listings(title,zone,id,full_address)')
+      .select('*')
       .eq('receiver_id',U.id)
       .eq('type','visit_request')
       .order('created_at',{ascending:false});
