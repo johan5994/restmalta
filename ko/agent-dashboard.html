@@ -508,24 +508,27 @@ async function loadVisits(){
       const ownerLine=lines.find(l=>l.includes('Owner:'))?.replace('Owner:','').trim()||'';
       const mustBePresent=lines.some(l=>l.includes('OWNER MUST BE PRESENT'));
 
-      return`<div style="padding:.85rem;background:var(--s2);border-radius:12px;margin-bottom:.75rem;border:1px solid var(--b)">
+      const isAwaitingLandlord=m.content?.includes('Awaiting landlord confirmation')||m.content?.includes('awaiting_landlord');
+      const isConfirmed=m.content?.includes('Landlord confirmed');
+
+      return`<div style="padding:.85rem;background:var(--s2);border-radius:12px;margin-bottom:.75rem;border:1px solid ${isConfirmed?'rgba(76,175,125,.3)':isAwaitingLandlord?'rgba(212,168,71,.3)':'var(--b)'}">
         <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">🏠 ${property}</div>
         <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
         <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
         <div style="font-size:.75rem;color:var(--td);margin-bottom:.4rem">👤 ${tenant}</div>
-        <div style="background:rgba(58,143,181,.08);border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;font-size:.73rem">
+        ${keyLine&&keyLine!=='Contact landlord'?`<div style="background:rgba(58,143,181,.08);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem">
           <div>🔑 <strong>Keys:</strong> ${keyLine}</div>
           ${keyDetail?`<div style="color:var(--tm);margin-top:.2rem">└ ${keyDetail}</div>`:''}
-          ${ownerLine?`<div style="margin-top:.3rem">👤 <strong>Owner:</strong> ${ownerLine}</div>`:''}
-          ${mustBePresent?`<div style="color:var(--gold);margin-top:.3rem;font-weight:600">⚠️ Owner must be present — call to confirm availability first</div>`:''}
-        </div>
-        <div style="font-size:.73rem;color:var(--td);margin-bottom:.6rem">📞 Call the landlord to confirm availability before validating</div>
+          ${ownerLine?`<div style="margin-top:.2rem">👤 <strong>Owner:</strong> ${ownerLine}</div>`:''}
+        </div>`:''}
+        ${isAwaitingLandlord&&!isConfirmed?`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--gold)">⏳ Waiting for landlord to confirm availability — you can already apply below</div>`:''}
+        ${isConfirmed?`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--green)">✅ Landlord confirmed — apply now! Best rated agent selected in 5 minutes.</div>`:''}
         <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-          <button class="btn bp bsm" style="flex:1;justify-content:center;min-width:120px" onclick="validateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I'm available</button>
-          <button class="btn bg bsm" style="flex:1;justify-content:center;min-width:120px" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
-          <button class="btn bsm" style="flex:1;justify-content:center;min-width:120px;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Property unavailable</button>
+          <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
+          <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
+          <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Property unavailable</button>
         </div>
-        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem;text-align:center">⏱ Agents have 1 hour to apply — best rated is auto-selected</div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem;text-align:center">⏱ Best rated agent among applicants is auto-selected 5 min after landlord confirms</div>
       </div>`;
     }).join('');
   }
