@@ -225,15 +225,15 @@ ${type === 'long' ? `
 
     if (coTenants && coTenants.length) {
       coTenants.forEach((ct, i) => {
-        finalSubmitters.push({
-          role: 'Lessee1',
-          email: ct.email || '',
+        if(ct.email) finalSubmitters.push({
+          role: `Lessee${i+2}`,
+          email: ct.email,
           name: ct.name || 'Co-Tenant'
         });
       });
     }
 
-    // Send to DocuSeal as HTML submission
+    // Send to DocuSeal as HTML document (no template needed)
     const res = await fetch('https://api.docuseal.eu/submissions/init', {
       method: 'POST',
       headers: {
@@ -241,39 +241,34 @@ ${type === 'long' ? `
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        template_id: type === 'short' || type === 'sublet' ? 520701 : 520700,
+        html: html,
         send_email: true,
         submitters: finalSubmitters,
         message: {
           subject: `RestMalta — ${typeLabel} to sign`,
           body: `Please review and sign your ${typeLabel} for ${listing.address || 'your property'} in Malta. Monthly rent: €${listing.price}. Start date: ${startFormatted}.`
-        },
-        values: {
-          landlord_name: landlord.name || '',
-          tenant_name: tenant.name || '',
-          property_address: listing.address || '',
-          monthly_rent: String(listing.price || ''),
-          start_date: startFormatted,
-          end_date: endFormatted,
         }
       })
     });
 
     const data = await res.json();
+    console.log('DocuSeal response:', JSON.stringify(data));
 
-    if (data.id) {
+    if (data.id || (Array.isArray(data) && data[0]?.id)) {
+      const submissionId = data.id || data[0]?.id;
+      const submitters = data.submitters || data[0]?.submitters || [];
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: true,
-          submission_id: data.id,
+          submission_id: submissionId,
           html,
-          signing_url: data.submitters?.[1]?.embed_src || null
+          signing_url: submitters[1]?.embed_src || submitters[0]?.embed_src || null
         })
       };
     } else {
-      // Fallback — return HTML for download
+      // Fallback — return HTML for download even if DocuSeal fails
       return {
         statusCode: 200,
         headers,
