@@ -1117,42 +1117,63 @@ async function loadVisitGroups(){
 
 async function landlordConfirmVisit(visitId, response, listingId, tenantId){
   if(response==='yes'){
-    // Mark as available — agents notified to apply
     await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId);
-    
-    // Update agent messages to show landlord confirmed
-    const{data:agentMsgs}=await sb.from('messages').select('id,receiver_id').eq('visit_id',visitId).eq('type','visit_request');
-    for(const msg of (agentMsgs||[])){
-      await sb.from('messages').insert({
-        listing_id:listingId,
-        sender_id:'system',
-        receiver_id:msg.receiver_id,
-        content:`✅ Landlord confirmed availability!
 
-The property is available for this visit. Apply now if you want to take it — best rated agent will be selected in 5 minutes.`,
-        visit_id:visitId,
-        type:'visit_request'
-      });
-    }
+    // Get visit details for notification
+    const{data:visit}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
+    const{data:listing}=await sb.from('listings').select('*').eq('id',listingId).maybeSingle();
 
-    // Schedule best agent selection after 5 minutes
-    setTimeout(async()=>{
+    // Get all agents and send them updated notification
+    let agents=[];
+    try{
+      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','agent');
+      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','Agent');
+      agents=[...(a1||[]),...(a2||[])];
+    }catch(e){}
+
+    const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
+    const keyInfo=keyLabels[listing?.key_type]||'Contact landlord';
+    const keyDetail=listing?.key_location?`\nKey details: ${listing.key_location}`:'';
+    const visitDateStr=visit?.visit_date?new Date(visit.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+(visit?.visit_time||'TBD'):'TBD';
+
+    for(const agent of agents){
+      if(!agent.clerk_id)continue;
       try{
-        await fetch('/.netlify/functions/select-best-agent',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({visit_id:visitId})
+        await sb.from('messages').insert({
+          listing_id:listingId,
+          sender_id:'system',
+          receiver_id:agent.clerk_id,
+          content:`✅ LANDLORD CONFIRMED — Apply now!\n\nProperty: ${listing?.title||'Listing'}\nAddress: ${listing?.full_address||listing?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\n⏱ You have 5 minutes to apply. Best rated agent will be automatically selected.`,
+          visit_id:visitId,
+          type:'visit_request'
         });
       }catch(e){}
-    }, 5*60*1000);
-
-    // Send email to landlord about the visit request
-    if(P?.email){
-      const{data:vd}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
-      const{data:ld}=await sb.from('listings').select('title').eq('id',listingId).maybeSingle();
-      fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:'visit_request_landlord',to:P.email,data:{tenantName:vd?.tenant_name||'Tenant',visitDate:vd?.visit_date||'TBD',visitTime:vd?.visit_time||'TBD',listingTitle:ld?.title||'Listing',dashboardUrl:'https://restmalta.com/landlord-dashboard.html'}})}).catch(()=>{});
     }
-    toast('✅ Confirmed! Agents notified — best rated will be selected in 5 minutes.');
+
+    // Call select-best-agent after 5 minutes via a background fetch
+    // We use a delayed Netlify function call
+    try{
+      await fetch('/.netlify/functions/schedule-selection',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({visit_id:visitId,delay_minutes:5})
+      });
+    }catch(e){
+      // Fallback — call immediately if schedule function not available
+      setTimeout(async()=>{
+        try{
+          await fetch('/.netlify/functions/select-best-agent',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({visit_id:visitId})
+          });
+        }catch(e){}
+      },5*60*1000);
+    }
+
+    toast('✅ Confirmed! All agents notified — best rated will be selected in 5 minutes.');
+    loadVisitsPage();
+    loadVisitGroups();
 
   } else if(response==='wrong_date'){
     await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);
