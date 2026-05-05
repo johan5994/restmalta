@@ -1156,8 +1156,20 @@ async function loadTenantVisits(){
           ${v.status==='pending'||v.status==='agent_assigned'?`<button class="btn bg bsm" style="font-size:.68rem" onclick="cancelVisit('${v.id}')">Cancel visit</button>`:''}
         </div>
       </div>
-      ${v.status==='confirmed'?`<div style="margin-top:.5rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;font-size:.72rem;color:var(--gold)">⚠️ No-show policy: cancel 24h+ before to avoid €50 fee</div>`:''}
+      ${v.status==='agent_assigned'?`
+        <div style="margin-top:.5rem;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem .85rem">
+          <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.3rem">✅ Visit confirmed — confirm your presence</div>
+          <button class="btn bp bsm" style="width:100%;justify-content:center;margin-bottom:.3rem" onclick="confirmTenantPresence('${v.id}')">✅ I confirm I will attend</button>
+          <div style="font-size:.68rem;color:var(--td)">⚠️ No-show without 24h cancellation = €50 fee</div>
+        </div>`:v.status==='confirmed'?`<div style="margin-top:.5rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;font-size:.72rem;color:var(--gold)">✅ You confirmed your presence — see you there!</div>`:''}
     </div>`).join('');
+}
+
+
+async function confirmTenantPresence(visitId){
+  try{await sb.from('visits').update({status:'confirmed',tenant_confirmed:true}).eq('id',visitId);}catch(e){}
+  toast('✅ Presence confirmed! See you at the visit.');
+  loadTenantVisits();
 }
 
 async function cancelVisit(visitId){
