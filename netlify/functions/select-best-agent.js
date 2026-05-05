@@ -15,8 +15,14 @@ exports.handler = async (event) => {
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    const { visit_id } = JSON.parse(event.body || '{}');
+    const { visit_id, wait_minutes = 0 } = JSON.parse(event.body || '{}');
     if (!visit_id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'visit_id required' }) };
+
+    // Wait if requested (max 25 seconds on Netlify free plan)
+    if (wait_minutes > 0) {
+      const waitMs = Math.min(wait_minutes * 60 * 1000, 25000);
+      await new Promise(r => setTimeout(r, waitMs));
+    }
 
     // Get visit details
     const { data: visit } = await sb.from('visits').select('*').eq('id', visit_id).single();
