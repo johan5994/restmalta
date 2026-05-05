@@ -1146,20 +1146,29 @@ The property is available for this visit. Apply now if you want to take it — b
       }catch(e){}
     }, 5*60*1000);
 
+    // Send email to landlord about the visit request
+    if(P?.email){
+      const{data:vd}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
+      const{data:ld}=await sb.from('listings').select('title').eq('id',listingId).maybeSingle();
+      fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:'visit_request_landlord',to:P.email,data:{tenantName:vd?.tenant_name||'Tenant',visitDate:vd?.visit_date||'TBD',visitTime:vd?.visit_time||'TBD',listingTitle:ld?.title||'Listing',dashboardUrl:'https://restmalta.com/landlord-dashboard.html'}})}).catch(()=>{});
+    }
     toast('✅ Confirmed! Agents notified — best rated will be selected in 5 minutes.');
 
   } else if(response==='wrong_date'){
     await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);
-    // Notify tenant to choose another date
     await sb.from('messages').insert({
       listing_id:listingId,
       sender_id:'system',
       receiver_id:tenantId,
-      content:`📅 Unfortunately the landlord is not available on your requested date.
-
-The property is still available — please request a visit with a different date.`,
+      content:`📅 Unfortunately the landlord is not available on your requested date.\n\nThe property is still available — please request a visit with a different date.`,
       type:'visit_rejected'
     });
+    // Send email to tenant
+    const{data:tv}=await sb.from('visits').select('tenant_email,listing_id').eq('id',visitId).maybeSingle();
+    const{data:tl}=await sb.from('listings').select('title').eq('id',listingId).maybeSingle();
+    if(tv?.tenant_email){
+      fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:'visit_date_rejected',to:tv.tenant_email,data:{tenantName:P?.full_name||'Tenant',listingTitle:tl?.title||'Listing',dashboardUrl:'https://restmalta.com/tenant-dashboard.html'}})}).catch(()=>{});
+    }
     toast('📅 Tenant notified to choose another date.');
 
   } else if(response==='unavailable'){
