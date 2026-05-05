@@ -104,7 +104,46 @@ ${listing?.key_location ? '└ ' + listing.key_location : ''}
 📝 Entry inventory: ${inventoryLabels[listing?.inventory_presence] || 'Owner present'}
 ━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-    // Notify selected agent with full visit sheet
+    const SITE = process.env.URL || 'https://restmalta.com';
+
+    // Send email to selected agent
+    await fetch(`${SITE}/.netlify/functions/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template: 'agent_selected',
+        to: (await sb.from('profiles').select('email').eq('clerk_id', bestAgentId).single()).data?.email || '',
+        data: {
+          agentName: bestAgentName,
+          visitDate: visit.visit_date,
+          visitTime: visit.visit_time || 'TBD',
+          listingTitle: listing?.title || '—',
+          address: listing?.full_address || listing?.zone || '—',
+          tenantName: visit.tenant_name || '—',
+          keyInfo: listing?.key_location || 'Contact landlord',
+          dashboardUrl: `${SITE}/agent-dashboard.html`
+        }
+      })
+    }).catch(() => {});
+
+    // Send email to tenant
+    await fetch(`${SITE}/.netlify/functions/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template: 'visit_confirmed_tenant',
+        to: visit.tenant_email || '',
+        data: {
+          tenantName: visit.tenant_name || 'Tenant',
+          agentName: bestAgentName,
+          visitDate: visit.visit_date,
+          visitTime: visit.visit_time || 'TBD',
+          listingTitle: listing?.title || '—',
+          address: listing?.full_address || listing?.zone || '—',
+          dashboardUrl: `${SITE}/tenant-dashboard.html`
+        }
+      })
+    }).catch(() => {});
     await sb.from('messages').insert({
       listing_id: visit.listing_id,
       sender_id: 'system',
