@@ -1502,104 +1502,70 @@ async function requestVisit(){
   const today=new Date();today.setHours(0,0,0,0);
   if(new Date(visitDate)<today){toast('⚠️ Please select a future date');return;}
 
-  toast('📅 Sending visit request to available agents...');
+  toast('📅 Sending visit request...');
 
   try{
+    // 1 — Save visit with status 'awaiting_landlord'
     let visit=null;
     try{
-      // Only insert columns that exist in DB
       const{data:visitData,error:visitErr}=await sb.from('visits').insert({
         listing_id:AL.id,
         tenant_id:U.id,
         landlord_id:AL.landlord_id,
         tenant_name:P.full_name||'',
+        tenant_email:P.email||U.email||'',
         visit_date:visitDate,
         visit_time:visitTime,
         zone:AL.zone||'',
-        status:'pending'
+        status:'awaiting_landlord'
       }).select().maybeSingle();
       if(visitErr)console.warn('Visit insert:',visitErr.message);
       visit=visitData;
-    }catch(e){
-      console.warn('Visit insert warning:',e.message);
-    }
+    }catch(e){console.warn('Visit insert:',e.message);}
+
     const visitId=visit?.id||null;
-    const listingAddress=AL.full_address||AL.zone||'Malta';
     const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
-    // 2 — Notify ALL registered agents
+    // 2 — Notify ALL agents with status "awaiting landlord confirmation"
     let agents=[];
     try{
-      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','agent');
-      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','Agent');
+      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
+      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name').eq('role','Agent');
       agents=[...(a1||[]),...(a2||[])];
-    }catch(e){agents=[];}
+    }catch(e){}
 
-    let agentsNotified=0;
-    for(const agent of (agents||[])){
+    const keyTypeLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
+    const keyInfo=keyTypeLabels[AL.key_type]||'Contact landlord';
+    const keyDetail=AL.key_location?`\nKey details: ${AL.key_location}`:'';
+
+    for(const agent of agents){
       if(!agent.clerk_id)continue;
       try{
-        // Build key access info
-        const keyTypeLabels={
-          keysafe:'🔐 Key safe on site',
-          neighbor:'🏘️ With neighbour / concierge',
-          agent:'🏆 You (agent) have the keys',
-          landlord:'📞 Contact landlord for keys'
-        };
-        const presenceLabels={
-          not_needed:'🚶 Not present — you handle everything',
-          if_possible:'👋 Will join if available — will inform you',
-          mandatory:'✅ MUST be present — coordinate with landlord'
-        };
-        const keyInfo=keyTypeLabels[AL.key_type]||'Contact landlord';
-        const keyDetail=AL.key_location?`\nKey details: ${AL.key_location}`:'';
-        const presenceInfo=presenceLabels[AL.landlord_present]||'Contact landlord';
-
         await sb.from('messages').insert({
           listing_id:AL.id,
           sender_id:'system',
           receiver_id:agent.clerk_id,
-          content:`🏠 NEW VISIT REQUEST\n\nProperty: ${AL.title||'Listing'}\nAddress: ${AL.full_address||AL.zone||'Malta'}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'} (${P.email||''})\n\n🔑 Key access: ${keyInfo}${keyDetail}\n👤 Owner presence: ${presenceInfo}\n\n${AL.landlord_present==='mandatory'?'⚠️ IMPORTANT: The owner must be present — coordinate availability before confirming.':''}\n\nClick "I\'m available" in your dashboard → Visits to apply.`,
+          content:`🏠 NEW VISIT REQUEST — ⏳ Awaiting landlord confirmation\n\nProperty: ${AL.title||'Listing'}\nAddress: ${AL.full_address||AL.zone||'Malta'}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\nThe landlord must confirm availability first. You can already indicate your interest below.\nIf landlord confirms → best rated agent among applicants is auto-selected.`,
           visit_id:visitId,
           type:'visit_request'
         });
-        agentsNotified++;
-      }catch(e){console.warn('Agent notify:',e.message);}
+      }catch(e){}
     }
 
-
-
-    // 3 — Notify landlord
-    const landlordMsg=agentsNotified>0
-      ?`📅 New visit request\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\n${agentsNotified} agent(s) notified. The best rated agent will be auto-selected after 1 hour. You will receive a confirmation once assigned.\n\n${AL.landlord_present==='mandatory'?'⚠️ You indicated you must be present — the agent will coordinate with you.':AL.landlord_present==='if_possible'?'👋 Let the agent know if you can join.':'✅ No action needed — agent handles everything.'}`
-      :`📅 New visit request — no agents available yet\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\nNo agents are registered yet. You may need to handle this visit yourself.`;
-
+    // 3 — Notify landlord with 3 action buttons (handled in landlord dashboard)
     try{
       await sb.from('messages').insert({
         listing_id:AL.id,
         sender_id:'system',
         receiver_id:AL.landlord_id,
-        content:landlordMsg,
-        type:'visit_info'
+        content:`📅 New visit request!\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\nPlease confirm if your property is available on this date.\n\nGo to your dashboard → Visits to respond.`,
+        visit_id:visitId,
+        type:'visit_availability_check'
       });
     }catch(e){}
 
-    // 4 — Schedule auto-selection after 1 hour
-    if(visitId){
-      setTimeout(async()=>{
-        try{
-          await fetch('/.netlify/functions/select-best-agent',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({visit_id:visitId})
-          });
-        }catch(e){}
-      }, 60*60*1000); // 1 hour
-    }
-
     if(document.getElementById('visit-date'))document.getElementById('visit-date').value='';
-
-    toast(`✅ Visit requested for ${visitDateStr} at ${visitTime}! ${agentsNotified>0?agentsNotified+' agent(s) notified.':''} The landlord will confirm once an agent is selected.`);
+    toast(`✅ Visit requested for ${visitDateStr} at ${visitTime}! Waiting for landlord confirmation.`);
 
   }catch(e){
     console.error('Visit error:',e);
