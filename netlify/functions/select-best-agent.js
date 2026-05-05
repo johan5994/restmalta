@@ -113,12 +113,12 @@ ${listing?.key_location ? '└ ' + listing.key_location : ''}
       type: 'agent_selected'
     });
 
-    // Notify tenant
+    // Notify tenant — must confirm presence
     await sb.from('messages').insert({
       listing_id: visit.listing_id,
       sender_id: 'system',
       receiver_id: visit.tenant_id,
-      content: `✅ Your visit is confirmed!\n\nAgent: ${bestAgentName}\nDate: ${visit.visit_date} at ${visit.visit_time || 'TBD'}\n\n⚠️ NO-SHOW POLICY: Cancel at least 24h before to avoid a €50 fee.\n\nRegister your card in your dashboard → My Visits.`,
+      content: `✅ Your visit is confirmed!\n\nAgent: ${bestAgentName}\nDate: ${visit.visit_date} at ${visit.visit_time || 'TBD'}\nProperty: ${listing?.title || '—'}\nAddress: ${listing?.full_address || listing?.zone || '—'}\n\n⚠️ PLEASE CONFIRM YOUR PRESENCE\nGo to your dashboard → My Visits → Confirm you will attend.\n\nNO-SHOW POLICY: If you do not attend without cancelling 24h before, a €50 fee will be charged.`,
       type: 'visit_confirmed_noshow'
     });
 
