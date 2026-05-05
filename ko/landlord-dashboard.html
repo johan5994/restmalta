@@ -978,16 +978,18 @@ async function loadVisitGroups(){
   const cnt=document.getElementById('visit-groups-count');
   if(!wrap)return;
 
-  // Load visit requests
-  const{data:visitData}=await sb.from('visits')
-    .select('*,listings(title,zone,full_address)')
-    .eq('landlord_id',U.id)
-    .neq('status','done')
-    .neq('status','declined')
-    .order('visit_date',{ascending:true})
-    ;
+  let groups=[];
+  try{
+    const{data:visitData}=await sb.from('visits')
+      .select('*,listings(title,zone,full_address)')
+      .eq('landlord_id',U.id)
+      .neq('status','done')
+      .neq('status','declined')
+      .neq('status','cancelled')
+      .order('visit_date',{ascending:true});
+    groups=visitData||[];
+  }catch(e){}
 
-  const groups=visitData||[];
   if(cnt)cnt.textContent=groups.length;
 
   if(!groups.length){
@@ -996,10 +998,30 @@ async function loadVisitGroups(){
   }
 
   wrap.innerHTML=groups.map(g=>{
-    const statusColor={pending:'var(--gold)',agent_applied:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)'}[g.status]||'var(--td)';
-    const statusLabel={pending:'⏳ Waiting for agents',agent_applied:'🏆 Agent assigned automatically',agent_assigned:'🏆 Agent assigned',confirmed:'✅ Confirmed'}[g.status]||g.status;
+    const listingTitle=g.listings?.title||'Listing';
     const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+(g.visit_time||'TBD'):'TBD';
-    const listingTitle=g.listings?.title||g.listing_id||'Listing';
+
+    if(g.status==='awaiting_landlord'){
+      return`<div style="padding:.85rem 0;border-bottom:1px solid var(--b)">
+        <div style="display:flex;align-items:flex-start;gap:.75rem">
+          <div style="width:40px;height:40px;border-radius:10px;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📅</div>
+          <div style="flex:1">
+            <div style="font-size:.85rem;font-weight:600">${listingTitle}</div>
+            <div style="font-size:.75rem;color:var(--tm);margin:.1rem 0">👤 ${g.tenant_name||'Tenant'} · 📅 ${visitDateStr}</div>
+            <div style="font-size:.72rem;color:var(--gold);font-weight:600">⏳ Awaiting your confirmation</div>
+          </div>
+        </div>
+        <div style="font-size:.78rem;color:var(--tm);margin:.5rem 0">Is your property available on this date?</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')">✅ Available</button>
+          <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')">📅 Not available this date</button>
+          <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="landlordConfirmVisit('${g.id}','unavailable','${g.listing_id}','${g.tenant_id}')">❌ Property no longer available</button>
+        </div>
+      </div>`;
+    }
+
+    const statusColor={agents_applying:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)'}[g.status]||'var(--td)';
+    const statusLabel={agents_applying:'🏆 Agents applying — best will be selected in 5 min',agent_assigned:`🏆 Agent: ${g.agent_name||'—'}`,confirmed:'✅ Confirmed'}[g.status]||g.status;
 
     return`<div style="padding:.85rem 0;border-bottom:1px solid var(--b)">
       <div style="display:flex;align-items:flex-start;gap:.75rem">
@@ -1008,29 +1030,84 @@ async function loadVisitGroups(){
           <div style="font-size:.85rem;font-weight:600">${listingTitle}</div>
           <div style="font-size:.75rem;color:var(--tm);margin:.1rem 0">👤 ${g.tenant_name||'Tenant'} · 📅 ${visitDateStr}</div>
           <div style="font-size:.72rem;color:${statusColor};font-weight:600">${statusLabel}</div>
-          ${g.agent_name?`<div style="font-size:.72rem;color:var(--green);margin-top:.2rem">🏆 Agent: <strong>${g.agent_name}</strong> (best rated — auto-assigned)</div>`:''}
-          ${!g.agent_name&&g.wants_agent?'<div style="font-size:.68rem;color:var(--td);margin-top:.2rem">⏳ Waiting for agents to apply — best rated will be auto-assigned</div>':''}
         </div>
       </div>
-      <div style="display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap">
-        ${g.status==='confirmed'||g.status==='agent_assigned'||g.status==='agent_applied'?`<button class="btn bg bsm" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>`:''}
+      <div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap">
+        <button class="btn bg bsm" style="font-size:.68rem" onclick="markVisitDone('${g.id}')">✅ Visit done</button>
         <button class="btn bg bsm" style="font-size:.68rem" onclick="declineVisit('${g.id}')">❌ Cancel</button>
-        <button class="btn bg bsm" style="font-size:.68rem" onclick="openMsgChatById('${g.tenant_id}','${g.listing_id}')">💬 Tenant</button>
       </div>
     </div>`;
   }).join('');
 }
 
-async function confirmVisit(visitId){
-  await sb.from('visits').update({status:'confirmed'}).eq('id',visitId).catch(()=>{});
-  toast('✅ Visit confirmed!');
+async function landlordConfirmVisit(visitId, response, listingId, tenantId){
+  if(response==='yes'){
+    // Mark as available — agents notified to apply
+    await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId);
+    
+    // Update agent messages to show landlord confirmed
+    const{data:agentMsgs}=await sb.from('messages').select('id,receiver_id').eq('visit_id',visitId).eq('type','visit_request');
+    for(const msg of (agentMsgs||[])){
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:msg.receiver_id,
+        content:`✅ Landlord confirmed availability!
+
+The property is available for this visit. Apply now if you want to take it — best rated agent will be selected in 5 minutes.`,
+        visit_id:visitId,
+        type:'visit_request'
+      });
+    }
+
+    // Schedule best agent selection after 5 minutes
+    setTimeout(async()=>{
+      try{
+        await fetch('/.netlify/functions/select-best-agent',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({visit_id:visitId})
+        });
+      }catch(e){}
+    }, 5*60*1000);
+
+    toast('✅ Confirmed! Agents notified — best rated will be selected in 5 minutes.');
+
+  } else if(response==='wrong_date'){
+    await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);
+    // Notify tenant to choose another date
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:'system',
+      receiver_id:tenantId,
+      content:`📅 Unfortunately the landlord is not available on your requested date.
+
+The property is still available — please request a visit with a different date.`,
+      type:'visit_rejected'
+    });
+    toast('📅 Tenant notified to choose another date.');
+
+  } else if(response==='unavailable'){
+    await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);
+    await sb.from('listings').update({active:false}).eq('id',listingId);
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:'system',
+      receiver_id:tenantId,
+      content:`❌ We're sorry — this property is no longer available.
+
+We recommend searching for other listings on RestMalta.`,
+      type:'visit_cancelled'
+    });
+    toast('❌ Listing deactivated. Tenant notified.');
+  }
   loadVisitGroups();
 }
 
 async function declineVisit(visitId){
-  if(!confirm('Decline this visit request?'))return;
-  await sb.from('visits').update({status:'declined'}).eq('id',visitId).catch(()=>{});
-  toast('Visit declined.');
+  if(!confirm('Cancel this visit?'))return;
+  await sb.from('visits').update({status:'declined'}).eq('id',visitId);
+  toast('Visit cancelled.');
   loadVisitGroups();
 }
 
