@@ -1137,31 +1137,42 @@ async function loadTenantVisits(){
     return;
   }
 
-  const statusColors={pending:'var(--gold)',date_rejected:'var(--terra)',agent_assigned:'var(--sea)',confirmed:'var(--green)',cancelled:'var(--td)'};
-  const statusLabels={pending:'⏳ Being confirmed',date_rejected:'📅 New date needed',agent_assigned:'🏆 Agent assigned',confirmed:'✅ Confirmed',cancelled:'❌ Cancelled'};
-
   wrap.innerHTML=visits.map(v=>`
-    <div style="padding:.85rem 0;border-bottom:1px solid var(--b)">
-      <div style="display:flex;align-items:flex-start;gap:.75rem">
-        <div style="width:40px;height:40px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🏠</div>
+    <div style="padding:1rem;background:${v.status==='agent_assigned'||v.status==='confirmed'?'rgba(76,175,125,.06)':'var(--s2)'};border:1px solid ${v.status==='agent_assigned'||v.status==='confirmed'?'rgba(76,175,125,.2)':'var(--b)'};border-radius:12px;margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem">
+        <div style="width:42px;height:42px;border-radius:10px;background:${v.status==='agent_assigned'?'rgba(76,175,125,.15)':'var(--tdim)'};display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">${v.status==='agent_assigned'||v.status==='confirmed'?'✅':'📅'}</div>
         <div style="flex:1">
-          <div style="font-size:.85rem;font-weight:600">${v.listings?.title||'Property'}</div>
+          <div style="font-size:.88rem;font-weight:700">${v.listings?.title||'Property'}</div>
           <div style="font-size:.75rem;color:var(--tm)">📍 ${v.listings?.full_address||v.listings?.zone||'Malta'}</div>
-          <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-top:.2rem">📅 ${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}):''} at ${v.visit_time||'TBD'}</div>
-          ${v.agent_name?`<div style="font-size:.72rem;color:var(--green);margin-top:.1rem">🏆 Agent: ${v.agent_name}</div>`:''}
-          <div style="font-size:.72rem;color:${statusColors[v.status]||'var(--td)'};font-weight:600;margin-top:.2rem">${statusLabels[v.status]||v.status}</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end">
-          <span class="badge ${v.status==='confirmed'?'b-green':v.status==='pending'?'b-gold':'b-dim'}">${statusLabels[v.status]||v.status}</span>
-          ${v.status==='pending'||v.status==='agent_assigned'?`<button class="btn bg bsm" style="font-size:.68rem" onclick="cancelVisit('${v.id}')">Cancel visit</button>`:''}
-        </div>
+        <span class="badge ${v.status==='agent_assigned'||v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':v.status==='agents_applying'?'b-sea':'b-dim'}">${
+          v.status==='awaiting_landlord'?'⏳ Pending':
+          v.status==='agents_applying'?'🏆 Agent being selected':
+          v.status==='agent_assigned'?'✅ Confirmed':
+          v.status==='confirmed'?'✅ Confirmed':
+          v.status==='date_rejected'?'📅 New date needed':
+          v.status==='cancelled'?'❌ Cancelled':v.status
+        }</span>
       </div>
-      ${v.status==='agent_assigned'?`
-        <div style="margin-top:.5rem;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem .85rem">
-          <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.3rem">✅ Visit confirmed — confirm your presence</div>
-          <button class="btn bp bsm" style="width:100%;justify-content:center;margin-bottom:.3rem" onclick="confirmTenantPresence('${v.id}')">✅ I confirm I will attend</button>
-          <div style="font-size:.68rem;color:var(--td)">⚠️ No-show without 24h cancellation = €50 fee</div>
-        </div>`:v.status==='confirmed'?`<div style="margin-top:.5rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;font-size:.72rem;color:var(--gold)">✅ You confirmed your presence — see you there!</div>`:''}
+      <div style="font-size:.82rem;color:var(--sea);font-weight:600;margin-bottom:.4rem">📅 ${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+(v.visit_time||'TBD'):'TBD'}</div>
+      ${v.agent_name?`<div style="font-size:.78rem;color:var(--green);margin-bottom:.4rem">🏆 Agent: <strong>${v.agent_name}</strong></div>`:''}
+      ${v.status==='awaiting_landlord'?`<div style="font-size:.75rem;color:var(--gold)">Waiting for landlord to confirm availability...</div>`:''}
+      ${v.status==='agents_applying'?`<div style="font-size:.75rem;color:var(--sea)">Landlord confirmed — best rated agent being selected...</div>`:''}
+      ${v.status==='agent_assigned'&&!v.tenant_confirmed?`
+        <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.75rem;margin-top:.5rem">
+          <div style="font-size:.82rem;font-weight:700;color:var(--green);margin-bottom:.3rem">🎉 Your visit is confirmed!</div>
+          <div style="font-size:.75rem;color:var(--tm);margin-bottom:.5rem">Please confirm you will attend. If you don't show up without cancelling 24h before, a €50 fee applies.</div>
+          <button class="btn bp" style="width:100%;justify-content:center" onclick="confirmTenantPresence('${v.id}')">✅ I confirm I will attend</button>
+        </div>`:''}
+      ${v.status==='agent_assigned'&&v.tenant_confirmed?`<div style="font-size:.75rem;color:var(--green);margin-top:.4rem">✅ You confirmed your presence — see you there!</div>`:''}
+      ${v.status==='date_rejected'?`
+        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
+          <div style="font-size:.78rem;color:var(--gold);margin-bottom:.3rem">The landlord is not available on this date. Please request a new visit.</div>
+          <button class="btn bg bsm" onclick="window.location.href='/'">🔍 Request new date</button>
+        </div>`:''}
+      <div style="display:flex;gap:.4rem;margin-top:.5rem">
+        ${v.status==='awaiting_landlord'||v.status==='agents_applying'||v.status==='agent_assigned'?`<button class="btn bg bsm" style="font-size:.68rem" onclick="cancelVisit('${v.id}')">Cancel visit</button>`:''}
+      </div>
     </div>`).join('');
 }
 
