@@ -196,6 +196,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('report',this)"><span class="nico">📈</span>Monthly report</button>
     <div class="nl">Properties</div>
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My listings</button>
+    <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits-ll" style="display:none">0</span></button>
     <button class="ni" onclick="sp('leases',this)"><span class="nico">📄</span>Leases & docs<span class="nbadge" id="nb-leases" style="display:none">0</span></button>
     <button class="ni" onclick="sp('inventory',this)"><span class="nico">📋</span>Inventory</button>
     <button class="ni" onclick="sp('sublet',this)"><span class="nico">🔑</span>Subletting<span class="nbadge gold" id="nb-sublet" style="display:none">0</span></button>
@@ -344,6 +345,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <!-- LEASES -->
+    <!-- VISITS PAGE -->
+    <div class="page" id="page-visits">
+      <div style="margin-bottom:1.2rem;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:1rem;font-weight:700">📅 Visit requests</div>
+        <span class="badge b-gold" id="visits-page-count">0 pending</span>
+      </div>
+      <div class="card">
+        <div class="cb" id="visits-page-list"><div class="ld"><div class="sp"></div></div></div>
+      </div>
+    </div>
+
     <div class="page" id="page-leases">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
         <div style="font-size:1rem;font-weight:700">Leases & Documents</div>
@@ -849,10 +861,11 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',tenantmatch:'Tenant Matching',leases:'Leases & Documents',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',inventory:'Inventory',sublet:'Subletting',reviews:'Reviews',profile:'Profilee & Settings'};
+  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',visits:'Visits',leases:'Leases & Documents',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',inventory:'Inventory',sublet:'Subletting',reviews:'Reviews',profile:'Profile & Settings'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
+  if(id==='visits')loadVisitsPage();
   if(id==='inventory')loadInventoryUI();
   if(id==='leases'){
     loadLeases();
@@ -973,6 +986,68 @@ function openNewListing(){window.location.href='/';}
 
 /* LEASES */
 /* VISIT GROUPS */
+async function loadVisitsPage(){
+  const wrap=document.getElementById('visits-page-list');
+  const cnt=document.getElementById('visits-page-count');
+  if(!wrap)return;
+
+  let groups=[];
+  try{
+    const{data:visitData}=await sb.from('visits')
+      .select('*')
+      .eq('landlord_id',U.id)
+      .neq('status','done')
+      .neq('status','declined')
+      .neq('status','cancelled')
+      .order('visit_date',{ascending:true});
+    groups=visitData||[];
+  }catch(e){}
+
+  if(cnt)cnt.textContent=`${groups.length} pending`;
+
+  // Update badge
+  const badge=document.getElementById('nb-visits-ll');
+  const awaiting=groups.filter(g=>g.status==='awaiting_landlord').length;
+  if(badge){badge.textContent=awaiting;badge.style.display=awaiting>0?'inline':'none';}
+
+  if(!groups.length){
+    wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visit requests yet.<br>When tenants request visits they will appear here.</p></div>';
+    return;
+  }
+
+  wrap.innerHTML=groups.map(g=>{
+    const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(g.visit_time||'TBD'):'TBD';
+
+    if(g.status==='awaiting_landlord'){
+      return`<div style="padding:1rem;background:rgba(212,168,71,.06);border:1px solid rgba(212,168,71,.2);border-radius:12px;margin-bottom:.75rem">
+        <div style="font-size:.88rem;font-weight:700;margin-bottom:.2rem">📅 Visit request</div>
+        <div style="font-size:.78rem;color:var(--tm);margin-bottom:.1rem">👤 Tenant: <strong>${g.tenant_name||'—'}</strong></div>
+        <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.75rem">🗓 ${visitDateStr}</div>
+        <div style="font-size:.82rem;color:var(--tm);margin-bottom:.6rem">Is your property available on this date?</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')">✅ Yes — available</button>
+          <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')">📅 Not this date</button>
+          <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="landlordConfirmVisit('${g.id}','unavailable','${g.listing_id}','${g.tenant_id}')">❌ No longer available</button>
+        </div>
+      </div>`;
+    }
+
+    const statusLabels={agents_applying:'🏆 Agents applying — best selected in 5 min',agent_assigned:`🏆 Agent assigned: ${g.agent_name||'—'}`,confirmed:'✅ Visit confirmed'};
+    const statusColors={agents_applying:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)'};
+
+    return`<div style="padding:1rem;background:var(--s2);border:1px solid var(--b);border-radius:12px;margin-bottom:.75rem">
+      <div style="font-size:.88rem;font-weight:700;margin-bottom:.2rem">📅 Visit</div>
+      <div style="font-size:.78rem;color:var(--tm);margin-bottom:.1rem">👤 ${g.tenant_name||'—'}</div>
+      <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">🗓 ${visitDateStr}</div>
+      <div style="font-size:.75rem;color:${statusColors[g.status]||'var(--td)'};font-weight:600">${statusLabels[g.status]||g.status}</div>
+      <div style="display:flex;gap:.4rem;margin-top:.5rem">
+        <button class="btn bg bsm" onclick="markVisitDone('${g.id}')">✅ Visit done</button>
+        <button class="btn bg bsm" onclick="declineVisit('${g.id}')">❌ Cancel</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function loadVisitGroups(){
   const wrap=document.getElementById('visit-groups-list');
   const cnt=document.getElementById('visit-groups-count');
@@ -981,7 +1056,7 @@ async function loadVisitGroups(){
   let groups=[];
   try{
     const{data:visitData}=await sb.from('visits')
-      .select('*,listings(title,zone,full_address)')
+      .select('*')
       .eq('landlord_id',U.id)
       .neq('status','done')
       .neq('status','declined')
@@ -998,7 +1073,7 @@ async function loadVisitGroups(){
   }
 
   wrap.innerHTML=groups.map(g=>{
-    const listingTitle=g.listings?.title||'Listing';
+    const listingTitle=g.listing_title||g.listings?.title||'Listing';
     const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+(g.visit_time||'TBD'):'TBD';
 
     if(g.status==='awaiting_landlord'){
@@ -2061,7 +2136,7 @@ function openNewSublet(){toast('📋 New sublet vacancy form opened');}
 
 /* REVIEWS */
 async function loadReviews(){
-  const{data}=await sb.from('reviews').select('*').eq('reviewed_id',U.id).order('created_at',{ascending:false});
+  const{data}=await sb.from('reviews').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   const avg=(data||[]).length?((data||[]).reduce((s,r)=>s+r.rating,0)/(data||[]).length).toFixed(1):0;
   document.getElementById('my-rating').textContent=avg?`${avg} ⭐`:'—';
   document.getElementById('total-reviews').textContent=(data||[]).length;
