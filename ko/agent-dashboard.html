@@ -716,14 +716,23 @@ ${listing.key_location?'└ '+listing.key_location:''}
 }
 
 async function wrongDateVisit(msgId, listingId, visitId){
-  // Marquer tous les msgs visit_request de cette visite comme lus → disparaît chez tous les agents
-  try{await sb.from('messages').update({read:true}).eq('type','visit_request').eq('visit_id',visitId);}catch(e){}
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
+  // Enregistrer le déclin → le filtre loadVisits l'exclura pour cet agent
+  try{
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:U.id,
+      receiver_id:'system',
+      content:`📅 Agent not available this date: ${P?.full_name||'Agent'}`,
+      type:'agent_declined',
+      visit_id:visitId
+    });
+  }catch(e){}
+
+  // Notifier le tenant
   let visit=null;
   try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();visit=v;}catch(e){}
-
-  try{await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);}catch(e){}
 
   if(visit?.tenant_id){
     try{
@@ -737,10 +746,9 @@ async function wrongDateVisit(msgId, listingId, visitId){
     }catch(e){}
   }
 
-  toast('📅 Tenant notified — they can request a new date.');
+  toast('📅 Tenant notified — this request has been removed from your list.');
   loadVisits();
 }
-
 async function agentNotAvailable(msgId, listingId, visitId){
   // Juste marquer ce message comme lu pour cet agent — ne touche pas au listing ni à la visite
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
