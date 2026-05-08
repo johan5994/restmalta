@@ -540,7 +540,6 @@ async function loadVisits(){
 }
 
 async function applyForVisit(msgId, listingId, visitId){
-  // Just register availability — selection happens after 1 hour
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
   // Save application
@@ -555,23 +554,39 @@ async function applyForVisit(msgId, listingId, visitId){
     });
   }catch(e){}
 
-  // Mark visit as collecting applications
+  // Marquer la visite + stocker l'heure du premier apply
   try{
-    await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId).eq('status','pending');
-  }catch(e){}
+    await sb.from('visits').update({
+      status:'agents_applying',
+      agents_applying_since: new Date().toISOString()
+    }).eq('id',visitId).eq('status','pending');
+  }catch(e){
+    // Si déjà agents_applying, juste update l'application
+    await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId).neq('status','agent_assigned').catch(()=>{});
+  }
 
-  // Schedule selection after 1 hour via Netlify function
-  try{
-    setTimeout(async()=>{
-      await fetch('/.netlify/functions/select-best-agent',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({visit_id:visitId})
-      });
-    }, 60*60*1000); // 1 hour
-  }catch(e){}
+  // Appeler schedule-selection immédiatement — il vérifie si 5 min sont passées
+  fetch('/.netlify/functions/schedule-selection',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({visit_id:visitId, delay_minutes:5})
+  }).catch(()=>{});
 
-  toast('✅ You applied! If you are the best rated agent after 1 hour you will be automatically selected.');
+  toast('✅ Applied! Best rated agent will be auto-selected in 5 minutes.');
+
+  // Recheck toutes les 30s pendant 10 minutes pour mettre à jour l'UI
+  let checks=0;
+  const interval=setInterval(async()=>{
+    checks++;
+    if(checks>20){clearInterval(interval);return;}
+    const{data:v}=await sb.from('visits').select('status,agent_name').eq('id',visitId).single().catch(()=>({data:null}));
+    if(v?.status==='agent_assigned'||v?.status==='confirmed'){
+      clearInterval(interval);
+      toast(`🎉 Agent assigned: ${v.agent_name||'You'}!`);
+      loadVisits();
+    }
+  },30000);
+
   loadVisits();
 }
 
