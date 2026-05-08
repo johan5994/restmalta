@@ -469,20 +469,31 @@ async function loadVisits(){
 
     const rawMsgs=vm||[];
     if(rawMsgs.length){
-      // Récupérer les statuts des visites pour filtrer celles déjà traitées
       const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
       let doneIds=new Set();
+
       if(visitIds.length){
+        // 1. Visites avec statut terminé
         try{
           const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
           (vs||[]).forEach(v=>{
-            if(['agent_assigned','confirmed','cancelled','no_agent'].includes(v.status)){
+            if(['agent_assigned','confirmed','cancelled','no_agent','date_rejected'].includes(v.status)){
               doneIds.add(v.id);
             }
           });
         }catch(e){}
+
+        // 2. Visites où CET agent a déjà répondu (décliné ou appliqué)
+        try{
+          const{data:myActions}=await sb.from('messages')
+            .select('visit_id')
+            .eq('sender_id',U.id)
+            .in('type',['agent_declined','agent_application'])
+            .in('visit_id',visitIds);
+          (myActions||[]).forEach(d=>{if(d.visit_id)doneIds.add(d.visit_id);});
+        }catch(e){}
       }
-      // Garder les demandes sans visit_id connu OU dont la visite n'est pas terminée
+
       visitMsgs=rawMsgs.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
     }
   }catch(e){console.warn('loadVisitMsgs:',e.message);visitMsgs=[];}
@@ -776,16 +787,152 @@ function renderUpcoming(){
 
 function renderAllVisits(){
   const w=document.getElementById('all-visits-list');
-  // Filtrer les visites déclinées
   const visibleVisits=visits.filter(v=>v.status!=='declined'&&v.status!=='cancelled');
   if(!visibleVisits.length){
     if(w)w.innerHTML='<div class="empty"><div class="em">📅</div><p>No confirmed visits yet</p></div>';
     return;
   }
-  if(w)w.innerHTML=visibleVisits.map(v=>`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${new Date(v.visit_date||Date.now()).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'}</div></div><span class="badge ${v.status==='confirmed'||v.status==='agent_assigned'?'b-green':'b-gold'}">${v.status==='agent_assigned'?'✅ Assigned':v.status}</span></div>`).join('');
+  if(w)w.innerHTML=visibleVisits.map(v=>{
+    const isAssigned=v.status==='agent_assigned'||v.status==='confirmed';
+    const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'TBD';
+
+    if(isAssigned){
+      // ── Fiche de visite complète ──
+      return`<div style="background:var(--s2);border:1px solid rgba(76,175,125,.3);border-radius:14px;overflow:hidden;margin-bottom:1rem">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,rgba(76,175,125,.15),rgba(58,143,181,.1));padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:.2rem">📋 Visit Sheet — RestMalta</div>
+            <div style="font-size:1rem;font-weight:700">${v.listing_title||'Property'}</div>
+          </div>
+          <span class="badge b-green">✅ Confirmed</span>
+        </div>
+        <!-- Infos principales -->
+        <div style="padding:1rem 1.2rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div>
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">📅 Date & Time</div>
+            <div style="font-size:.88rem;font-weight:600;color:var(--terra)">${dateStr}</div>
+            <div style="font-size:.82rem;color:var(--tm)">at ${v.visit_time||'TBD'}</div>
+          </div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">👤 Tenant</div>
+            <div style="font-size:.88rem;font-weight:600">${v.tenant_name||'—'}</div>
+            <div style="font-size:.75rem;color:var(--tm)">${v.tenant_email||'—'}</div>
+          </div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">📍 Address</div>
+            <div style="font-size:.85rem;font-weight:600">${v.listing_address||v.listing_zone||'—'}</div>
+          </div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">🔑 Key Access</div>
+            <div style="font-size:.85rem;font-weight:600">${v.key_info||'Contact landlord'}</div>
+          </div>
+        </div>
+        <!-- Détails listing -->
+        <div id="listing-details-${v.id}" style="padding:0 1.2rem 1rem">
+          <div style="font-size:.75rem;color:var(--td);text-align:center;padding:.5rem">Loading property details...</div>
+        </div>
+        <!-- Actions -->
+        <div style="padding:.75rem 1.2rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+          <button class="btn bp bsm" onclick="markVisitDone('${v.id}')" style="flex:1;justify-content:center">✅ Mark as done</button>
+          <button class="btn bg bsm" onclick="reportIssue('${v.id}')" style="flex:1;justify-content:center">⚠️ Report issue</button>
+        </div>
+      </div>`;
+    }
+
+    // Card simple pour les autres statuts
+    return`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${dateStr}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'}</div></div><span class="badge b-gold">${v.status}</span></div>`;
+  }).join('');
+
+  // Charger les détails des listings pour les fiches complètes
+  visibleVisits.filter(v=>v.status==='agent_assigned'||v.status==='confirmed').forEach(v=>loadVisitListingDetails(v));
 }
 
-async function loadListings(){
+async function loadVisitListingDetails(visit){
+  const container=document.getElementById(`listing-details-${visit.id}`);
+  if(!container)return;
+
+  let listing=null;
+  try{
+    const{data}=await sb.from('listings').select('*').eq('id',visit.listing_id).single();
+    listing=data;
+  }catch(e){}
+
+  if(!listing){
+    container.innerHTML='<div style="font-size:.75rem;color:var(--td);text-align:center;padding:.5rem">Property details not available</div>';
+    return;
+  }
+
+  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
+  const inventoryLabels={mandatory:'✅ Owner will be present',if_possible:'👋 Owner if possible',not_needed:'❌ Agent signs on behalf of owner'};
+
+  container.innerHTML=`
+    <!-- Détails propriété -->
+    <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.75rem">
+        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem">
+          <div style="font-size:1.1rem">🛏</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Bedrooms</div>
+          <div style="font-size:.85rem;font-weight:700">${listing.bedrooms||listing.spots||'—'}</div>
+        </div>
+        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem">
+          <div style="font-size:1.1rem">💰</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Rent</div>
+          <div style="font-size:.85rem;font-weight:700">€${listing.price||'—'}/mo</div>
+        </div>
+        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem">
+          <div style="font-size:1.1rem">${listing.type==='short'?'⏱':'📅'}</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Type</div>
+          <div style="font-size:.85rem;font-weight:700">${listing.type==='short'?'Short-let':'Long-let'}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.75rem">
+        ${listing.furnished?'<span style="background:rgba(76,175,125,.15);color:var(--green);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">✅ Furnished</span>':''}
+        ${listing.bills_included?'<span style="background:rgba(76,175,125,.15);color:var(--green);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">✅ Bills included</span>':''}
+        ${listing.parking?'<span style="background:rgba(58,143,181,.15);color:var(--sea);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">🅿️ Parking</span>':''}
+        ${listing.pool?'<span style="background:rgba(58,143,181,.15);color:var(--sea);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">🏊 Pool</span>':''}
+        ${listing.pets?'<span style="background:rgba(212,168,71,.15);color:var(--gold);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">🐾 Pets OK</span>':''}
+      </div>
+      <!-- Clés et inventaire -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+        <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.65rem">
+          <div style="font-size:.65rem;font-weight:700;color:var(--sea);margin-bottom:.3rem">🔑 KEY ACCESS</div>
+          <div style="font-size:.8rem;font-weight:600">${keyLabels[listing.key_type]||'Contact landlord'}</div>
+          ${listing.key_location?`<div style="font-size:.72rem;color:var(--tm);margin-top:.2rem">└ ${listing.key_location}</div>`:''}
+        </div>
+        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.65rem">
+          <div style="font-size:.65rem;font-weight:700;color:var(--gold);margin-bottom:.3rem">📝 INVENTORY</div>
+          <div style="font-size:.8rem;font-weight:600">${inventoryLabels[listing.inventory_presence]||'Owner present'}</div>
+        </div>
+      </div>
+      ${listing.notes||listing.description?`<div style="margin-top:.75rem;font-size:.78rem;color:var(--tm);line-height:1.5;padding:.6rem;background:rgba(255,255,255,.03);border-radius:8px">📌 ${(listing.notes||listing.description||'').substring(0,200)}${(listing.notes||listing.description||'').length>200?'...':''}</div>`:''}
+    </div>`;
+}
+
+async function markVisitDone(visitId){
+  if(!confirm('Mark this visit as completed?'))return;
+  try{await sb.from('visits').update({status:'completed'}).eq('id',visitId);}catch(e){}
+  toast('✅ Visit marked as completed!');
+  loadVisits();
+}
+
+async function reportIssue(visitId){
+  const issue=prompt('Describe the issue (e.g. tenant no-show, access problem...):');
+  if(!issue)return;
+  try{
+    const{data:v}=await sb.from('visits').select('listing_id,landlord_id').eq('id',visitId).single();
+    if(v){
+      await sb.from('messages').insert({
+        listing_id:v.listing_id,
+        sender_id:U.id,
+        receiver_id:v.landlord_id,
+        content:`⚠️ Visit issue reported by agent ${P?.full_name||'Agent'}:\n\n${issue}`,
+        type:'visit_issue'
+      });
+    }
+  }catch(e){}
+  toast('⚠️ Issue reported to landlord.');
+}
   const{data}=await sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false}).limit(20);
   listings=data||[];
   document.getElementById('k-list').textContent=listings.length;
