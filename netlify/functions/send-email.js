@@ -88,7 +88,7 @@ const templates = {
     `
   }),
 
-  // Lease signed — commission due
+  // Lease signed — commission due (envoyé avant le paiement)
   commission_due: ({ name, role, amount, paymentUrl, listingTitle }) => ({
     subject: `💳 Commission due — ${listingTitle}`,
     html: `
@@ -98,13 +98,90 @@ const templates = {
         </div>
         <div style="background:white;padding:30px;border-radius:0 0 8px 8px">
           <h2 style="color:#1a1a1a">Your lease has been signed! 🎉</h2>
-          <p style="color:#666">Hi ${name}, the lease for ${listingTitle} has been signed by all parties.</p>
+          <p style="color:#666">Hi ${name}, the lease for <strong>${listingTitle}</strong> has been signed by all parties.</p>
+
+          <div style="background:#fff8e6;border:1px solid #f0c040;border-radius:10px;padding:16px;margin:20px 0">
+            <p style="margin:0 0 8px 0;font-weight:bold;color:#1a1a1a">🔒 Your signed PDF is locked</p>
+            <p style="margin:0;color:#666;font-size:14px">Your signed lease PDF will be automatically sent to you once both parties have completed their payment.</p>
+          </div>
+
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0">
             <p style="margin:5px 0"><strong>Your RestMalta commission (${role}):</strong> €${amount}</p>
             <p style="margin:5px 0;color:#666">Pay by card or SEPA bank transfer (recommended — lowest fees)</p>
           </div>
-          <a href="${paymentUrl}" style="display:inline-block;background:#E05A3A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px">
-            Pay my commission →
+
+          <a href="${paymentUrl}" style="display:inline-block;background:#E05A3A;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px;font-size:16px">
+            Pay my commission & unlock PDF →
+          </a>
+        </div>
+        <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">RestMalta — Malta's rental platform</p>
+      </div>
+    `
+  }),
+
+  // Relance — l'autre partie a payé, reste plus qu'eux
+  commission_reminder: ({ name, role, amount, paymentUrl, listingTitle, dashboardUrl }) => ({
+    subject: `⏳ Action needed — unlock your lease PDF — ${listingTitle}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:12px">
+        <div style="background:#E05A3A;padding:20px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:white;margin:0;font-size:24px">RestMalta</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px">
+          <h2 style="color:#1a1a1a">⏳ The other party has paid — your turn!</h2>
+          <p style="color:#666">Hi ${name}, the ${role === 'landlord' ? 'tenant' : 'landlord'} has already paid their RestMalta commission for <strong>${listingTitle}</strong>.</p>
+
+          <div style="background:#fff3cd;border-left:4px solid #E05A3A;padding:15px;border-radius:8px;margin:20px 0">
+            <p style="margin:0;font-weight:bold;color:#1a1a1a">🔒 Your signed lease PDF is waiting for you</p>
+            <p style="margin:8px 0 0 0;color:#666;font-size:14px">Complete your payment now to instantly unlock and receive your signed lease PDF.</p>
+          </div>
+
+          <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0">
+            <p style="margin:5px 0"><strong>Amount due:</strong> €${amount}</p>
+            <p style="margin:5px 0;color:#666">Pay by card or SEPA bank transfer (recommended)</p>
+          </div>
+
+          <a href="${paymentUrl}" style="display:inline-block;background:#E05A3A;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px;font-size:16px">
+            Pay now & unlock PDF →
+          </a>
+
+          <p style="margin-top:20px;font-size:13px;color:#999">
+            <a href="${dashboardUrl}" style="color:#E05A3A">Go to my dashboard</a>
+          </p>
+        </div>
+        <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">RestMalta — Malta's rental platform</p>
+      </div>
+    `
+  }),
+
+  // PDF débloqué — envoyé aux deux après double paiement
+  lease_unlocked: ({ name, role, pdfUrl, listingTitle, dashboardUrl }) => ({
+    subject: `🎉 Your signed lease is ready — ${listingTitle}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:12px">
+        <div style="background:#E05A3A;padding:20px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:white;margin:0;font-size:24px">RestMalta</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px">
+          <h2 style="color:#1a1a1a">🎉 Your signed lease is unlocked!</h2>
+          <p style="color:#666">Hi ${name}, both commissions have been received. Your signed lease for <strong>${listingTitle}</strong> is now available.</p>
+
+          <div style="background:#e8f5e9;border:1px solid #4CAF7D;border-radius:10px;padding:20px;margin:20px 0;text-align:center">
+            <p style="font-size:32px;margin:0 0 10px 0">📄</p>
+            <p style="margin:0 0 16px 0;font-weight:bold;color:#1a1a1a">Signed Lease — ${listingTitle}</p>
+            <a href="${pdfUrl}" style="display:inline-block;background:#4CAF7D;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">
+              Download signed lease →
+            </a>
+          </div>
+
+          <p style="color:#666;font-size:14px">
+            ⚠️ <strong>Important:</strong> This lease must be registered with the Housing Authority of Malta within 10 days of commencement (<a href="https://rentregistration.mt" style="color:#E05A3A">rentregistration.mt</a>).
+          </p>
+
+          ${role === 'tenant' ? '<p style="color:#666;font-size:14px;margin-top:10px">🏠 Welcome to your new home in Malta!</p>' : ''}
+
+          <a href="${dashboardUrl}" style="display:inline-block;background:#E05A3A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:16px">
+            Go to my dashboard →
           </a>
         </div>
         <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">RestMalta — Malta's rental platform</p>
