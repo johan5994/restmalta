@@ -1,5 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
+const SUPABASE_URL = 'https://clfqftbvohwybkrtvylo.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -11,88 +14,55 @@ exports.handler = async (event) => {
 
   try {
     const { visit_id, delay_minutes = 5 } = JSON.parse(event.body || '{}');
+    if (!visit_id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'visit_id required' }) };
 
-    const sb = createClient(
-      'https://clfqftbvohwybkrtvylo.supabase.co',
-      process.env.SUPABASE_SERVICE_KEY
-    );
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let visit = null;
-    try {
-      const { data } = await sb.from('visits').select('*').eq('id', visit_id).single();
-      visit = data;
-    } catch(e) { visit = null; }
+    try { const { data } = await sb.from('visits').select('*').eq('id', visit_id).single(); visit = data; } catch(e) {}
 
     if (!visit) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Visit not found' }) };
-
-    // Déjà assigné → rien à faire
     if (visit.status === 'agent_assigned' || visit.status === 'confirmed') {
       return { statusCode: 200, headers, body: JSON.stringify({ message: 'Already assigned' }) };
     }
 
-    const SITE = process.env.URL || 'https://restmalta.com';
-
-    // Vérifier si 5 minutes se sont écoulées depuis agents_applying_since
-    const applyingSince = visit.agents_applying_since ? new Date(visit.agents_applying_since) : null;
+    const applyingSince = visit.agents_applying_since ? new Date(visit.agents_applying_since) : new Date();
     const now = new Date();
-    const minutesElapsed = applyingSince ? (now - applyingSince) / 1000 / 60 : 999;
+    const elapsedMs = now - applyingSince;
+    const targetMs = delay_minutes * 60 * 1000;
+    const remainingMs = Math.max(0, targetMs - elapsedMs);
 
-    if (minutesElapsed >= delay_minutes) {
-      // 5 min écoulées → sélectionner le meilleur agent maintenant
-      console.log(`Visit ${visit_id} — ${minutesElapsed.toFixed(1)} min elapsed → selecting best agent`);
-      
-      // Appel direct (fire and forget) — select-best-agent s'exécute immédiatement
-      fetch(`${SITE}/.netlify/functions/select-best-agent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visit_id, wait_minutes: 0 })
-      }).catch(() => {});
+    console.log(`Visit ${visit_id} — elapsed: ${Math.round(elapsedMs/1000)}s, remaining: ${Math.round(remainingMs/1000)}s`);
 
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Selection triggered' }) };
+    const MAX_WAIT = 9000; // 9s max par invocation Netlify
+
+    if (remainingMs <= MAX_WAIT) {
+      // Attendre le temps restant puis sélectionner
+      if (remainingMs > 0) await new Promise(r => setTimeout(r, remainingMs));
+
+      // Revérifier
+      let visitFinal = null;
+      try { const { data } = await sb.from('visits').select('status').eq('id', visit_id).single(); visitFinal = data; } catch(e) {}
+      if (visitFinal?.status === 'agent_assigned' || visitFinal?.status === 'confirmed') {
+        return { statusCode: 200, headers, body: JSON.stringify({ message: 'Already assigned' }) };
+      }
+
+      // Sélectionner maintenant
+      const result = await selectBestAgent(sb, visit_id);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, result }) };
 
     } else {
-      // Pas encore 5 min — planifier un retry dans (5min - temps écoulé)
-      const remainingMs = Math.max(0, (delay_minutes * 60 - (now - applyingSince) / 1000)) * 1000;
-      const remainingSec = Math.round(remainingMs / 1000);
-      console.log(`Visit ${visit_id} — ${minutesElapsed.toFixed(1)} min elapsed, retry in ${remainingSec}s`);
+      // Trop long — attendre 9s et reschedule
+      await new Promise(r => setTimeout(r, MAX_WAIT));
 
-      // Retry via setTimeout (max 25s sur Netlify, donc on reschedule si besoin)
-      const waitMs = Math.min(remainingMs, 24000);
-      await new Promise(r => setTimeout(r, waitMs));
+      const SITE = process.env.URL || 'https://restmalta.com';
+      fetch(`${SITE}/.netlify/functions/schedule-selection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visit_id, delay_minutes })
+      });
 
-      // Après l'attente, vérifier à nouveau
-      let visitUpdated = null;
-      try {
-        const { data } = await sb.from('visits').select('status,agents_applying_since').eq('id', visit_id).single();
-        visitUpdated = data;
-      } catch(e) { visitUpdated = null; }
-
-      if (visitUpdated?.status === 'agent_assigned' || visitUpdated?.status === 'confirmed') {
-        return { statusCode: 200, headers, body: JSON.stringify({ message: 'Already assigned during wait' }) };
-      }
-
-      const nowAfterWait = new Date();
-      const totalElapsed = visitUpdated?.agents_applying_since
-        ? (nowAfterWait - new Date(visitUpdated.agents_applying_since)) / 1000 / 60
-        : delay_minutes + 1;
-
-      if (totalElapsed >= delay_minutes) {
-        // Maintenant on peut sélectionner
-        fetch(`${SITE}/.netlify/functions/select-best-agent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visit_id, wait_minutes: 0 })
-        }).catch(() => {});
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Selection triggered after wait' }) };
-      } else {
-        // Encore trop tôt — re-appeler schedule-selection pour continuer
-        fetch(`${SITE}/.netlify/functions/schedule-selection`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visit_id, delay_minutes })
-        }).catch(() => {});
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Rescheduled' }) };
-      }
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Rescheduled' }) };
     }
 
   } catch (e) {
@@ -100,3 +70,99 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
   }
 };
+
+async function selectBestAgent(sb, visit_id) {
+  let visit = null;
+  try { const { data } = await sb.from('visits').select('*').eq('id', visit_id).single(); visit = data; } catch(e) {}
+  if (!visit) return 'visit not found';
+
+  let applications = [];
+  try {
+    const { data } = await sb.from('messages').select('sender_id').eq('type', 'agent_application').eq('visit_id', visit_id);
+    applications = data || [];
+  } catch(e) {}
+
+  if (!applications.length) {
+    await sb.from('visits').update({ status: 'no_agent' }).eq('id', visit_id).catch(() => {});
+    await sb.from('messages').insert({
+      listing_id: visit.listing_id, sender_id: 'system', receiver_id: visit.landlord_id,
+      content: `⚠️ No agents applied for the visit on ${visit.visit_date}. You may need to handle this visit yourself.`,
+      type: 'visit_info'
+    }).catch(() => {});
+    return 'no agents applied';
+  }
+
+  const agentIds = [...new Set(applications.map(a => a.sender_id))];
+  let bestAgentId = null, bestAgentName = 'Agent', bestScore = -1;
+
+  for (const agentId of agentIds) {
+    let reviews = [];
+    try { const { data } = await sb.from('reviews').select('rating').eq('agent_id', agentId); reviews = data || []; } catch(e) {}
+    const score = reviews.length ? reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length : 0;
+    if (score > bestScore || bestAgentId === null) {
+      bestScore = score;
+      bestAgentId = agentId;
+      let profile = null;
+      try { const { data } = await sb.from('profiles').select('full_name').eq('clerk_id', agentId).single(); profile = data; } catch(e) {}
+      bestAgentName = profile?.full_name || 'Agent';
+    }
+  }
+
+  await sb.from('visits').update({ agent_id: bestAgentId, agent_name: bestAgentName, status: 'agent_assigned' }).eq('id', visit_id).catch(() => {});
+
+  let listing = null;
+  try { const { data } = await sb.from('listings').select('*').eq('id', visit.listing_id).single(); listing = data; } catch(e) {}
+
+  const SITE = process.env.URL || 'https://restmalta.com';
+
+  // Message agent sélectionné
+  await sb.from('messages').insert({
+    listing_id: visit.listing_id, sender_id: 'system', receiver_id: bestAgentId,
+    content: `🎉 You have been selected for this visit!\n\n🏠 ${listing?.title || '—'}\n📍 ${listing?.full_address || listing?.zone || '—'}\n📅 ${visit.visit_date} at ${visit.visit_time || 'TBD'}\n👤 Tenant: ${visit.tenant_name || '—'}\n🔑 Keys: ${listing?.key_location || 'Contact landlord'}`,
+    type: 'agent_selected'
+  }).catch(() => {});
+
+  // Message tenant
+  await sb.from('messages').insert({
+    listing_id: visit.listing_id, sender_id: 'system', receiver_id: visit.tenant_id,
+    content: `✅ Your visit is confirmed!\n\nAgent: ${bestAgentName}\nDate: ${visit.visit_date} at ${visit.visit_time || 'TBD'}\nProperty: ${listing?.title || '—'}\nAddress: ${listing?.full_address || listing?.zone || '—'}\n\n⚠️ Please confirm your presence in your dashboard → My Visits.\nNO-SHOW POLICY: €50 fee if no-show without 24h cancellation.`,
+    type: 'visit_confirmed_noshow'
+  }).catch(() => {});
+
+  // Message landlord
+  await sb.from('messages').insert({
+    listing_id: visit.listing_id, sender_id: 'system', receiver_id: visit.landlord_id,
+    content: `✅ Visit assigned!\n\nAgent: ${bestAgentName}\nDate: ${visit.visit_date} at ${visit.visit_time || 'TBD'}\nTenant: ${visit.tenant_name || '—'}`,
+    type: 'visit_info'
+  }).catch(() => {});
+
+  // Messages agents non sélectionnés
+  for (const agentId of agentIds) {
+    if (agentId !== bestAgentId) {
+      await sb.from('messages').insert({
+        listing_id: visit.listing_id, sender_id: 'system', receiver_id: agentId,
+        content: `ℹ️ Visit assigned to another agent (higher rating).\n\nProperty: ${listing?.title || '—'}\nDate: ${visit.visit_date}\n\nThank you for applying!`,
+        type: 'agent_not_selected'
+      }).catch(() => {});
+    }
+  }
+
+  // Email agent
+  let agentProfile = null;
+  try { const { data } = await sb.from('profiles').select('email').eq('clerk_id', bestAgentId).single(); agentProfile = data; } catch(e) {}
+  if (agentProfile?.email) {
+    fetch(`${SITE}/.netlify/functions/send-email`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template: 'agent_selected', to: agentProfile.email,
+        data: { agentName: bestAgentName, visitDate: visit.visit_date, visitTime: visit.visit_time || 'TBD',
+          listingTitle: listing?.title || '—', address: listing?.full_address || listing?.zone || '—',
+          tenantName: visit.tenant_name || '—', keyInfo: listing?.key_location || 'Contact landlord',
+          dashboardUrl: `${SITE}/agent-dashboard.html` }
+      })
+    }).catch(() => {});
+  }
+
+  console.log(`Visit ${visit_id} — assigned to ${bestAgentName}`);
+  return `assigned to ${bestAgentName}`;
+}
