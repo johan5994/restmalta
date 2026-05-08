@@ -1073,7 +1073,16 @@ async function loadTickets(){
   wrap.innerHTML=data.map(t=>'<div class="tcard"><div class="tpri '+(pc[t.priority]||'pm')+'"></div><div style="font-size:1.2rem">'+(t.title?.includes('Plumb')?'🚰':t.title?.includes('Elect')?'💡':t.title?.includes('A/C')?'❄️':'🔧')+'</div><div style="flex:1"><div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">'+t.title+'</div><div style="font-size:.72rem;color:var(--tm)">'+(t.description||'')+' · '+new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</div></div><span class="tst '+(sc[t.status]||'to')+'">'+(sl[t.status]||'Open')+'</span></div>').join('');
 }
 
-function openTicketModal(){document.getElementById('tick-modal').classList.add('open');}
+async function openTicketModal(){
+  // Vérifier si le tenant a un bail signé
+  let leases=null;
+  try{const{data:d}=await sb.from('leases').select('id').eq('tenant_id',U.id).eq('status','signed').limit(1);leases=d;}catch(e){leases=null;}
+  if(!leases||!leases.length){
+    toast('⚠️ You need a signed lease to report maintenance issues.');
+    return;
+  }
+  document.getElementById('tick-modal').classList.add('open');
+}
 
 let ticketPhotos=[];
 function addTicketPhotos(input){
@@ -1265,7 +1274,8 @@ async function loadDocuments(){
   wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
 
   // Requête manquante — récupérer les leases du tenant
-  const{data}=await sb.from('leases').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false}).catch(()=>({data:null}));
+  let data=null;
+  try{const{data:d}=await sb.from('leases').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});data=d;}catch(e){data=null;}
 
   if(!data||!data.length){
     wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No leases yet.<br>When your landlord generates a lease it will appear here for signature.</p></div>';
