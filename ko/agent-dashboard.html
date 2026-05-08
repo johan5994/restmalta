@@ -543,7 +543,7 @@ async function loadVisits(){
         <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">
           <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
           <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
-          <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Property unavailable</button>
+          <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="agentNotAvailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ I'm not available</button>
         </div>
       </div>`;
     }).join('');
@@ -553,6 +553,8 @@ async function loadVisits(){
   renderUpcoming();
   renderAllVisits();
   renderCalendar();
+  // Restaurer les chronos actifs
+  setTimeout(restoreTimers, 100);
 }
 
 async function applyForVisit(msgId, listingId, visitId){
@@ -580,42 +582,67 @@ async function applyForVisit(msgId, listingId, visitId){
     await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId).neq('status','agent_assigned').catch(()=>{});
   }
 
+  // Sauvegarder le chrono dans localStorage pour qu'il survive aux rechargements
+  const endTime=Date.now()+(5*60*1000);
+  localStorage.setItem('timer_'+visitId, endTime);
+
   // Afficher le chrono dans la card
   const cardEl=document.querySelector(`[data-visit-id="${visitId}"]`);
   if(cardEl){
     const actionsDiv=cardEl.querySelector('.visit-actions');
-    if(actionsDiv){
-      const endTime=Date.now()+(5*60*1000);
-      actionsDiv.innerHTML=`
-        <div style="background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem .85rem;text-align:center">
-          <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">⏳ Applied! Agent being selected in:</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${visitId}">5:00</div>
-          <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
-        </div>`;
-
-      // Lancer le chrono
-      const interval=setInterval(()=>{
-        const remaining=endTime-Date.now();
-        const timerEl=document.getElementById(`timer-${visitId}`);
-        if(!timerEl){clearInterval(interval);return;}
-        if(remaining<=0){
-          clearInterval(interval);
-          timerEl.textContent='Selecting...';
-          triggerSelection(visitId, listingId);
-        } else {
-          const m=Math.floor(remaining/60000);
-          const s=Math.floor((remaining%60000)/1000);
-          timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;
-        }
-      },1000);
-    }
-  } else {
-    // Card pas trouvée (déjà rechargée) — lancer le chrono en background
-    setTimeout(()=>triggerSelection(visitId, listingId), 5*60*1000);
+    if(actionsDiv) showTimer(actionsDiv, visitId, endTime);
   }
 
   toast('✅ Applied! You will be notified in 5 minutes if selected.');
   // Ne PAS appeler loadVisits ici — ça effacerait le chrono
+}
+
+// ── Chrono persistant ─────────────────────────────────────────
+function showTimer(actionsDiv, visitId, endTime){
+  actionsDiv.innerHTML=`
+    <div style="background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem .85rem;text-align:center">
+      <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">⏳ Applied! Agent being selected in:</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${visitId}">5:00</div>
+      <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
+    </div>`;
+
+  const interval=setInterval(()=>{
+    const remaining=endTime-Date.now();
+    const timerEl=document.getElementById(`timer-${visitId}`);
+    if(!timerEl){clearInterval(interval);return;}
+    if(remaining<=0){
+      clearInterval(interval);
+      localStorage.removeItem('timer_'+visitId);
+      timerEl.textContent='Selecting...';
+      triggerSelection(visitId, null);
+    } else {
+      const m=Math.floor(remaining/60000);
+      const s=Math.floor((remaining%60000)/1000);
+      timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+    }
+  },1000);
+}
+
+function restoreTimers(){
+  // Restaurer les chronos actifs depuis localStorage
+  for(const key of Object.keys(localStorage)){
+    if(!key.startsWith('timer_'))continue;
+    const visitId=key.replace('timer_','');
+    const endTime=parseInt(localStorage.getItem(key));
+    if(!endTime)continue;
+    if(Date.now()>endTime){
+      // Temps écoulé pendant l'absence — déclencher la sélection
+      localStorage.removeItem(key);
+      triggerSelection(visitId, null);
+      continue;
+    }
+    // Remettre le chrono dans la card
+    const cardEl=document.querySelector(`[data-visit-id="${visitId}"]`);
+    if(cardEl){
+      const actionsDiv=cardEl.querySelector('.visit-actions');
+      if(actionsDiv) showTimer(actionsDiv, visitId, endTime);
+    }
+  }
 }
 
 async function triggerSelection(visitId, listingId){
@@ -703,47 +730,23 @@ async function wrongDateVisit(msgId, listingId, visitId){
   loadVisits();
 }
 
-async function propertyUnavailable(msgId, listingId, visitId){
-  if(!confirm('Mark this property as unavailable? This will deactivate the listing and notify the landlord.'))return;
-
-  // Marquer tous les msgs visit_request de cette visite comme lus → disparaît chez tous les agents
-  try{await sb.from('messages').update({read:true}).eq('type','visit_request').eq('visit_id',visitId);}catch(e){}
+async function agentNotAvailable(msgId, listingId, visitId){
+  // Juste marquer ce message comme lu pour cet agent — ne touche pas au listing ni à la visite
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
-  let visit=null;
-  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();visit=v;}catch(e){}
+  // Enregistrer le déclin de cet agent
+  try{
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:U.id,
+      receiver_id:'system',
+      content:`❌ Agent not available: ${P?.full_name||'Agent'}`,
+      type:'agent_declined',
+      visit_id:visitId
+    });
+  }catch(e){}
 
-  try{await sb.from('listings').update({active:false}).eq('id',listingId);}catch(e){}
-  try{await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);}catch(e){}
-
-  let listing=null;
-  try{const{data:l}=await sb.from('listings').select('landlord_id,title').eq('id',listingId).maybeSingle();listing=l;}catch(e){}
-
-  if(listing?.landlord_id){
-    try{
-      await sb.from('messages').insert({
-        listing_id:listingId,
-        sender_id:'system',
-        receiver_id:listing.landlord_id,
-        content:'⚠️ Property availability check\n\nAn agent reported this property may no longer be available. Your listing has been temporarily deactivated.\n\nPlease confirm in your dashboard.',
-        type:'availability_check'
-      });
-    }catch(e){}
-  }
-
-  if(visit?.tenant_id){
-    try{
-      await sb.from('messages').insert({
-        listing_id:listingId,
-        sender_id:'system',
-        receiver_id:visit.tenant_id,
-        content:"We're sorry — this property is no longer available.\n\nWe recommend searching for other listings on RestMalta.",
-        type:'visit_cancelled'
-      });
-    }catch(e){}
-  }
-
-  toast('❌ Property marked unavailable — landlord and tenant notified, listing deactivated.');
+  toast('✅ Noted — this request has been removed from your list.');
   loadVisits();
 }
 
