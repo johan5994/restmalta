@@ -933,6 +933,8 @@ async function reportIssue(visitId){
   }catch(e){}
   toast('⚠️ Issue reported to landlord.');
 }
+
+async function loadListings(){
   const{data}=await sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false}).limit(20);
   listings=data||[];
   document.getElementById('k-list').textContent=listings.length;
