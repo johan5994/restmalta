@@ -459,7 +459,8 @@ async function loadNotifications(){
 
 async function loadVisits(){
   // Load visit requests sent to this agent — exclure ceux déjà lus/traités
-  let visitMsgs=[];\n  let confirmedVisits=[];
+  let visitMsgs=[];
+  let confirmedVisits=[];
   try{
     const{data:vm}=await sb.from('messages')
       .select('*')
