@@ -461,23 +461,28 @@ async function loadVisits(){
   let visitMsgs=[];
   let confirmedVisits=[];
   try{
+    // Charger TOUS les messages visit_request (lus ou non)
     const{data:vm}=await sb.from('messages')
       .select('*')
       .eq('receiver_id',U.id)
       .eq('type','visit_request')
-      .eq('read',false)
       .order('created_at',{ascending:false});
 
-    // Filtrer les visites déjà assignées à quelqu'un d'autre
     const rawMsgs=vm||[];
     if(rawMsgs.length){
+      // Récupérer les statuts des visites
       const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
-      let assignedIds=new Set();
+      let visitStatuses={};
       if(visitIds.length){
-        const{data:av}=await sb.from('visits').select('id').in('id',visitIds).eq('status','agent_assigned').catch(()=>({data:[]}));
-        (av||[]).forEach(v=>assignedIds.add(v.id));
+        const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds).catch(()=>({data:[]}));
+        (vs||[]).forEach(v=>visitStatuses[v.id]=v.status);
       }
-      visitMsgs=rawMsgs.filter(m=>!assignedIds.has(m.visit_id));
+      // Garder seulement les visites pas encore assignées/annulées/déclinées
+      visitMsgs=rawMsgs.filter(m=>{
+        const status=visitStatuses[m.visit_id];
+        if(!status) return true; // pas encore dans visits → montrer
+        return !['agent_assigned','confirmed','cancelled','no_agent'].includes(status);
+      });
     }
   }catch(e){console.warn('loadVisitMsgs:',e.message);}
 
