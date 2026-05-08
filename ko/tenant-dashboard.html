@@ -631,9 +631,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 </main>
 
 <!-- MSG MODAL -->
-<div class="mover" id="msg-modal" onclick="if(event.target.id==='msg-modal')this.classList.remove('open')">
+<div class="mover" id="msg-modal" onclick="if(event.target.id==='msg-modal'){this.classList.remove('open');loadMessages();}">
   <div class="modal">
-    <button class="mclose" onclick="document.getElementById('msg-modal').classList.remove('open')">✕</button>
+    <button class="mclose" onclick="document.getElementById('msg-modal').classList.remove('open');loadMessages()">✕</button>
     <div class="mt" id="mm-title">Message</div><div class="ms" id="mm-sub"></div>
     <div class="thread" id="mm-thread"></div>
     <textarea class="fta" id="mm-reply" rows="2" placeholder="Write your reply…"></textarea>
@@ -995,7 +995,20 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
     thread.appendChild(div);
   });
   thread.scrollTop=thread.scrollHeight;
-  sb.from('messages').update({read:true}).eq('id',id);
+  // Marquer tous les messages de cette conversation comme lus
+  await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);
+
+  // Mettre à jour le badge nb-msg
+  const{data:stillUnread}=await sb.from('messages').select('id').eq('receiver_id',U.id).eq('read',false);
+  const count=(stillUnread||[]).length;
+  const badge=document.getElementById('nb-msg');
+  if(badge){
+    if(count>0){badge.textContent=count;badge.style.display='inline';}
+    else{badge.style.display='none';}
+  }
+
+  // Recharger la liste pour enlever les points rouges
+  loadMessages();
 
   // Real-time
   if(tenantChatChannel)sb.removeChannel(tenantChatChannel);
@@ -1118,7 +1131,7 @@ async function loadTenantVisits(){
   if(!wrap)return;
   let visits=[];
   try{
-    const{data}=await sb.from('visits').select('*,listings(title,zone,full_address)').eq('tenant_id',U.id).order('visit_date',{ascending:true});
+    const{data}=await sb.from('visits').select('*').eq('tenant_id',U.id).order('visit_date',{ascending:true});
     visits=data||[];
   }catch(e){}
 
@@ -1206,6 +1219,13 @@ async function initStripeCard(){
   if(!window.Stripe)return;
   try{
     if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
+    if(P?.stripe_customer_id){
+      document.getElementById('card-form-wrap').style.display='none';
+      document.getElementById('card-saved-msg').style.display='block';
+      document.getElementById('card-status-badge').textContent='✅ Saved';
+      document.getElementById('card-status-badge').className='badge b-green';
+      return;
+    }
     const elements=stripeInstance.elements();
     cardElement=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'#E05A5A'}}});
     cardElement.mount('#card-element');
@@ -1242,6 +1262,11 @@ async function registerCard(){
 }
 async function loadDocuments(){
   const wrap=document.getElementById('docs-list');
+  wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
+
+  // Requête manquante — récupérer les leases du tenant
+  const{data}=await sb.from('leases').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false}).catch(()=>({data:null}));
+
   if(!data||!data.length){
     wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No leases yet.<br>When your landlord generates a lease it will appear here for signature.</p></div>';
     return;
@@ -1301,9 +1326,9 @@ async function loadPaymentsData(){
   const total=payments.filter(p=>p.status==='paid').reduce((s,p)=>s+(p.amount||0),0);
   const pend=payments.filter(p=>p.status==='pending'||p.status==='late').length;
   const next=payments.find(p=>(p.status==='pending'||p.status==='late')&&p.due_date);
-  document.getElementById('pay-total').textContent='€'+total.toLocaleString();
-  document.getElementById('pay-pend').textContent=pend||'0';
-  document.getElementById('pay-next').textContent=next?new Date(next.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
+  if(document.getElementById('pay-total'))document.getElementById('pay-total').textContent='€'+total.toLocaleString();
+  if(document.getElementById('pay-pend'))document.getElementById('pay-pend').textContent=pend||'0';
+  if(document.getElementById('pay-next'))document.getElementById('pay-next').textContent=next?new Date(next.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
 
   // Show "I paid" button for pending/late payments
   const dueNow=payments.filter(p=>p.status==='pending'||p.status==='late');
@@ -1574,7 +1599,7 @@ async function loadMatchListings(){
 async function updateScore(){
   if(!P)return;
   // Score is based on real reviews from landlords, not profile completeness
-  const{data:reviews}=await sb.from('reviews').select('rating').eq('tenant_id',U.id);
+  const{data:reviews}=await sb.from('reviews').select('rating').eq('reviewer_id',U.id);
   const hasReviews=reviews&&reviews.length>0;
   const avgScore=hasReviews?(reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length).toFixed(1):'—';
   const scoreNum=hasReviews?parseFloat(avgScore):0;
