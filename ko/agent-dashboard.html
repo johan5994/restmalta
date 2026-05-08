@@ -458,7 +458,6 @@ async function loadNotifications(){
 }
 
 async function loadVisits(){
-  // Load visit requests sent to this agent — exclure ceux déjà lus/traités
   let visitMsgs=[];
   let confirmedVisits=[];
   try{
@@ -466,23 +465,18 @@ async function loadVisits(){
       .select('*')
       .eq('receiver_id',U.id)
       .eq('type','visit_request')
-      .eq('read',false)  // Seulement les non-lus = pas encore traités
+      .eq('read',false)
       .order('created_at',{ascending:false});
-    
-    // Filtrer aussi les visites dont le statut est déjà agent_assigned
+
+    // Filtrer les visites déjà assignées à quelqu'un d'autre
     const rawMsgs=vm||[];
     if(rawMsgs.length){
-      // Récupérer les statuts des visites concernées
       const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
       let assignedIds=new Set();
       if(visitIds.length){
-        const{data:assignedVisits}=await sb.from('visits')
-          .select('id')
-          .in('id',visitIds)
-          .eq('status','agent_assigned');
-        (assignedVisits||[]).forEach(v=>assignedIds.add(v.id));
+        const{data:av}=await sb.from('visits').select('id').in('id',visitIds).eq('status','agent_assigned').catch(()=>({data:[]}));
+        (av||[]).forEach(v=>assignedIds.add(v.id));
       }
-      // Exclure les visites déjà assignées
       visitMsgs=rawMsgs.filter(m=>!assignedIds.has(m.visit_id));
     }
   }catch(e){console.warn('loadVisitMsgs:',e.message);}
@@ -528,7 +522,7 @@ async function loadVisits(){
       const isAwaitingLandlord=m.content?.includes('Awaiting landlord confirmation')||m.content?.includes('awaiting_landlord');
       const isConfirmed=m.content?.includes('Landlord confirmed');
 
-      return`<div style="padding:.85rem;background:var(--s2);border-radius:12px;margin-bottom:.75rem;border:1px solid ${isConfirmed?'rgba(76,175,125,.3)':isAwaitingLandlord?'rgba(212,168,71,.3)':'var(--b)'}">
+      return`<div style="padding:.85rem;background:var(--s2);border-radius:12px;margin-bottom:.75rem;border:1px solid ${isConfirmed?'rgba(76,175,125,.3)':isAwaitingLandlord?'rgba(212,168,71,.3)':'var(--b)'}" data-visit-id="${m.visit_id||''}">
         <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">🏠 ${property}</div>
         <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
         <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
@@ -540,12 +534,11 @@ async function loadVisits(){
         </div>`:''}
         ${isAwaitingLandlord&&!isConfirmed?`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--gold)">⏳ Waiting for landlord to confirm availability — you can already apply below</div>`:''}
         ${isConfirmed?`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--green)">✅ Landlord confirmed — apply now! Best rated agent selected in 5 minutes.</div>`:''}
-        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">
           <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
           <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
           <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Property unavailable</button>
         </div>
-        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem;text-align:center">⏱ Best rated agent among applicants is auto-selected 5 min after landlord confirms</div>
       </div>`;
     }).join('');
   }
@@ -559,7 +552,7 @@ async function loadVisits(){
 async function applyForVisit(msgId, listingId, visitId){
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
-  // Save application
+  // Enregistrer la candidature
   try{
     await sb.from('messages').insert({
       listing_id:listingId,
@@ -571,7 +564,7 @@ async function applyForVisit(msgId, listingId, visitId){
     });
   }catch(e){}
 
-  // Marquer la visite + stocker l'heure du premier apply
+  // Marquer la visite
   try{
     await sb.from('visits').update({
       status:'agents_applying',
@@ -581,31 +574,68 @@ async function applyForVisit(msgId, listingId, visitId){
     await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId).neq('status','agent_assigned').catch(()=>{});
   }
 
-  // Déclencher la sélection côté serveur après 5 minutes
-  fetch('/.netlify/functions/schedule-selection',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({visit_id:visitId, delay_minutes:5})
-  }).catch(()=>{});
+  // Afficher le chrono dans la card
+  const cardEl=document.querySelector(`[data-visit-id="${visitId}"]`);
+  if(cardEl){
+    const actionsDiv=cardEl.querySelector('.visit-actions');
+    if(actionsDiv){
+      const endTime=Date.now()+(5*60*1000);
+      actionsDiv.innerHTML=`
+        <div style="background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem .85rem;text-align:center">
+          <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">⏳ Applied! Agent being selected in:</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${visitId}">5:00</div>
+          <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
+        </div>`;
 
-  toast('✅ Applied! Best rated agent will be auto-selected in 5 minutes.');
+      // Lancer le chrono
+      const interval=setInterval(()=>{
+        const remaining=endTime-Date.now();
+        const timerEl=document.getElementById(`timer-${visitId}`);
+        if(!timerEl){clearInterval(interval);return;}
+        if(remaining<=0){
+          clearInterval(interval);
+          timerEl.textContent='Selecting...';
+          triggerSelection(visitId, listingId);
+        } else {
+          const m=Math.floor(remaining/60000);
+          const s=Math.floor((remaining%60000)/1000);
+          timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+        }
+      },1000);
+    }
+  } else {
+    // Card pas trouvée (déjà rechargée) — lancer le chrono en background
+    setTimeout(()=>triggerSelection(visitId, listingId), 5*60*1000);
+  }
 
-  // Recheck toutes les 30s pendant 10 minutes pour mettre à jour l'UI
-  let checks=0;
-  const interval=setInterval(async()=>{
-    checks++;
-    if(checks>20){clearInterval(interval);return;}
-    try{
-      const{data:v}=await sb.from('visits').select('status,agent_name').eq('id',visitId).single();
-      if(v?.status==='agent_assigned'||v?.status==='confirmed'){
-        clearInterval(interval);
-        toast(`🎉 Agent assigned: ${v.agent_name||'Done'}!`);
-        loadVisits();
-      }
-    }catch(e){}
-  },30000);
-
+  toast('✅ Applied! You will be notified in 5 minutes if selected.');
   loadVisits();
+}
+
+async function triggerSelection(visitId, listingId){
+  // Vérifier si déjà assigné
+  let visit=null;
+  try{const{data}=await sb.from('visits').select('status,agent_id').eq('id',visitId).single();visit=data;}catch(e){}
+
+  if(visit?.status==='agent_assigned'||visit?.status==='confirmed'){
+    // Déjà assigné — recharger pour voir si c'est nous
+    loadVisits();
+    return;
+  }
+
+  // Appeler select-best-agent
+  try{
+    const res=await fetch('/.netlify/functions/select-best-agent',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({visit_id:visitId, wait_minutes:0})
+    });
+    const data=await res.json();
+    console.log('Selection result:', data);
+  }catch(e){console.error('Selection error:',e);}
+
+  // Recharger pour voir le résultat
+  await loadVisits();
 }
 
 async function validateVisit(msgId, listingId, visitId){
@@ -643,7 +673,7 @@ ${listing.key_location?'└ '+listing.key_location:''}
 
 async function wrongDateVisit(msgId, listingId, visitId){
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle().catch(()=>({data:null})):{data:null};
+  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
 
   // Update visit status
   try{await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);}catch(e){}
@@ -668,19 +698,19 @@ async function wrongDateVisit(msgId, listingId, visitId){
 async function propertyUnavailable(msgId, listingId, visitId){
   if(!confirm('Mark this property as unavailable? This will deactivate the listing and notify the landlord.'))return;
 
-  // Marquer TOUS les messages visit_request de cette visite comme lus → disparaît chez tous les agents
-  try{await sb.from('messages').update({read:true}).eq('type','visit_request').eq('visit_id',visitId);}catch(e){}
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
 
-  let visit=null;
-  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();visit=v;}catch(e){}
-
+  // Deactivate listing
   try{await sb.from('listings').update({active:false}).eq('id',listingId);}catch(e){}
+
+  // Update visit
   try{await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);}catch(e){}
 
-  let listing=null;
-  try{const{data:l}=await sb.from('listings').select('landlord_id,title').eq('id',listingId).maybeSingle();listing=l;}catch(e){}
+  // Get landlord
+  const{data:listing}=await sb.from('listings').select('landlord_id,title').eq('id',listingId).maybeSingle();
 
+  // Notify landlord
   if(listing?.landlord_id){
     try{
       await sb.from('messages').insert({
@@ -693,6 +723,7 @@ async function propertyUnavailable(msgId, listingId, visitId){
     }catch(e){}
   }
 
+  // Notify tenant
   if(visit?.tenant_id){
     try{
       await sb.from('messages').insert({
@@ -706,6 +737,12 @@ async function propertyUnavailable(msgId, listingId, visitId){
   }
 
   toast('❌ Property marked unavailable — landlord and tenant notified, listing deactivated.');
+  loadVisits();
+}
+
+async function declineVisitRequest(msgId){
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+  toast('Visit request declined.');
   loadVisits();
 }
 
@@ -729,12 +766,13 @@ function renderUpcoming(){
 
 function renderAllVisits(){
   const w=document.getElementById('all-visits-list');
-  if(!visits.length){
+  // Filtrer les visites déclinées
+  const visibleVisits=visits.filter(v=>v.status!=='declined'&&v.status!=='cancelled');
+  if(!visibleVisits.length){
     if(w)w.innerHTML='<div class="empty"><div class="em">📅</div><p>No confirmed visits yet</p></div>';
     return;
   }
-  if(w)w.innerHTML=visits.map(v=>`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${new Date(v.visit_date||Date.now()).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`).join('');
-  // DO NOT touch visit-requests here — it's managed by loadVisits
+  if(w)w.innerHTML=visibleVisits.map(v=>`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${new Date(v.visit_date||Date.now()).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'}</div></div><span class="badge ${v.status==='confirmed'||v.status==='agent_assigned'?'b-green':'b-gold'}">${v.status==='agent_assigned'?'✅ Assigned':v.status}</span></div>`).join('');
 }
 
 async function loadListings(){
