@@ -17,7 +17,11 @@ exports.handler = async (event) => {
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    const { data: visit } = await sb.from('visits').select('*').eq('id', visit_id).single().catch(() => ({ data: null }));
+    let visit = null;
+    try {
+      const { data } = await sb.from('visits').select('*').eq('id', visit_id).single();
+      visit = data;
+    } catch(e) { visit = null; }
 
     if (!visit) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Visit not found' }) };
 
@@ -57,7 +61,11 @@ exports.handler = async (event) => {
       await new Promise(r => setTimeout(r, waitMs));
 
       // Après l'attente, vérifier à nouveau
-      const { data: visitUpdated } = await sb.from('visits').select('status,agents_applying_since').eq('id', visit_id).single().catch(() => ({ data: null }));
+      let visitUpdated = null;
+      try {
+        const { data } = await sb.from('visits').select('status,agents_applying_since').eq('id', visit_id).single();
+        visitUpdated = data;
+      } catch(e) { visitUpdated = null; }
 
       if (visitUpdated?.status === 'agent_assigned' || visitUpdated?.status === 'confirmed') {
         return { statusCode: 200, headers, body: JSON.stringify({ message: 'Already assigned during wait' }) };
