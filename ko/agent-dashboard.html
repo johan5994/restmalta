@@ -458,16 +458,32 @@ async function loadNotifications(){
 }
 
 async function loadVisits(){
-  // Load visit requests sent to this agent
-  let visitMsgs=[];
-  let confirmedVisits=[];
+  // Load visit requests sent to this agent — exclure ceux déjà lus/traités
+  let visitMsgs=[];\n  let confirmedVisits=[];
   try{
     const{data:vm}=await sb.from('messages')
       .select('*')
       .eq('receiver_id',U.id)
       .eq('type','visit_request')
+      .eq('read',false)  // Seulement les non-lus = pas encore traités
       .order('created_at',{ascending:false});
-    visitMsgs=vm||[];
+    
+    // Filtrer aussi les visites dont le statut est déjà agent_assigned
+    const rawMsgs=vm||[];
+    if(rawMsgs.length){
+      // Récupérer les statuts des visites concernées
+      const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
+      let assignedIds=new Set();
+      if(visitIds.length){
+        const{data:assignedVisits}=await sb.from('visits')
+          .select('id')
+          .in('id',visitIds)
+          .eq('status','agent_assigned');
+        (assignedVisits||[]).forEach(v=>assignedIds.add(v.id));
+      }
+      // Exclure les visites déjà assignées
+      visitMsgs=rawMsgs.filter(m=>!assignedIds.has(m.visit_id));
+    }
   }catch(e){console.warn('loadVisitMsgs:',e.message);}
 
   try{
@@ -561,11 +577,10 @@ async function applyForVisit(msgId, listingId, visitId){
       agents_applying_since: new Date().toISOString()
     }).eq('id',visitId).eq('status','pending');
   }catch(e){
-    // Si déjà agents_applying, juste update l'application
     await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId).neq('status','agent_assigned').catch(()=>{});
   }
 
-  // Appeler schedule-selection immédiatement — il vérifie si 5 min sont passées
+  // Déclencher la sélection côté serveur après 5 minutes
   fetch('/.netlify/functions/schedule-selection',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -579,12 +594,14 @@ async function applyForVisit(msgId, listingId, visitId){
   const interval=setInterval(async()=>{
     checks++;
     if(checks>20){clearInterval(interval);return;}
-    const{data:v}=await sb.from('visits').select('status,agent_name').eq('id',visitId).single().catch(()=>({data:null}));
-    if(v?.status==='agent_assigned'||v?.status==='confirmed'){
-      clearInterval(interval);
-      toast(`🎉 Agent assigned: ${v.agent_name||'You'}!`);
-      loadVisits();
-    }
+    try{
+      const{data:v}=await sb.from('visits').select('status,agent_name').eq('id',visitId).single();
+      if(v?.status==='agent_assigned'||v?.status==='confirmed'){
+        clearInterval(interval);
+        toast(`🎉 Agent assigned: ${v.agent_name||'Done'}!`);
+        loadVisits();
+      }
+    }catch(e){}
   },30000);
 
   loadVisits();
@@ -625,7 +642,7 @@ ${listing.key_location?'└ '+listing.key_location:''}
 
 async function wrongDateVisit(msgId, listingId, visitId){
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
+  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle().catch(()=>({data:null})):{data:null};
 
   // Update visit status
   try{await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);}catch(e){}
@@ -650,19 +667,19 @@ async function wrongDateVisit(msgId, listingId, visitId){
 async function propertyUnavailable(msgId, listingId, visitId){
   if(!confirm('Mark this property as unavailable? This will deactivate the listing and notify the landlord.'))return;
 
+  // Marquer TOUS les messages visit_request de cette visite comme lus → disparaît chez tous les agents
+  try{await sb.from('messages').update({read:true}).eq('type','visit_request').eq('visit_id',visitId);}catch(e){}
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
 
-  // Deactivate listing
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();visit=v;}catch(e){}
+
   try{await sb.from('listings').update({active:false}).eq('id',listingId);}catch(e){}
-
-  // Update visit
   try{await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);}catch(e){}
 
-  // Get landlord
-  const{data:listing}=await sb.from('listings').select('landlord_id,title').eq('id',listingId).maybeSingle();
+  let listing=null;
+  try{const{data:l}=await sb.from('listings').select('landlord_id,title').eq('id',listingId).maybeSingle();listing=l;}catch(e){}
 
-  // Notify landlord
   if(listing?.landlord_id){
     try{
       await sb.from('messages').insert({
@@ -675,7 +692,6 @@ async function propertyUnavailable(msgId, listingId, visitId){
     }catch(e){}
   }
 
-  // Notify tenant
   if(visit?.tenant_id){
     try{
       await sb.from('messages').insert({
@@ -689,12 +705,6 @@ async function propertyUnavailable(msgId, listingId, visitId){
   }
 
   toast('❌ Property marked unavailable — landlord and tenant notified, listing deactivated.');
-  loadVisits();
-}
-
-async function declineVisitRequest(msgId){
-  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-  toast('Visit request declined.');
   loadVisits();
 }
 
