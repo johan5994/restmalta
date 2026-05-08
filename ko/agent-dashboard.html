@@ -461,7 +461,6 @@ async function loadVisits(){
   let visitMsgs=[];
   let confirmedVisits=[];
   try{
-    // Charger TOUS les messages visit_request (lus ou non)
     const{data:vm}=await sb.from('messages')
       .select('*')
       .eq('receiver_id',U.id)
@@ -470,21 +469,23 @@ async function loadVisits(){
 
     const rawMsgs=vm||[];
     if(rawMsgs.length){
-      // Récupérer les statuts des visites
+      // Récupérer les statuts des visites pour filtrer celles déjà traitées
       const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
-      let visitStatuses={};
+      let doneIds=new Set();
       if(visitIds.length){
-        const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds).catch(()=>({data:[]}));
-        (vs||[]).forEach(v=>visitStatuses[v.id]=v.status);
+        try{
+          const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
+          (vs||[]).forEach(v=>{
+            if(['agent_assigned','confirmed','cancelled','no_agent'].includes(v.status)){
+              doneIds.add(v.id);
+            }
+          });
+        }catch(e){}
       }
-      // Garder seulement les visites pas encore assignées/annulées/déclinées
-      visitMsgs=rawMsgs.filter(m=>{
-        const status=visitStatuses[m.visit_id];
-        if(!status) return true; // pas encore dans visits → montrer
-        return !['agent_assigned','confirmed','cancelled','no_agent'].includes(status);
-      });
+      // Garder les demandes sans visit_id connu OU dont la visite n'est pas terminée
+      visitMsgs=rawMsgs.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
     }
-  }catch(e){console.warn('loadVisitMsgs:',e.message);}
+  }catch(e){console.warn('loadVisitMsgs:',e.message);visitMsgs=[];}
 
   try{
     const{data:cv}=await sb.from('visits')
@@ -614,7 +615,7 @@ async function applyForVisit(msgId, listingId, visitId){
   }
 
   toast('✅ Applied! You will be notified in 5 minutes if selected.');
-  loadVisits();
+  // Ne PAS appeler loadVisits ici — ça effacerait le chrono
 }
 
 async function triggerSelection(visitId, listingId){
@@ -677,20 +678,22 @@ ${listing.key_location?'└ '+listing.key_location:''}
 }
 
 async function wrongDateVisit(msgId, listingId, visitId){
+  // Marquer tous les msgs visit_request de cette visite comme lus → disparaît chez tous les agents
+  try{await sb.from('messages').update({read:true}).eq('type','visit_request').eq('visit_id',visitId);}catch(e){}
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
 
-  // Update visit status
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();visit=v;}catch(e){}
+
   try{await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);}catch(e){}
 
-  // Notify tenant to choose another date
   if(visit?.tenant_id){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:visit.tenant_id,
-        content:`📅 Visit request update\n\nUnfortunately the requested date (${visit.visit_date} at ${visit.visit_time||'TBD'}) is not available.\n\nThe property is still available — please request a new visit with a different date and time.`,
+        content:'📅 Visit request update\n\nUnfortunately the requested date is not available.\n\nThe property is still available — please request a new visit with a different date.',
         type:'visit_rejected'
       });
     }catch(e){}
@@ -703,39 +706,38 @@ async function wrongDateVisit(msgId, listingId, visitId){
 async function propertyUnavailable(msgId, listingId, visitId){
   if(!confirm('Mark this property as unavailable? This will deactivate the listing and notify the landlord.'))return;
 
+  // Marquer tous les msgs visit_request de cette visite comme lus → disparaît chez tous les agents
+  try{await sb.from('messages').update({read:true}).eq('type','visit_request').eq('visit_id',visitId);}catch(e){}
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-  const{data:visit}=visitId?await sb.from('visits').select('*').eq('id',visitId).maybeSingle():{data:null};
 
-  // Deactivate listing
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();visit=v;}catch(e){}
+
   try{await sb.from('listings').update({active:false}).eq('id',listingId);}catch(e){}
-
-  // Update visit
   try{await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);}catch(e){}
 
-  // Get landlord
-  const{data:listing}=await sb.from('listings').select('landlord_id,title').eq('id',listingId).maybeSingle();
+  let listing=null;
+  try{const{data:l}=await sb.from('listings').select('landlord_id,title').eq('id',listingId).maybeSingle();listing=l;}catch(e){}
 
-  // Notify landlord
   if(listing?.landlord_id){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:listing.landlord_id,
-        content:`⚠️ Property availability check\n\nDuring a visit request for "${listing.title}", the agent reported the property may no longer be available.\n\nYour listing has been temporarily deactivated.\n\nPlease confirm in your dashboard:\n• ✅ Property still available → reactivate listing\n• ❌ Property no longer available → keep deactivated`,
+        content:'⚠️ Property availability check\n\nAn agent reported this property may no longer be available. Your listing has been temporarily deactivated.\n\nPlease confirm in your dashboard.',
         type:'availability_check'
       });
     }catch(e){}
   }
 
-  // Notify tenant
   if(visit?.tenant_id){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:visit.tenant_id,
-        content:`We're sorry — this property is no longer available.\n\nWe recommend searching for other listings on RestMalta.`,
+        content:"We're sorry — this property is no longer available.\n\nWe recommend searching for other listings on RestMalta.",
         type:'visit_cancelled'
       });
     }catch(e){}
