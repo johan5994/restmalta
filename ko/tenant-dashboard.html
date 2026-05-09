@@ -995,19 +995,11 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
     thread.appendChild(div);
   });
   thread.scrollTop=thread.scrollHeight;
-  // Marquer tous les messages de cette conversation comme lus
   await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);
-
-  // Mettre à jour le badge nb-msg
-  const{data:stillUnread}=await sb.from('messages').select('id').eq('receiver_id',U.id).eq('read',false);
+  const{data:stillUnread}=await sb.from('messages').select('id').eq('receiver_id',U.id).eq('read',false).catch(()=>({data:[]}));
   const count=(stillUnread||[]).length;
   const badge=document.getElementById('nb-msg');
-  if(badge){
-    if(count>0){badge.textContent=count;badge.style.display='inline';}
-    else{badge.style.display='none';}
-  }
-
-  // Recharger la liste pour enlever les points rouges
+  if(badge){if(count>0){badge.textContent=count;badge.style.display='inline';}else{badge.style.display='none';}}
   loadMessages();
 
   // Real-time
@@ -1074,7 +1066,6 @@ async function loadTickets(){
 }
 
 async function openTicketModal(){
-  // Vérifier si le tenant a un bail signé
   let leases=null;
   try{const{data:d}=await sb.from('leases').select('id').eq('tenant_id',U.id).eq('status','signed').limit(1);leases=d;}catch(e){leases=null;}
   if(!leases||!leases.length){
@@ -1272,11 +1263,8 @@ async function registerCard(){
 async function loadDocuments(){
   const wrap=document.getElementById('docs-list');
   wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
-
-  // Requête manquante — récupérer les leases du tenant
   let data=null;
   try{const{data:d}=await sb.from('leases').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});data=d;}catch(e){data=null;}
-
   if(!data||!data.length){
     wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No leases yet.<br>When your landlord generates a lease it will appear here for signature.</p></div>';
     return;
@@ -1777,7 +1765,7 @@ let videoStream=null;
 async function loadFaceModels(){
   if(faceModelsLoaded)return true;
   try{
-    const MODEL_URL='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+    const MODEL_URL='https://unpkg.com/face-api.js@0.22.2/weights';
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
