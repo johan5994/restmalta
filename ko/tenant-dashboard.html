@@ -1014,8 +1014,11 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     // visit_interest_check s'affiche dans My Visits — ignorer dans les messages
-    if(m.type==='visit_interest_check') return;
-    div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    } else if(m.type==='visit_interest_check'){
+      return;
+    } else {
+      div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    }
     thread.appendChild(div);
   });
   thread.scrollTop=thread.scrollHeight;
