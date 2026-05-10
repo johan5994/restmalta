@@ -85,8 +85,27 @@ exports.handler = async (event) => {
     console.log(`Paiement status — landlord: ${landlordPaid}, tenant: ${tenantPaid}`);
 
     if (landlordPaid && tenantPaid) {
-      // ── LES DEUX ONT PAYÉ — débloquer le PDF ──
-      await unlockLeasePdf(sb, leaseId);
+      // ── LES DEUX ONT PAYÉ commissions — vérifier si paiement dépôt/loyer confirmé aussi ──
+      const { data: depoPay } = await sb
+        .from('payments')
+        .select('status')
+        .eq('lease_id', leaseId)
+        .eq('type', 'deposit_and_first_month')
+        .eq('status', 'paid')
+        .limit(1)
+        .single()
+        .catch(() => ({ data: null }));
+
+      if (depoPay) {
+        // Tout est payé — débloquer le PDF
+        await unlockLeasePdf(sb, leaseId);
+      } else {
+        // Commissions OK mais dépôt/loyer pas encore confirmé
+        // Marquer commissions comme payées mais garder PDF bloqué
+        await sb.from('commissions').update({ status: 'paid' }).eq('lease_id', leaseId);
+        await sb.from('leases').update({ commissions_paid_at: new Date().toISOString() }).eq('id', leaseId);
+        console.log(`Lease ${leaseId} — commissions paid, waiting for deposit/rent confirmation`);
+      }
     } else {
       // ── Un seul a payé — envoyer une relance à l'autre ──
       await sendReminder(sb, leaseId, role, commission);
