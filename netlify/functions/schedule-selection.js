@@ -1,5 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
 
+// Helper — génère un thread_id unique pour une paire de participants
+function makeThreadId(listingId, id1, id2) {
+  return listingId + '__' + [id1, id2].sort().join('__');
+}
+
+
 const SUPABASE_URL = 'https://clfqftbvohwybkrtvylo.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
