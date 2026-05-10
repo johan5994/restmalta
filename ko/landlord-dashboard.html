@@ -725,7 +725,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">💶 Financial</div>
           <div class="fgrid2">
             <div class="fg"><label class="fl">IBAN (for receiving rent) *</label><input class="fi" id="prof-iban" placeholder="MT84 MALT 0110 0001 2345 MTLC AST0 01" oninput="updateLLCompleteness()"></div>
-            <div class="fg"><label class="fl">Revolut / bank name</label><input class="fi" id="prof-bank" placeholder="Revolut @handle or Bank of Valletta"></div>
+            <div class="fg"><label class="fl">💜 Revolut tag (optional)</label><input class="fi" id="prof-revolut" placeholder="@yourname" oninput="updateLLCompleteness()"></div>
           </div>
           <button class="btn bp" onclick="saveProfilee()" style="margin-top:.75rem;width:100%;justify-content:center">Save profile →</button>
         </div>
@@ -1693,14 +1693,94 @@ function loadAwaitingConfirmation(data){
 }
 
 async function confirmPaymentReceived(id){
-  const{data:pay}=await sb.from('payments').select('*').eq('id',id).single();
-  const{error}=await sb.from('payments').update({
-    status:'paid',
-    paid_at:new Date().toISOString()
-  }).eq('id',id);
-  if(error){toast('❌ '+error.message);return;}
-  toast('✅ Payment confirmed! Generating receipt...');
-  // Auto-generate quittance
+  let pay=null;
+  try{const{data:p}=await sb.from('payments').select('*').eq('id',id).single();pay=p;}catch(e){}
+
+  try{
+    await sb.from('payments').update({status:'paid',paid_at:new Date().toISOString()}).eq('id',id);
+  }catch(e){toast('❌ Error confirming payment');return;}
+
+  toast('✅ Payment confirmed!');
+
+  // Vérifier si les commissions RestMalta sont déjà payées
+  // Si oui → débloquer le PDF maintenant
+  if(pay?.lease_id){
+    try{
+      const{data:comm}=await sb.from('commissions')
+        .select('status,landlord_paid,tenant_paid')
+        .eq('lease_id',pay.lease_id)
+        .single();
+
+      if(comm&&comm.landlord_paid&&comm.tenant_paid){
+        // Commissions déjà payées → débloquer le PDF
+        const{data:lease}=await sb.from('leases').select('*').eq('id',pay.lease_id).single();
+        if(lease?.pdf_url_locked){
+          await sb.from('leases').update({
+            pdf_url:lease.pdf_url_locked,
+            status:'signed',
+          }).eq('id',pay.lease_id);
+
+          // Envoyer PDF aux deux parties
+          if(lease.landlord_id){
+            await sb.from('messages').insert({
+              listing_id:lease.listing_id,sender_id:'system',receiver_id:lease.landlord_id,
+              content:`🎉 All payments confirmed!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}`,
+            }).catch(()=>{});
+          }
+          if(lease.tenant_id){
+            await sb.from('messages').insert({
+              listing_id:lease.listing_id,sender_id:'system',receiver_id:lease.tenant_id,
+              content:`🎉 Payment confirmed by your landlord!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}\n\n⚠️ Register your lease at rentregistration.mt within 10 days.`,
+            }).catch(()=>{});
+          }
+        }
+      }
+    }catch(e){}
+  }
+
+  // Récupérer la visite pour notifier l'agent
+  let agentId=null;
+  try{
+    const{data:visit}=await sb.from('visits')
+      .select('agent_id,agent_name,tenant_id,listing_id,listing_title')
+      .eq('listing_id',pay.listing_id)
+      .in('status',['completed','tenant_interested','lease_pending','entry_inventory_pending'])
+      .order('created_at',{ascending:false})
+      .limit(1)
+      .single();
+    agentId=visit?.agent_id;
+
+      // Notifier l'agent pour l'état des lieux d'entrée
+      if(agentId){
+        await sb.from('messages').insert({
+          listing_id:pay.listing_id,
+          sender_id:'system',
+          receiver_id:agentId,
+          content:`💶 Payment confirmed by landlord!\n\n🏠 ${pay.listing_title||'Property'}\n👤 Tenant: ${pay.tenant_name||'—'}\n\n📋 Please proceed with the entry inventory check.\nGo to your dashboard → My Visits to mark the entry inventory as done.`,
+          type:'entry_inventory_needed'
+        }).catch(()=>{});
+      }
+
+      // Notifier le tenant
+      if(visit?.tenant_id){
+        await sb.from('messages').insert({
+          listing_id:pay.listing_id,
+          sender_id:'system',
+          receiver_id:visit.tenant_id,
+          content:`✅ Your payment has been confirmed by the landlord!\n\n📋 The agent will now proceed with the entry inventory check before you move in.\n\nYou will be notified once everything is ready.`,
+          type:'payment_confirmed'
+        }).catch(()=>{});
+      }
+
+      // Mettre à jour le statut de la visite
+      if(visit?.agent_id){
+        await sb.from('visits').update({status:'entry_inventory_pending'})
+          .eq('listing_id',pay.listing_id)
+          .eq('agent_id',agentId)
+          .catch(()=>{});
+      }
+    }catch(e){}
+
   if(pay)generateQuittance(pay);
   loadPaymentsData();
   loadDash();
@@ -1898,7 +1978,39 @@ async function openMsgChat(id, title, listingId, senderId){
     const isMe=m.sender_id===U.id;
     const div=document.createElement('div');
     div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
-    div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+
+    // Message spécial — tenant intéressé
+    // Message spécial — tenant a déclaré avoir payé
+    if(m.type==='payment_declared'&&m.receiver_id===U.id){
+      div.innerHTML=`
+        <div class="bt" style="max-width:85%">
+          <div style="white-space:pre-wrap">${m.content}</div>
+          <div style="margin-top:.75rem;display:flex;gap:.5rem">
+            <button onclick="confirmPaymentFromMsg('${m.id}','${listingId}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">✅ Yes, I received the payment</button>
+            <button onclick="disputePayment('${m.id}','${listingId}')" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Not received yet</button>
+          </div>
+        </div>
+        <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    } else if(m.type==='tenant_interested'&&m.receiver_id===U.id){
+      div.innerHTML=`
+        <div class="bt" style="max-width:85%">
+          <div>${m.content}</div>
+          <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.5rem">
+            <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">Set lease dates to proceed:</div>
+            <div style="display:flex;gap:.5rem">
+              <div style="flex:1"><label style="font-size:.68rem;color:var(--td)">Start date</label><input type="date" id="lease-start-${m.id}" class="fi" style="font-size:.78rem;margin-top:.2rem"></div>
+              <div style="flex:1"><label style="font-size:.68rem;color:var(--td)">End date</label><input type="date" id="lease-end-${m.id}" class="fi" style="font-size:.78rem;margin-top:.2rem"></div>
+            </div>
+            <div style="display:flex;gap:.5rem">
+              <button onclick="respondToTenantInterest('${m.id}','${m.visit_id||''}','${listingId}',true)" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">✅ Accept & Generate Lease</button>
+              <button onclick="respondToTenantInterest('${m.id}','${m.visit_id||''}','${listingId}',false)" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">❌ Decline</button>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    } else {
+      div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    }
     body.appendChild(div);
   });
   body.scrollTop=body.scrollHeight;
@@ -1930,11 +2042,154 @@ async function openMsgChat(id, title, listingId, senderId){
 
 function insertTpl(text){document.getElementById('msg-input').value=text;}
 
+async function confirmPaymentFromMsg(msgId, listingId){
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+
+  // Trouver le payment record correspondant
+  let payId=null;
+  try{
+    const{data:p}=await sb.from('payments')
+      .select('id')
+      .eq('listing_id',listingId)
+      .eq('status','declared')
+      .eq('type','deposit_and_first_month')
+      .order('created_at',{ascending:false})
+      .limit(1)
+      .single();
+    payId=p?.id;
+  }catch(e){}
+
+  if(payId){
+    await confirmPaymentReceived(payId);
+  } else {
+    toast('⚠️ Payment record not found — check in Payments section.');
+  }
+
+  // Remplacer les boutons
+  const container=document.querySelector(`button[onclick*="confirmPaymentFromMsg"][onclick*="${msgId}"]`);
+  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:#4CAF7D;font-weight:600;margin-top:.5rem">✅ Payment confirmed — agent notified for entry inventory.</div>';
+}
+
+async function disputePayment(msgId, listingId){
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+
+  // Trouver le tenant_id
+  let tenantId=null;
+  try{
+    const{data:p}=await sb.from('payments').select('tenant_id').eq('listing_id',listingId).eq('status','declared').eq('type','deposit_and_first_month').limit(1).single();
+    tenantId=p?.tenant_id;
+  }catch(e){}
+
+  if(tenantId){
+    await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+      content:`⚠️ Your landlord has not yet received your payment.\n\nPlease check that you sent the correct amount to the correct IBAN/Revolut and try again.\n\nIf you believe this is an error, please contact the landlord directly via messages.`,
+      type:'payment_not_received'
+    }).catch(()=>{});
+  }
+
+  const container=document.querySelector(`button[onclick*="disputePayment"][onclick*="${msgId}"]`);
+  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:#E05A5A;font-weight:600;margin-top:.5rem">⚠️ Tenant notified to check their payment.</div>';
+  toast('⚠️ Tenant has been notified to check their payment.');
+}
+
+async function respondToTenantInterest(msgId, visitId, listingId, accept){
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+
+  if(!accept){
+    try{await sb.from('visits').update({status:'landlord_declined'}).eq('id',visitId);}catch(e){}
+    if(visit?.tenant_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:visit.tenant_id,
+        content:`We're sorry — the landlord has decided not to proceed with your rental application for ${visit.listing_title||'this property'} at this time.\n\nWe recommend searching for other listings on RestMalta.`,
+        type:'landlord_declined'
+      }).catch(()=>{});
+    }
+    if(visit?.agent_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
+        content:`ℹ️ The landlord has declined the rental application from ${visit.tenant_name||'the tenant'} for ${visit.listing_title||'the property'}.`,
+        type:'landlord_declined'
+      }).catch(()=>{});
+    }
+    // Remplacer les boutons
+    const container=document.querySelector(`button[onclick*="${msgId}"]`);
+    if(container)container.closest('.bt').querySelector('div[style*="flex-direction:column"]').innerHTML='<div style="font-size:.75rem;color:var(--td);margin-top:.5rem">✓ You declined this application.</div>';
+    toast('✅ Tenant and agent notified.');
+
+  } else {
+    const startDate=document.getElementById(`lease-start-${msgId}`)?.value;
+    const endDate=document.getElementById(`lease-end-${msgId}`)?.value;
+    if(!startDate||!endDate){toast('⚠️ Please set lease start and end dates first.');return;}
+
+    try{await sb.from('visits').update({status:'lease_pending'}).eq('id',visitId);}catch(e){}
+
+    let listing=null;
+    try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
+    let tenantProfile=null;
+    try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',visit?.tenant_id).single();tenantProfile=tp;}catch(e){}
+    let landlordProfile=null;
+    try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();landlordProfile=lp;}catch(e){}
+
+    if(!listing||!tenantProfile||!landlordProfile){
+      toast('⚠️ Could not load profiles — please generate lease manually.');return;
+    }
+
+    toast('⏳ Generating lease and sending for signature...');
+
+    try{
+      const leaseRes=await fetch('/.netlify/functions/generate-lease',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          type:listing.type==='short'?'short':'long',
+          landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+          tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+          coTenants:[],
+          listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
+          start_date:startDate,
+          end_date:endDate
+        })
+      });
+      const leaseData=await leaseRes.json();
+
+      if(leaseData.success){
+        await sb.from('leases').insert({
+          listing_id:listingId,landlord_id:U.id,tenant_id:visit?.tenant_id,
+          docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
+          status:'pending_signature',rent:listing.price,
+          start_date:startDate,end_date:endDate,listing_title:listing.title||''
+        }).catch(()=>{});
+
+        if(visit?.tenant_id){
+          await sb.from('messages').insert({
+            listing_id:listingId,sender_id:'system',receiver_id:visit.tenant_id,
+            content:`🎉 The landlord has accepted your application!\n\n📄 Your lease has been sent to you by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
+            type:'lease_sent'
+          }).catch(()=>{});
+        }
+        if(visit?.agent_id){
+          await sb.from('messages').insert({
+            listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
+            content:`🎉 Lease generated for ${visit.listing_title||'the property'}!\n\nTenant: ${visit.tenant_name||'—'}\nLease sent via DocuSeal for signature. Great work! 🏆`,
+            type:'lease_sent'
+          }).catch(()=>{});
+        }
+        toast('🎉 Lease generated and sent for signature!');
+      } else {
+        toast('⚠️ Lease generation failed — please try from the Leases section.');
+      }
+    }catch(e){toast('⚠️ Error generating lease.');}
+  }
+}
+
 async function sendMsg(){
   const input=document.getElementById('msg-input');
   const content=input?.value.trim();
   if(!content||!activeChatListingId)return;
-
   // Fix problem 1 — optimistic UI: show message immediately
   const body=document.getElementById('msg-chat-body');
   const div=document.createElement('div');
@@ -2246,7 +2501,7 @@ async function loadProfilee(){
   document.getElementById('prof-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('prof-malta-address').value=P.malta_address||'';
   document.getElementById('prof-iban').value=P.iban||'';
-  document.getElementById('prof-bank').value=P.bank_details||'';
+  document.getElementById('prof-revolut').value=P.revolut_tag||P.bank_details||'';
   if(P.verified){document.getElementById('verify-badge-ll').textContent='✅ Verified';document.getElementById('verify-badge-ll').className='badge b-green';}
   updateLLCompleteness();
 }
@@ -2264,7 +2519,7 @@ async function saveProfilee(){
     mother_maiden:document.getElementById('prof-mother-maiden').value.trim(),
     malta_address:document.getElementById('prof-malta-address').value.trim(),
     iban:document.getElementById('prof-iban').value.trim(),
-    bank_details:document.getElementById('prof-bank').value.trim()
+    revolut_tag:document.getElementById('prof-revolut').value.trim(),
   };
   const{error}=await sb.from('profiles').update(updates).eq('clerk_id',U.id);
   if(error){toast('Error: '+error.message);return;}
