@@ -88,8 +88,10 @@ exports.handler = async (event) => {
                   monthly_rent: lease.rent || listing.price || 0,
                   landlord_email: landlordProfile.email || '',
                   landlord_name: landlordProfile.full_name || '',
+                  landlord_stripe_customer_id: landlordProfile.stripe_customer_id || null,
                   tenant_email: tenantProfile.email || '',
                   tenant_name: tenantProfile.full_name || '',
+                  tenant_stripe_customer_id: tenantProfile.stripe_customer_id || null,
                   property_address: listing.full_address || listing.zone || '',
                   has_agent: listing.wants_agent && listing.agent_service === 'full',
                   exclusive_mandate: listing.exclusive_mandate || false,
@@ -102,38 +104,84 @@ exports.handler = async (event) => {
               const commissionData = await commissionRes.json();
 
               if (commissionData.success) {
+                const landlordDirect = commissionData.landlord.method === 'direct_charge';
+                const tenantDirect   = commissionData.tenant.method === 'direct_charge';
+
                 // ── Sauvegarder la commission en base ──
                 await sb.from('commissions').insert({
                   lease_id: lease.id,
                   landlord_amount: commissionData.landlord.amount,
                   tenant_amount: commissionData.tenant.amount,
                   agent_amount: commissionData.agent_amount,
-                  landlord_payment_url: commissionData.landlord.payment_url,
-                  tenant_payment_url: commissionData.tenant.payment_url,
-                  landlord_session_id: commissionData.landlord.session_id,
-                  tenant_session_id: commissionData.tenant.session_id,
-                  landlord_paid: false,
-                  tenant_paid: false,
-                  status: 'pending'
+                  landlord_payment_url: commissionData.landlord.payment_url || null,
+                  tenant_payment_url: commissionData.tenant.payment_url || null,
+                  landlord_session_id: commissionData.landlord.session_id || null,
+                  tenant_session_id: commissionData.tenant.session_id || null,
+                  landlord_paid: landlordDirect,
+                  tenant_paid: tenantDirect,
+                  status: (landlordDirect && tenantDirect) ? 'paid' : 'pending'
                 }).catch(() => {});
 
                 const listingTitle = listing.title || 'your property';
 
-                // ── Message landlord : lien de paiement, PAS de PDF ──
-                await sb.from('messages').insert({
-                  listing_id: lease.listing_id,
-                  sender_id: 'system',
-                  receiver_id: lease.landlord_id,
-                  content: `✅ Your lease has been signed by all parties!\n\n💳 Please pay your RestMalta commission of €${commissionData.landlord.amount} to unlock your signed lease PDF:\n${commissionData.landlord.payment_url}\n\n🔒 Your signed lease PDF will be sent to you automatically once both parties have paid.\n\nYou can pay by card or SEPA bank transfer.`
-                }).catch(() => {});
+                // ── Si les deux ont été prélevés directement → débloquer le PDF immédiatement ──
+                if (landlordDirect && tenantDirect) {
+                  await sb.from('leases').update({
+                    pdf_url: lease.pdf_url_locked,
+                    status: 'signed',
+                    commissions_paid_at: new Date().toISOString()
+                  }).eq('id', lease.id);
 
-                // ── Message tenant : lien de paiement, PAS de PDF ──
-                await sb.from('messages').insert({
-                  listing_id: lease.listing_id,
-                  sender_id: 'system',
-                  receiver_id: lease.tenant_id,
-                  content: `✅ Your lease has been signed!\n\n💳 Please pay your RestMalta commission of €${commissionData.tenant.amount} to unlock your signed lease PDF:\n${commissionData.tenant.payment_url}\n\n🔒 Your signed lease PDF will be sent to you automatically once both parties have paid.\n\nYou can pay by card or SEPA bank transfer (recommended — lowest fees).`
-                }).catch(() => {});
+                  await sb.from('messages').insert({
+                    listing_id: lease.listing_id,
+                    sender_id: 'system',
+                    receiver_id: lease.landlord_id,
+                    content: `🎉 Your lease is signed and commissions have been collected!\n\n📄 Your signed lease: ${lease.pdf_url_locked}\n\n✅ RestMalta commission of €${commissionData.landlord.amount} has been automatically charged to your card.`
+                  }).catch(() => {});
+
+                  await sb.from('messages').insert({
+                    listing_id: lease.listing_id,
+                    sender_id: 'system',
+                    receiver_id: lease.tenant_id,
+                    content: `🎉 Your lease is signed and commissions have been collected!\n\n📄 Your signed lease: ${lease.pdf_url_locked}\n\n✅ RestMalta commission of €${commissionData.tenant.amount} has been automatically charged to your card.\n\n🏠 Welcome to your new home!`
+                  }).catch(() => {});
+
+                } else {
+                  // ── Message landlord ──
+                  const landlordMsg = landlordDirect
+                    ? `✅ Your lease has been signed!\n\n💳 RestMalta commission of €${commissionData.landlord.amount} has been automatically charged to your card.\n\n🔒 Your signed lease PDF will be sent once the tenant completes their payment.`
+                    : `✅ Your lease has been signed by all parties!\n\n💳 Please pay your RestMalta commission of €${commissionData.landlord.amount} to unlock your signed lease PDF:\n${commissionData.landlord.payment_url}\n\n🔒 PDF sent automatically once both parties have paid.`;
+
+                  await sb.from('messages').insert({
+                    listing_id: lease.listing_id,
+                    sender_id: 'system',
+                    receiver_id: lease.landlord_id,
+                    content: landlordMsg
+                  }).catch(() => {});
+
+                  // ── Message tenant avec fiche de paiement ──
+                  const revTag = landlordProfile.revolut_tag || landlordProfile.bank_details || '';
+                  const deposit = listing.deposit || 0;
+                  const firstMonth = listing.price || 0;
+                  const totalDue = deposit + firstMonth;
+                  const revLink = revTag && revTag.startsWith('@')
+                    ? `\n\n💜 Pay via Revolut:\nhttps://revolut.me/${revTag.replace('@','')}?amount=${totalDue}`
+                    : revTag ? `\n\n💜 Revolut: ${revTag}` : '';
+
+                  const commissionMsg = tenantDirect
+                    ? `✅ Your lease has been signed!\n\n💳 RestMalta commission of €${commissionData.tenant.amount} has been automatically charged to your card.`
+                    : `✅ Your lease has been signed!\n\n💳 Please pay your RestMalta commission of €${commissionData.tenant.amount}:\n${commissionData.tenant.payment_url}`;
+
+                  const tenantMsg = `${commissionMsg}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💶 PAYMENT DUE TO LANDLORD BEFORE MOVE-IN\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 Security deposit: €${deposit}\n🏠 First month rent: €${firstMonth}\n💰 Total: €${totalDue}\n\n🏦 Bank transfer (IBAN):\n${landlordProfile.iban || '—'}\nName: ${landlordProfile.full_name || '—'}${revLink}\n\nOnce you have paid, click "I've paid" below to notify the landlord.`;
+
+                  await sb.from('messages').insert({
+                    listing_id: lease.listing_id,
+                    sender_id: 'system',
+                    receiver_id: lease.tenant_id,
+                    content: tenantMsg,
+                    type: 'payment_due'
+                  }).catch(() => {});
+                }
 
                 // ── Email landlord avec lien de paiement ──
                 await fetch(`${SITE}/.netlify/functions/send-email`, {
