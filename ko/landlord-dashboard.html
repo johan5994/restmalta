@@ -1913,6 +1913,13 @@ async function relistProperty(listingId){
 let landlordChatChannel=null;
 let activeChatListingId=null;
 let activeChatSenderId=null;
+let activeChatThreadId=null;
+
+
+// Helper thread_id
+function makeThreadId(listingId, id1, id2){
+  return listingId + '__' + [id1, id2].sort().join('__');
+}
 
 async function loadMessages(){
   // Get all messages involving this landlord
@@ -1961,10 +1968,11 @@ function filterMsgs(q){
   wrap.innerHTML=filtered.map(m=>`<div class="mitem" onclick="openMsgChat('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.listing_id||''}','${m.sender_id||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.83rem;font-weight:600">${m.listings?.title||'Listing'}</div><div class="mprev">${m.content}</div></div></div>`).join('');
 }
 
-async function openMsgChat(id, title, listingId, senderId){
+async function openMsgChat(id, title, listingId, senderId, threadId){
   activeMsgId=id;
   activeChatListingId=listingId;
   activeChatSenderId=senderId;
+  activeChatThreadId=threadId||makeThreadId(listingId,U.id,senderId||'');
   document.getElementById('msg-chat-name').textContent=title;
   document.getElementById('msg-chat-sub').innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><span id="ll-dot" style="width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block"></span><span id="ll-txt">Connecting...</span></span>';
 
@@ -1992,7 +2000,19 @@ async function openMsgChat(id, title, listingId, senderId){
   body.style.cssText='overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;flex:1;min-height:0';
   body.innerHTML='<div style="text-align:center;color:var(--td);font-size:.78rem">Loading...</div>';
 
-  const{data}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
+  // Charger par thread_id si disponible
+  let data=[];
+  try{
+    const tid=activeChatThreadId||makeThreadId(listingId,U.id,activeChatSenderId||'');
+    const{data:byThread}=await sb.from('messages').select('*').eq('thread_id',tid).order('created_at',{ascending:true});
+    if(byThread&&byThread.length){
+      data=byThread;
+    } else {
+      const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).or(`sender_id.eq.${U.id},receiver_id.eq.${U.id}`).order('created_at',{ascending:true});
+      const otherId=activeChatSenderId;
+      data=(byListing||[]).filter(m=>m.sender_id===otherId||m.receiver_id===otherId||m.sender_id==='system');
+    }
+  }catch(e){}
   body.innerHTML='';
   (data||[]).forEach(m=>{
     const isMe=m.sender_id===U.id;
@@ -2220,10 +2240,12 @@ async function sendMsg(){
   input.value='';
 
   // Fix problem 4 — send and show confirmation
+  const tid=activeChatThreadId||makeThreadId(activeChatListingId,U.id,activeChatSenderId||'');
   const{error}=await sb.from('messages').insert({
     listing_id:activeChatListingId,
     sender_id:U.id,
     receiver_id:activeChatSenderId,
+    thread_id:tid,
     content,
     read:false
   });
