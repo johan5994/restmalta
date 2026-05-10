@@ -991,12 +991,37 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
     const isMe=m.sender_id===U.id;
     const div=document.createElement('div');
     div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
-    div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+
+    // Message spécial — paiement dû
+    if(m.type==='payment_due'&&m.receiver_id===U.id){
+      div.innerHTML=`
+        <div class="bt" style="max-width:90%">
+          <div style="white-space:pre-wrap">${m.content}</div>
+          <div style="margin-top:.75rem">
+            <button onclick="declarePaidFromMessage('${m.id}','${m.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">💳 I've paid — notify landlord</button>
+          </div>
+        </div>
+        <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    // Message spécial — intérêt pour la location
+    } else if(m.type==='visit_interest_check'&&m.receiver_id===U.id){
+      div.innerHTML=`
+        <div class="bt" style="max-width:85%">
+          <div>${m.content}</div>
+          <div style="display:flex;gap:.5rem;margin-top:.75rem">
+            <button onclick="respondToInterest('${m.id}','${m.visit_id}','${m.listing_id}',true)" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.5rem .75rem;font-size:.8rem;font-weight:600;cursor:pointer">✅ Yes, I want to rent!</button>
+            <button onclick="respondToInterest('${m.id}','${m.visit_id}','${m.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.5rem .75rem;font-size:.8rem;font-weight:600;cursor:pointer">❌ Not interested</button>
+          </div>
+        </div>
+        <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    } else {
+      div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    }
     thread.appendChild(div);
   });
   thread.scrollTop=thread.scrollHeight;
   await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);
-  const{data:stillUnread}=await sb.from('messages').select('id').eq('receiver_id',U.id).eq('read',false).catch(()=>({data:[]}));
+  let stillUnread=[];
+  try{const{data:u}=await sb.from('messages').select('id').eq('receiver_id',U.id).eq('read',false);stillUnread=u||[];}catch(e){}
   const count=(stillUnread||[]).length;
   const badge=document.getElementById('nb-msg');
   if(badge){if(count>0){badge.textContent=count;badge.style.display='inline';}else{badge.style.display='none';}}
@@ -1014,6 +1039,151 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
       thread.appendChild(div);thread.scrollTop=thread.scrollHeight;
     })
     .subscribe();
+}
+
+async function declarePaidFromMessage(msgId, listingId){
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+
+  // Récupérer le lease signé pour avoir le montant exact
+  let lease=null;
+  try{
+    const{data:l}=await sb.from('leases')
+      .select('*')
+      .eq('listing_id',listingId)
+      .eq('tenant_id',U.id)
+      .order('created_at',{ascending:false})
+      .limit(1)
+      .single();
+    lease=l;
+  }catch(e){}
+
+  // Vérifier que le bail est bien signé avant de permettre le paiement
+  if(lease&&lease.status!=='signed'&&lease.status!=='pending_signature'){
+    toast('⚠️ Please sign your lease first before declaring payment.');
+    return;
+  }
+
+  const deposit=lease?.deposit||0;
+  const firstMonth=lease?.rent||0;
+  const total=deposit+firstMonth;
+
+  // Créer ou mettre à jour le payment record avec lease_id
+  try{
+    const existing=await sb.from('payments')
+      .select('id')
+      .eq('listing_id',listingId)
+      .eq('tenant_id',U.id)
+      .eq('type','deposit_and_first_month')
+      .maybeSingle();
+
+    if(existing?.data?.id){
+      await sb.from('payments').update({
+        status:'declared',
+        declared_at:new Date().toISOString(),
+        lease_id:lease?.id,
+        amount:total
+      }).eq('id',existing.data.id);
+    } else {
+      await sb.from('payments').insert({
+        listing_id:listingId,
+        tenant_id:U.id,
+        landlord_id:lease?.landlord_id,
+        lease_id:lease?.id,
+        amount:total,
+        type:'deposit_and_first_month',
+        status:'declared',
+        declared_at:new Date().toISOString(),
+        tenant_name:P?.full_name||'Tenant',
+        listing_title:lease?.listing_title||''
+      });
+    }
+  }catch(e){console.error('Payment insert error:',e);}
+
+  // Notifier le landlord
+  if(lease?.landlord_id){
+    try{
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:lease.landlord_id,
+        content:`💶 ${P?.full_name||'Your tenant'} has declared payment of €${total}.\n\n🔐 Deposit: €${deposit}\n🏠 First month: €${firstMonth}\n\nPlease check your bank account / Revolut and confirm receipt in your dashboard → Payments → "Confirm received".`,
+        type:'payment_declared'
+      });
+    }catch(e){}
+  }
+
+  const btn=document.querySelector(`button[onclick*="declarePaidFromMessage"][onclick*="${msgId}"]`);
+  if(btn)btn.closest('div').innerHTML='<div style="margin-top:.5rem;background:rgba(76,175,125,.15);border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#4CAF7D;font-weight:600">✅ Payment declared — waiting for landlord confirmation.</div>';
+  toast('✅ Landlord notified — they will confirm receipt.');
+}
+
+async function respondToInterest(msgId, visitId, listingId, interested){
+  // Marquer le message comme lu
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+
+  // Récupérer les infos de la visite
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+
+  if(!interested){
+    // ── Pas intéressé ──
+    try{await sb.from('visits').update({status:'tenant_declined'}).eq('id',visitId);}catch(e){}
+
+    // Notifier landlord
+    if(visit?.landlord_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:visit.landlord_id,
+        content:`ℹ️ ${P?.full_name||'The tenant'} visited your property and is not interested in renting at this time.`,
+        type:'tenant_not_interested'
+      }).catch(()=>{});
+    }
+    // Notifier agent
+    if(visit?.agent_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:visit.agent_id,
+        content:`ℹ️ ${P?.full_name||'The tenant'} is not interested in renting ${visit.listing_title||'the property'} after the visit.`,
+        type:'tenant_not_interested'
+      }).catch(()=>{});
+    }
+
+    // Remplacer les boutons par un message de confirmation
+    const btn=document.querySelector(`button[onclick*="${msgId}"]`);
+    if(btn)btn.closest('.bt').innerHTML+='<div style="margin-top:.5rem;font-size:.75rem;color:var(--td)">✓ You responded: Not interested</div>';
+    toast('✅ Response sent — landlord and agent notified.');
+
+  } else {
+    // ── Intéressé — notifier landlord pour décision ──
+    try{await sb.from('visits').update({status:'tenant_interested'}).eq('id',visitId);}catch(e){}
+
+    if(visit?.landlord_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:visit.landlord_id,
+        content:`🎉 Great news! ${P?.full_name||'A tenant'} wants to rent your property!\n\n👤 Tenant: ${P?.full_name||'—'}\n📞 Phone: ${P?.phone||'—'}\n🏠 Property: ${visit.listing_title||'—'}\n\nPlease respond in your dashboard → Messages.`,
+        type:'tenant_interested',
+        visit_id:visitId
+      }).catch(()=>{});
+    }
+    // Notifier agent
+    if(visit?.agent_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:visit.agent_id,
+        content:`🎉 ${P?.full_name||'The tenant'} wants to rent ${visit.listing_title||'the property'}!\n\nWaiting for landlord to accept and set lease dates.`,
+        type:'tenant_interested'
+      }).catch(()=>{});
+    }
+
+    const btn=document.querySelector(`button[onclick*="${msgId}"]`);
+    if(btn)btn.closest('.bt').innerHTML+='<div style="margin-top:.5rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✓ Great! The landlord has been notified and will confirm shortly.</div>';
+    toast('🎉 Perfect! The landlord has been notified.');
+  }
 }
 
 async function sendReply(){
