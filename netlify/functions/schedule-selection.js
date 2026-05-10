@@ -113,12 +113,50 @@ async function selectBestAgent(sb, visit_id) {
   let listing = null;
   try { const { data } = await sb.from('listings').select('*').eq('id', visit.listing_id).single(); listing = data; } catch(e) {}
 
+  // Récupérer le profil tenant pour avoir le phone
+  let tenantProfile = null;
+  try { const { data } = await sb.from('profiles').select('full_name,phone,email').eq('clerk_id', visit.tenant_id).single(); tenantProfile = data; } catch(e) {}
+  const tenantPhone = tenantProfile?.phone || visit.tenant_phone || '—';
+
+  // Récupérer le profil landlord pour avoir le phone
+  let landlordProfile = null;
+  try { const { data } = await sb.from('profiles').select('full_name,phone,email').eq('clerk_id', visit.landlord_id).single(); landlordProfile = data; } catch(e) {}
+
   const SITE = process.env.URL || 'https://restmalta.com';
 
-  // Message agent sélectionné
+  // ── Créer conversation agent ↔ tenant ──────────────────────
+  await sb.from('messages').insert({
+    listing_id: visit.listing_id,
+    sender_id: bestAgentId,
+    receiver_id: visit.tenant_id,
+    content: `👋 Hi ${visit.tenant_name || 'there'}! I'm ${bestAgentName}, your RestMalta agent for the visit.
+
+📅 ${visit.visit_date} at ${visit.visit_time || 'TBD'}
+🏠 ${listing?.title || '—'}
+📍 ${listing?.full_address || listing?.zone || '—'}
+
+Feel free to message me here if you have any questions before the visit!`,
+    type: 'agent_tenant_chat'
+  }).catch(() => {});
+
+  // ── Créer conversation agent ↔ landlord ────────────────────
+  await sb.from('messages').insert({
+    listing_id: visit.listing_id,
+    sender_id: bestAgentId,
+    receiver_id: visit.landlord_id,
+    content: `👋 Hi ${landlordProfile?.full_name || 'there'}! I'm ${bestAgentName}, assigned to the visit for your property.
+
+📅 ${visit.visit_date} at ${visit.visit_time || 'TBD'}
+👤 Tenant: ${visit.tenant_name || '—'} — 📞 ${tenantPhone}
+
+I'll be handling the visit. Feel free to message me here if needed.`,
+    type: 'agent_landlord_chat'
+  }).catch(() => {});
+
+  // Message agent sélectionné avec phone du tenant
   await sb.from('messages').insert({
     listing_id: visit.listing_id, sender_id: 'system', receiver_id: bestAgentId,
-    content: `🎉 You have been selected for this visit!\n\n🏠 ${listing?.title || '—'}\n📍 ${listing?.full_address || listing?.zone || '—'}\n📅 ${visit.visit_date} at ${visit.visit_time || 'TBD'}\n👤 Tenant: ${visit.tenant_name || '—'}\n🔑 Keys: ${listing?.key_location || 'Contact landlord'}`,
+    content: `🎉 You have been selected for this visit!\n\n🏠 ${listing?.title || '—'}\n📍 ${listing?.full_address || listing?.zone || '—'}\n📅 ${visit.visit_date} at ${visit.visit_time || 'TBD'}\n👤 Tenant: ${visit.tenant_name || '—'}\n📞 Tenant phone: ${tenantPhone}\n🔑 Keys: ${listing?.key_location || 'Contact landlord'}`,
     type: 'agent_selected'
   }).catch(() => {});
 
