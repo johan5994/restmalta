@@ -114,6 +114,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Overview</div>
     <button class="ni act" onclick="sp('dash',this)"><span class="nico">📊</span>Dashboard</button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>My Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-agent-msg" style="display:none">0</span></button>
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>Listings</button>
     <div class="nl">Performance</div>
     <button class="ni" onclick="sp('revenue',this)"><span class="nico">💰</span>Revenue</button>
@@ -205,6 +206,36 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="card">
             <div class="ch"><span class="ct">📬 Visit requests</span><span class="badge b-gold" id="req-count">0 pending</span></div>
             <div class="cb" id="visit-requests"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="page" id="page-messages">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">💬 My conversations</div>
+        </div>
+        <div class="cb" id="agent-msg-list" style="padding:0">
+          <div style="text-align:center;padding:2rem;color:var(--td);font-size:.83rem">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Modal chat -->
+      <div class="mover" id="agent-msg-modal" onclick="if(event.target.id==='agent-msg-modal')closeAgentMsg()">
+        <div class="modal" style="max-width:520px;width:95%;height:80vh;display:flex;flex-direction:column">
+          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-weight:700;font-size:.95rem" id="agent-msg-title">—</div>
+              <div style="font-size:.72rem;color:var(--terra);font-weight:600;margin-top:.2rem" id="agent-msg-sub">—</div>
+            </div>
+            <button onclick="closeAgentMsg()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+          </div>
+          <div id="agent-msg-thread" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
+          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+            <input id="agent-msg-input" class="fi" placeholder="Write a message..." style="flex:1;font-size:.83rem" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAgentMsg();}">
+            <button class="btn bp bsm" onclick="sendAgentMsg()">Send →</button>
           </div>
         </div>
       </div>
@@ -465,6 +496,7 @@ async function loadVisits(){
       .select('*')
       .eq('receiver_id',U.id)
       .eq('type','visit_request')
+      .eq('read',false)
       .order('created_at',{ascending:false});
 
     const rawMsgs=vm||[];
@@ -586,7 +618,10 @@ async function loadVisits(){
               ? `<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id}')">✅ I want this visit</button>
                  <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id}')">📅 Date not possible</button>
                  <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="agentNotAvailable('${m.id}','${m.listing_id}','${m.visit_id}')">❌ I'm not available</button>`
-              : `<div style="font-size:.72rem;color:var(--td);text-align:center;padding:.4rem">⚠️ Legacy request — no action needed</div>`
+              : `<div style="font-size:.72rem;color:var(--td);text-align:center;padding:.4rem;display:flex;align-items:center;justify-content:space-between">
+                  <span>⚠️ Legacy request — no action needed</span>
+                  <button onclick="dismissLegacyRequest('${m.id}')" style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:.2rem .6rem;font-size:.7rem;color:var(--td);cursor:pointer">Dismiss ✕</button>
+                </div>`
           }
         </div>
       </div>`;
@@ -599,6 +634,11 @@ async function loadVisits(){
   renderCalendar();
   // Restaurer les chronos APRÈS que le DOM est mis à jour
   requestAnimationFrame(()=>requestAnimationFrame(restoreTimers));
+}
+
+async function dismissLegacyRequest(msgId){
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+  loadVisits();
 }
 
 async function applyForVisit(msgId, listingId, visitId){
@@ -1036,6 +1076,169 @@ async function reportIssue(visitId){
   toast('⚠️ Issue reported to landlord.');
 }
 
+
+// Helper thread_id
+function makeThreadId(listingId, id1, id2){
+  return listingId + '__' + [id1, id2].sort().join('__');
+}
+// ── Messages agent ────────────────────────────────────────────
+let agentActiveListing=null;
+let agentActiveReceiver=null;
+let agentActiveThread=null;
+let agentChatChannel=null;
+
+async function loadAgentMessages(){
+  const list=document.getElementById('agent-msg-list');
+  if(!list)return;
+
+  try{
+    // Charger tous les messages reçus ou envoyés (hors visit_request)
+    const{data:received}=await sb.from('messages').select('*').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false});
+    const{data:sent}=await sb.from('messages').select('*').eq('sender_id',U.id).neq('type','visit_request').neq('receiver_id','system').order('created_at',{ascending:false});
+
+    // Grouper par listing_id — une conversation par listing
+    const convMap=new Map();
+    [...(received||[]),...(sent||[])].forEach(m=>{
+      if(!m.listing_id)return;
+      if(!convMap.has(m.listing_id)||new Date(m.created_at)>new Date(convMap.get(m.listing_id).created_at)){
+        convMap.set(m.listing_id,m);
+      }
+    });
+
+    const convs=[...convMap.values()].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    const unread=(received||[]).filter(m=>!m.read&&m.type!=='visit_request').length;
+
+    // Badge
+    const badge=document.getElementById('nb-agent-msg');
+    if(badge){badge.textContent=unread;badge.style.display=unread>0?'inline':'none';}
+
+    if(!convs.length){
+      list.innerHTML='<div style="text-align:center;padding:2rem;color:var(--td);font-size:.83rem">No conversations yet</div>';
+      return;
+    }
+
+    // Charger les interlocuteurs
+    const otherIds=new Set();
+    convs.forEach(m=>{
+      if(m.sender_id!==U.id&&m.sender_id!=='system') otherIds.add(m.sender_id);
+      if(m.receiver_id!==U.id&&m.receiver_id!=='system') otherIds.add(m.receiver_id);
+    });
+    let profileMap={};
+    if(otherIds.size){
+      const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name,role').in('clerk_id',[...otherIds]);
+      (profiles||[]).forEach(p=>{profileMap[p.clerk_id]=p;});
+    }
+
+    // Charger les titres des listings
+    const listingIds=[...convMap.keys()];
+    let listingMap={};
+    if(listingIds.length){
+      const{data:listings}=await sb.from('listings').select('id,title,zone').in('id',listingIds);
+      (listings||[]).forEach(l=>{listingMap[l.id]=l;});
+    }
+
+    list.innerHTML=convs.map(m=>{
+      const otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      const other=otherId!=='system'?profileMap[otherId]:null;
+      const listing=listingMap[m.listing_id];
+      const isUnread=m.receiver_id===U.id&&!m.read;
+      const roleIco=other?.role==='landlord'?'🏠':other?.role==='tenant'?'👤':'💬';
+      const preview=m.content?.substring(0,60)+(m.content?.length>60?'...':'');
+      const time=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+
+      const threadId=makeThreadId(m.listing_id||'',U.id,otherId||'');
+        return`<div onclick="openAgentMsg('${m.listing_id}','${otherId}','${(listing?.title||'Property').replace(/'/g,"\\'")}','${(other?.full_name||'').replace(/'/g,"\\'")}','${other?.role||''}','${threadId}')""
+        style="padding:.9rem 1.2rem;border-bottom:1px solid var(--b);cursor:pointer;display:flex;gap:.75rem;align-items:center;${isUnread?'background:rgba(58,143,181,.05)':''}" class="msg-row">
+        <div style="width:38px;height:38px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${roleIco}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+            <div style="font-weight:${isUnread?'700':'500'};font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${other?.full_name||'System'}</div>
+            <div style="font-size:.68rem;color:var(--td);flex-shrink:0;margin-left:.5rem">${time}</div>
+          </div>
+          <div style="font-size:.72rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${listing?.title||'Property'} · ${listing?.zone||'Malta'}</div>
+          <div style="font-size:.73rem;color:var(--td);margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
+        </div>
+        ${isUnread?'<div style="width:8px;height:8px;border-radius:50%;background:var(--terra);flex-shrink:0"></div>':''}
+      </div>`;
+    }).join('');
+  }catch(e){console.error('loadAgentMessages:',e);}
+}
+
+async function openAgentMsg(listingId, receiverId, listingTitle, otherName, otherRole, threadId){
+  agentActiveListing=listingId;
+  agentActiveReceiver=receiverId;
+  agentActiveThread=threadId||makeThreadId(listingId,U.id,receiverId||'');
+
+  const roleIco=otherRole==='landlord'?'🏠 Landlord':otherRole==='tenant'?'👤 Tenant':'💬';
+  document.getElementById('agent-msg-title').textContent=listingTitle;
+  document.getElementById('agent-msg-sub').textContent=`${roleIco}: ${otherName}`;
+  document.getElementById('agent-msg-modal').classList.add('open');
+
+  await loadAgentThread(listingId);
+
+  // Marquer comme lus
+  try{await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);}catch(e){}
+
+  // Real-time
+  if(agentChatChannel)sb.removeChannel(agentChatChannel);
+  agentChatChannel=sb.channel('agent-chat-'+listingId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`listing_id=eq.${listingId}`},()=>{
+      loadAgentThread(listingId);
+    }).subscribe();
+}
+
+async function loadAgentThread(listingId){
+  const thread=document.getElementById('agent-msg-thread');
+  if(!thread)return;
+  try{
+    let data=[];
+    const tid=agentActiveThread||makeThreadId(listingId,U.id,agentActiveReceiver||'');
+    const{data:byThread}=await sb.from('messages').select('*').eq('thread_id',tid).order('created_at',{ascending:true});
+    if(byThread&&byThread.length){
+      data=byThread;
+    } else {
+      const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).or(`sender_id.eq.${U.id},receiver_id.eq.${U.id}`).order('created_at',{ascending:true});
+      const otherId=agentActiveReceiver;
+      data=(byListing||[]).filter(m=>m.sender_id===otherId||m.receiver_id===otherId||m.sender_id==='system');
+    }
+    thread.innerHTML='';
+    data.filter(m=>m.type!=='visit_request').forEach(m=>{
+      const isMe=m.sender_id===U.id;
+      const div=document.createElement('div');
+      div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
+      div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word;white-space:pre-wrap">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      thread.appendChild(div);
+    });
+    thread.scrollTop=thread.scrollHeight;
+  }catch(e){}
+}
+
+async function sendAgentMsg(){
+  const input=document.getElementById('agent-msg-input');
+  const content=input?.value.trim();
+  if(!content||!agentActiveListing||!agentActiveReceiver)return;
+  input.value='';
+  try{
+    const tid=agentActiveThread||makeThreadId(agentActiveListing,U.id,agentActiveReceiver||'');
+    await sb.from('messages').insert({
+      listing_id:agentActiveListing,
+      sender_id:U.id,
+      receiver_id:agentActiveReceiver,
+      thread_id:tid,
+      content,
+      type:'message'
+    });
+    loadAgentThread(agentActiveListing);
+    loadAgentMessages();
+  }catch(e){}
+}
+
+function closeAgentMsg(){
+  document.getElementById('agent-msg-modal').classList.remove('open');
+  if(agentChatChannel)sb.removeChannel(agentChatChannel);
+  loadAgentMessages();
+}
+
 async function loadListings(){
   const{data}=await sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false}).limit(20);
   listings=data||[];
@@ -1230,9 +1433,10 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id)?.classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',visits:'My Visits',listings:'Listings',revenue:'Revenue',score:'My Score',profile:'Profile',zone:'My Zone'};
+  const titles={dash:'Dashboard',visits:'My Visits',messages:'Messages',listings:'Listings',revenue:'Revenue',score:'My Score',profile:'Profile',zone:'My Zone'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='visits')loadVisits();
+  if(id==='messages')loadAgentMessages();
   if(id==='revenue')renderRevChart().catch(()=>{});
 }
 
