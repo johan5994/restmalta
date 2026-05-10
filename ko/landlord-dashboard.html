@@ -1968,6 +1968,17 @@ async function openMsgChat(id, title, listingId, senderId){
   document.getElementById('msg-chat-name').textContent=title;
   document.getElementById('msg-chat-sub').innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><span id="ll-dot" style="width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block"></span><span id="ll-txt">Connecting...</span></span>';
 
+  // Charger le nom de l'interlocuteur
+  if(senderId&&senderId!=='system'){
+    try{
+      const{data:other}=await sb.from('profiles').select('full_name,role').eq('clerk_id',senderId).single();
+      if(other?.full_name){
+        const roleLabel=other.role==='tenant'?'👤 Tenant':other.role==='agent'?'🏆 Agent':'🏠 Landlord';
+        document.getElementById('msg-chat-sub').innerHTML=`<span style="color:var(--terra);font-weight:600">${roleLabel}: ${other.full_name}</span>`;
+      }
+    }catch(e){}
+  }
+
   const body=document.getElementById('msg-chat-body');
   body.style.cssText='overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;flex:1;min-height:0';
   body.innerHTML='<div style="text-align:center;color:var(--td);font-size:.78rem">Loading...</div>';
