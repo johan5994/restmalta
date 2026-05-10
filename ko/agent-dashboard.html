@@ -480,6 +480,8 @@ async function loadVisits(){
       const deduped=[...visitMap.values()];
       const visitIds=deduped.map(m=>m.visit_id).filter(Boolean);
       let doneIds=new Set();
+
+      if(visitIds.length){
         // 1. Visites avec statut terminé
         try{
           const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
@@ -490,7 +492,7 @@ async function loadVisits(){
           });
         }catch(e){}
 
-        // 2. Visites où CET agent a déjà répondu (décliné ou appliqué)
+        // 2. Visites où CET agent a déjà répondu
         try{
           const{data:myActions}=await sb.from('messages')
             .select('visit_id')
