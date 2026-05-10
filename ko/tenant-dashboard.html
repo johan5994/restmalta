@@ -982,6 +982,17 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
   document.getElementById('mm-sub').textContent='📍 '+decodeURIComponent(zoneEnc);
   document.getElementById('msg-modal').classList.add('open');
 
+  // Charger le nom de l'interlocuteur
+  if(receiverId&&receiverId!=='system'){
+    try{
+      const{data:other}=await sb.from('profiles').select('full_name,role').eq('clerk_id',receiverId).single();
+      if(other?.full_name){
+        const roleLabel=other.role==='landlord'?'🏠 Landlord':other.role==='agent'?'🏆 Agent':'👤 Tenant';
+        document.getElementById('mm-sub').textContent=`${roleLabel}: ${other.full_name} · 📍 ${decodeURIComponent(zoneEnc)}`;
+      }
+    }catch(e){}
+  }
+
   // Load history
   const thread=document.getElementById('mm-thread');
   thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--stone-l)">Loading...</div>';
@@ -1002,20 +1013,9 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
-    // Message spécial — intérêt pour la location
-    } else if(m.type==='visit_interest_check'&&m.receiver_id===U.id){
-      div.innerHTML=`
-        <div class="bt" style="max-width:85%">
-          <div>${m.content}</div>
-          <div style="display:flex;gap:.5rem;margin-top:.75rem">
-            <button onclick="respondToInterest('${m.id}','${m.visit_id}','${m.listing_id}',true)" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.5rem .75rem;font-size:.8rem;font-weight:600;cursor:pointer">✅ Yes, I want to rent!</button>
-            <button onclick="respondToInterest('${m.id}','${m.visit_id}','${m.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.5rem .75rem;font-size:.8rem;font-weight:600;cursor:pointer">❌ Not interested</button>
-          </div>
-        </div>
-        <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
-    } else {
-      div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
-    }
+    // visit_interest_check s'affiche dans My Visits — ignorer dans les messages
+    if(m.type==='visit_interest_check') return;
+    div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     thread.appendChild(div);
   });
   thread.scrollTop=thread.scrollHeight;
@@ -1352,7 +1352,19 @@ async function loadTenantVisits(){
         <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
           <div style="font-size:.78rem;color:var(--gold);margin-bottom:.3rem">The landlord is not available on this date. Please request a new visit.</div>
           <button class="btn bg bsm" onclick="window.location.href='/'">🔍 Request new date</button>
-        </div>`:''}
+        </div>`:''}\
+      ${v.status==='completed'?`
+        <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem;margin-top:.5rem">
+          <div style="font-size:.85rem;font-weight:700;margin-bottom:.3rem">🏠 How did the visit go?</div>
+          <div style="font-size:.75rem;color:var(--tm);margin-bottom:.6rem">Are you interested in renting this property?</div>
+          <div style="display:flex;gap:.5rem">
+            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',true)" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">✅ Yes, I want to rent!</button>
+            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Not interested</button>
+          </div>
+        </div>`:''}\
+      ${v.status==='tenant_interested'?`<div style="font-size:.78rem;color:#4CAF7D;font-weight:600;margin-top:.5rem;padding:.5rem .75rem;background:rgba(76,175,125,.08);border-radius:8px">🎉 Great! Waiting for landlord to confirm and generate the lease.</div>`:''}\
+      ${v.status==='tenant_declined'?`<div style="font-size:.78rem;color:var(--td);margin-top:.5rem;padding:.5rem .75rem;background:var(--s2);border-radius:8px">You declined this property. Browse more listings →</div>`:''}\
+      ${v.status==='lease_pending'?`<div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-top:.5rem;padding:.5rem .75rem;background:rgba(58,143,181,.08);border-radius:8px">📄 Lease being generated — check your email for signature.</div>`:''}
       <div style="display:flex;gap:.4rem;margin-top:.5rem">
         ${v.status==='awaiting_landlord'||v.status==='agents_applying'||v.status==='agent_assigned'?`<button class="btn bg bsm" style="font-size:.68rem" onclick="cancelVisit('${v.id}')">Cancel visit</button>`:''}
       </div>
