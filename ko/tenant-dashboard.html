@@ -982,16 +982,25 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
   document.getElementById('mm-sub').textContent='📍 '+decodeURIComponent(zoneEnc);
   document.getElementById('msg-modal').classList.add('open');
 
-  // Charger le nom de l'interlocuteur
-  if(receiverId&&receiverId!=='system'){
-    try{
-      const{data:other}=await sb.from('profiles').select('full_name,role').eq('clerk_id',receiverId).single();
-      if(other?.full_name){
-        const roleLabel=other.role==='landlord'?'🏠 Landlord':other.role==='agent'?'🏆 Agent':'👤 Tenant';
-        document.getElementById('mm-sub').textContent=`${roleLabel}: ${other.full_name} · 📍 ${decodeURIComponent(zoneEnc)}`;
+  // Chercher le vrai interlocuteur — pas system, pas moi
+  try{
+    const{data:allMsgs}=await sb.from('messages').select('sender_id,receiver_id').eq('listing_id',listingId);
+    const otherIds=new Set();
+    (allMsgs||[]).forEach(m=>{
+      if(m.sender_id&&m.sender_id!=='system'&&m.sender_id!==U.id) otherIds.add(m.sender_id);
+      if(m.receiver_id&&m.receiver_id!=='system'&&m.receiver_id!==U.id) otherIds.add(m.receiver_id);
+    });
+    if(otherIds.size>0){
+      const{data:others}=await sb.from('profiles').select('full_name,role').in('clerk_id',[...otherIds]);
+      if(others&&others.length){
+        const names=others.map(o=>{
+          const roleLabel=o.role==='landlord'?'🏠':o.role==='agent'?'🏆':'👤';
+          return`${roleLabel} ${o.full_name}`;
+        }).join(' · ');
+        document.getElementById('mm-sub').textContent=`${names} · 📍 ${decodeURIComponent(zoneEnc)}`;
       }
-    }catch(e){}
-  }
+    }
+  }catch(e){}
 
   // Load history
   const thread=document.getElementById('mm-thread');
