@@ -469,10 +469,17 @@ async function loadVisits(){
 
     const rawMsgs=vm||[];
     if(rawMsgs.length){
-      const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
+      // Dédupliquer par visit_id — garder le plus récent pour chaque visite
+      const visitMap=new Map();
+      rawMsgs.forEach(m=>{
+        const key=m.visit_id||m.id;
+        if(!visitMap.has(key)||new Date(m.created_at)>new Date(visitMap.get(key).created_at)){
+          visitMap.set(key,m);
+        }
+      });
+      const deduped=[...visitMap.values()];
+      const visitIds=deduped.map(m=>m.visit_id).filter(Boolean);
       let doneIds=new Set();
-
-      if(visitIds.length){
         // 1. Visites avec statut terminé
         try{
           const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
@@ -494,7 +501,7 @@ async function loadVisits(){
         }catch(e){}
       }
 
-      visitMsgs=rawMsgs.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
+      visitMsgs=deduped.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
     }
   }catch(e){console.warn('loadVisitMsgs:',e.message);visitMsgs=[];}
 
@@ -573,9 +580,11 @@ async function loadVisits(){
                 <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${m.visit_id}">...</div>
                 <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
               </div>`
-            : `<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
-               <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
-               <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="agentNotAvailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ I'm not available</button>`
+            : m.visit_id
+              ? `<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id}')">✅ I want this visit</button>
+                 <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id}')">📅 Date not possible</button>
+                 <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="agentNotAvailable('${m.id}','${m.listing_id}','${m.visit_id}')">❌ I'm not available</button>`
+              : `<div style="font-size:.72rem;color:var(--td);text-align:center;padding:.4rem">⚠️ Legacy request — no action needed</div>`
           }
         </div>
       </div>`;
@@ -586,8 +595,8 @@ async function loadVisits(){
   renderUpcoming();
   renderAllVisits();
   renderCalendar();
-  // Restaurer les chronos actifs
-  setTimeout(restoreTimers, 100);
+  // Restaurer les chronos APRÈS que le DOM est mis à jour
+  requestAnimationFrame(()=>requestAnimationFrame(restoreTimers));
 }
 
 async function applyForVisit(msgId, listingId, visitId){
