@@ -948,64 +948,97 @@ async function loadOverview(){
 }
 
 let tenantChatChannel=null;
+
+// Helper thread_id — même logique que schedule-selection.js
+function makeThreadId(listingId, id1, id2){
+  return listingId + '__' + [id1, id2].sort().join('__');
+}
+
 let tenantChatListingId=null;
+let tenantChatThreadId=null;
 let tenantChatReceiverId=null;
 
 async function loadMessages(){
   const wrap=document.getElementById('messages-list');
-  // Load conversations where tenant is sender OR receiver
-  const[{data:sent},{data:received}]=await Promise.all([
-    sb.from('messages').select('*, listings(title,zone,id)').eq('sender_id',U.id).order('created_at',{ascending:false}),
-    sb.from('messages').select('*, listings(title,zone,id)').eq('receiver_id',U.id).order('created_at',{ascending:false})
-  ]);
-  const all=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  const seen=new Set();
-  const unique=all.filter(m=>{if(seen.has(m.listing_id))return false;seen.add(m.listing_id);return true;});
-  if(!unique.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a landlord from any listing!</p></div>';return;}
-  wrap.innerHTML=unique.map(m=>`<div class="mitem ${!m.read&&m.receiver_id===U.id?'unread':''}" onclick="openMsg('${m.id}','${encodeURIComponent(m.listings?.title||'')}','${encodeURIComponent(m.listings?.zone||'')}','${m.listing_id||''}','${m.sender_id===U.id?m.receiver_id:m.sender_id}')">
-    <div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:.88rem;font-weight:600;margin-bottom:.15rem">${m.listings?.title||'Listing'} · ${m.listings?.zone||''}</div>
-      <div class="mprev">${m.content}</div>
-    </div>
-    <div style="flex-shrink:0;text-align:right">
-      <span style="font-size:.68rem;color:var(--td)">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
-      ${!m.read&&m.receiver_id===U.id?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra);margin:3px 0 0 auto"></div>':''}
-    </div>
-  </div>`).join('');
+  try{
+    const[{data:sent},{data:received}]=await Promise.all([
+      sb.from('messages').select('*,listings(title,zone)').eq('sender_id',U.id).neq('type','visit_request').order('created_at',{ascending:false}),
+      sb.from('messages').select('*,listings(title,zone)').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false})
+    ]);
+    const all=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
+    // Grouper par thread_id (ou listing_id+other si pas de thread_id)
+    const threadMap=new Map();
+    all.forEach(m=>{
+      const otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      const key=m.thread_id||makeThreadId(m.listing_id||'',U.id,otherId||'');
+      if(!threadMap.has(key)) threadMap.set(key,{...m,otherId,key});
+    });
+
+    const convs=[...threadMap.values()];
+    if(!convs.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a landlord from any listing!</p></div>';return;}
+
+    // Récupérer les noms des interlocuteurs
+    const otherIds=[...new Set(convs.map(c=>c.otherId).filter(id=>id&&id!=='system'))];
+    let profileMap={};
+    if(otherIds.length){
+      const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name,role').in('clerk_id',otherIds);
+      (profiles||[]).forEach(p=>{profileMap[p.clerk_id]=p;});
+    }
+
+    wrap.innerHTML=convs.map(m=>{
+      const other=profileMap[m.otherId];
+      const roleIco=other?.role==='landlord'?'🏠':other?.role==='agent'?'🏆':'💬';
+      const roleTxt=other?.role==='landlord'?'Landlord':other?.role==='agent'?'Agent':'';
+      const name=other?.full_name||m.listings?.title||'Conversation';
+      const subtitle=roleTxt?`${roleTxt} · ${m.listings?.title||''} · ${m.listings?.zone||''}`:m.listings?.title||'';
+      const isUnread=!m.read&&m.receiver_id===U.id;
+      return`<div class="mitem ${isUnread?'unread':''}" onclick="openMsg('${m.key}','${encodeURIComponent(name)}','${encodeURIComponent(subtitle)}','${m.listing_id||''}','${m.otherId}','${m.key}')">
+        <div class="mav" style="font-size:1.1rem">${roleIco}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.88rem;font-weight:600;margin-bottom:.1rem">${name}</div>
+          <div style="font-size:.72rem;color:var(--tm);margin-bottom:.1rem">${subtitle}</div>
+          <div class="mprev">${m.content?.substring(0,60)||''}</div>
+        </div>
+        <div style="flex-shrink:0;text-align:right">
+          <span style="font-size:.68rem;color:var(--td)">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+          ${isUnread?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra);margin:3px 0 0 auto"></div>':''}
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){console.error('loadMessages:',e);}
 }
 
-async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
+async function openMsg(threadKey, titleEnc, subtitleEnc, listingId, receiverId, threadId){
   tenantChatListingId=listingId;
   tenantChatReceiverId=receiverId;
+  tenantChatThreadId=threadId||makeThreadId(listingId,U.id,receiverId||'');
   document.getElementById('mm-title').textContent=decodeURIComponent(titleEnc);
-  document.getElementById('mm-sub').textContent='📍 '+decodeURIComponent(zoneEnc);
+  document.getElementById('mm-sub').textContent=decodeURIComponent(subtitleEnc);
   document.getElementById('msg-modal').classList.add('open');
-
-  // Chercher le vrai interlocuteur — pas system, pas moi
-  try{
-    const{data:allMsgs}=await sb.from('messages').select('sender_id,receiver_id').eq('listing_id',listingId);
-    const otherIds=new Set();
-    (allMsgs||[]).forEach(m=>{
-      if(m.sender_id&&m.sender_id!=='system'&&m.sender_id!==U.id) otherIds.add(m.sender_id);
-      if(m.receiver_id&&m.receiver_id!=='system'&&m.receiver_id!==U.id) otherIds.add(m.receiver_id);
-    });
-    if(otherIds.size>0){
-      const{data:others}=await sb.from('profiles').select('full_name,role').in('clerk_id',[...otherIds]);
-      if(others&&others.length){
-        const names=others.map(o=>{
-          const roleLabel=o.role==='landlord'?'🏠':o.role==='agent'?'🏆':'👤';
-          return`${roleLabel} ${o.full_name}`;
-        }).join(' · ');
-        document.getElementById('mm-sub').textContent=`${names} · 📍 ${decodeURIComponent(zoneEnc)}`;
-      }
-    }
-  }catch(e){}
 
   // Load history
   const thread=document.getElementById('mm-thread');
   thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--stone-l)">Loading...</div>';
-  const{data}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
+  // Charger les messages du thread spécifique (thread_id ou listing_id+participants)
+  let threadData=[];
+  try{
+    const tid=tenantChatThreadId||makeThreadId(listingId,U.id,receiverId||'');
+    // D'abord essayer par thread_id
+    const{data:byThread}=await sb.from('messages').select('*').eq('thread_id',tid).order('created_at',{ascending:true});
+    if(byThread&&byThread.length){
+      threadData=byThread;
+    } else {
+      // Fallback — messages listing_id où je suis participant
+      const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).or(`sender_id.eq.${U.id},receiver_id.eq.${U.id}`).order('created_at',{ascending:true});
+      // Filtrer pour n'avoir que les messages avec cet interlocuteur
+      const otherId=receiverId;
+      threadData=(byListing||[]).filter(m=>
+        m.sender_id===otherId||m.receiver_id===otherId||m.sender_id==='system'
+      );
+    }
+  }catch(e){}
+  const data=threadData;
   thread.innerHTML='';
   (data||[]).forEach(m=>{
     const isMe=m.sender_id===U.id;
@@ -1031,7 +1064,7 @@ async function openMsg(id, titleEnc, zoneEnc, listingId, receiverId){
     thread.appendChild(div);
   });
   thread.scrollTop=thread.scrollHeight;
-  await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);
+  try{await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);}catch(e){}
   let stillUnread=[];
   try{const{data:u}=await sb.from('messages').select('id').eq('receiver_id',U.id).eq('read',false);stillUnread=u||[];}catch(e){}
   const count=(stillUnread||[]).length;
@@ -1143,23 +1176,23 @@ async function respondToInterest(msgId, visitId, listingId, interested){
 
     // Notifier landlord
     if(visit?.landlord_id){
-      await sb.from('messages').insert({
+      try{await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:visit.landlord_id,
         content:`ℹ️ ${P?.full_name||'The tenant'} visited your property and is not interested in renting at this time.`,
         type:'tenant_not_interested'
-      }).catch(()=>{});
+      });}catch(e){}
     }
     // Notifier agent
     if(visit?.agent_id){
-      await sb.from('messages').insert({
+      try{await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:visit.agent_id,
         content:`ℹ️ ${P?.full_name||'The tenant'} is not interested in renting ${visit.listing_title||'the property'} after the visit.`,
         type:'tenant_not_interested'
-      }).catch(()=>{});
+      });}catch(e){}
     }
 
     // Remplacer les boutons par un message de confirmation
@@ -1172,24 +1205,24 @@ async function respondToInterest(msgId, visitId, listingId, interested){
     try{await sb.from('visits').update({status:'tenant_interested'}).eq('id',visitId);}catch(e){}
 
     if(visit?.landlord_id){
-      await sb.from('messages').insert({
+      try{await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:visit.landlord_id,
         content:`🎉 Great news! ${P?.full_name||'A tenant'} wants to rent your property!\n\n👤 Tenant: ${P?.full_name||'—'}\n📞 Phone: ${P?.phone||'—'}\n🏠 Property: ${visit.listing_title||'—'}\n\nPlease respond in your dashboard → Messages.`,
         type:'tenant_interested',
         visit_id:visitId
-      }).catch(()=>{});
+      });}catch(e){}
     }
     // Notifier agent
     if(visit?.agent_id){
-      await sb.from('messages').insert({
+      try{await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:visit.agent_id,
         content:`🎉 ${P?.full_name||'The tenant'} wants to rent ${visit.listing_title||'the property'}!\n\nWaiting for landlord to accept and set lease dates.`,
         type:'tenant_interested'
-      }).catch(()=>{});
+      });}catch(e){}
     }
 
     const btn=document.querySelector(`button[onclick*="${msgId}"]`);
@@ -1212,13 +1245,15 @@ async function sendReply(){
   thread.scrollTop=thread.scrollHeight;
 
   // Then save to DB
-  await sb.from('messages').insert({
+  const tid=tenantChatThreadId||makeThreadId(tenantChatListingId,U.id,tenantChatReceiverId||'');
+  try{await sb.from('messages').insert({
     listing_id:tenantChatListingId,
     sender_id:U.id,
     receiver_id:tenantChatReceiverId,
+    thread_id:tid,
     content:reply,
     read:false
-  });
+  });}catch(e){}
 }
 
 async function loadTickets(){
