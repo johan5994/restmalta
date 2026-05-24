@@ -996,6 +996,17 @@ async function loadVisitsPage(){
   try{
     const{data:bData}=await sb.from('bookings').select('*').eq('landlord_id',U.id).eq('status','pending').order('created_at',{ascending:false});
     bookings=bData||[];
+    // Enrichir avec le type de listing
+    if(bookings.length){
+      const lIds=[...new Set(bookings.map(b=>b.listing_id).filter(Boolean))];
+      if(lIds.length){
+        try{
+          const{data:ls}=await sb.from('listings').select('id,type').in('id',lIds);
+          const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l.type;});
+          bookings=bookings.map(b=>({...b,listing_type:lMap[b.listing_id]||'long'}));
+        }catch(e){}
+      }
+    }
   }catch(e){}
 
   let groups=[];
@@ -1092,22 +1103,18 @@ async function loadVisitsPage(){
 
           <!-- Accept — Lease dates -->
           <div id="lease-dates-${b.id}" style="display:none;margin-top:.65rem;background:rgba(58,143,181,.05);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem">
-            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.6rem">📅 Set dates to generate lease</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
-              <div>
-                <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">Lease start *</label>
-                <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem">
-              </div>
-              <div>
-                <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">Lease end *</label>
-                <input type="date" id="bend-${b.id}" class="fi" style="font-size:.8rem">
-              </div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.6rem">📅 Set the move-in date</div>
+            <div style="margin-bottom:.5rem">
+              <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">🏠 Start date (= move-in day) *</label>
+              <div style="font-size:.62rem;color:var(--td);margin-bottom:.3rem">This is also the signing day — lease signed, entry inventory done, keys handed over.</div>
+              <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
             </div>
-            <div style="margin-bottom:.6rem">
-              <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">📋 Signing day — EDL & key handover *</label>
-              <input type="date" id="bedl-${b.id}" class="fi" style="font-size:.8rem;width:100%">
-              <div style="font-size:.63rem;color:var(--td);margin-top:.2rem">Same day: entry inventory + lease signing + key handover</div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.4rem .75rem;margin-bottom:.5rem;font-size:.72rem" id="bend-preview-${b.id}">
+              <span style="color:var(--td)">End date: </span><span id="bend-preview-text-${b.id}" style="font-weight:600">Set start date first</span>
+              <span style="color:var(--td);font-size:.65rem"> — ${b.listing_type==='short'?'6 months (short-let)':'1 year (long-let)'}</span>
             </div>
+            <input type="hidden" id="bend-${b.id}">
+            <input type="hidden" id="bedl-${b.id}">
             <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.72rem;color:var(--gold)">
               💳 Your commission (40% TTC = €${Math.round((b.monthly_rent||0)*0.40)}) will be charged when you click Accept.
             </div>
@@ -1338,8 +1345,8 @@ async function loadBookingDossier(booking){
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Place of birth</div><div style="font-weight:600">${profile.place_of_birth||'—'}</div></div>
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Nationality</div><div style="font-weight:600">${profile.nationality||'—'}</div></div>
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Passport / ID No.</div><div style="font-weight:600">${profile.passport_number||'—'}</div></div>
-        ${profile.father_name?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Father's name</div><div style="font-weight:600">${profile.father_name}</div></div>`:''}
-        ${profile.mother_name?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Mother's name</div><div style="font-weight:600">${profile.mother_name}${profile.mother_maiden?` (née ${profile.mother_maiden})`:''}</div></div>`:''}
+        ${profile.father_name&&profile.father_name.length>1?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Father's name</div><div style="font-weight:600">${profile.father_name}</div></div>`:''}
+        ${profile.mother_name&&profile.mother_name.length>1?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Mother's name</div><div style="font-weight:600">${profile.mother_name}${profile.mother_maiden?` (née ${profile.mother_maiden})`:''}</div></div>`:''}
       </div>
     </div>
 
@@ -1369,6 +1376,23 @@ async function loadBookingDossier(booking){
         </div>`
       :'<div style="font-size:.67rem;color:var(--td);text-align:center;padding:.2rem">New tenant — no previous reviews</div>'
     }`;
+}
+
+function autoSetEndDate(bookingId, leaseType){
+  const startInput=document.getElementById(`bstart-${bookingId}`);
+  if(!startInput?.value)return;
+  const start=new Date(startInput.value);
+  // Long-let = +1 an, Short-let = +6 mois
+  const end=new Date(start);
+  if(leaseType==='short') end.setMonth(end.getMonth()+6);
+  else end.setFullYear(end.getFullYear()+1);
+  const endStr=end.toISOString().split('T')[0];
+  // Remplir les champs cachés
+  document.getElementById(`bend-${bookingId}`).value=endStr;
+  document.getElementById(`bedl-${bookingId}`).value=startInput.value; // EDL = même jour que start
+  // Afficher le preview
+  const preview=document.getElementById(`bend-preview-text-${bookingId}`);
+  if(preview) preview.textContent=end.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 }
 
 function showLeaseDatesBooking(bookingId){
@@ -2450,16 +2474,8 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
       div.innerHTML=`
         <div class="bt" style="max-width:85%">
           <div>${m.content}</div>
-          <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.5rem">
-            <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">Set lease dates to proceed:</div>
-            <div style="display:flex;gap:.5rem">
-              <div style="flex:1"><label style="font-size:.68rem;color:var(--td)">Start date</label><input type="date" id="lease-start-${m.id}" class="fi" style="font-size:.78rem;margin-top:.2rem"></div>
-              <div style="flex:1"><label style="font-size:.68rem;color:var(--td)">End date</label><input type="date" id="lease-end-${m.id}" class="fi" style="font-size:.78rem;margin-top:.2rem"></div>
-            </div>
-            <div style="display:flex;gap:.5rem">
-              <button onclick="respondToTenantInterest('${m.id}','${m.visit_id||''}','${listingId}',true)" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">✅ Accept & Generate Lease</button>
-              <button onclick="respondToTenantInterest('${m.id}','${m.visit_id||''}','${listingId}',false)" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">❌ Decline</button>
-            </div>
+          <div style="margin-top:.65rem">
+            <button onclick="sp('visits',document.querySelector('.ni[onclick*=visits]'))" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">👉 Review dossier & set dates in Visits →</button>
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
