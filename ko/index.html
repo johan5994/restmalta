@@ -1212,7 +1212,7 @@ async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('
 async function loadL(){
   const g=document.getElementById('lg');g.innerHTML='<div class="loading"><div class="sp"></div> Loading…</div>';
   const z=document.getElementById('fz')?.value,t=document.getElementById('ft')?.value,p=document.getElementById('fp')?.value,att=document.getElementById('fa')?.value;
-  let q=sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false});
+  let q=sb.from('listings').select('*').eq('active',true).not('status','in','("reserved","rented")').order('created_at',{ascending:false});
   if(z)q=q.eq('zone',z);
   // For type filter: 'both' listings appear when filtering short OR long
   if(t&&t!=='both')q=q.or(`type.eq.${t},type.eq.both`);
