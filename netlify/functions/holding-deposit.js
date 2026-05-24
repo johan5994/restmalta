@@ -32,9 +32,11 @@ exports.handler = async (event) => {
       // Holding Deposit = ½ mois de loyer
       const holdingAmount = Math.round((monthly_rent / 2) * 100); // en centimes
 
-      // Commission RestMalta = 40% TTC du loyer mensuel (payée par le tenant à la réservation)
-      // Bloquée jusqu'à l'acceptation du landlord
-      const commissionAmount = Math.round(monthly_rent * COMMISSION_RATE * 100);
+      // Commission RestMalta tenant :
+      // AVEC agent  : 40% TTC
+      // SANS agent  : 15% TTC
+      const tenantRate = has_agent ? COMMISSION_RATE : 0.15;
+      const commissionAmount = Math.round(monthly_rent * tenantRate * 100);
 
       const totalAmount = holdingAmount + commissionAmount;
 
@@ -112,7 +114,7 @@ exports.handler = async (event) => {
       }).eq('id', booking_id);
 
       // Mettre à jour le listing → Reserved
-      await sb.from('listings').update({ status: 'reserved', reserved_by: booking.tenant_id }).eq('id', booking.listing_id);
+      await sb.from('listings').update({ status: 'rented', reserved_by: booking.tenant_id, active: false }).eq('id', booking.listing_id);
 
       return {
         statusCode: 200,
@@ -145,7 +147,7 @@ exports.handler = async (event) => {
       }).eq('id', booking_id);
 
       // Remettre le listing disponible
-      await sb.from('listings').update({ status: 'active', reserved_by: null }).eq('id', booking.listing_id);
+      await sb.from('listings').update({ status: 'active', reserved_by: null, active: true }).eq('id', booking.listing_id);
 
       return {
         statusCode: 200,
@@ -177,7 +179,7 @@ exports.handler = async (event) => {
         cancelled_at: new Date().toISOString()
       }).eq('id', booking_id);
 
-      await sb.from('listings').update({ status: 'active', reserved_by: null }).eq('id', booking.listing_id);
+      await sb.from('listings').update({ status: 'active', reserved_by: null, active: true }).eq('id', booking.listing_id);
 
       return {
         statusCode: 200,
