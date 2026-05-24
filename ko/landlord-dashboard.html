@@ -1017,49 +1017,102 @@ async function loadVisitsPage(){
   // Rendu bookings
   let bookingsHtml='';
   if(bookings.length){
-    bookingsHtml=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4CAF7D;margin-bottom:.5rem">🔒 Reservation Requests — Holding Deposit Paid</div>`;
+    bookingsHtml=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4CAF7D;margin-bottom:.75rem;display:flex;align-items:center;gap:.4rem">
+      <span style="background:#4CAF7D;color:white;border-radius:100px;padding:.1rem .5rem;font-size:.68rem">${bookings.length}</span>
+      New Reservation Request${bookings.length>1?'s':''}
+    </div>`;
     bookingsHtml+=bookings.map(b=>{
-      const deadline=new Date(new Date(b.created_at).getTime()+48*60*60*1000).toLocaleDateString('en-GB',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
-      return`<div style="padding:1.1rem;background:rgba(76,175,125,.05);border:2px solid rgba(76,175,125,.3);border-radius:14px;margin-bottom:.75rem" id="booking-card-${b.id}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
-          <div style="font-size:.68rem;font-weight:700;color:#4CAF7D;text-transform:uppercase">🔒 Reservation — Holding Paid</div>
-          <span style="font-size:.65rem;color:var(--td)">⏰ Deadline: ${deadline}</span>
-        </div>
-        <div style="font-size:.9rem;font-weight:700;margin-bottom:.5rem">${b.tenant_name||'—'}</div>
-        <div id="booking-dossier-${b.id}" style="background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:.6rem;font-size:.75rem"><div style="text-align:center;color:var(--td)">Loading tenant profile...</div></div>
-        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .75rem;margin-bottom:.6rem;font-size:.75rem">
-          <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Monthly rent</span><span>€${b.monthly_rent||'—'}/mo</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--td)">Holding deposit paid by tenant</span><span style="color:#4CAF7D;font-weight:600">€${b.holding_amount||'—'} ✅</span></div>
-          <div style="font-size:.65rem;color:var(--td);margin-top:.3rem">If you decline → tenant is fully refunded automatically via Stripe</div>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-bottom:.4rem">
-          <button onclick="showLeaseDatesBooking('${b.id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.7rem;font-size:.85rem;font-weight:700;cursor:pointer">✅ Accept — Set Lease Dates</button>
-          <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:rgba(224,90,90,.15);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.7rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Decline</button>
-        </div>
-        <div id="decline-form-${b.id}" style="display:none;margin-top:.4rem">
-          <select id="decline-reason-${b.id}" style="width:100%;padding:.5rem;border-radius:8px;border:1px solid var(--b);background:var(--s2);color:var(--tf);font-size:.78rem;margin-bottom:.4rem">
-            <option value="">Select reason for decline...</option>
-            <option value="pets">Pets not accepted</option>
-            <option value="occupants">Too many occupants</option>
-            <option value="financial">Financial profile concern</option>
-            <option value="visa">Visa/nationality concern</option>
-            <option value="unavailable">Property no longer available</option>
-            <option value="other">Other</option>
-          </select>
-          <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">Confirm Decline → Auto-refund tenant</button>
-        </div>
-        <div id="lease-dates-${b.id}" style="display:none;margin-top:.5rem;background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.75rem">
-          <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">📅 Set lease dates & key handover</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
-            <div><label style="font-size:.68rem;color:var(--td)">Lease start date *</label><input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;margin-top:.2rem"></div>
-            <div><label style="font-size:.68rem;color:var(--td)">Lease end date *</label><input type="date" id="bend-${b.id}" class="fi" style="font-size:.8rem;margin-top:.2rem"></div>
+      const createdAt=new Date(b.created_at);
+      const deadline=new Date(createdAt.getTime()+48*60*60*1000);
+      const deadlineStr=deadline.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+deadline.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      const hoursLeft=Math.max(0,Math.floor((deadline-Date.now())/3600000));
+      const urgentColor=hoursLeft<12?'var(--red)':hoursLeft<24?'var(--gold)':'#4CAF7D';
+
+      return`<div style="background:var(--card);border:1.5px solid rgba(76,175,125,.25);border-radius:16px;overflow:hidden;margin-bottom:1rem;box-shadow:0 2px 12px rgba(0,0,0,.08)" id="booking-card-${b.id}">
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,rgba(76,175,125,.12),rgba(58,143,181,.08));padding:1rem 1.2rem;border-bottom:1px solid var(--b)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <div style="width:36px;height:36px;border-radius:50%;background:#4CAF7D;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:white">${(b.tenant_name||'T')[0].toUpperCase()}</div>
+              <div>
+                <div style="font-size:.95rem;font-weight:700">${b.tenant_name||'—'}</div>
+                <div style="font-size:.68rem;color:var(--td)">Wants to rent your property</div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:.65rem;color:${urgentColor};font-weight:600">⏰ ${hoursLeft}h left</div>
+              <div style="font-size:.6rem;color:var(--td)">Deadline: ${deadlineStr}</div>
+            </div>
           </div>
-          <div style="margin-bottom:.5rem">
-            <label style="font-size:.68rem;color:var(--td)">📋 Entry inventory & key handover date * <span style="color:var(--sea)">(same day as move-in)</span></label>
-            <input type="date" id="bedl-${b.id}" class="fi" style="font-size:.8rem;margin-top:.2rem;width:100%">
-            <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">The agent will conduct the entry inventory on this date. Both parties sign the inventory. Keys handed over after all payments confirmed.</div>
+          <!-- Financials rapides -->
+          <div style="display:flex;gap:.4rem;margin-top:.5rem">
+            <div style="flex:1;background:rgba(76,175,125,.1);border-radius:8px;padding:.4rem .6rem;text-align:center">
+              <div style="font-size:.65rem;color:var(--td)">Monthly rent</div>
+              <div style="font-size:.88rem;font-weight:700">€${b.monthly_rent||'—'}</div>
+            </div>
+            <div style="flex:1;background:rgba(76,175,125,.1);border-radius:8px;padding:.4rem .6rem;text-align:center">
+              <div style="font-size:.65rem;color:var(--td)">Holding paid ✅</div>
+              <div style="font-size:.88rem;font-weight:700;color:#4CAF7D">€${b.holding_amount||'—'}</div>
+            </div>
+            <div style="flex:1;background:rgba(255,255,255,.04);border-radius:8px;padding:.4rem .6rem;text-align:center">
+              <div style="font-size:.65rem;color:var(--td)">Your commission</div>
+              <div style="font-size:.88rem;font-weight:700;color:var(--terra)">€${Math.round((b.monthly_rent||0)*0.40)}</div>
+            </div>
           </div>
-          <button onclick="generateLeaseFromBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">📄 Generate Lease & Notify Tenant →</button>
+        </div>
+
+        <!-- Dossier tenant -->
+        <div id="booking-dossier-${b.id}" style="padding:.85rem 1.2rem;border-bottom:1px solid var(--b)">
+          <div style="text-align:center;color:var(--td);font-size:.78rem;padding:.5rem">Loading tenant profile...</div>
+        </div>
+
+        <!-- Actions principales -->
+        <div style="padding:.85rem 1.2rem">
+          <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
+            <button onclick="showLeaseDatesBooking('${b.id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.3rem">✅ Accept</button>
+            <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1.5px solid rgba(224,90,90,.4);border-radius:10px;padding:.75rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Decline</button>
+          </div>
+          <div style="font-size:.65rem;color:var(--td);text-align:center">If you decline → tenant is fully refunded automatically</div>
+
+          <!-- Decline form -->
+          <div id="decline-form-${b.id}" style="display:none;margin-top:.65rem;background:rgba(224,90,90,.05);border:1px solid rgba(224,90,90,.2);border-radius:10px;padding:.75rem">
+            <div style="font-size:.75rem;font-weight:600;color:var(--red);margin-bottom:.4rem">Select reason for decline:</div>
+            <select id="decline-reason-${b.id}" style="width:100%;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--b);background:var(--s2);color:var(--tf);font-size:.78rem;margin-bottom:.5rem">
+              <option value="">Choose a reason...</option>
+              <option value="pets">🐾 Pets not accepted</option>
+              <option value="occupants">👥 Too many occupants</option>
+              <option value="financial">💼 Financial profile concern</option>
+              <option value="visa">🛂 Visa/nationality concern</option>
+              <option value="unavailable">🚫 Property no longer available</option>
+              <option value="other">Other</option>
+            </select>
+            <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">Confirm decline → Auto-refund tenant</button>
+          </div>
+
+          <!-- Accept — Lease dates -->
+          <div id="lease-dates-${b.id}" style="display:none;margin-top:.65rem;background:rgba(58,143,181,.05);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem">
+            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.6rem">📅 Set dates to generate lease</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+              <div>
+                <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">Lease start *</label>
+                <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem">
+              </div>
+              <div>
+                <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">Lease end *</label>
+                <input type="date" id="bend-${b.id}" class="fi" style="font-size:.8rem">
+              </div>
+            </div>
+            <div style="margin-bottom:.6rem">
+              <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">📋 Signing day — EDL & key handover *</label>
+              <input type="date" id="bedl-${b.id}" class="fi" style="font-size:.8rem;width:100%">
+              <div style="font-size:.63rem;color:var(--td);margin-top:.2rem">Same day: entry inventory + lease signing + key handover</div>
+            </div>
+            <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.72rem;color:var(--gold)">
+              💳 Your commission (40% TTC = €${Math.round((b.monthly_rent||0)*0.40)}) will be charged when you click Accept.
+            </div>
+            <button onclick="generateLeaseFromBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">📄 Pay commission & Generate Lease →</button>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -1241,22 +1294,81 @@ async function loadBookingDossier(booking){
   if(!container)return;
   let profile=null;
   try{const{data:p}=await sb.from('profiles').select('*').eq('clerk_id',booking.tenant_id).single();profile=p;}catch(e){}
-  if(!profile){container.innerHTML='<div style="color:var(--td);text-align:center">Profile not found</div>';return;}
-  const verif=profile.verified?'<span style="color:#4CAF7D;font-weight:700">✅ Verified</span>':'<span style="color:var(--gold);font-weight:700">⚠️ Not verified</span>';
+  if(!profile){container.innerHTML='<div style="color:var(--td);text-align:center;font-size:.78rem;padding:.5rem">Profile not loaded</div>';return;}
+
+  let age='—';
+  if(profile.date_of_birth){
+    const dob=new Date(profile.date_of_birth);
+    age=Math.floor((Date.now()-dob)/(365.25*24*3600*1000))+' years old';
+  }
+
+  const verif=profile.verified
+    ?'<span style="background:rgba(76,175,125,.15);color:#4CAF7D;padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">✅ ID Verified</span>'
+    :'<span style="background:rgba(212,168,71,.15);color:var(--gold);padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">⚠️ Not verified</span>';
+
+  const fields=[profile.full_name,profile.passport_number,profile.nationality,profile.date_of_birth,profile.phone,profile.email,profile.emprent,profile.reason_for_stay];
+  const pct=Math.round(fields.filter(Boolean).length/fields.length*100);
+  const progressColor=pct>=80?'#4CAF7D':pct>=50?'var(--gold)':'var(--red)';
+
   container.innerHTML=`
-    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--td);margin-bottom:.5rem">📋 Tenant Dossier ${verif}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem .6rem">
-      <div><span style="color:var(--td)">Name</span><div style="font-weight:600">${profile.full_name||'—'}</div></div>
-      <div><span style="color:var(--td)">Phone</span><div style="font-weight:600">${profile.phone||'—'}</div></div>
-      <div><span style="color:var(--td)">Nationality</span><div style="font-weight:600">${profile.nationality||'—'}</div></div>
-      <div><span style="color:var(--td)">Date of birth</span><div style="font-weight:600">${profile.date_of_birth||'—'}</div></div>
-      <div><span style="color:var(--td)">Passport/ID</span><div style="font-weight:600">${profile.passport_number||'—'}</div></div>
-      <div><span style="color:var(--td)">Email</span><div style="font-weight:600">${profile.email||'—'}</div></div>
-      ${profile.emprent?`<div style="grid-column:1/-1"><span style="color:var(--td)">Employer/University</span><div style="font-weight:600">${profile.emprent}</div></div>`:''}
-      ${profile.reason_for_stay?`<div><span style="color:var(--td)">Reason for stay</span><div style="font-weight:600">${profile.reason_for_stay}</div></div>`:''}
-      ${profile.stay_duration?`<div><span style="color:var(--td)">Duration</span><div style="font-weight:600">${profile.stay_duration}</div></div>`:''}
-      ${profile.home_address?`<div style="grid-column:1/-1"><span style="color:var(--td)">Home address</span><div style="font-weight:600">${profile.home_address}</div></div>`:''}
-    </div>`;
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td)">📋 Tenant Dossier</div>
+      ${verif}
+    </div>
+    <div style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;font-size:.63rem;color:var(--td);margin-bottom:.2rem">
+        <span>Profile completeness</span><span style="color:${progressColor};font-weight:600">${pct}%</span>
+      </div>
+      <div style="height:4px;background:var(--s2);border-radius:100px">
+        <div style="height:100%;width:${pct}%;background:${progressColor};border-radius:100px"></div>
+      </div>
+    </div>
+
+    ${profile.id_photo_url?`<div style="margin-bottom:.75rem">
+      <div style="font-size:.63rem;color:var(--td);margin-bottom:.3rem">🪪 ID Document</div>
+      <img src="${profile.id_photo_url}" style="width:100%;border-radius:8px;border:1px solid var(--b);max-height:130px;object-fit:cover">
+    </div>`:''}
+
+    <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
+      <div style="font-size:.63rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">👤 Identity</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.77rem">
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Full name</div><div style="font-weight:700">${profile.full_name||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Age</div><div style="font-weight:600">${age}</div></div>
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Date of birth</div><div style="font-weight:600">${profile.date_of_birth||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Place of birth</div><div style="font-weight:600">${profile.place_of_birth||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Nationality</div><div style="font-weight:600">${profile.nationality||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Passport / ID No.</div><div style="font-weight:600">${profile.passport_number||'—'}</div></div>
+        ${profile.father_name?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Father's name</div><div style="font-weight:600">${profile.father_name}</div></div>`:''}
+        ${profile.mother_name?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Mother's name</div><div style="font-weight:600">${profile.mother_name}${profile.mother_maiden?` (née ${profile.mother_maiden})`:''}</div></div>`:''}
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
+      <div style="font-size:.63rem;font-weight:700;color:var(--sea);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">🏠 Address</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.77rem">
+        <div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Home address (country of origin)</div><div style="font-weight:600">${profile.home_address||'—'}</div></div>
+        ${profile.malta_address?`<div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Current address in Malta</div><div style="font-weight:600">${profile.malta_address}</div></div>`:''}
+      </div>
+      <div style="margin-top:.5rem;font-size:.63rem;color:var(--td);background:rgba(58,143,181,.06);border-radius:6px;padding:.3rem .5rem">🔒 Contact details shared only after lease signature via RestMalta messaging</div>
+    </div>
+
+    <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
+      <div style="font-size:.63rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">🇲🇹 Situation in Malta</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.77rem">
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Reason for stay</div><div style="font-weight:600">${profile.reason_for_stay||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Planned duration</div><div style="font-weight:600">${profile.stay_duration||'—'}</div></div>
+        ${profile.emprent?`<div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Employer / University</div><div style="font-weight:600">${profile.emprent}</div></div>`:''}
+        ${profile.needs_attestation?`<div style="grid-column:1/-1"><div style="background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.2);border-radius:6px;padding:.3rem .6rem;font-size:.7rem;color:var(--sea)">ℹ️ Requires notarised lease attestation (non-EU)</div></div>`:''}
+      </div>
+    </div>
+
+    ${profile.review_count>0
+      ?`<div style="background:rgba(212,168,71,.06);border:1px solid rgba(212,168,71,.15);border-radius:8px;padding:.5rem .75rem;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:.73rem;color:var(--td)">RestMalta tenant score</span>
+          <span style="font-size:.85rem;font-weight:700;color:var(--gold)">⭐ ${profile.avg_rating?.toFixed(1)||'—'} (${profile.review_count} review${profile.review_count>1?'s':''})</span>
+        </div>`
+      :'<div style="font-size:.67rem;color:var(--td);text-align:center;padding:.2rem">New tenant — no previous reviews</div>'
+    }`;
 }
 
 function showLeaseDatesBooking(bookingId){
@@ -1306,10 +1418,135 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
   if(!startDate||!endDate){toast('⚠️ Please set lease start and end dates');return;}
   if(!edlDate){toast('⚠️ Please set the entry inventory & key handover date');return;}
 
-  toast('⏳ Accepting reservation and generating lease...');
+  toast('⏳ Processing commission & generating lease...');
 
   try{
-    // 1 — Capturer le Holding Deposit Stripe
+    // 1 — Charger les données d'abord
+    let booking=null;
+    try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
+    let listing=null;
+    try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
+    let tenantProfile=null;
+    try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',tenantId).single();tenantProfile=tp;}catch(e){}
+    let landlordProfile=null;
+    try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();landlordProfile=lp;}catch(e){}
+
+    if(!listing||!tenantProfile||!landlordProfile)throw new Error('Could not load profiles');
+
+    const hasAgent=listing.wants_agent&&listing.agent_service==='full';
+    const landlordRate=hasAgent?0.40:0.00;
+    const landlordCommission=Math.round((listing.price||0)*landlordRate);
+
+    // 2 — Prélever commission landlord maintenant (si avec agent)
+    if(landlordCommission>0){
+      toast('⏳ Processing your commission payment...');
+      const commRes=await fetch('/.netlify/functions/create-commission',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          lease_id:bookingId, // temporaire avant création du lease
+          monthly_rent:listing.price||0,
+          landlord_email:landlordProfile.email||'',
+          landlord_name:landlordProfile.full_name||'',
+          landlord_stripe_customer_id:landlordProfile.stripe_customer_id||null,
+          tenant_email:tenantProfile.email||'',
+          tenant_name:tenantProfile.full_name||'',
+          tenant_stripe_customer_id:null, // tenant a déjà payé au booking
+          property_address:listing.full_address||listing.zone||'',
+          has_agent:hasAgent,
+          holding_commission_already_paid:true // tenant a déjà payé
+        })
+      });
+      const commData=await commRes.json();
+
+      if(!commData.success)throw new Error('Commission payment failed');
+
+      // Si lien de paiement → ouvrir dans un nouvel onglet
+      if(commData.landlord?.method==='checkout_link'&&commData.landlord?.payment_url){
+        // Sauvegarder l'état pour continuer après paiement
+        localStorage.setItem('pending_lease_'+bookingId, JSON.stringify({bookingId,listingId,tenantId,startDate,endDate,edlDate}));
+        toast('💳 Please complete your commission payment to proceed.');
+        window.open(commData.landlord.payment_url,'_blank');
+        return;
+      }
+      // Si prélèvement direct → continuer
+      toast('✅ Commission paid! Generating lease...');
+    }
+
+    // 3 — Capturer le Holding Deposit Stripe du tenant
+    const res=await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error);
+
+    // 4 — Générer le bail DocuSeal
+    const leaseRes=await fetch('/.netlify/functions/generate-lease',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:listing.type==='short'?'short':'long',
+        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+        coTenants:[],
+        listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
+        start_date:startDate,end_date:endDate
+      })
+    });
+    const leaseData=await leaseRes.json();
+    if(!leaseData.success)throw new Error('Lease generation failed');
+
+    // 5 — Sauvegarder le bail
+    await sb.from('leases').insert({
+      listing_id:listingId,landlord_id:U.id,tenant_id:tenantId,
+      docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
+      status:'pending_signature',rent:listing.price,
+      start_date:startDate,end_date:endDate,
+      edl_date:edlDate,
+      listing_title:listing.title||'',
+      deposit:listing.deposit||0,
+      booking_id:bookingId,
+      holding_deposit_paid:booking?.holding_amount||0
+    }).catch(()=>{});
+
+    // 6 — Marquer booking accepted
+    try{await sb.from('bookings').update({status:'accepted',accepted_at:new Date().toISOString(),edl_date:edlDate}).eq('id',bookingId);}catch(e){}
+
+    // 7 — Notifier le tenant
+    const holdingPaid=booking?.holding_amount||0;
+    const firstMonth=listing.price||0;
+    const remaining=firstMonth-holdingPaid;
+    const deposit=listing.deposit||0;
+    const revTag=landlordProfile.revolut_tag||'';
+    const revLink=revTag.startsWith('@')?`\n💜 Revolut: https://revolut.me/${revTag.replace('@','')}?amount=${deposit+remaining}`:'';
+    const edlFormatted=new Date(edlDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    try{await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+      content:`🎉 Your reservation has been accepted!\n\n📄 Your lease has been sent to your email for e-signature via DocuSeal. Please sign it.\n\n📋 Entry inventory & key handover: ${edlFormatted}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💶 PAYMENT DUE TO LANDLORD BEFORE MOVE-IN\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 Security deposit: €${deposit}\n🏠 First month: €${firstMonth} (- €${holdingPaid} holding = €${remaining} remaining)\n💰 Total still due: €${deposit+remaining}\n\n🏦 IBAN: ${landlordProfile.iban||'—'}\nName: ${landlordProfile.full_name||'—'}${revLink}\n\nPay AFTER signing the lease. Then click "I've paid" in your dashboard.`,
+      type:'booking_accepted'
+    });}catch(e){}
+
+    // 8 — Notifier l'agent pour l'EDL
+    try{
+      const{data:visit}=await sb.from('visits').select('agent_id').eq('listing_id',listingId).in('status',['completed','booking_pending']).order('created_at',{ascending:false}).limit(1).single();
+      if(visit?.agent_id){
+        try{await sb.from('messages').insert({
+          listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
+          content:`📋 Entry inventory scheduled!\n\n🏠 ${listing.title||'Property'}\n📍 ${listing.full_address||listing.zone||'—'}\n👤 Tenant: ${tenantProfile.full_name||'—'} — 📞 ${tenantProfile.phone||'—'}\n\n📅 Entry inventory & key handover: ${edlFormatted}`,
+          type:'edl_scheduled'
+        });}catch(e){}
+        try{await sb.from('visits').update({status:'edl_scheduled',edl_date:edlDate}).eq('agent_id',visit.agent_id).eq('listing_id',listingId);}catch(e){}
+      }
+    }catch(e){}
+
+    toast('🎉 Commission paid + lease sent + agent notified!');
+    loadVisitsPage();
+
+  }catch(e){
+    toast('❌ Error: '+e.message);
+    console.error(e);
+  }
+}
     const res=await fetch('/.netlify/functions/holding-deposit',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})
