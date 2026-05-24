@@ -1162,13 +1162,175 @@ async function declarePaidFromMessage(msgId, listingId){
   toast('✅ Landlord notified — they will confirm receipt.');
 }
 
-async function respondToInterest(msgId, visitId, listingId, interested){
-  // Marquer le message comme lu
-  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
+async function showHoldingDeposit(visitId, listingId, listingPrice){
+  // Charger le prix du listing si pas passé
+  let price=parseFloat(listingPrice)||0;
+  if(!price){
+    try{const{data:l}=await sb.from('listings').select('price').eq('id',listingId).single();price=l?.price||0;}catch(e){}
+  }
 
-  // Récupérer les infos de la visite
+  const section=document.getElementById(`holding-section-${visitId}`);
+  if(!section)return;
+  section.style.display='block';
+
+  const holding=Math.round(price/2);
+  const commission=Math.round(price*0.40);
+  const total=holding+commission;
+
+  const breakdown=document.getElementById(`holding-breakdown-${visitId}`);
+  if(breakdown) breakdown.innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding Deposit (½ month)</span><span>€${holding}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (40% TTC)</span><span>€${commission}</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.2rem;margin-top:.2rem"><span>Total today</span><span>€${total}</span></div>
+    <div style="font-size:.65rem;color:var(--td);margin-top:.3rem">💚 Holding Deposit deducted from first month. Full refund if landlord declines.</div>`;
+
+  // Monter le formulaire Stripe
+  const cardWrap=document.getElementById(`holding-card-${visitId}`);
+  if(cardWrap&&!cardWrap._mounted){
+    try{
+      if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
+      const elements=stripeInstance.elements();
+      const card=elements.create('card',{style:{base:{color:'#1a1a1a',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(0,0,0,.4)'}},invalid:{color:'#E05A5A'}}});
+      card.mount(cardWrap);
+      cardWrap._cardEl=card;
+      cardWrap._mounted=true;
+      cardWrap._price=price;
+      cardWrap._visitId=visitId;
+      cardWrap._listingId=listingId;
+    }catch(e){console.error('Stripe mount error:',e);}
+  }
+}
+
+async function payHoldingDepositFromVisits(visitId, listingId){
+  const cardWrap=document.getElementById(`holding-card-${visitId}`);
+  if(!cardWrap||!cardWrap._mounted){toast('⚠️ Card form not ready');return;}
+
+  const btn=document.getElementById(`holding-btn-${visitId}`);
+  if(btn){btn.textContent='Processing...';btn.disabled=true;}
+
+  try{
+    const price=cardWrap._price||0;
+    const holding=Math.round(price/2);
+    const commission=Math.round(price*0.40);
+
+    // 1 — Récupérer les infos listing
+    let listing=null;
+    try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
+    if(!listing)throw new Error('Listing not found');
+
+    // 2 — Créer PaymentIntent
+    const res=await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'create_holding',
+        listing_id:listingId,
+        tenant_id:U.id,
+        tenant_email:P?.email||'',
+        tenant_name:P?.full_name||'',
+        tenant_stripe_customer_id:P?.stripe_customer_id||null,
+        monthly_rent:price,
+        has_agent:listing.wants_agent&&listing.agent_service==='full'
+      })
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Payment failed');
+
+    // 3 — Confirmer le paiement
+    const{error,paymentIntent}=await stripeInstance.confirmCardPayment(data.client_secret,{
+      payment_method:{card:cardWrap._cardEl}
+    });
+    if(error)throw new Error(error.message);
+
+    // 4 — Sauvegarder la réservation
+    const{data:booking}=await sb.from('bookings').insert({
+      listing_id:listingId,
+      tenant_id:U.id,
+      landlord_id:listing.landlord_id,
+      tenant_name:P?.full_name||'',
+      tenant_email:P?.email||'',
+      payment_intent_id:paymentIntent.id,
+      stripe_customer_id:data.customer_id,
+      holding_amount:holding,
+      commission_amount:commission,
+      total_amount:holding+commission,
+      monthly_rent:price,
+      status:'pending',
+      has_agent:listing.wants_agent&&listing.agent_service==='full'
+    }).select().maybeSingle();
+
+    // 5 — Mettre le listing en reserved
+    await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId).catch(()=>{});
+
+    // 6 — Marquer la visite
+    await sb.from('visits').update({status:'booking_pending'}).eq('id',visitId).catch(()=>{});
+
+    // 7 — Générer reçu DocuSeal
+    fetch('/.netlify/functions/generate-booking-receipt',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        tenant:{name:P?.full_name,passport:P?.passport_number,nationality:P?.nationality,email:P?.email||'',phone:P?.phone||''},
+        listing:{title:listing.title,address:listing.full_address||listing.zone,price:listing.price,type:listing.type},
+        holding_amount:holding,commission_amount:commission,total_amount:holding+commission,
+        booking_id:booking?.id||paymentIntent.id
+      })
+    }).catch(()=>{});
+
+    // 8 — Notifier le landlord avec dossier complet
+    await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:listing.landlord_id,
+      content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n📞 ${P?.phone||'—'} | 🌍 ${P?.nationality||'—'}\n📋 Passport: ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept or decline.\nGo to your dashboard → Visits to decide.`,
+      type:'booking_request'
+    }).catch(()=>{});
+
+    // 9 — Sauvegarder stripe_customer_id
+    if(data.customer_id&&!P?.stripe_customer_id){
+      await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id).catch(()=>{});
+    }
+
+    if(btn)btn.style.display='none';
+    document.getElementById(`holding-done-${visitId}`).style.display='block';
+    toast('🔒 Property reserved! Check your email to sign the agreement.');
+    setTimeout(()=>loadTenantVisits(),2000);
+
+  }catch(e){
+    console.error('Holding error:',e);
+    toast('❌ '+e.message);
+    if(btn){btn.textContent='🔒 Reserve & Pay →';btn.disabled=false;}
+  }
+}
+
+async function respondToInterest(msgId, visitId, listingId, interested){
+  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
   let visit=null;
   try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+
+  if(!interested){
+    // ── Pas intéressé ──
+    try{await sb.from('visits').update({status:'tenant_declined'}).eq('id',visitId);}catch(e){}
+
+    // Notifier landlord
+    if(visit?.landlord_id){
+      try{await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:visit.landlord_id,
+        content:`ℹ️ ${P?.full_name||'The tenant'} visited your property and is not interested in renting at this time.`,
+        type:'tenant_not_interested'
+      });}catch(e){}
+    }
+    // Notifier agent
+    if(visit?.agent_id){
+      try{await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
+        content:`ℹ️ ${P?.full_name||'The tenant'} is not interested in renting ${visit.listing_title||'the property'} after the visit.`,
+        type:'tenant_not_interested'
+      });}catch(e){}
+    }
+    toast('✅ Landlord and agent notified.');
+    loadTenantVisits();
+
+  }
+  // ── Intéressé → géré par showHoldingDeposit + payHoldingDepositFromVisits ──
+  // Ne rien faire ici — le bouton "Yes" appelle showHoldingDeposit directement
+}
 
   if(!interested){
     // ── Pas intéressé ──
@@ -1231,6 +1393,16 @@ async function respondToInterest(msgId, visitId, listingId, interested){
   }
 }
 
+
+function filterContactData(text){
+  if(!text)return text;
+  text=text.replace(/(?:\+356|00356)?\s?[279]\d{3}\s?\d{4}/g,'[📵 Number hidden by RestMalta]');
+  text=text.replace(/(\+\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g,'[📵 Number hidden by RestMalta]');
+  text=text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[📧 Email hidden by RestMalta]');
+  text=text.replace(/whatsapp|telegram|signal|viber/gi,'[RestMalta chat only]');
+  return text;
+}
+
 async function sendReply(){
   const reply=document.getElementById('mm-reply').value.trim();
   if(!reply||!tenantChatListingId)return;
@@ -1251,7 +1423,7 @@ async function sendReply(){
     sender_id:U.id,
     receiver_id:tenantChatReceiverId,
     thread_id:tid,
-    content:reply,
+    content:filterContactData(reply),
     read:false
   });}catch(e){}
 }
@@ -1405,8 +1577,16 @@ async function loadTenantVisits(){
           <div style="font-size:.85rem;font-weight:700;margin-bottom:.3rem">🏠 How did the visit go?</div>
           <div style="font-size:.75rem;color:var(--tm);margin-bottom:.6rem">Are you interested in renting this property?</div>
           <div style="display:flex;gap:.5rem">
-            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',true)" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">✅ Yes, I want to rent!</button>
+            <button onclick="showHoldingDeposit('${v.id}','${v.listing_id}',${v.listing_price||0})" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">✅ Yes, I want to rent!</button>
             <button onclick="respondToInterest('','${v.id}','${v.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Not interested</button>
+          </div>
+          <div id="holding-section-${v.id}" style="display:none;margin-top:.75rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.25);border-radius:10px;padding:.85rem">
+            <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">🔒 Reserve this property</div>
+            <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem;line-height:1.5">Pay a <strong>Holding Deposit</strong> to reserve this property. The landlord will review your full profile within 48 hours and accept or decline. Full refund if declined.</div>
+            <div id="holding-breakdown-${v.id}" style="background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.75rem"></div>
+            <div id="holding-card-${v.id}"></div>
+            <button id="holding-btn-${v.id}" onclick="payHoldingDepositFromVisits('${v.id}','${v.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:.4rem">🔒 Reserve & Pay →</button>
+            <div id="holding-done-${v.id}" style="display:none;text-align:center;font-size:.78rem;color:#4CAF7D;font-weight:600;padding:.5rem">✅ Reserved! Check your email to sign the agreement.</div>
           </div>
         </div>`:''}\
       ${v.status==='tenant_interested'?`<div style="font-size:.78rem;color:#4CAF7D;font-weight:600;margin-top:.5rem;padding:.5rem .75rem;background:rgba(76,175,125,.08);border-radius:8px">🎉 Great! Waiting for landlord to confirm and generate the lease.</div>`:''}\
