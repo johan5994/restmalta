@@ -914,14 +914,18 @@ function renderAllVisits(){
         <div id="listing-details-${v.id}" style="padding:0 1.2rem 1rem">
           <div style="font-size:.75rem;color:var(--td);text-align:center;padding:.5rem">Loading property details...</div>
         </div>
-        <!-- Actions -->
+        <!-- Actions selon statut -->
         <div style="padding:.75rem 1.2rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-wrap:wrap">
-          ${v.status==='entry_inventory_pending'
-            ?`<button class="btn bp bsm" onclick="markEntryInventoryDone('${v.id}')" style="flex:2;justify-content:center;background:var(--terra)">📋 Entry inventory done → unlock move-in</button>`
-            :`<button class="btn bp bsm" onclick="markVisitDone('${v.id}')" style="flex:1;justify-content:center">✅ Mark as done</button>`
+          ${(v.status==='entry_inventory_pending'||v.status==='edl_scheduled')
+            ?`<button class="btn bp bsm" onclick="startSigningDay('${v.id}')" style="flex:2;justify-content:center;background:var(--terra)">📋 Start Signing Day — EDL + Lease</button>`
+            :v.status==='signing_day'
+            ?`<button class="btn bp bsm" onclick="completeSigningDay('${v.id}')" style="flex:2;justify-content:center;background:#4CAF7D">🔑 Keys Handed Over → Complete</button>`
+            :`<button class="btn bp bsm" onclick="markVisitDone('${v.id}')" style="flex:1;justify-content:center">✅ Mark visit as done</button>`
           }
           <button class="btn bg bsm" onclick="reportIssue('${v.id}')" style="flex:1;justify-content:center">⚠️ Report issue</button>
         </div>
+        <!-- Signing day panel -->
+        <div id="signing-panel-${v.id}" style="display:none;padding:.75rem 1.2rem;border-top:1px solid var(--b)"></div>
       </div>`;
     }
 
@@ -994,7 +998,184 @@ async function loadVisitListingDetails(visit){
     </div>`;
 }
 
+async function startSigningDay(visitId){
+  // Marquer le statut signing_day
+  try{await sb.from('visits').update({status:'signing_day'}).eq('id',visitId);}catch(e){}
+
+  const panel=document.getElementById(`signing-panel-${visitId}`);
+  if(!panel)return;
+
+  // Récupérer les données
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+  let lease=null;
+  try{const{data:l}=await sb.from('leases').select('*').eq('listing_id',visit?.listing_id).eq('tenant_id',visit?.tenant_id).order('created_at',{ascending:false}).limit(1).single();lease=l;}catch(e){}
+  let listing=null;
+  try{const{data:li}=await sb.from('listings').select('*').eq('id',visit?.listing_id).single();listing=li;}catch(e){}
+  let tenantProfile=null;
+  try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',visit?.tenant_id).single();tenantProfile=tp;}catch(e){}
+  let landlordProfile=null;
+  try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',visit?.landlord_id).single();landlordProfile=lp;}catch(e){}
+
+  const holdingPaid=lease?.holding_deposit_paid||0;
+  const firstMonth=listing?.price||0;
+  const remaining=Math.max(0,firstMonth-holdingPaid);
+  const deposit=listing?.deposit||0;
+  const totalDue=deposit+remaining;
+  const revTag=landlordProfile?.revolut_tag||'';
+  const revLink=revTag.startsWith('@')?`https://revolut.me/${revTag.replace('@','')}?amount=${totalDue}`:'';
+
+  panel.style.display='block';
+  panel.innerHTML=`
+    <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem">📋 Signing Day — Step by Step</div>
+
+    <!-- Étape 1 : EDL -->
+    <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">1️⃣ Entry Inventory (État des Lieux)</div>
+      <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem">Take photos of each room, note condition, read meters. Both parties present.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem">
+        <div><label style="font-size:.65rem;color:var(--td)">💧 Water meter</label><input type="text" id="meter-water-${visitId}" class="fi" placeholder="e.g. 1234.5" style="font-size:.78rem;margin-top:.2rem"></div>
+        <div><label style="font-size:.65rem;color:var(--td)">⚡ Electricity meter</label><input type="text" id="meter-elec-${visitId}" class="fi" placeholder="e.g. 5678.9" style="font-size:.78rem;margin-top:.2rem"></div>
+      </div>
+      <div><label style="font-size:.65rem;color:var(--td)">📝 Inventory notes (defects, remarks)</label><textarea id="inv-notes-${visitId}" style="width:100%;border:1px solid var(--b);border-radius:8px;background:var(--s2);color:var(--tf);padding:.5rem;font-size:.75rem;margin-top:.2rem;resize:vertical" rows="3" placeholder="e.g. Small scratch on bedroom wall, fridge door handle loose..."></textarea></div>
+    </div>
+
+    <!-- Étape 2 : Signature bail en live -->
+    <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">2️⃣ Lease Signature — Live</div>
+      <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem">Send the signing link directly to the tenant's phone. Both sign on the spot.</div>
+      ${lease?.docuseal_id
+        ?`<button onclick="sendSigningLink('${visitId}','${visit?.tenant_id||''}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">📱 Send signing link to tenant's phone</button>`
+        :`<div style="font-size:.75rem;color:var(--red)">⚠️ No lease found — landlord must generate the lease first.</div>`
+      }
+      <div id="signing-status-${visitId}" style="margin-top:.4rem;font-size:.72rem;color:var(--td)"></div>
+    </div>
+
+    <!-- Étape 3 : Fiche de paiement -->
+    <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">3️⃣ Payment Sheet for Tenant</div>
+      <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;margin-bottom:.5rem">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Security deposit</span><span>€${deposit}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">First month rent</span><span>€${firstMonth}</span></div>
+        ${holdingPaid>0?`<div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding deposit already paid</span><span style="color:#4CAF7D">- €${holdingPaid}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.2rem;margin-top:.2rem"><span>Total due to landlord</span><span>€${totalDue}</span></div>
+      </div>
+      <div style="font-size:.72rem;margin-bottom:.4rem">
+        <div style="font-weight:600;margin-bottom:.2rem">🏦 Bank transfer:</div>
+        <div style="color:var(--tm)">${landlordProfile?.iban||'—'}</div>
+        <div style="color:var(--td)">Name: ${landlordProfile?.full_name||'—'}</div>
+        ${revLink?`<div style="margin-top:.3rem"><a href="${revLink}" target="_blank" style="color:#6c5ce7;font-weight:600">💜 Pay via Revolut →</a></div>`:''}
+      </div>
+      <button onclick="sendPaymentSheet('${visitId}','${visit?.tenant_id||''}',${totalDue},'${landlordProfile?.iban||''}','${landlordProfile?.full_name||''}','${revLink}','${visit?.listing_id||''}')" style="width:100%;background:var(--gold);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">💶 Send payment sheet to tenant</button>
+      <div id="payment-sheet-status-${visitId}" style="margin-top:.4rem;font-size:.72rem;color:var(--td)"></div>
+    </div>
+
+    <!-- Étape 4 : Remise des clés -->
+    <div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:.3rem;color:#4CAF7D">4️⃣ Key Handover</div>
+      <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem">Once everything is signed and payment confirmed, hand over the keys.</div>
+      <button onclick="completeSigningDay('${visitId}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.7rem;font-size:.85rem;font-weight:700;cursor:pointer">🔑 Keys Handed Over → Complete Move-In</button>
+    </div>`;
+
+  // Scroll vers le panel
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  loadVisits();
+}
+
+async function sendSigningLink(visitId, tenantId){
+  const status=document.getElementById(`signing-status-${visitId}`);
+  if(status)status.textContent='⏳ Sending link...';
+
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('listing_id,tenant_id').eq('id',visitId).single();visit=v;}catch(e){}
+  let lease=null;
+  try{const{data:l}=await sb.from('leases').select('docuseal_id').eq('listing_id',visit?.listing_id).eq('tenant_id',visit?.tenant_id).order('created_at',{ascending:false}).limit(1).single();lease=l;}catch(e){}
+
+  if(!lease?.docuseal_id){
+    if(status)status.textContent='❌ No lease found.';return;
+  }
+
+  // Notifier le tenant par message avec lien DocuSeal
+  try{
+    await sb.from('messages').insert({
+      listing_id:visit.listing_id,
+      sender_id:'system',
+      receiver_id:tenantId,
+      content:`📱 The agent is waiting for your signature!\n\nPlease sign your lease now — it only takes 2 minutes.\n\nCheck your email for the DocuSeal signing link, or ask the agent to show you the link on their device.`,
+      type:'sign_now'
+    });
+    if(status)status.textContent='✅ Notification sent to tenant — check email or messages.';
+  }catch(e){
+    if(status)status.textContent='❌ Error: '+e.message;
+  }
+}
+
+async function sendPaymentSheet(visitId, tenantId, totalDue, iban, landlordName, revLink, listingId){
+  const status=document.getElementById(`payment-sheet-status-${visitId}`);
+  if(status)status.textContent='⏳ Sending...';
+
+  try{
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:'system',
+      receiver_id:tenantId,
+      content:`💶 Payment due to your landlord:\n\nTotal: €${totalDue}\n\n🏦 Bank transfer (IBAN):\n${iban||'—'}\nName: ${landlordName||'—'}\n${revLink?`\n💜 Pay via Revolut:\n${revLink}`:''}\n\nPlease pay now and click "I've paid" in your dashboard once done.`,
+      type:'payment_due_onsite'
+    });
+    if(status)status.innerHTML='✅ Payment sheet sent to tenant\'s dashboard.';
+  }catch(e){
+    if(status)status.textContent='❌ Error: '+e.message;
+  }
+}
+
+async function completeSigningDay(visitId){
+  if(!confirm('Confirm keys have been handed over and move-in is complete?'))return;
+
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+
+  // Sauvegarder les relevés de compteurs dans l'inventaire
+  const waterMeter=document.getElementById(`meter-water-${visitId}`)?.value||'';
+  const elecMeter=document.getElementById(`meter-elec-${visitId}`)?.value||'';
+  const notes=document.getElementById(`inv-notes-${visitId}`)?.value||'';
+
+  try{
+    await sb.from('visits').update({
+      status:'move_in_ready',
+      water_meter:waterMeter,
+      electricity_meter:elecMeter,
+      inventory_notes:notes
+    }).eq('id',visitId);
+  }catch(e){}
+
+  // Notifier tenant
+  if(visit?.tenant_id){
+    try{await sb.from('messages').insert({
+      listing_id:visit.listing_id,sender_id:'system',receiver_id:visit.tenant_id,
+      content:`🎉 Welcome home!\n\n🏠 ${visit.listing_title||'Your new home'} is yours!\n\n📋 Entry inventory completed by ${P?.full_name||'agent'}.\n💧 Water meter: ${waterMeter||'—'}\n⚡ Electricity meter: ${elecMeter||'—'}\n\n⚠️ Important: Register your lease with the Housing Authority within 10 days:\nrentregistration.mt\n\n🏡 Enjoy your new home in Malta!`,
+      type:'move_in_ready'
+    });}catch(e){}
+  }
+
+  // Notifier landlord
+  if(visit?.landlord_id){
+    try{await sb.from('messages').insert({
+      listing_id:visit.listing_id,sender_id:'system',receiver_id:visit.landlord_id,
+      content:`✅ Move-in complete!\n\n🏠 ${visit.listing_title||'Property'}\n👤 Tenant: ${visit.tenant_name||'—'}\n\n📋 Entry inventory done by ${P?.full_name||'agent'}.\n💧 Water meter: ${waterMeter||'—'}\n⚡ Electricity meter: ${elecMeter||'—'}\n${notes?`\nNotes: ${notes}`:''}\n\n⚠️ Register the lease at rentregistration.mt within 10 days.`,
+      type:'entry_inventory_done'
+    });}catch(e){}
+  }
+
+  toast('🎉 Move-in complete! Tenant and landlord notified.');
+  loadVisits();
+}
+
 async function markEntryInventoryDone(visitId){
+  // Rediriger vers startSigningDay
+  startSigningDay(visitId);
+}
+
+async function markVisitDone(visitId){
   if(!confirm('Confirm entry inventory is complete? This will notify all parties and allow the tenant to move in.'))return;
 
   let visit=null;
