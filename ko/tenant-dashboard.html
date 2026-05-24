@@ -1163,28 +1163,32 @@ async function declarePaidFromMessage(msgId, listingId){
 }
 
 async function showHoldingDeposit(visitId, listingId, listingPrice){
-  // Charger le prix du listing si pas passé
   let price=parseFloat(listingPrice)||0;
+  let hasAgent=false;
   if(!price){
-    try{const{data:l}=await sb.from('listings').select('price').eq('id',listingId).single();price=l?.price||0;}catch(e){}
+    try{const{data:l}=await sb.from('listings').select('price,wants_agent,agent_service').eq('id',listingId).single();price=l?.price||0;hasAgent=l?.wants_agent&&l?.agent_service==='full';}catch(e){}
+  } else {
+    try{const{data:l}=await sb.from('listings').select('wants_agent,agent_service').eq('id',listingId).single();hasAgent=l?.wants_agent&&l?.agent_service==='full';}catch(e){}
   }
 
   const section=document.getElementById(`holding-section-${visitId}`);
   if(!section)return;
   section.style.display='block';
 
+  const tenantRate=hasAgent?0.40:0.15;
   const holding=Math.round(price/2);
-  const commission=Math.round(price*0.40);
+  const commission=Math.round(price*tenantRate);
   const total=holding+commission;
+  const rateLabel=hasAgent?'40% TTC (with agent)':'15% TTC (direct)';
 
   const breakdown=document.getElementById(`holding-breakdown-${visitId}`);
   if(breakdown) breakdown.innerHTML=`
     <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding Deposit (½ month)</span><span>€${holding}</span></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (40% TTC)</span><span>€${commission}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (${rateLabel})</span><span>€${commission}</span></div>
     <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.2rem;margin-top:.2rem"><span>Total today</span><span>€${total}</span></div>
     <div style="font-size:.65rem;color:var(--td);margin-top:.3rem">💚 Holding Deposit deducted from first month. Full refund if landlord declines.</div>`;
 
-  // Monter le formulaire Stripe
+  // Stocker pour payHoldingDepositFromVisits
   const cardWrap=document.getElementById(`holding-card-${visitId}`);
   if(cardWrap&&!cardWrap._mounted){
     try{
@@ -1195,6 +1199,7 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
       cardWrap._cardEl=card;
       cardWrap._mounted=true;
       cardWrap._price=price;
+      cardWrap._hasAgent=hasAgent;
       cardWrap._visitId=visitId;
       cardWrap._listingId=listingId;
     }catch(e){console.error('Stripe mount error:',e);}
@@ -1210,8 +1215,10 @@ async function payHoldingDepositFromVisits(visitId, listingId){
 
   try{
     const price=cardWrap._price||0;
+    const hasAgent=cardWrap._hasAgent||false;
+    const tenantRate=hasAgent?0.40:0.15;
     const holding=Math.round(price/2);
-    const commission=Math.round(price*0.40);
+    const commission=Math.round(price*tenantRate);
 
     // 1 — Récupérer les infos listing
     let listing=null;
@@ -1259,10 +1266,10 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     }).select().maybeSingle();
 
     // 5 — Mettre le listing en reserved
-    await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId).catch(()=>{});
+    try{await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId);}catch(e){}
 
     // 6 — Marquer la visite
-    await sb.from('visits').update({status:'booking_pending'}).eq('id',visitId).catch(()=>{});
+    try{await sb.from('visits').update({status:'booking_pending'}).eq('id',visitId);}catch(e){}
 
     // 7 — Générer reçu DocuSeal
     fetch('/.netlify/functions/generate-booking-receipt',{
@@ -1280,11 +1287,11 @@ async function payHoldingDepositFromVisits(visitId, listingId){
       listing_id:listingId,sender_id:'system',receiver_id:listing.landlord_id,
       content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n📞 ${P?.phone||'—'} | 🌍 ${P?.nationality||'—'}\n📋 Passport: ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept or decline.\nGo to your dashboard → Visits to decide.`,
       type:'booking_request'
-    }).catch(()=>{});
+    }).then(()=>{}).catch(()=>{});
 
     // 9 — Sauvegarder stripe_customer_id
     if(data.customer_id&&!P?.stripe_customer_id){
-      await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id).catch(()=>{});
+      try{await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id);}catch(e){}
     }
 
     if(btn)btn.style.display='none';
@@ -1459,7 +1466,19 @@ async function loadTenantVisits(){
   if(!wrap)return;
   let visits=[];
   try{
-    const{data}=await sb.from('visits').select('*').eq('tenant_id',U.id).order('visit_date',{ascending:true});
+    const{data:rawVisits}=await sb.from('visits').select('*').eq('tenant_id',U.id).order('visit_date',{ascending:true});
+    // Enrichir avec le prix du listing
+    let data=rawVisits||[];
+    if(data.length){
+      const listingIds=[...new Set(data.map(v=>v.listing_id).filter(Boolean))];
+      if(listingIds.length){
+        try{
+          const{data:listings}=await sb.from('listings').select('id,price,title,zone').in('id',listingIds);
+          const lMap={};(listings||[]).forEach(l=>{lMap[l.id]=l;});
+          data=data.map(v=>({...v,listing_price:lMap[v.listing_id]?.price||0,listing_title:v.listing_title||lMap[v.listing_id]?.title||'Property',listing_zone:v.listing_zone||lMap[v.listing_id]?.zone||'Malta'}));
+        }catch(e){}
+      }
+    }
     visits=data||[];
   }catch(e){}
 
