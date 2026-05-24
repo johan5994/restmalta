@@ -903,8 +903,9 @@ footer ul a:hover{color:var(--terra)}
                 </select>
               </div>
             </div>
-            <button class="btn" id="visit-action-btn" style="width:100%;justify-content:center;background:var(--sea);color:white;font-size:.8rem" onclick="requestVisit()">📅 Request this visit →</button>
+            <button class="btn" id="visit-action-btn" style="width:100%;justify-content:center;background:var(--sea);color:white;font-size:.8rem" onclick="requestVisit()">📅 Request a visit →</button>
           </div>
+
           <p style="margin-top:.6rem;font-size:.68rem;color:var(--stone-l);text-align:center">🔒 Your contact details are never shared directly</p>
         </div>
       </div>
@@ -1454,7 +1455,7 @@ async function sendMsg(){
     listing_id:AL.id,
     sender_id:U.id,
     receiver_id:AL.landlord_id,
-    content:fullMessage,
+    content:filterContactData(fullMessage), // masquer numéros/emails
     escrow_requested:escrowChoice||false
   });
   if(error){toast('Error: '+error.message);return;}
@@ -1477,6 +1478,142 @@ async function sendMsg(){
     toast('✅ Message sent !');
   }
   document.getElementById('dmsg').value='';
+}
+
+// ── Anti-contournement : masquer numéros et emails dans le chat ──
+function filterContactData(text){
+  if(!text)return text;
+  // Numéros maltais (+356 ou locaux)
+  text=text.replace(/(?:\+356|00356)?\s?[279]\d{3}\s?\d{4}/g,'[📵 Number hidden by RestMalta]');
+  // Numéros internationaux
+  text=text.replace(/(\+\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g,'[📵 Number hidden by RestMalta]');
+  // Emails
+  text=text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[📧 Email hidden by RestMalta]');
+  // WhatsApp / Telegram
+  text=text.replace(/whatsapp|telegram|signal|viber/gi,'[RestMalta chat only]');
+  return text;
+}
+
+// ── Afficher la section Reserve après une visite ──────────────
+function showReserveSection(){
+  if(!AL)return;
+  const wrap=document.getElementById('reserve-wrap');
+  if(!wrap)return;
+  wrap.style.display='block';
+  const holding=Math.round(AL.price/2);
+  const commission=Math.round(AL.price*0.40);
+  const total=holding+commission;
+  document.getElementById('res-holding').textContent=`€${holding}`;
+  document.getElementById('res-commission').textContent=`€${commission}`;
+  document.getElementById('res-total').textContent=`€${total}`;
+
+  // Monter le formulaire Stripe
+  if(window.Stripe&&!window._reserveCardMounted){
+    const stripeInst=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
+    const elements=stripeInst.elements();
+    window._reserveCardEl=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'#E05A5A'}}});
+    window._reserveCardEl.mount('#reserve-card-element');
+    window._reserveStripe=stripeInst;
+    window._reserveCardMounted=true;
+  }
+}
+
+async function payHoldingDeposit(){
+  if(!U){toast('Please sign in first');return;}
+  if(!AL){toast('No listing selected');return;}
+  if(!P?.full_name||!P?.passport_number){
+    toast('❌ Please complete your profile first (name + passport required)');
+    return;
+  }
+
+  const btn=document.getElementById('reserve-btn');
+  btn.textContent='Processing...';btn.disabled=true;
+
+  try{
+    const monthly_rent=AL.price||0;
+    const holding_amount=Math.round(monthly_rent/2);
+    const commission_amount=Math.round(monthly_rent*0.40);
+
+    // 1 — Créer le PaymentIntent
+    const res=await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'create_holding',
+        listing_id:AL.id,
+        tenant_id:U.id,
+        tenant_email:P.email||U.primaryEmailAddress?.emailAddress||'',
+        tenant_name:P.full_name,
+        tenant_stripe_customer_id:P.stripe_customer_id||null,
+        monthly_rent,
+        has_agent:AL.wants_agent&&AL.agent_service==='full'
+      })
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Payment failed');
+
+    // 2 — Confirmer le paiement avec la carte Stripe
+    const{error,paymentIntent}=await window._reserveStripe.confirmCardPayment(data.client_secret,{
+      payment_method:{card:window._reserveCardEl}
+    });
+    if(error)throw new Error(error.message);
+
+    // 3 — Sauvegarder la réservation dans Supabase
+    const{data:booking,error:bookErr}=await sb.from('bookings').insert({
+      listing_id:AL.id,
+      tenant_id:U.id,
+      landlord_id:AL.landlord_id,
+      tenant_name:P.full_name,
+      tenant_email:P.email||'',
+      payment_intent_id:paymentIntent.id,
+      stripe_customer_id:data.customer_id,
+      holding_amount,
+      commission_amount,
+      total_amount:holding_amount+commission_amount,
+      monthly_rent,
+      status:'pending',
+      has_agent:AL.wants_agent&&AL.agent_service==='full'
+    }).select().maybeSingle();
+
+    const bookingId=booking?.id||paymentIntent.id;
+
+    // 4 — Passer le listing en "reserved"
+    await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',AL.id);
+
+    // 5 — Générer le reçu DocuSeal
+    fetch('/.netlify/functions/generate-booking-receipt',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        tenant:{name:P.full_name,passport:P.passport_number,nationality:P.nationality,email:P.email||'',phone:P.phone||''},
+        listing:{title:AL.title,address:AL.full_address||AL.zone,price:AL.price,type:AL.type},
+        holding_amount,commission_amount,total_amount:holding_amount+commission_amount,
+        booking_id:bookingId
+      })
+    }).catch(()=>{});
+
+    // 6 — Notifier le landlord
+    await sb.from('messages').insert({
+      listing_id:AL.id,
+      sender_id:'system',
+      receiver_id:AL.landlord_id,
+      content:`🔒 New reservation request!\n\n👤 Tenant: ${P.full_name}\n📞 Phone: ${P.phone||'—'}\n🌍 Nationality: ${P.nationality||'—'}\n📋 Passport: ${P.passport_number||'—'}\n💼 Employer: ${P.emprent||'—'}\n\n💰 Monthly rent: €${monthly_rent}\n🔐 Holding deposit paid: €${holding_amount}\n\nGo to your dashboard → Visits to accept or decline within 48 hours.\n\n⚠️ If you decline, the tenant is fully refunded automatically.`,
+      type:'booking_request'
+    }).catch(()=>{});
+
+    // 7 — Sauvegarder stripe_customer_id sur le profil tenant
+    if(data.customer_id&&!P.stripe_customer_id){
+      await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id).catch(()=>{});
+    }
+
+    // Afficher confirmation
+    document.getElementById('reserve-card-wrap').style.display='none';
+    document.getElementById('reserve-done').style.display='block';
+    toast('🔒 Property reserved! Check your email to sign the agreement.');
+
+  }catch(e){
+    console.error('Holding deposit error:',e);
+    toast('❌ '+e.message);
+    btn.textContent='🔒 Reserve & Pay →';btn.disabled=false;
+  }
 }
 
 async function requestVisit(){
