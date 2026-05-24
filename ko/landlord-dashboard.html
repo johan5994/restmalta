@@ -1496,7 +1496,7 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     if(!leaseData.success)throw new Error('Lease generation failed');
 
     // 5 — Sauvegarder le bail
-    await sb.from('leases').insert({
+    try{await sb.from('leases').insert({
       listing_id:listingId,landlord_id:U.id,tenant_id:tenantId,
       docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
       status:'pending_signature',rent:listing.price,
@@ -1506,7 +1506,7 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
       deposit:listing.deposit||0,
       booking_id:bookingId,
       holding_deposit_paid:booking?.holding_amount||0
-    }).catch(()=>{});
+    });}catch(e){}
 
     // 6 — Marquer booking accepted
     try{await sb.from('bookings').update({status:'accepted',accepted_at:new Date().toISOString(),edl_date:edlDate}).eq('id',bookingId);}catch(e){}
@@ -1547,94 +1547,6 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     console.error(e);
   }
 }
-    const res=await fetch('/.netlify/functions/holding-deposit',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})
-    });
-    const data=await res.json();
-    if(!data.success)throw new Error(data.error);
-
-    // 2 — Charger les données
-    let booking=null;
-    try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
-    let listing=null;
-    try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
-    let tenantProfile=null;
-    try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',tenantId).single();tenantProfile=tp;}catch(e){}
-    let landlordProfile=null;
-    try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();landlordProfile=lp;}catch(e){}
-
-    if(!listing||!tenantProfile||!landlordProfile)throw new Error('Could not load profiles');
-
-    // 3 — Générer le bail DocuSeal
-    const leaseRes=await fetch('/.netlify/functions/generate-lease',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        type:listing.type==='short'?'short':'long',
-        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
-        coTenants:[],
-        listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
-        start_date:startDate,end_date:endDate
-      })
-    });
-    const leaseData=await leaseRes.json();
-    if(!leaseData.success)throw new Error('Lease generation failed');
-
-    // 4 — Sauvegarder le bail
-    await sb.from('leases').insert({
-      listing_id:listingId,landlord_id:U.id,tenant_id:tenantId,
-      docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
-      status:'pending_signature',rent:listing.price,
-      start_date:startDate,end_date:endDate,
-      edl_date:edlDate,
-      listing_title:listing.title||'',
-      deposit:listing.deposit||0,
-      booking_id:bookingId,
-      holding_deposit_paid:booking?.holding_amount||0
-    }).catch(()=>{});
-
-    // 5 — Marquer booking accepted
-    await sb.from('bookings').update({status:'accepted',accepted_at:new Date().toISOString(),edl_date:edlDate}).eq('id',bookingId);
-
-    // 6 — Notifier le tenant avec les détails complets
-    const holdingPaid=booking?.holding_amount||0;
-    const firstMonth=listing.price||0;
-    const remaining=firstMonth-holdingPaid;
-    const deposit=listing.deposit||0;
-    const revTag=landlordProfile.revolut_tag||'';
-    const revLink=revTag.startsWith('@')?`\n💜 Revolut: https://revolut.me/${revTag.replace('@','')}?amount=${deposit+remaining}`:'';
-    const edlFormatted=new Date(edlDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-    await sb.from('messages').insert({
-      listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:`🎉 Your reservation has been accepted!\n\n📄 Your lease has been sent to your email for e-signature via DocuSeal. Please sign it.\n\n📋 Entry inventory & key handover: ${edlFormatted}\nThe agent will be present. Keys given after all payments confirmed.\n\n━━━━━━━━━━━━━━━━━━━━━━\n💶 PAYMENT DUE BEFORE MOVE-IN\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 Security deposit: €${deposit}\n🏠 First month: €${firstMonth} (- €${holdingPaid} already paid = €${remaining} remaining)\n💰 Total still due: €${deposit+remaining}\n\n🏦 IBAN: ${landlordProfile.iban||'—'}\nName: ${landlordProfile.full_name||'—'}${revLink}\n\nPay AFTER signing the lease. Then click "I've paid" in your dashboard.`,
-      type:'booking_accepted'
-    }).catch(()=>{});
-
-    // 7 — Notifier l'agent pour l'EDL
-    try{
-      const{data:visit}=await sb.from('visits').select('agent_id,agent_name').eq('listing_id',listingId).in('status',['completed','booking_pending']).order('created_at',{ascending:false}).limit(1).single();
-      if(visit?.agent_id){
-        await sb.from('messages').insert({
-          listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
-          content:`📋 Entry inventory scheduled!\n\n🏠 ${listing.title||'Property'}\n📍 ${listing.full_address||listing.zone||'—'}\n👤 Tenant: ${tenantProfile.full_name||'—'}\n📞 ${tenantProfile.phone||'—'}\n\n📅 Entry inventory & key handover date: ${edlFormatted}\n\nBoth parties will sign the inventory on this date. Keys handed over once payments confirmed.`,
-          type:'edl_scheduled'
-        }).catch(()=>{});
-        // Mettre à jour la visite
-        await sb.from('visits').update({status:'edl_scheduled',edl_date:edlDate}).eq('agent_id',visit.agent_id).eq('listing_id',listingId).catch(()=>{});
-      }
-    }catch(e){}
-
-    toast('🎉 Accepted — lease sent + agent notified for entry inventory!');
-    loadVisitsPage();
-
-  }catch(e){
-    toast('❌ Error: '+e.message);
-    console.error(e);
-  }
-}
-
 async function landlordConfirmVisit(visitId, response, listingId, tenantId){
   if(response==='yes'){
     await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId);
@@ -2226,16 +2138,16 @@ async function confirmPaymentReceived(id){
 
           // Envoyer PDF aux deux parties
           if(lease.landlord_id){
-            await sb.from('messages').insert({
+            try{await sb.from('messages').insert({
               listing_id:lease.listing_id,sender_id:'system',receiver_id:lease.landlord_id,
               content:`🎉 All payments confirmed!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}`,
-            }).catch(()=>{});
+            });}catch(e){}
           }
           if(lease.tenant_id){
-            await sb.from('messages').insert({
+            try{await sb.from('messages').insert({
               listing_id:lease.listing_id,sender_id:'system',receiver_id:lease.tenant_id,
               content:`🎉 Payment confirmed by your landlord!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}\n\n⚠️ Register your lease at rentregistration.mt within 10 days.`,
-            }).catch(()=>{});
+            });}catch(e){}
           }
         }
       }
@@ -2256,32 +2168,31 @@ async function confirmPaymentReceived(id){
 
       // Notifier l'agent pour l'état des lieux d'entrée
       if(agentId){
-        await sb.from('messages').insert({
+        try{await sb.from('messages').insert({
           listing_id:pay.listing_id,
           sender_id:'system',
           receiver_id:agentId,
           content:`💶 Payment confirmed by landlord!\n\n🏠 ${pay.listing_title||'Property'}\n👤 Tenant: ${pay.tenant_name||'—'}\n\n📋 Please proceed with the entry inventory check.\nGo to your dashboard → My Visits to mark the entry inventory as done.`,
           type:'entry_inventory_needed'
-        }).catch(()=>{});
+        });}catch(e){}
       }
 
       // Notifier le tenant
       if(visit?.tenant_id){
-        await sb.from('messages').insert({
+        try{await sb.from('messages').insert({
           listing_id:pay.listing_id,
           sender_id:'system',
           receiver_id:visit.tenant_id,
           content:`✅ Your payment has been confirmed by the landlord!\n\n📋 The agent will now proceed with the entry inventory check before you move in.\n\nYou will be notified once everything is ready.`,
           type:'payment_confirmed'
-        }).catch(()=>{});
+        });}catch(e){}
       }
 
       // Mettre à jour le statut de la visite
       if(visit?.agent_id){
-        await sb.from('visits').update({status:'entry_inventory_pending'})
+        try{await sb.from('visits').update({status:'entry_inventory_pending'})
           .eq('listing_id',pay.listing_id)
-          .eq('agent_id',agentId)
-          .catch(()=>{});
+          .eq('agent_id',agentId);}catch(e){}
       }
     }catch(e){}
 
@@ -2625,11 +2536,11 @@ async function disputePayment(msgId, listingId){
   }catch(e){}
 
   if(tenantId){
-    await sb.from('messages').insert({
+    try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
       content:`⚠️ Your landlord has not yet received your payment.\n\nPlease check that you sent the correct amount to the correct IBAN/Revolut and try again.\n\nIf you believe this is an error, please contact the landlord directly via messages.`,
       type:'payment_not_received'
-    }).catch(()=>{});
+    });}catch(e){}
   }
 
   const container=document.querySelector(`button[onclick*="disputePayment"][onclick*="${msgId}"]`);
@@ -2706,13 +2617,13 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
     const leaseData=await leaseRes.json();
 
     if(leaseData.success){
-      await sb.from('leases').insert({
+      try{await sb.from('leases').insert({
         listing_id:listingId,landlord_id:U.id,tenant_id:tenantId,
         docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
         status:'pending_signature',rent:listing.price,
         start_date:startDate,end_date:endDate,listing_title:listing.title||'',
         deposit:listing.deposit||0
-      }).catch(()=>{});
+      });}catch(e){}
 
       // Notifier tenant
       try{await sb.from('messages').insert({
@@ -2747,18 +2658,18 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
   if(!accept){
     try{await sb.from('visits').update({status:'landlord_declined'}).eq('id',visitId);}catch(e){}
     if(visit?.tenant_id){
-      await sb.from('messages').insert({
+      try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:visit.tenant_id,
         content:`We're sorry — the landlord has decided not to proceed with your rental application for ${visit.listing_title||'this property'} at this time.\n\nWe recommend searching for other listings on RestMalta.`,
         type:'landlord_declined'
-      }).catch(()=>{});
+      });}catch(e){}
     }
     if(visit?.agent_id){
-      await sb.from('messages').insert({
+      try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
         content:`ℹ️ The landlord has declined the rental application from ${visit.tenant_name||'the tenant'} for ${visit.listing_title||'the property'}.`,
         type:'landlord_declined'
-      }).catch(()=>{});
+      });}catch(e){}
     }
     // Remplacer les boutons
     const container=document.querySelector(`button[onclick*="${msgId}"]`);
@@ -2802,26 +2713,26 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
       const leaseData=await leaseRes.json();
 
       if(leaseData.success){
-        await sb.from('leases').insert({
+        try{await sb.from('leases').insert({
           listing_id:listingId,landlord_id:U.id,tenant_id:visit?.tenant_id,
           docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
           status:'pending_signature',rent:listing.price,
           start_date:startDate,end_date:endDate,listing_title:listing.title||''
-        }).catch(()=>{});
+        });}catch(e){}
 
         if(visit?.tenant_id){
-          await sb.from('messages').insert({
+          try{await sb.from('messages').insert({
             listing_id:listingId,sender_id:'system',receiver_id:visit.tenant_id,
             content:`🎉 The landlord has accepted your application!\n\n📄 Your lease has been sent to you by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
             type:'lease_sent'
-          }).catch(()=>{});
+          });}catch(e){}
         }
         if(visit?.agent_id){
-          await sb.from('messages').insert({
+          try{await sb.from('messages').insert({
             listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
             content:`🎉 Lease generated for ${visit.listing_title||'the property'}!\n\nTenant: ${visit.tenant_name||'—'}\nLease sent via DocuSeal for signature. Great work! 🏆`,
             type:'lease_sent'
-          }).catch(()=>{});
+          });}catch(e){}
         }
         toast('🎉 Lease generated and sent for signature!');
       } else {
