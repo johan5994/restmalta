@@ -1,7 +1,9 @@
 const Stripe = require('stripe');
 
-// Commissions RestMalta — modèle maltais 40% TTC chaque côté
-const COMMISSION_RATE_TTC = 0.40;
+// Commissions RestMalta — modèle maltais
+// AVEC agent  : Tenant 40% TTC + Landlord 40% TTC
+// SANS agent  : Tenant 15% TTC + Landlord 0%
+// TVA maltaise 18% incluse dans les %
 
 exports.handler = async (event) => {
   const headers = {
@@ -26,13 +28,25 @@ exports.handler = async (event) => {
     const rent = parseFloat(monthly_rent) || 0;
     const desc = property_address || 'Malta property';
 
-    const landlordAmountTTC = Math.round(rent * COMMISSION_RATE_TTC * 100);
-    const tenantAmountTTC = holding_commission_already_paid ? 0 : Math.round(rent * COMMISSION_RATE_TTC * 100);
-    const agentAmount = has_agent && tenantAmountTTC > 0 ? Math.round(tenantAmountTTC * 0.5) / 100 : 0;
+    // ── Taux selon présence agent ──────────────────────────────
+    const tenantRate  = has_agent ? 0.40 : 0.15;  // 40% avec agent, 15% sans
+    const landlordRate = has_agent ? 0.40 : 0.00; // 40% avec agent, 0% sans
 
-    // Landlord
+    const landlordAmountTTC = Math.round(rent * landlordRate * 100); // centimes
+    const tenantAmountTTC   = holding_commission_already_paid
+      ? 0
+      : Math.round(rent * tenantRate * 100);
+
+    // Part agent : 50% de la commission tenant si avec agent
+    const agentAmount = has_agent && tenantAmountTTC > 0
+      ? Math.round(tenantAmountTTC * 0.5) / 100
+      : 0;
+
+    // ── Landlord ───────────────────────────────────────────────
     let landlordResult = {};
-    if (landlord_stripe_customer_id) {
+    if (landlordAmountTTC === 0) {
+      landlordResult = { amount: 0, method: 'none', payment_url: null };
+    } else if (landlord_stripe_customer_id) {
       try {
         const pms = await stripe.paymentMethods.list({ customer: landlord_stripe_customer_id, type: 'card' });
         if (pms.data.length > 0) {
@@ -46,15 +60,15 @@ exports.handler = async (event) => {
           landlordResult = { amount: landlordAmountTTC/100, method: 'direct_charge', payment_intent_id: pi.id, status: pi.status, payment_url: null };
         } else { throw new Error('no card'); }
       } catch(e) {
-        const s = await createCheckoutSession(stripe,'landlord',landlord_email,landlordAmountTTC,desc,lease_id,has_agent,agentAmount,agent_email);
+        const s = await createCheckoutSession(stripe, 'landlord', landlord_email, landlordAmountTTC, desc, lease_id, has_agent, agentAmount, agent_email);
         landlordResult = { amount: landlordAmountTTC/100, method: 'checkout_link', payment_url: s.url, session_id: s.id };
       }
     } else {
-      const s = await createCheckoutSession(stripe,'landlord',landlord_email,landlordAmountTTC,desc,lease_id,has_agent,agentAmount,agent_email);
+      const s = await createCheckoutSession(stripe, 'landlord', landlord_email, landlordAmountTTC, desc, lease_id, has_agent, agentAmount, agent_email);
       landlordResult = { amount: landlordAmountTTC/100, method: 'checkout_link', payment_url: s.url, session_id: s.id };
     }
 
-    // Tenant
+    // ── Tenant ─────────────────────────────────────────────────
     let tenantResult = {};
     if (holding_commission_already_paid) {
       tenantResult = { amount: 0, method: 'already_paid', payment_url: null };
@@ -72,13 +86,15 @@ exports.handler = async (event) => {
           tenantResult = { amount: tenantAmountTTC/100, method: 'direct_charge', payment_intent_id: pi.id, status: pi.status, payment_url: null };
         } else { throw new Error('no card'); }
       } catch(e) {
-        const s = await createCheckoutSession(stripe,'tenant',tenant_email,tenantAmountTTC,desc,lease_id,has_agent,agentAmount,agent_email);
+        const s = await createCheckoutSession(stripe, 'tenant', tenant_email, tenantAmountTTC, desc, lease_id, has_agent, agentAmount, agent_email);
         tenantResult = { amount: tenantAmountTTC/100, method: 'checkout_link', payment_url: s.url, session_id: s.id };
       }
     } else {
-      const s = await createCheckoutSession(stripe,'tenant',tenant_email,tenantAmountTTC,desc,lease_id,has_agent,agentAmount,agent_email);
+      const s = await createCheckoutSession(stripe, 'tenant', tenant_email, tenantAmountTTC, desc, lease_id, has_agent, agentAmount, agent_email);
       tenantResult = { amount: tenantAmountTTC/100, method: 'checkout_link', payment_url: s.url, session_id: s.id };
     }
+
+    const restmaltaNet = Math.round(((landlordAmountTTC + tenantAmountTTC) / 100 / 1.18 - agentAmount) * 100) / 100;
 
     return {
       statusCode: 200, headers,
@@ -88,9 +104,13 @@ exports.handler = async (event) => {
         tenant: tenantResult,
         agent_amount: agentAmount,
         breakdown: {
+          model: has_agent ? 'with_agent' : 'direct',
+          tenant_rate: has_agent ? '40% TTC' : '15% TTC',
+          landlord_rate: has_agent ? '40% TTC' : '0%',
           landlord_ttc: landlordAmountTTC/100,
           tenant_ttc: tenantAmountTTC/100,
-          restmalta_net_ht: Math.round(((landlordAmountTTC/100 + tenantAmountTTC/100) / 1.18 - agentAmount) * 100) / 100
+          restmalta_net_ht: restmaltaNet,
+          agent_receives: agentAmount
         }
       })
     };
@@ -100,9 +120,14 @@ exports.handler = async (event) => {
 };
 
 async function createCheckoutSession(stripe, role, email, amount, desc, lease_id, has_agent, agentAmount, agent_email) {
+  const rateLabel = role === 'landlord'
+    ? (has_agent ? '40%' : '0%')
+    : (has_agent ? '40%' : '15%');
   return stripe.checkout.sessions.create({
     payment_method_types: ['card', 'sepa_debit'], mode: 'payment', customer_email: email,
-    line_items: [{ price_data: { currency: 'eur', product_data: { name: `RestMalta Commission — ${role === 'landlord' ? 'Landlord' : 'Tenant'}`, description: `40% commission (VAT included) — ${desc}` }, unit_amount: amount }, quantity: 1 }],
+    line_items: [{ price_data: { currency: 'eur', product_data: {
+      name: `RestMalta Commission — ${role === 'landlord' ? 'Landlord' : 'Tenant'}`,
+      description: `${rateLabel} commission (VAT included) — ${desc}` }, unit_amount: amount }, quantity: 1 }],
     metadata: { lease_id, role, has_agent: String(has_agent||false), agent_amount: String(agentAmount||0), agent_email: agent_email||'' },
     success_url: `https://restmalta.com/${role}-dashboard.html?payment=success`,
     cancel_url: `https://restmalta.com/${role}-dashboard.html?payment=cancelled`,
