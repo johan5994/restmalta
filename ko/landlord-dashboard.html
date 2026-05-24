@@ -1032,20 +1032,85 @@ async function loadVisitsPage(){
       </div>`;
     }
 
-    const statusLabels={agents_applying:'🏆 Agents applying — best selected in 5 min',agent_assigned:`🏆 Agent assigned: ${g.agent_name||'—'}`,confirmed:'✅ Visit confirmed'};
-    const statusColors={agents_applying:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)'};
+    const statusLabels={agents_applying:'🏆 Agents applying — best selected in 5 min',agent_assigned:`🏆 Agent assigned: ${g.agent_name||'—'}`,confirmed:'✅ Visit confirmed',completed:'✅ Visit completed',tenant_declined:'❌ Tenant not interested',landlord_declined:'❌ You declined',lease_pending:'📄 Lease pending signature',entry_inventory_pending:'📋 Entry inventory pending',move_in_ready:'🎉 Tenant moved in'};
+    const statusColors={agents_applying:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)',completed:'var(--green)',tenant_declined:'var(--red)',landlord_declined:'var(--red)',lease_pending:'var(--sea)',entry_inventory_pending:'var(--gold)',move_in_ready:'var(--green)'};
+
+    // ── Tenant intéressé → afficher dossier complet ──
+    if(g.status==='tenant_interested'){
+      return`<div style="padding:1.2rem;background:rgba(76,175,125,.05);border:2px solid rgba(76,175,125,.3);border-radius:14px;margin-bottom:.75rem" id="tenant-card-${g.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:.2rem">🎉 Tenant wants to rent!</div>
+            <div style="font-size:1rem;font-weight:700">${g.tenant_name||'—'}</div>
+          </div>
+          <span style="background:rgba(76,175,125,.15);color:var(--green);padding:.3rem .7rem;border-radius:100px;font-size:.72rem;font-weight:700">Interested</span>
+        </div>
+
+        <!-- Dossier tenant — chargé dynamiquement -->
+        <div id="dossier-${g.id}" style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
+          <div style="font-size:.75rem;color:var(--td);text-align:center">Loading tenant dossier...</div>
+        </div>
+
+        <!-- Dates de bail -->
+        <div style="background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
+          <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">📅 Set lease dates to accept</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+            <div><label style="font-size:.68rem;color:var(--td)">Start date *</label><input type="date" id="start-${g.id}" class="fi" style="font-size:.8rem;margin-top:.2rem"></div>
+            <div><label style="font-size:.68rem;color:var(--td)">End date *</label><input type="date" id="end-${g.id}" class="fi" style="font-size:.8rem;margin-top:.2rem"></div>
+          </div>
+        </div>
+
+        <!-- Boutons -->
+        <div style="display:flex;gap:.5rem">
+          <button onclick="acceptTenantFromVisits('${g.id}','${g.listing_id}','${g.tenant_id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.7rem;font-size:.85rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
+          <button onclick="declineTenantFromVisits('${g.id}','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(224,90,90,.15);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.7rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Decline</button>
+        </div>
+      </div>`;
+    }
+    const statusColor=statusColors[g.status]||'var(--td)';
 
     return`<div style="padding:1rem;background:var(--s2);border:1px solid var(--b);border-radius:12px;margin-bottom:.75rem">
       <div style="font-size:.88rem;font-weight:700;margin-bottom:.2rem">📅 Visit</div>
       <div style="font-size:.78rem;color:var(--tm);margin-bottom:.1rem">👤 ${g.tenant_name||'—'}</div>
       <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">🗓 ${visitDateStr}</div>
-      <div style="font-size:.75rem;color:${statusColors[g.status]||'var(--td)'};font-weight:600">${statusLabels[g.status]||g.status}</div>
+      <div style="font-size:.75rem;color:${statusColor};font-weight:600">${statusLabels[g.status]||g.status}</div>
       <div style="display:flex;gap:.4rem;margin-top:.5rem">
         <button class="btn bg bsm" onclick="markVisitDone('${g.id}')">✅ Visit done</button>
         <button class="btn bg bsm" onclick="declineVisit('${g.id}')">❌ Cancel</button>
       </div>
     </div>`;
   }).join('');
+
+  // Charger les dossiers tenants pour les visites tenant_interested
+  groups.filter(g=>g.status==='tenant_interested').forEach(g=>loadTenantDossier(g));
+}
+
+async function loadTenantDossier(visit){
+  const container=document.getElementById(`dossier-${visit.id}`);
+  if(!container)return;
+  let profile=null;
+  try{const{data:p}=await sb.from('profiles').select('*').eq('clerk_id',visit.tenant_id).single();profile=p;}catch(e){}
+  if(!profile){container.innerHTML='<div style="font-size:.75rem;color:var(--td);text-align:center">Tenant profile not found</div>';return;}
+  const verifiedBadge=profile.verified
+    ?'<span style="background:rgba(76,175,125,.15);color:#4CAF7D;padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">✅ Verified</span>'
+    :'<span style="background:rgba(212,168,71,.15);color:var(--gold);padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">⚠️ Not verified</span>';
+  container.innerHTML=`
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.6rem">📋 Tenant Dossier ${verifiedBadge}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.78rem">
+      <div><span style="color:var(--td)">Full name</span><div style="font-weight:600">${profile.full_name||'—'}</div></div>
+      <div><span style="color:var(--td)">Phone</span><div style="font-weight:600">${profile.phone||'—'}</div></div>
+      <div><span style="color:var(--td)">Nationality</span><div style="font-weight:600">${profile.nationality||'—'}</div></div>
+      <div><span style="color:var(--td)">Date of birth</span><div style="font-weight:600">${profile.date_of_birth||'—'}</div></div>
+      <div><span style="color:var(--td)">Passport/ID</span><div style="font-weight:600">${profile.passport_number||'—'}</div></div>
+      <div><span style="color:var(--td)">Email</span><div style="font-weight:600">${profile.email||'—'}</div></div>
+      <div style="grid-column:1/-1"><span style="color:var(--td)">Home address</span><div style="font-weight:600">${profile.home_address||'—'}</div></div>
+      ${profile.malta_address?`<div style="grid-column:1/-1"><span style="color:var(--td)">Malta address</span><div style="font-weight:600">${profile.malta_address}</div></div>`:''}
+      <div><span style="color:var(--td)">Reason for stay</span><div style="font-weight:600">${profile.reason_for_stay||'—'}</div></div>
+      <div><span style="color:var(--td)">Duration</span><div style="font-weight:600">${profile.stay_duration||'—'}</div></div>
+      ${profile.emprent?`<div style="grid-column:1/-1"><span style="color:var(--td)">Employer/University</span><div style="font-weight:600">${profile.emprent}</div></div>`:''}
+      ${profile.father_name?`<div><span style="color:var(--td)">Father's name</span><div style="font-weight:600">${profile.father_name}</div></div>`:''}
+      ${profile.mother_name?`<div><span style="color:var(--td)">Mother's name</span><div style="font-weight:600">${profile.mother_name}</div></div>`:''}
+    </div>`;
 }
 
 async function loadVisitGroups(){
@@ -2131,6 +2196,107 @@ async function disputePayment(msgId, listingId){
   const container=document.querySelector(`button[onclick*="disputePayment"][onclick*="${msgId}"]`);
   if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:#E05A5A;font-weight:600;margin-top:.5rem">⚠️ Tenant notified to check their payment.</div>';
   toast('⚠️ Tenant has been notified to check their payment.');
+}
+
+async function acceptTenantFromVisits(visitId, listingId, tenantId){
+  const startDate=document.getElementById(`start-${visitId}`)?.value;
+  const endDate=document.getElementById(`end-${visitId}`)?.value;
+  if(!startDate||!endDate){toast('⚠️ Please set lease start and end dates first.');return;}
+
+  // Réutiliser respondToTenantInterest avec les données de la visite
+  // Construire un faux msgId vide — la fonction cherche via visitId
+  await acceptAndGenerateLease(visitId, listingId, tenantId, startDate, endDate);
+}
+
+async function declineTenantFromVisits(visitId, listingId, tenantId){
+  if(!confirm('Decline this tenant?'))return;
+
+  try{await sb.from('visits').update({status:'landlord_declined'}).eq('id',visitId);}catch(e){}
+
+  // Notifier tenant
+  try{
+    await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+      content:`We're sorry — the landlord has decided not to proceed with your rental application at this time.\n\nWe recommend searching for other listings on RestMalta.`,
+      type:'landlord_declined'
+    });
+  }catch(e){}
+
+  // Notifier agent
+  try{
+    const{data:visit}=await sb.from('visits').select('agent_id,listing_title,tenant_name').eq('id',visitId).single();
+    if(visit?.agent_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
+        content:`ℹ️ The landlord has declined the application from ${visit.tenant_name||'the tenant'} for ${visit.listing_title||'the property'}.`,
+        type:'landlord_declined'
+      });
+    }
+  }catch(e){}
+
+  toast('✅ Tenant and agent notified.');
+  loadVisitsPage();
+}
+
+async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, endDate){
+  toast('⏳ Generating lease and sending for signature...');
+  try{await sb.from('visits').update({status:'lease_pending'}).eq('id',visitId);}catch(e){}
+
+  let listing=null,tenantProfile=null,landlordProfile=null,visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+  try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
+  try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',tenantId).single();tenantProfile=tp;}catch(e){}
+  try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();landlordProfile=lp;}catch(e){}
+
+  if(!listing||!tenantProfile||!landlordProfile){
+    toast('⚠️ Could not load profiles — try from the Leases section.');return;
+  }
+
+  try{
+    const leaseRes=await fetch('/.netlify/functions/generate-lease',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:listing.type==='short'?'short':'long',
+        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+        coTenants:[],
+        listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
+        start_date:startDate,end_date:endDate
+      })
+    });
+    const leaseData=await leaseRes.json();
+
+    if(leaseData.success){
+      await sb.from('leases').insert({
+        listing_id:listingId,landlord_id:U.id,tenant_id:tenantId,
+        docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
+        status:'pending_signature',rent:listing.price,
+        start_date:startDate,end_date:endDate,listing_title:listing.title||'',
+        deposit:listing.deposit||0
+      }).catch(()=>{});
+
+      // Notifier tenant
+      try{await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+        content:`🎉 The landlord has accepted your application!\n\n📄 Your lease has been sent by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
+        type:'lease_sent'
+      });}catch(e){}
+
+      // Notifier agent
+      if(visit?.agent_id){
+        try{await sb.from('messages').insert({
+          listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
+          content:`🎉 Lease generated for ${listing.title||'the property'}!\n\nTenant: ${tenantProfile.full_name||'—'}\nLease sent via DocuSeal for signature. Great work! 🏆`,
+          type:'lease_sent'
+        });}catch(e){}
+      }
+
+      toast('🎉 Lease generated and sent for signature!');
+      loadVisitsPage();
+    } else {
+      toast('⚠️ Lease generation failed — try from the Leases section.');
+    }
+  }catch(e){toast('⚠️ Error: '+e.message);}
 }
 
 async function respondToTenantInterest(msgId, visitId, listingId, accept){
