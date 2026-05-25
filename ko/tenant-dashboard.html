@@ -1051,6 +1051,11 @@ async function openMsg(threadKey, titleEnc, subtitleEnc, listingId, receiverId, 
         <div class="bt" style="max-width:90%">
           <div style="white-space:pre-wrap">${m.content}</div>
           <div style="margin-top:.75rem">
+            <div style="margin-bottom:.4rem">
+              <label style="font-size:.7rem;color:var(--td);display:block;margin-bottom:.2rem">📎 Upload transfer receipt (optional but recommended)</label>
+              <input type="file" id="receipt-${m.id}" accept="image/*,.pdf" style="font-size:.72rem;width:100%;background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:.3rem .5rem;color:var(--tf)">
+              <div style="font-size:.62rem;color:var(--td);margin-top:.1rem">Screenshot Revolut, bank PDF... helps landlord confirm faster</div>
+            </div>
             <button onclick="declarePaidFromMessage('${m.id}','${m.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">💳 I've paid — notify landlord</button>
           </div>
         </div>
@@ -1144,6 +1149,22 @@ async function declarePaidFromMessage(msgId, listingId){
     }
   }catch(e){console.error('Payment insert error:',e);}
 
+  // Upload preuve de virement si fournie
+  let receiptUrl=null;
+  const receiptInput=document.getElementById(`receipt-${msgId}`);
+  if(receiptInput?.files?.length>0){
+    try{
+      const file=receiptInput.files[0];
+      const ext=file.name.split('.').pop();
+      const path=`payments/${U.id}_${Date.now()}.${ext}`;
+      const{data:uploadData}=await sb.storage.from('listings').upload(path,file,{upsert:true});
+      if(uploadData){
+        const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+        receiptUrl=urlData?.publicUrl;
+      }
+    }catch(e){console.warn('Receipt upload failed:',e);}
+  }
+
   // Notifier le landlord
   if(lease?.landlord_id){
     try{
@@ -1151,7 +1172,7 @@ async function declarePaidFromMessage(msgId, listingId){
         listing_id:listingId,
         sender_id:'system',
         receiver_id:lease.landlord_id,
-        content:`💶 ${P?.full_name||'Your tenant'} has declared payment of €${total}.\n\n🔐 Deposit: €${deposit}\n🏠 First month: €${firstMonth}\n\nPlease check your bank account / Revolut and confirm receipt in your dashboard → Payments → "Confirm received".`,
+        content:`💶 ${P?.full_name||'Your tenant'} has declared payment of €${total}.\n\n🔐 Deposit: €${deposit}\n🏠 First month: €${firstMonth}\n${receiptUrl?`\n📎 Transfer receipt: ${receiptUrl}`:''}\n\nPlease check your bank account / Revolut and confirm receipt in your dashboard → Payments.`,
         type:'payment_declared'
       });
     }catch(e){}
@@ -1220,6 +1241,14 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     const holding=Math.round(price/2);
     const commission=Math.round(price*tenantRate);
 
+    // Récupérer la date souhaitée
+    const moveInDate=document.getElementById(`movein-${visitId}`)?.value;
+    if(!moveInDate){
+      toast('⚠️ Please select your desired move-in date');
+      if(btn){btn.textContent='🔒 Reserve & Pay →';btn.disabled=false;}
+      return;
+    }
+
     // 1 — Récupérer les infos listing
     let listing=null;
     try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
@@ -1262,7 +1291,8 @@ async function payHoldingDepositFromVisits(visitId, listingId){
       total_amount:holding+commission,
       monthly_rent:price,
       status:'pending',
-      has_agent:listing.wants_agent&&listing.agent_service==='full'
+      has_agent:listing.wants_agent&&listing.agent_service==='full',
+      move_in_date:moveInDate
     }).select().maybeSingle();
 
     // 5 — Mettre le listing en reserved
@@ -1282,10 +1312,11 @@ async function payHoldingDepositFromVisits(visitId, listingId){
       })
     }).catch(()=>{});
 
-    // 8 — Notifier le landlord avec dossier complet
+    // 8 — Notifier le landlord avec la date souhaitée
+    const moveInFormatted=new Date(moveInDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:listing.landlord_id,
-      content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n📞 ${P?.phone||'—'} | 🌍 ${P?.nationality||'—'}\n📋 Passport: ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept or decline.\nGo to your dashboard → Visits to decide.`,
+      content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n🌍 ${P?.nationality||'—'} | 📋 ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n📅 Desired move-in date: ${moveInFormatted}\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept this date, propose another, or decline.\nGo to your dashboard → Visits to respond.`,
       type:'booking_request'
     }).then(()=>{}).catch(()=>{});
 
@@ -1540,7 +1571,12 @@ async function loadTenantVisits(){
           </div>
           <div id="holding-section-${v.id}" style="display:none;margin-top:.75rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.25);border-radius:10px;padding:.85rem">
             <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">🔒 Reserve this property</div>
-            <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem;line-height:1.5">Pay a <strong>Holding Deposit</strong> to reserve this property. The landlord will review your full profile within 48 hours and accept or decline. Full refund if declined.</div>
+            <div style="font-size:.72rem;color:var(--tm);margin-bottom:.6rem;line-height:1.5">Pay a <strong>Holding Deposit</strong> to reserve this property. The landlord will review your profile and proposed move-in date. Full refund if declined.</div>
+            <div style="margin-bottom:.6rem">
+              <label style="font-size:.72rem;font-weight:600;color:var(--tf);display:block;margin-bottom:.3rem">📅 Your desired move-in date *</label>
+              <input type="date" id="movein-${v.id}" class="fi" style="font-size:.82rem;width:100%">
+              <div style="font-size:.63rem;color:var(--td);margin-top:.2rem">The landlord can accept this date or propose a different one.</div>
+            </div>
             <div id="holding-breakdown-${v.id}" style="background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.75rem"></div>
             <div id="holding-card-${v.id}"></div>
             <button id="holding-btn-${v.id}" onclick="payHoldingDepositFromVisits('${v.id}','${v.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:.4rem">🔒 Reserve & Pay →</button>
