@@ -1080,9 +1080,21 @@ async function loadVisitsPage(){
 
         <!-- Actions principales -->
         <div style="padding:.85rem 1.2rem">
+          <!-- Date souhaitée par le tenant -->
+          ${b.move_in_date?`<div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.78rem">
+            <span style="color:var(--td)">📅 Desired move-in: </span>
+            <span style="font-weight:700;color:var(--sea)">${new Date(b.move_in_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span>
+          </div>`:''}
           <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
-            <button onclick="showLeaseDatesBooking('${b.id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.3rem">✅ Accept</button>
-            <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1.5px solid rgba(224,90,90,.4);border-radius:10px;padding:.75rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Decline</button>
+            <button onclick="showLeaseDatesBooking('${b.id}','${b.move_in_date||''}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">✅ Accept date</button>
+            <button onclick="showProposeDate('${b.id}')" style="flex:1;background:rgba(58,143,181,.15);color:var(--sea);border:1.5px solid rgba(58,143,181,.3);border-radius:10px;padding:.75rem;font-size:.78rem;font-weight:600;cursor:pointer">📅 Other date</button>
+            <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1.5px solid rgba(224,90,90,.4);border-radius:10px;padding:.75rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Decline</button>
+          </div>
+          <!-- Proposer une autre date -->
+          <div id="propose-date-${b.id}" style="display:none;margin-bottom:.5rem;background:rgba(58,143,181,.05);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.65rem">
+            <div style="font-size:.72rem;font-weight:600;color:var(--sea);margin-bottom:.3rem">📅 Propose another move-in date:</div>
+            <input type="date" id="propose-input-${b.id}" class="fi" style="font-size:.82rem;width:100%;margin-bottom:.4rem">
+            <button onclick="sendProposedDate('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer">Send proposal to tenant →</button>
           </div>
           <div style="font-size:.65rem;color:var(--td);text-align:center">If you decline → tenant is fully refunded automatically</div>
 
@@ -1108,10 +1120,6 @@ async function loadVisitsPage(){
               <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">🏠 Start date (= move-in day) *</label>
               <div style="font-size:.62rem;color:var(--td);margin-bottom:.3rem">This is also the signing day — lease signed, entry inventory done, keys handed over.</div>
               <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
-            </div>
-            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.4rem .75rem;margin-bottom:.5rem;font-size:.72rem" id="bend-preview-${b.id}">
-              <span style="color:var(--td)">End date: </span><span id="bend-preview-text-${b.id}" style="font-weight:600">Set start date first</span>
-              <span style="color:var(--td);font-size:.65rem"> — ${b.listing_type==='short'?'6 months (short-let)':'1 year (long-let)'}</span>
             </div>
             <input type="hidden" id="bend-${b.id}">
             <input type="hidden" id="bedl-${b.id}">
@@ -1169,10 +1177,12 @@ async function loadVisitsPage(){
 
         <!-- Dates de bail -->
         <div style="background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
-          <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">📅 Set lease dates to accept</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
-            <div><label style="font-size:.68rem;color:var(--td)">Start date *</label><input type="date" id="start-${g.id}" class="fi" style="font-size:.8rem;margin-top:.2rem"></div>
-            <div><label style="font-size:.68rem;color:var(--td)">End date *</label><input type="date" id="end-${g.id}" class="fi" style="font-size:.8rem;margin-top:.2rem"></div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">📅 Set move-in date</div>
+          <div>
+            <label style="font-size:.68rem;color:var(--td)">🏠 Start date (= move-in & signing day) *</label>
+            <input type="date" id="start-${g.id}" class="fi" style="font-size:.8rem;margin-top:.3rem;width:100%" onchange="autoSetEndDateVisit('${g.id}','${g.listing_type||'long'}')">
+
+            <input type="hidden" id="end-${g.id}">
           </div>
         </div>
 
@@ -1378,6 +1388,19 @@ async function loadBookingDossier(booking){
     }`;
 }
 
+function autoSetEndDateVisit(visitId, leaseType){
+  const startInput=document.getElementById(`start-${visitId}`);
+  if(!startInput?.value)return;
+  const start=new Date(startInput.value);
+  const end=new Date(start);
+  if(leaseType==='short') end.setMonth(end.getMonth()+6);
+  else end.setFullYear(end.getFullYear()+1);
+  const endStr=end.toISOString().split('T')[0];
+  document.getElementById(`end-${visitId}`).value=endStr;
+  const preview=document.getElementById(`end-preview-${visitId}`);
+  if(preview) preview.textContent=`End date: ${end.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} (${leaseType==='short'?'6 months':'1 year'})`;
+}
+
 function autoSetEndDate(bookingId, leaseType){
   const startInput=document.getElementById(`bstart-${bookingId}`);
   if(!startInput?.value)return;
@@ -1395,9 +1418,45 @@ function autoSetEndDate(bookingId, leaseType){
   if(preview) preview.textContent=end.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 }
 
-function showLeaseDatesBooking(bookingId){
+function showProposeDate(bookingId){
+  document.getElementById(`propose-date-${bookingId}`).style.display='block';
+  document.getElementById(`lease-dates-${bookingId}`).style.display='none';
+  document.getElementById(`decline-form-${bookingId}`).style.display='none';
+}
+
+async function sendProposedDate(bookingId, listingId, tenantId){
+  const proposedDate=document.getElementById(`propose-input-${bookingId}`)?.value;
+  if(!proposedDate){toast('⚠️ Please select a date');return;}
+
+  const formatted=new Date(proposedDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Notifier le tenant
+  try{await sb.from('messages').insert({
+    listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+    content:`📅 The landlord has proposed a different move-in date:\n\n📅 ${formatted}\n\nPlease confirm if this date works for you by responding in Messages.`,
+    type:'date_proposed'
+  });}catch(e){}
+
+  // Mettre à jour le booking avec la date proposée
+  try{await sb.from('bookings').update({proposed_move_in_date:proposedDate}).eq('id',bookingId);}catch(e){}
+
+  toast('📅 Date proposal sent to tenant.');
+  document.getElementById(`propose-date-${bookingId}`).style.display='none';
+}
+
+function showLeaseDatesBooking(bookingId, moveInDate){
   document.getElementById(`lease-dates-${bookingId}`).style.display='block';
   document.getElementById(`decline-form-${bookingId}`).style.display='none';
+  document.getElementById(`propose-date-${bookingId}`).style.display='none';
+  // Pré-remplir avec la date souhaitée par le tenant
+  if(moveInDate){
+    const startInput=document.getElementById(`bstart-${bookingId}`);
+    if(startInput){
+      startInput.value=moveInDate;
+      // Déclencher le calcul de la date de fin
+      autoSetEndDate(bookingId,'long'); // sera recalculé avec le bon type
+    }
+  }
 }
 
 function showDeclineBooking(bookingId){
