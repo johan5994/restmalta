@@ -1135,7 +1135,10 @@ async function loadVisitsPage(){
 
   const visitsSection=groups.length?`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--td);margin:.75rem 0 .5rem">📅 Visit Requests</div>`:'';
   wrap.innerHTML=bookingsHtml+visitsSection+'<div id="visits-inline"></div>';
-  bookings.forEach(b=>loadBookingDossier(b));
+  // Attendre que le DOM soit rendu
+  requestAnimationFrame(()=>{
+    bookings.forEach(b=>loadBookingDossier(b));
+  });
 
   const visitWrap=document.getElementById('visits-inline');
   if(!visitWrap||!groups.length)return;
@@ -1308,10 +1311,24 @@ async function loadVisitGroups(){
 
 async function loadBookingDossier(booking){
   const container=document.getElementById(`booking-dossier-${booking.id}`);
-  if(!container)return;
+  if(!container){console.warn('Container not found for booking',booking.id);return;}
+  if(!booking.tenant_id){
+    container.innerHTML='<div style="color:var(--red);font-size:.75rem;text-align:center">⚠️ No tenant ID on booking</div>';
+    return;
+  }
   let profile=null;
-  try{const{data:p}=await sb.from('profiles').select('*').eq('clerk_id',booking.tenant_id).single();profile=p;}catch(e){}
-  if(!profile){container.innerHTML='<div style="color:var(--td);text-align:center;font-size:.78rem;padding:.5rem">Profile not loaded</div>';return;}
+  try{
+    const{data:p,error}=await sb.from('profiles').select('*').eq('clerk_id',booking.tenant_id).single();
+    if(error)console.warn('Profile error:',error.message);
+    profile=p;
+  }catch(e){console.warn('Profile fetch failed:',e);}
+  if(!profile){
+    container.innerHTML=`<div style="color:var(--td);text-align:center;font-size:.75rem;padding:.5rem">
+      ⚠️ Profile not found for tenant<br>
+      <span style="font-size:.65rem">${booking.tenant_name||'—'}</span>
+    </div>`;
+    return;
+  }
 
   let age='—';
   if(profile.date_of_birth){
