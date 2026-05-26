@@ -1037,28 +1037,17 @@ async function initClerk() {
 }
 
 async function sU(clerkUser, showPicker=true) {
-  U = {
-    id: clerkUser.id,
-    email: clerkUser.primaryEmailAddress?.emailAddress || '',
-    clerk: clerkUser
-  };
-  const { data } = await sb.from('profiles').select('*').eq('clerk_id', U.id).single();
+  U = { id: clerkUser.id, email: clerkUser.primaryEmailAddress?.emailAddress||'', clerk: clerkUser };
+  let data = null;
+  try { const r = await sb.from('profiles').select('*').eq('clerk_id', U.id).single(); data = r.data; } catch(e){}
   if (data && data.role) {
-    // Complete profile with role → all good
-    P = data;
-    updN();
-  } else if (data && !data.role) {
-    // Profile exists but no role → show picker
-    P = data;
-    if(showPicker) showRolePicker(data.full_name || clerkUser.fullName || '');
+    P = data; updN();
   } else {
-    // Pas de profil du tout → créer et montrer le picker
     const full_name = clerkUser.fullName || clerkUser.firstName || '';
-    P = { clerk_id: U.id, full_name, email: U.email, role: null };
+    P = data || { clerk_id: U.id, full_name, email: U.email, role: null };
     if(showPicker) showRolePicker(full_name);
   }
 }
-
 async function sU(clerkUser, showPicker=true) {
   U = { id: clerkUser.id, email: clerkUser.primaryEmailAddress?.emailAddress||'', clerk: clerkUser };
   const { data } = await sb.from('profiles').select('*').eq('clerk_id', U.id).single().catch(()=>({data:null}));
