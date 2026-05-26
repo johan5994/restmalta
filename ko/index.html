@@ -1085,16 +1085,9 @@ async function sU(clerkUser, showPicker=true) {
       else go('home');
     }
   } else {
-    // Pas de profil ou pas de rôle
     const full_name = clerkUser.fullName || clerkUser.firstName || '';
     P = data || { clerk_id: U.id, full_name, email: U.email, role: null };
-
-    if(pendingRole){
-      // Rôle déjà choisi avant connexion → créer le profil directement
-      await setRoleAndContinue(pendingRole);
-    } else if(showPicker){
-      go('auth');
-    }
+    if(showPicker) showRolePicker(full_name);
   }
 }
 
