@@ -1488,7 +1488,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     // 8 — Notifier le landlord avec la date souhaitée
     const moveInFormatted=new Date(moveInDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     await sb.from('messages').insert({
-      listing_id:listingId,sender_id:'system',receiver_id:listing.landlord_id,
+      listing_id:listingId,sender_id:'system',receiver_id:landlordClerkId,
       content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n🌍 ${P?.nationality||'—'} | 📋 ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n📅 Desired move-in date: ${moveInFormatted}\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept this date, propose another, or decline.\nGo to your dashboard → Visits to respond.`,
       type:'booking_request'
     }).then(()=>{}).catch(()=>{});
