@@ -435,7 +435,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 let clerk,U=null,P=null;
 let currentMonth=new Date().getMonth(),currentYear=new Date().getFullYear();
-let visits=[],listings=[],visitMsgs=[];
+let visits=[],listings=[],visitMsgs=[],appliedIds=new Set();
 
 (async()=>{
   clerk=window.Clerk;
