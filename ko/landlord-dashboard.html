@@ -940,6 +940,21 @@ async function loadDash(){
   const opts=(listings||[]).map(l=>`<option value="${l.id}">${l.title} · ${l.zone}</option>`).join('');
   ['lease-listing','inv-listing','tick-listing'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select...</option>'+opts;});
 
+  // Visits en cours widget — charger depuis visits directement
+  try{
+    const{data:visitData}=await sb.from('visits').select('id,status').eq('landlord_id',U.id).in('status',['awaiting_landlord','agents_applying','agent_assigned','confirmed']);
+    const vCount=(visitData||[]).length;
+    const vc=document.getElementById('visit-groups-count');
+    if(vc)vc.textContent=vCount;
+    // Widget visits en cours sur dashboard
+    const vw=document.getElementById('visit-groups-dash');
+    if(vw){
+      vw.innerHTML=(visitData||[]).length===0
+        ?'<div style="text-align:center;color:var(--td);padding:1rem;font-size:.82rem">No ongoing visits</div>'
+        :`<div style="padding:.75rem;font-size:.82rem;color:var(--tm)">${vCount} visit${vCount>1?'s':''} in progress</div>`;
+    }
+  }catch(e){}
+
   // Load visit groups
   loadVisitsPage();
 }
@@ -1132,8 +1147,9 @@ async function loadVisitsPage(){
   }
 
   // ── Rendu des visites normales ───────────────────────────────
-  const activeGroups=groups.filter(g=>!['done','declined','cancelled','tenant_declined','no_show'].includes(g.status));
-  const pastGroups=groups.filter(g=>['done','declined','cancelled','tenant_declined','no_show'].includes(g.status));
+  const doneStatuses=['done','declined','cancelled','tenant_declined','no_show','date_rejected','booking_pending','lease_pending','move_in_ready'];
+  const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status));
+  const pastGroups=groups.filter(g=>doneStatuses.includes(g.status));
 
   if(activeGroups.length){
     if(bookings.length) html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--td);margin:.75rem 0 .5rem;letter-spacing:.5px">📅 Visit Requests</div>`;
@@ -2918,7 +2934,11 @@ function exportInventory(){toast('📥 Inventory PDF generated!');}
 
 /* SUBLETS */
 async function loadSublets(){
-  const{data}=await sb.from('sublets').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+  let data=[];
+  try{
+    const res=await sb.from('sublets').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    data=res.data||[];
+  }catch(e){return;} // Table peut ne pas exister
   const pending=(data||[]).filter(s=>s.status==='pending').length;
   if(pending>0){document.getElementById('nb-sublet').textContent=pending;document.getElementById('nb-sublet').style.display='inline';}
   const wrap=document.getElementById('sublet-requests');
