@@ -924,12 +924,6 @@ function renderAllVisitsDirect(){
 
   w.innerHTML=html;
 }
-  
-  if(!requests.length&&!assigned.length&&!past.length){
-    w.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet</p></div>';
-    return;
-  }
-  
 function renderAgentVisitItems(items, w){
   if(!w)return;
   const visibleVisits=items;
