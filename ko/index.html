@@ -1081,7 +1081,6 @@ function showRolePicker(name) {
 }
 
 async function setRoleAndContinue(role) {
-  // Fermer le modal de sélection du rôle
   const modal = document.getElementById('role-picker-modal');
   if(modal) modal.remove();
 
@@ -1091,26 +1090,26 @@ async function setRoleAndContinue(role) {
     const full_name = P?.full_name || U.clerk?.fullName || U.clerk?.firstName || '';
     const email = P?.email || U.email || U.clerk?.primaryEmailAddress?.emailAddress || '';
 
-    // Upsert — fonctionne que le profil existe ou non
-    const { data, error } = await sb.from('profiles').upsert({
-      clerk_id: U.id,
-      full_name,
-      email,
-      role
-    }, { onConflict: 'clerk_id' }).select().single();
+    // Essayer d'abord un UPDATE
+    let data = null;
+    const {data:existing} = await sb.from('profiles').select('*').eq('clerk_id', U.id).maybeSingle();
 
-    if (error) {
-      console.error('Profile upsert error:', error);
-      toast('❌ Error: ' + error.message);
-      return;
+    if(existing) {
+      // Profil existe → update le rôle
+      const {data:updated, error} = await sb.from('profiles').update({role, full_name, email}).eq('clerk_id', U.id).select().single();
+      if(error) throw new Error(error.message);
+      data = updated;
+    } else {
+      // Pas de profil → insert
+      const {data:inserted, error} = await sb.from('profiles').insert({clerk_id: U.id, full_name, email, role}).select().single();
+      if(error) throw new Error(error.message);
+      data = inserted;
     }
 
     P = data;
-    document.getElementById('role-picker')?.remove();
     updN();
     toast('🎉 Welcome to RestMalta!');
 
-    // Rediriger vers le bon dashboard
     if(role === 'landlord') window.location.href = '/landlord-dashboard.html';
     else if(role === 'agent') window.location.href = '/agent-dashboard.html';
     else { loadL(); updC(); go('home'); }
