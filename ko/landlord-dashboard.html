@@ -941,7 +941,7 @@ async function loadDash(){
   ['lease-listing','inv-listing','tick-listing'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select...</option>'+opts;});
 
   // Load visit groups
-  loadVisitGroups();
+  loadVisitsPage();
 }
 
 function renderChart(collected){
@@ -1572,7 +1572,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
 
     toast('✅ Confirmed! All agents notified — best rated will be selected in 5 minutes.');
     loadVisitsPage();
-    loadVisitGroups();
+    loadVisitsPage();
 
   } else if(response==='wrong_date'){
     await sb.from('visits').update({status:'date_rejected'}).eq('id',visitId);
@@ -1605,14 +1605,14 @@ We recommend searching for other listings on RestMalta.`,
     });
     toast('❌ Listing deactivated. Tenant notified.');
   }
-  loadVisitGroups();
+  loadVisitsPage();
 }
 
 async function declineVisit(visitId){
   if(!confirm('Cancel this visit?'))return;
   await sb.from('visits').update({status:'declined'}).eq('id',visitId);
   toast('Visit cancelled.');
-  loadVisitGroups();
+  loadVisitsPage();
 }
 
 function openMsgChatById(tenantId, listingId){
@@ -1681,7 +1681,7 @@ async function joinVisit(groupId){
     content:'👋 The landlord has joined the conversation and will be present during the visit.'
   });
   toast('✅ You joined the visit!');
-  loadVisitGroups();
+  loadVisitsPage();
 }
 
 async function loadCommissionStatus(leases){
@@ -1702,7 +1702,7 @@ async function loadCommissionStatus(leases){
 async function markVisitDone(groupId){
   await sb.from('visit_groups').update({status:'visit_done'}).eq('id',groupId);
   toast('✅ Visit marquée comme effectuée.');
-  loadVisitGroups();
+  loadVisitsPage();
 }
 let leaseListings=[];
 let leaseTenants=[];
