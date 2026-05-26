@@ -1036,63 +1036,55 @@ async function initClerk() {
   });
 }
 
+
 async function sU(clerkUser, showPicker=true) {
   U = { id: clerkUser.id, email: clerkUser.primaryEmailAddress?.emailAddress||'', clerk: clerkUser };
   let data = null;
   try { const r = await sb.from('profiles').select('*').eq('clerk_id', U.id).single(); data = r.data; } catch(e){}
   if (data && data.role) {
-    P = data; updN();
-  } else {
-    const full_name = clerkUser.fullName || clerkUser.firstName || '';
-    P = data || { clerk_id: U.id, full_name, email: U.email, role: null };
-    if(showPicker) showRolePicker(full_name);
-  }
-}
-async function sU(clerkUser, showPicker=true) {
-  U = { id: clerkUser.id, email: clerkUser.primaryEmailAddress?.emailAddress||'', clerk: clerkUser };
-  const { data } = await sb.from('profiles').select('*').eq('clerk_id', U.id).single().catch(()=>({data:null}));
-  if (data && data.role) {
-    P = data; updN();
-  } else {
-    const full_name = clerkUser.fullName || clerkUser.firstName || '';
-    P = data || { clerk_id: U.id, full_name, email: U.email, role: null };
-    if(showPicker) showRolePicker(full_name);
-  }
-}
-
-function showRolePicker(name) {
-  // Ne plus utiliser l'ancien modal — rediriger vers la page auth
-  go('auth');
-}
-
-async function sU(clerkUser, showPicker=true) {
-  U = {
-    id: clerkUser.id,
-    email: clerkUser.primaryEmailAddress?.emailAddress || '',
-    clerk: clerkUser
-  };
-
-  const { data } = await sb.from('profiles').select('*').eq('clerk_id', U.id).single();
-
-  if (data && data.role) {
-    // Complete profile → redirect to dashboard
     P = data;
     updN();
-    // Si on était sur la page auth → rediriger
-    if(document.getElementById('page-auth')?.classList.contains('active')){
-      if(data.role==='landlord') window.location.href='/landlord-dashboard.html';
-      else if(data.role==='agent') window.location.href='/agent-dashboard.html';
-      else go('home');
-    }
   } else {
     const full_name = clerkUser.fullName || clerkUser.firstName || '';
     P = data || { clerk_id: U.id, full_name, email: U.email, role: null };
     if(showPicker) showRolePicker(full_name);
   }
 }
+function showRolePicker(name) {
+  // Afficher le modal de choix du rôle
+  const existing = document.getElementById('role-picker-modal');
+  if(existing) existing.remove();
 
+  const modal = document.createElement('div');
+  modal.id = 'role-picker-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+  modal.innerHTML = `
+    <div style="background:var(--card,#fff);border-radius:20px;padding:2rem;max-width:360px;width:100%;text-align:center">
+      <div style="font-size:1.2rem;font-weight:800;margin-bottom:.4rem">Welcome${name?' '+name:''}! 👋</div>
+      <div style="font-size:.85rem;color:var(--stone-l,#888);margin-bottom:1.5rem">Who are you on RestMalta?</div>
+      <div style="display:flex;flex-direction:column;gap:.65rem">
+        <button onclick="setRoleAndContinue('tenant')" style="width:100%;padding:1rem;border-radius:12px;border:2px solid rgba(107,95,82,.15);background:var(--warm,#faf8f5);font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left">
+          <span style="font-size:1.6rem">🎒</span>
+          <div><div>Tenant / Intern</div><div style="font-size:.72rem;color:var(--stone-l,#888);font-weight:400">I'm looking for a flat in Malta</div></div>
+        </button>
+        <button onclick="setRoleAndContinue('landlord')" style="width:100%;padding:1rem;border-radius:12px;border:2px solid rgba(107,95,82,.15);background:var(--warm,#faf8f5);font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left">
+          <span style="font-size:1.6rem">🏠</span>
+          <div><div>Landlord</div><div style="font-size:.72rem;color:var(--stone-l,#888);font-weight:400">I want to list my property</div></div>
+        </button>
+        <button onclick="setRoleAndContinue('agent')" style="width:100%;padding:1rem;border-radius:12px;border:2px solid rgba(107,95,82,.15);background:var(--warm,#faf8f5);font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left">
+          <span style="font-size:1.6rem">🏆</span>
+          <div><div>Real Estate Agent</div><div style="font-size:.72rem;color:var(--stone-l,#888);font-weight:400">I do visits and help landlords rent</div></div>
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
 
 async function setRoleAndContinue(role) {
+  // Fermer le modal de sélection du rôle
+  const modal = document.getElementById('role-picker-modal');
+  if(modal) modal.remove();
+
   try {
     if(!U){toast('❌ Please sign in first');return;}
 
