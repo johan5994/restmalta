@@ -40,6 +40,28 @@ exports.handler = async (event) => {
 
     console.log(`Visit ${visit_id} — elapsed: ${Math.round(elapsedMs/1000)}s, remaining: ${Math.round(remainingMs/1000)}s`);
 
+    // Vérifier combien d'agents ont postulé
+    let applications = [];
+    try {
+      const { data } = await sb.from('messages').select('sender_id').eq('type', 'agent_application').eq('visit_id', visit_id);
+      applications = data || [];
+    } catch(e) {}
+
+    const uniqueAgents = [...new Set(applications.map(a => a.sender_id))];
+
+    // Si un seul agent → sélectionner immédiatement sans attendre
+    if (uniqueAgents.length >= 1 && remainingMs <= 0) {
+      const result = await selectBestAgent(sb, visit_id);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, result }) };
+    }
+
+    // Si un seul agent et timer non expiré → attendre max 30s puis sélectionner quand même
+    if (uniqueAgents.length === 1 && remainingMs > 30000) {
+      await new Promise(r => setTimeout(r, 30000));
+      const result = await selectBestAgent(sb, visit_id);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, result, note: 'single_agent_fast_track' }) };
+    }
+
     const MAX_WAIT = 9000; // 9s max par invocation Netlify
 
     if (remainingMs <= MAX_WAIT) {
