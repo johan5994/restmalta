@@ -516,7 +516,16 @@ async function loadVisits(){
 
     const rawMsgs=vm||[];
     if(rawMsgs.length){
-      const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
+      // Dédupliquer par visit_id — garder le message le plus récent par visite
+      const visitMap=new Map();
+      rawMsgs.forEach(m=>{
+        const key=m.visit_id||m.id;
+        if(!visitMap.has(key)||new Date(m.created_at)>new Date(visitMap.get(key).created_at)){
+          visitMap.set(key,m);
+        }
+      });
+      const deduped=[...visitMap.values()];
+      const visitIds=deduped.map(m=>m.visit_id).filter(Boolean);
       let doneIds=new Set();
       if(visitIds.length){
         try{
@@ -536,7 +545,7 @@ async function loadVisits(){
           (myDeclines||[]).forEach(d=>{if(d.visit_id)doneIds.add(d.visit_id);});
         }catch(e){}
       }
-      visitMsgs=rawMsgs.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
+      visitMsgs=deduped.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
     }
   }catch(e){console.warn('loadVisitMsgs:',e.message);visitMsgs=[];}
 
