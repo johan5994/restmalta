@@ -1547,7 +1547,7 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
 }
 async function landlordConfirmVisit(visitId, response, listingId, tenantId){
   if(response==='yes'){
-    await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId);
+    await sb.from('visits').update({status:'agents_applying', agents_applying_since: new Date().toISOString()}).eq('id',visitId);
 
     // Get visit details for notification
     const{data:visit}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
