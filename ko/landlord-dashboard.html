@@ -1016,8 +1016,12 @@ async function loadVisitsPage(){
   // ── Bookings en attente ──────────────────────────────────────
   let bookings=[];
   try{
-    const{data:bData}=await sb.from('bookings').select('*').eq('landlord_id',U.id).eq('status','pending').order('created_at',{ascending:false});
-    bookings=bData||[];
+    const{data:bData,error:bErr}=await sb.from('bookings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    if(bErr)console.error('Bookings error:',bErr.message);
+    console.log('Bookings found:',bData?.length,'for landlord:',U.id);
+    if(bData?.length) console.log('First booking status:',bData[0].status);
+    bookings=(bData||[]).filter(b=>b.status==='pending');
+    console.log('Pending bookings:',bookings.length);
     if(bookings.length){
       const lIds=[...new Set(bookings.map(b=>b.listing_id).filter(Boolean))];
       if(lIds.length){
@@ -1180,8 +1184,8 @@ function renderVisitCard(g, isPast=false){
     ${g.agent_name?`<div style="font-size:.72rem;color:var(--td)">🏆 Agent: ${g.agent_name}</div>`:''}
     ${!isPast&&g.status==='awaiting_landlord'?`
       <div style="display:flex;gap:.4rem;margin-top:.5rem">
-        <button onclick="landlordConfirmVisit('${g.id}','confirm','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Available</button>
-        <button onclick="landlordConfirmVisit('${g.id}','reject','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.2);border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Not available</button>
+        <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Available</button>
+        <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.2);border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Not available</button>
       </div>`:''}
     ${!isPast&&!g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`
       <div style="margin-top:.4rem">
@@ -1587,7 +1591,6 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     }
 
     toast('✅ Confirmed! All agents notified — best rated will be selected in 5 minutes.');
-    loadVisitsPage();
     loadVisitsPage();
 
   } else if(response==='wrong_date'){
