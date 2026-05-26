@@ -426,7 +426,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 let clerk,U=null,P=null;
 let currentMonth=new Date().getMonth(),currentYear=new Date().getFullYear();
-let visits=[],listings=[];
+let visits=[],listings=[],visitMsgs=[];
 
 (async()=>{
   clerk=window.Clerk;
@@ -479,7 +479,7 @@ async function loadNotifications(){
 }
 
 async function loadVisits(){
-  let visitMsgs=[];
+  visitMsgs=[];
   let confirmedVisits=[];
   try{
     const{data:vm}=await sb.from('messages')
