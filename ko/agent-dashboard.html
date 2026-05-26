@@ -437,6 +437,22 @@ let clerk,U=null,P=null;
 let currentMonth=new Date().getMonth(),currentYear=new Date().getFullYear();
 let visits=[],listings=[],visitMsgs=[],appliedIds=new Set();
 
+function sp(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
+  document.getElementById('page-'+id)?.classList.add('act');
+  if(btn)btn.classList.add('act');
+  const titles={dash:'Dashboard',visits:'My Visits',messages:'Messages',listings:'Listings',revenue:'Revenue',score:'My Score',profile:'Profile',zone:'My Zone'};
+  document.getElementById('tbt').textContent=titles[id]||id;
+  if(id==='visits')loadVisits();
+  if(id==='messages')loadAgentMessages();
+  if(id==='revenue')renderRevChart().catch(()=>{});
+}
+
+// ── Agent Identity Verification ───────────────────────────────
+let agIdData=null,agSelfieData=null,agStream=null,agModels=false;
+async function agLoadModels(){if(agModels)return true;try{const M='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(M),faceapi.nets.faceLandmark68TinyNet.loadFromUri(M),faceapi.nets.faceRecognitionNet.loadFromUri(M)]);agModels=true;return true;}catch(e){return false;}}
+
 (async()=>{
   clerk=window.Clerk;
   await clerk.load();
@@ -1779,21 +1795,6 @@ async function sendAgentGroupMessage(groupId){
   });
 }
 
-function sp(id,btn){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
-  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
-  document.getElementById('page-'+id)?.classList.add('act');
-  if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',visits:'My Visits',messages:'Messages',listings:'Listings',revenue:'Revenue',score:'My Score',profile:'Profile',zone:'My Zone'};
-  document.getElementById('tbt').textContent=titles[id]||id;
-  if(id==='visits')loadVisits();
-  if(id==='messages')loadAgentMessages();
-  if(id==='revenue')renderRevChart().catch(()=>{});
-}
-
-// ── Agent Identity Verification ───────────────────────────────
-let agIdData=null,agSelfieData=null,agStream=null,agModels=false;
-async function agLoadModels(){if(agModels)return true;try{const M='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(M),faceapi.nets.faceLandmark68TinyNet.loadFromUri(M),faceapi.nets.faceRecognitionNet.loadFromUri(M)]);agModels=true;return true;}catch(e){return false;}}
 function agHandleID(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{agIdData=e.target.result;document.getElementById('ag-id-img').src=agIdData;document.getElementById('ag-id-thumb').src=agIdData;document.getElementById('ag-id-preview').style.display='block';};r.readAsDataURL(file);}
 function agStep1(){document.getElementById('ag-step2').style.display='none';document.getElementById('ag-step3').style.display='none';document.getElementById('ag-step1').style.display='block';if(agStream){agStream.getTracks().forEach(t=>t.stop());agStream=null;}}
 async function agShowSelfie(){if(!agIdData){toast('Upload your ID first');return;}document.getElementById('ag-step1').style.display='none';document.getElementById('ag-step2').style.display='block';try{agStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});document.getElementById('ag-video').srcObject=agStream;}catch(e){toast('❌ Camera access denied');agStep1();}}
