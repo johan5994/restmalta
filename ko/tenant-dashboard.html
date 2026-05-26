@@ -303,8 +303,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- VISITS PAGE -->
     <div class="page" id="page-visits">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My Visits</div>
-
-      <!-- Card registration -->
       <div class="card" style="margin-bottom:1rem" id="card-register-section">
         <div class="ch">
           <div class="ct">💳 Register your card</div>
@@ -319,7 +317,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div id="card-saved-msg" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;color:var(--green)">✅ Card registered</div>
         </div>
       </div>
-
       <div id="tenant-visits-list">
         <div class="empty"><div class="em">📅</div><p>Loading visits...</p></div>
       </div>
@@ -1414,6 +1411,22 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
     if(!listing)throw new Error('Listing not found');
 
+    // Résoudre le vrai Clerk ID du landlord
+    // listing.landlord_id peut être un UUID ou un Clerk ID selon comment il a été créé
+    let landlordClerkId=listing.landlord_id;
+    if(landlordClerkId&&!landlordClerkId.startsWith('user_')){
+      // C'est un UUID — chercher le vrai Clerk ID dans profiles
+      try{
+        const{data:lp}=await sb.from('profiles').select('clerk_id').eq('id',landlordClerkId).single();
+        if(lp?.clerk_id)landlordClerkId=lp.clerk_id;
+        else{
+          // Essayer via auth.users
+          const{data:lp2}=await sb.from('profiles').select('clerk_id').ilike('clerk_id','user_%').limit(1);
+          console.warn('Could not resolve landlord clerk_id from UUID:',landlordClerkId);
+        }
+      }catch(e){console.warn('landlord lookup failed:',e);}
+    }
+
     // 2 — Créer PaymentIntent
     const res=await fetch('/.netlify/functions/holding-deposit',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -1441,7 +1454,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     const{data:booking}=await sb.from('bookings').insert({
       listing_id:listingId,
       tenant_id:U.id,
-      landlord_id:listing.landlord_id,
+      landlord_id:landlordClerkId,
       tenant_name:P?.full_name||'',
       tenant_email:P?.email||'',
       payment_intent_id:paymentIntent.id,
