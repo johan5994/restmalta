@@ -1016,12 +1016,23 @@ async function loadVisitsPage(){
   // ── Bookings en attente ──────────────────────────────────────
   let bookings=[];
   try{
-    const{data:bData,error:bErr}=await sb.from('bookings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    // Récupérer d'abord tous les listing IDs du landlord
+    const{data:myListings}=await sb.from('listings').select('id,landlord_id,type').eq('landlord_id',U.id);
+    const myListingIds=(myListings||[]).map(l=>l.id);
+    
+    // Chercher bookings par landlord_id (Clerk ID) OU par listing_id (pour les anciens bookings)
+    let bQuery=sb.from('bookings').select('*').eq('status','pending').order('created_at',{ascending:false});
+    if(myListingIds.length){
+      bQuery=bQuery.or(`landlord_id.eq.${U.id},listing_id.in.(${myListingIds.join(',')})`);
+    } else {
+      bQuery=bQuery.eq('landlord_id',U.id);
+    }
+    const{data:bData,error:bErr}=await bQuery;
     if(bErr)console.error('Bookings error:',bErr.message);
-    console.log('Bookings found:',bData?.length,'for landlord:',U.id);
-    if(bData?.length) console.log('First booking status:',bData[0].status);
-    bookings=(bData||[]).filter(b=>b.status==='pending');
-    console.log('Pending bookings:',bookings.length);
+    bookings=bData||[];
+    // Dédupliquer
+    const seen=new Set();
+    bookings=bookings.filter(b=>{if(seen.has(b.id))return false;seen.add(b.id);return true;});
     if(bookings.length){
       const lIds=[...new Set(bookings.map(b=>b.listing_id).filter(Boolean))];
       if(lIds.length){
@@ -1032,7 +1043,7 @@ async function loadVisitsPage(){
         }catch(e){}
       }
     }
-  }catch(e){}
+  }catch(e){console.error('bookings fetch error:',e);}
 
   // ── Visites normales ─────────────────────────────────────────
   let groups=[];
