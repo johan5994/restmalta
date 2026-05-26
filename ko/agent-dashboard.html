@@ -552,6 +552,25 @@ async function loadVisits(){
   try{
     const{data:cv}=await sb.from('visits').select('*').eq('agent_id',U.id).order('visit_date',{ascending:true});
     confirmedVisits=cv||[];
+
+    // Enrichir avec les infos du listing
+    if(confirmedVisits.length){
+      const lIds=[...new Set(confirmedVisits.map(v=>v.listing_id).filter(Boolean))];
+      if(lIds.length){
+        try{
+          const{data:ls}=await sb.from('listings').select('id,title,zone,full_address,key_type,key_location,price').in('id',lIds);
+          const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
+          confirmedVisits=confirmedVisits.map(v=>({
+            ...v,
+            listing_title:v.listing_title||lMap[v.listing_id]?.title||'Property',
+            listing_zone:v.listing_zone||lMap[v.listing_id]?.zone||'Malta',
+            listing_address:v.listing_address||lMap[v.listing_id]?.full_address||lMap[v.listing_id]?.zone||'Malta',
+            key_type:v.key_type||lMap[v.listing_id]?.key_type||'',
+            key_location:v.key_location||lMap[v.listing_id]?.key_location||''
+          }));
+        }catch(e){}
+      }
+    }
   }catch(e){console.warn('loadConfirmedVisits:',e.message);}
 
   visits=confirmedVisits;
@@ -617,7 +636,7 @@ async function loadVisits(){
                 <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
               </div>`
             :`<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
-              <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
+
               <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Not available</button>`
           }
         </div>
@@ -663,38 +682,67 @@ async function applyForVisit(msgId, listingId, visitId){
   // Enregistrer la candidature
   try{
     await sb.from('messages').insert({
-      listing_id:listingId,
-      sender_id:U.id,
-      receiver_id:'system',
+      listing_id:listingId, sender_id:U.id, receiver_id:'system',
       content:`🏆 Agent available: ${P?.full_name||'Agent'}`,
-      type:'agent_application',
-      visit_id:visitId
+      type:'agent_application', visit_id:visitId
     });
   }catch(e){}
 
-  // Marquer la visite
+  // Premier arrivé premier servi — assigner immédiatement
   try{
+    // Vérifier que personne n'a été assigné entre temps
+    const{data:current}=await sb.from('visits').select('status,agent_id').eq('id',visitId).single();
+    if(current?.status==='agent_assigned'||current?.agent_id){
+      toast('⚠️ Another agent was just assigned. Better luck next time!');
+      await loadVisits();
+      return;
+    }
+
+    // Assigner directement
     await sb.from('visits').update({
-      status:'agents_applying',
-      agents_applying_since: new Date().toISOString()
-    }).eq('id',visitId).eq('status','pending');
+      agent_id:U.id,
+      agent_name:P?.full_name||'Agent',
+      status:'agent_assigned',
+      agents_applying_since:new Date().toISOString()
+    }).eq('id',visitId).in('status',['awaiting_landlord','agents_applying']);
+
+    // Récupérer les infos de la visite
+    const{data:visit}=await sb.from('visits').select('*').eq('id',visitId).single().catch(()=>({data:null}));
+    const{data:listing}=await sb.from('listings').select('*').eq('id',listingId).single().catch(()=>({data:null}));
+    const{data:tenantProfile}=await sb.from('profiles').select('full_name,phone').eq('clerk_id',visit?.tenant_id||'').single().catch(()=>({data:null}));
+
+    const visitDateStr=visit?.visit_date?new Date(visit.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(visit?.visit_time||'TBD'):'TBD';
+    const tenantPhone=tenantProfile?.phone||'—';
+    const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Call landlord'};
+    const keyInfo=keyLabels[listing?.key_type]||'Contact landlord';
+
+    // Notifier le tenant
+    try{await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:visit?.tenant_id,
+      content:`✅ Your visit is confirmed!\n\nAgent: ${P?.full_name||'Agent'}\nDate: ${visitDateStr}\nProperty: ${listing?.title||'—'}\nAddress: ${listing?.full_address||listing?.zone||'—'}\n\n⚠️ Please confirm your attendance in your dashboard → My Visits.\nNO-SHOW: €50 fee if no-show without 24h cancellation.`,
+      type:'visit_confirmed_noshow'
+    });}catch(e){}
+
+    // Notifier le landlord
+    try{await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:visit?.landlord_id,
+      content:`✅ Visit assigned!\n\nAgent: ${P?.full_name||'Agent'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}`,
+      type:'visit_info'
+    });}catch(e){}
+
+    // Sauvegarder le chrono dans localStorage
+    const endTime=Date.now()+(5*60*1000);
+    localStorage.setItem('timer_'+visitId, endTime);
+
+    toast('🎉 You got the visit! Check your dashboard.');
+    appliedIds.add(visitId);
+
   }catch(e){
-    await sb.from('visits').update({status:'agents_applying'}).eq('id',visitId).neq('status','agent_assigned').catch(()=>{});
+    console.error('applyForVisit error:',e);
+    toast('❌ Could not apply: '+e.message);
   }
 
-  // Sauvegarder le chrono dans localStorage pour qu'il survive aux rechargements
-  const endTime=Date.now()+(5*60*1000);
-  localStorage.setItem('timer_'+visitId, endTime);
-
-  // Afficher le chrono dans la card
-  const cardEl=document.querySelector(`[data-visit-id="${visitId}"]`);
-  if(cardEl){
-    const actionsDiv=cardEl.querySelector('.visit-actions');
-    if(actionsDiv) showTimer(actionsDiv, visitId, endTime);
-  }
-
-  toast('✅ Applied! You will be notified in 5 minutes if selected.');
-  // Ne PAS appeler loadVisits ici — ça effacerait le chrono
+  await loadVisits();
 }
 
 // ── Chrono persistant ─────────────────────────────────────────
