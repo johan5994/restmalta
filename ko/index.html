@@ -1100,8 +1100,9 @@ async function setRoleAndContinue(role) {
       if(error) throw new Error(error.message);
       data = updated;
     } else {
-      // Pas de profil → insert
-      const {data:inserted, error} = await sb.from('profiles').insert({clerk_id: U.id, full_name, email, role}).select().single();
+      // Pas de profil → insert avec id généré
+      const newId = crypto.randomUUID();
+      const {data:inserted, error} = await sb.from('profiles').insert({id: newId, clerk_id: U.id, full_name, email, role}).select().single();
       if(error) throw new Error(error.message);
       data = inserted;
     }
