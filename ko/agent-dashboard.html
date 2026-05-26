@@ -170,14 +170,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- VISITS -->
     <div class="page" id="page-visits">
-      <div style="margin-bottom:1rem;font-size:1rem;font-weight:700">My Visits</div>
+      <div id="visit-groups-agent"></div>
       <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
         <div>
-          <div id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
-        </div>
-        <div>
           <div class="card">
-            <div class="ch"><span class="ct">📅 Calendar</span>
+            <div class="ch">
+              <span class="ct">📅 Calendar</span>
               <div style="display:flex;gap:.5rem;align-items:center">
                 <button class="btn bg bsm" onclick="prevMonth()">‹</button>
                 <span style="font-size:.85rem;font-weight:600;min-width:120px;text-align:center" id="cal-month">May 2026</span>
@@ -190,14 +188,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
           </div>
           <div class="card">
+            <div class="ch"><span class="ct">All visits</span></div>
+            <div class="cb" id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
             <div class="ch"><span class="ct">🗺️ Today's route</span></div>
             <div class="cb">
               <div style="background:var(--s2);border-radius:10px;padding:1.2rem;text-align:center;margin-bottom:.75rem">
                 <div style="font-size:2rem;margin-bottom:.4rem">🗺️</div>
                 <div style="font-size:.82rem;color:var(--tm)">GPS route optimized</div>
+                <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">3 stops · ~45 min</div>
               </div>
               <button class="btn bp" style="width:100%;justify-content:center" onclick="toast('🗺️ Opening GPS...')">Open GPS route</button>
             </div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">📬 Visit requests</span><span class="badge b-gold" id="req-count">0 pending</span></div>
+            <div class="cb" id="visit-requests"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests</p></div></div>
           </div>
         </div>
       </div>
@@ -486,26 +495,14 @@ async function loadVisits(){
       .select('*')
       .eq('receiver_id',U.id)
       .eq('type','visit_request')
-      .eq('read',false)
       .order('created_at',{ascending:false});
 
     const rawMsgs=vm||[];
     if(rawMsgs.length){
-      // Dédupliquer par visit_id — garder le plus récent pour chaque visite
-      const visitMap=new Map();
-      rawMsgs.forEach(m=>{
-        const key=m.visit_id||m.id;
-        if(!visitMap.has(key)||new Date(m.created_at)>new Date(visitMap.get(key).created_at)){
-          visitMap.set(key,m);
-        }
-      });
-      const deduped=[...visitMap.values()];
-      const visitIds=deduped.map(m=>m.visit_id).filter(Boolean);
+      const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
       let doneIds=new Set();
       let appliedIds=new Set();
-
       if(visitIds.length){
-        // 1. Visites avec statut terminé
         try{
           const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
           (vs||[]).forEach(v=>{
@@ -514,70 +511,26 @@ async function loadVisits(){
             }
           });
         }catch(e){}
-
-        // 2. Visites où CET agent a déjà DÉCLINÉ (disparaissent)
-        // Les visites où il a APPLIQUÉ restent visibles avec statut "applied"
         try{
-          const{data:myDeclines}=await sb.from('messages')
-            .select('visit_id')
-            .eq('sender_id',U.id)
-            .in('type',['agent_declined'])
-            .in('visit_id',visitIds);
-          (myDeclines||[]).forEach(d=>{if(d.visit_id)doneIds.add(d.visit_id);});
-        }catch(e){}
-
-        // 3. Marquer les visites où l'agent a déjà appliqué
-        try{
-          const{data:myApps}=await sb.from('messages')
-            .select('visit_id')
-            .eq('sender_id',U.id)
-            .in('type',['agent_application'])
-            .in('visit_id',visitIds);
+          const{data:myApps}=await sb.from('messages').select('visit_id').eq('sender_id',U.id).in('type',['agent_application']).in('visit_id',visitIds);
           appliedIds=new Set((myApps||[]).map(d=>d.visit_id).filter(Boolean));
         }catch(e){}
+        try{
+          const{data:myDeclines}=await sb.from('messages').select('visit_id').eq('sender_id',U.id).in('type',['agent_declined']).in('visit_id',visitIds);
+          (myDeclines||[]).forEach(d=>{if(d.visit_id)doneIds.add(d.visit_id);});
+        }catch(e){}
       }
-
-      visitMsgs=deduped.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
+      visitMsgs=rawMsgs.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
     }
   }catch(e){console.warn('loadVisitMsgs:',e.message);visitMsgs=[];}
 
   try{
-    const{data:cv}=await sb.from('visits')
-      .select('*')
-      .eq('agent_id',U.id)
-      .order('visit_date',{ascending:true});
+    const{data:cv}=await sb.from('visits').select('*').eq('agent_id',U.id).order('visit_date',{ascending:true});
     confirmedVisits=cv||[];
-
-    // Enrichir avec le phone du tenant depuis profiles
-    if(confirmedVisits.length){
-      const tenantIds=[...new Set(confirmedVisits.map(v=>v.tenant_id).filter(Boolean))];
-      if(tenantIds.length){
-        try{
-          const{data:profiles}=await sb.from('profiles').select('clerk_id,phone').in('clerk_id',tenantIds);
-          const phoneMap={};
-          (profiles||[]).forEach(p=>{phoneMap[p.clerk_id]=p.phone;});
-          confirmedVisits=confirmedVisits.map(v=>({...v,tenant_phone:phoneMap[v.tenant_id]||null}));
-        }catch(e){}
-      }
-    }
   }catch(e){console.warn('loadConfirmedVisits:',e.message);}
 
   visits=confirmedVisits;
   const pendingRequests=visitMsgs;
-
-  // Stocker pour les onglets avec _type
-  const requestItems=pendingRequests.map(m=>({...m,_type:'request',visit_date:m.visit_date||null}));
-  const assignedItems=confirmedVisits.map(v=>({...v,_type:'assigned'}));
-  _agentAllVisits=[...requestItems,...assignedItems];
-
-  // Mettre à jour les compteurs d'onglets
-  const reqCount=pendingRequests.length;
-  const upCount=confirmedVisits.filter(v=>['agent_assigned','confirmed'].includes(v.status)).length;
-  const sigCount=confirmedVisits.filter(v=>v.status==='edl_scheduled'||v.status==='signing_day').length;
-  const setBadge=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n>0?`(${n})`:'';}
-  setBadge('atab-requests-count',reqCount);
-  setBadge('atab-upcoming-count',upCount);
-  setBadge('atab-signing-count',sigCount);
 
   const today=new Date().toISOString().split('T')[0];
   const todayV=visits.filter(v=>v.visit_date===today);
@@ -587,13 +540,13 @@ async function loadVisits(){
 
   const pending=pendingRequests.length;
   const nbBadge=document.getElementById('nb-visits');
-  if(pending>0&&nbBadge){nbBadge.textContent=pending;nbBadge.style.display='inline';}
+  if(nbBadge){nbBadge.textContent=pending||'';nbBadge.style.display=pending>0?'inline':'none';}
 
-  // Render pending visit requests (apply or decline)
+  // Render pending visit requests
   const rw=document.getElementById('visit-requests');
   if(!rw){renderUpcoming();renderAllVisitsDirect();renderCalendar();return;}
   if(!pendingRequests.length){
-    rw.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests — you\'ll be notified when tenants request visits</p></div>';
+    rw.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests — you will be notified when tenants request visits</p></div>';
   } else {
     rw.innerHTML=pendingRequests.map(m=>{
       const lines=m.content.split('\n');
@@ -604,11 +557,10 @@ async function loadVisits(){
       const keyLine=lines.find(l=>l.includes('Key access:'))?.replace('Key access:','').trim()||'Contact landlord';
       const keyDetail=lines.find(l=>l.includes('Key details:'))?.replace('Key details:','').trim()||'';
       const ownerLine=lines.find(l=>l.includes('Owner:'))?.replace('Owner:','').trim()||'';
-      const mustBePresent=lines.some(l=>l.includes('OWNER MUST BE PRESENT'));
 
       const isAwaitingLandlord=m.content?.includes('Awaiting landlord confirmation')||m.content?.includes('awaiting_landlord');
       const isConfirmed=m.content?.includes('Landlord confirmed');
-      const isApplied=m.visit_id&&appliedIds.has(m.visit_id);
+      const isApplied=m.visit_id&&appliedIds&&appliedIds.has&&appliedIds.has(m.visit_id);
       const timerEnd=m.visit_id?localStorage.getItem('timer_'+m.visit_id):null;
       const timerActive=timerEnd&&Date.now()<parseInt(timerEnd);
 
@@ -622,44 +574,58 @@ async function loadVisits(){
           ${keyDetail?`<div style="color:var(--tm);margin-top:.2rem">└ ${keyDetail}</div>`:''}
           ${ownerLine?`<div style="margin-top:.2rem">👤 <strong>Owner:</strong> ${ownerLine}</div>`:''}
         </div>`:''}
-        ${isAwaitingLandlord&&!isConfirmed?`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--gold)">⏳ Waiting for landlord to confirm availability — you can already apply below</div>`:''}
+        ${isAwaitingLandlord&&!isConfirmed?`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--gold)">⏳ Waiting for landlord to confirm — you can already apply below</div>`:''}
         ${isConfirmed?`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--green)">✅ Landlord confirmed — apply now! Best rated agent selected in 5 minutes.</div>`:''}
         <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">
-          ${timerActive || isApplied
-            ? `<div style="width:100%;background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem .85rem;text-align:center">
+          ${timerActive||isApplied
+            ?`<div style="width:100%;background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem .85rem;text-align:center">
                 <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">⏳ Applied! Agent being selected in:</div>
                 ${timerActive
-                  ? `<div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${m.visit_id}">...</div>`
-                  : `<div style="font-size:.82rem;font-weight:600;color:var(--terra)">⏳ Selection in progress...</div>`
+                  ?`<div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${m.visit_id}">...</div>`
+                  :`<div style="font-size:.82rem;font-weight:600;color:var(--terra)">⏳ Selection in progress...</div>`
                 }
                 <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
               </div>`
-            : m.visit_id
-              ? `<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id}')">✅ I want this visit</button>
-                 <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id}')">📅 Date not possible</button>
-                 <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="agentNotAvailable('${m.id}','${m.listing_id}','${m.visit_id}')">❌ I'm not available</button>`
-              : `<div style="font-size:.72rem;color:var(--td);text-align:center;padding:.4rem;display:flex;align-items:center;justify-content:space-between">
-                  <span>⚠️ Legacy request — no action needed</span>
-                  <button onclick="dismissLegacyRequest('${m.id}')" style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:.2rem .6rem;font-size:.7rem;color:var(--td);cursor:pointer">Dismiss ✕</button>
-                </div>`
+            :`<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
+              <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">📅 Date not possible</button>
+              <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Not available</button>`
           }
         </div>
       </div>`;
     }).join('');
+    // Lancer les timers actifs
+    pendingRequests.forEach(m=>{
+      if(!m.visit_id)return;
+      const timerEnd=localStorage.getItem('timer_'+m.visit_id);
+      if(timerEnd&&Date.now()<parseInt(timerEnd)){
+        startTimerDisplay(m.visit_id, parseInt(timerEnd));
+      }
+    });
   }
 
-  document.getElementById('req-count').textContent=`${pending} new`;
+  document.getElementById('req-count').textContent=`${pending} pending`;
   renderUpcoming();
   renderAllVisitsDirect();
   renderCalendar();
-  // Restaurer les chronos APRÈS que le DOM est mis à jour
-  requestAnimationFrame(()=>requestAnimationFrame(restoreTimers));
 }
 
-async function dismissLegacyRequest(msgId){
-  try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
-  loadVisits();
+function startTimerDisplay(visitId, endTime){
+  const interval=setInterval(()=>{
+    const remaining=endTime-Date.now();
+    const timerEl=document.getElementById(`timer-${visitId}`);
+    if(!timerEl){clearInterval(interval);return;}
+    if(remaining<=0){
+      clearInterval(interval);
+      localStorage.removeItem('timer_'+visitId);
+      loadVisits();
+    } else {
+      const m=Math.floor(remaining/60000);
+      const s=Math.floor((remaining%60000)/1000);
+      timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+    }
+  },1000);
 }
+
 
 async function applyForVisit(msgId, listingId, visitId){
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
