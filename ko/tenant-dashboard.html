@@ -100,6 +100,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--deep);color:white;padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 24px rgba(26,20,16,.25)}
 .toast.show{transform:translateY(0);opacity:1}
 @media(max-width:768px){.sb{display:none}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}}
+.vtab{padding:.4rem .75rem;border-radius:100px;border:1px solid var(--b);background:transparent;color:var(--td);font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'DM Sans',sans-serif}
+.vtab:hover{background:var(--s2);color:var(--tf)}
+.vtab-active{background:var(--terra);color:white;border-color:var(--terra)}
 </style>
 </head>
 <body>
@@ -241,7 +244,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><div class="ct">🔐 Comment fonctionne l'escrow RestMalta</div></div>
         <div class="cb">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.5rem">
-            <div style="background:var(--tdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">💶</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">1. You payez</div><div style="font-size:.62rem;color:var(--tm)">Dépôt à RestMalta</div></div>
+            <div style="background:var(--tdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">💶</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">1. You pay</div><div style="font-size:.62rem;color:var(--tm)">Deposit to RestMalta</div></div>
             <div style="background:var(--gdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🔒</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">2. Sécurisé</div><div style="font-size:.62rem;color:var(--tm)">RestMalta retient</div></div>
             <div style="background:var(--sdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">⏰</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">3. 24h for confirmer</div><div style="font-size:.62rem;color:var(--tm)">À your arrivée</div></div>
             <div style="background:var(--grdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🏠</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">4. Libéré</div><div style="font-size:.62rem;color:var(--tm)">Au owner si OK</div></div>
@@ -254,11 +257,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><div class="ct">✅ Confirm mon entrée dans le logement</div></div>
         <div class="cb">
           <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-            ⏰ <strong>You avez 24h après your arrivée</strong> for confirmer que le logement correspond à l'listing. After this period, the deposit is automatically released to the landlord.
+            ⏰ <strong>You have 24h after move-in</strong> to confirm the property correspond à l'listing. After this period, the deposit is automatically released to the landlord.
           </div>
           <div class="fg"><label class="fl">Tout est conforme ? Des remarques ?</label><textarea class="fta" id="entry-notes" rows="2" placeholder="Everything is fine — no issues (or describe any problems found)"></textarea></div>
           <div style="display:flex;gap:.75rem">
-            <button class="btn bp" onclick="confirmEntry()">✅ Tout est OK — libérer le dépôt</button>
+            <button class="btn bp" onclick="confirmEntry()">✅ Everything OK — release deposit</button>
             <button class="btn bg" onclick="sp('maintenance',document.querySelectorAll('.ni')[3]);openTicketModal()">⚠️ Signaler un problème</button>
           </div>
           <div style="margin-top:.75rem;font-size:.72rem;color:var(--td);line-height:1.5">
@@ -299,16 +302,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- PROFILE -->
     <!-- VISITS PAGE -->
     <div class="page" id="page-visits">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My Visits</div>
+      <div style="margin-bottom:1rem;font-size:1rem;font-weight:700">My Visits</div>
 
-      <!-- Card registration for no-show policy -->
+      <!-- Card registration -->
       <div class="card" style="margin-bottom:1rem" id="card-register-section">
         <div class="ch">
           <div class="ct">💳 Register your card</div>
           <span class="badge b-gold" id="card-status-badge">Required</span>
         </div>
         <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">A card is required to confirm visits. <strong>You will only be charged €50 if you no-show without cancelling 24h before.</strong> Cancellations 24h+ before are always free.</p>
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Required to confirm visits. <strong>Only charged €50 if you no-show without 24h cancellation.</strong></p>
           <div id="card-form-wrap">
             <div id="card-element" style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.75rem"></div>
             <button class="btn bp" style="width:100%;justify-content:center" onclick="registerCard()">💳 Save card →</button>
@@ -317,12 +320,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         </div>
       </div>
 
-      <!-- Upcoming visits -->
-      <div class="card">
-        <div class="ch"><div class="ct">📅 My upcoming visits</div></div>
-        <div class="cb" id="tenant-visits-list">
-          <div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>
-        </div>
+      <!-- Onglets -->
+      <div style="display:flex;gap:.3rem;margin-bottom:.85rem;overflow-x:auto;padding-bottom:.2rem" id="visits-tabs">
+        <button onclick="switchVisitTab('action')" id="vtab-action" class="vtab vtab-active">🔴 Action needed<span id="vtab-action-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchVisitTab('upcoming')" id="vtab-upcoming" class="vtab">📅 Upcoming<span id="vtab-upcoming-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchVisitTab('after')" id="vtab-after" class="vtab">🏠 After visit<span id="vtab-after-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchVisitTab('rental')" id="vtab-rental" class="vtab">✅ My rental<span id="vtab-rental-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchVisitTab('past')" id="vtab-past" class="vtab">📁 Past</button>
+      </div>
+
+      <div id="tenant-visits-list">
+        <div class="empty"><div class="em">📅</div><p>Loading visits...</p></div>
       </div>
     </div>
 
@@ -651,13 +659,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="fg"><label class="fl">Type de problème *</label>
       <select class="fsel" id="tick-type">
         <option value="Plomberie">🚰 Plomberie (fuite, robinet, WC)</option>
-        <option value="Électricité">💡 Électricité (panne, prise, lumière)</option>
+        <option value="Electricity">💡 Electricity (outage, socket, lighting)</option>
         <option value="Climatisation">❄️ Climatisation / Chauffage</option>
-        <option value="Portes/Fenêtres">🚪 Portes / Fenêtres</option>
+        <option value="Doors/Windows">🚪 Doors / Windows</option>
         <option value="Nuisibles">🪲 Nuisibles / Insectes</option>
         <option value="Structure">🏗️ Dommages structurels</option>
-        <option value="Serrure">🔒 Serrure / Sécurité</option>
-        <option value="Électroménager">🍳 Électroménager (four, frigo...)</option>
+        <option value="Lock">🔒 Lock / Security</option>
+        <option value="Appliances">🍳 Appliances (oven, fridge...)</option>
         <option value="Internet">📶 Internet / TV</option>
         <option value="Autre">❓ Autre</option>
       </select>
@@ -676,8 +684,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <div class="fg"><label class="fl">Urgence</label>
       <select class="fsel" id="tick-pri">
-        <option value="high">🔴 Urgent — à régler dans 24h</option>
-        <option value="medium" selected>🟡 Normal — dans la semaine</option>
+        <option value="high">🔴 Urgent — must be fixed within 24h</option>
+        <option value="medium" selected>🟡 Normal — within a week</option>
         <option value="low">🟢 Non urgent — quand possible</option>
       </select>
     </div>
@@ -706,20 +714,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 <div class="mover" id="stripe-modal" onclick="if(event.target.id==='stripe-modal')closeStripeModal()">
   <div class="modal" style="max-width:440px">
     <button class="mclose" onclick="closeStripeModal()">✕</button>
-    <div class="mt">🔐 Sécuriser mon dépôt</div>
+    <div class="mt">🔐 Secure my deposit</div>
     <div class="ms" id="stripe-modal-sub">Paiement sécurisé via Stripe</div>
     <div style="background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
       ✅ Your argent est <strong>bloqué</strong> — RestMalta only releases it to the landlord after'après your confirmation d'entrée dans les 24h.<br>
-      ⚠️ Si problème grave → remboursement intégral.
+      ⚠️ Serious issues → full refund.
     </div>
     <div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:1rem">
-      <div style="font-size:.75rem;color:var(--td);margin-bottom:.5rem">Montant du dépôt</div>
+      <div style="font-size:.75rem;color:var(--td);margin-bottom:.5rem">Deposit amount</div>
       <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--sea)" id="stripe-amount-display">€0</div>
     </div>
     <div id="stripe-card-element" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:1rem;margin-bottom:1rem"></div>
     <div id="stripe-error" style="color:var(--terra);font-size:.8rem;margin-bottom:.75rem;display:none"></div>
     <button class="btn bp" style="width:100%;justify-content:center" id="stripe-pay-btn" onclick="confirmStripePayment()">
-      🔒 Payer et sécuriser le dépôt →
+      🔒 Pay & secure deposit →
     </button>
     <p style="font-size:.65rem;color:var(--td);text-align:center;margin-top:.5rem">Paiement sécurisé SSL · Powered by Stripe</p>
   </div>
@@ -745,7 +753,7 @@ function initStripe() {
 async function openStripeModal(escrowData) {
   initStripe();
   currentEscrowData = escrowData;
-  document.getElementById('stripe-modal-sub').textContent = `Dépôt for : ${escrowData.listing_title}`;
+  document.getElementById('stripe-modal-sub').textContent = `Deposit for: ${escrowData.listing_title}`;
   document.getElementById('stripe-amount-display').textContent = `€${(escrowData.amount||0).toLocaleString()}`;
   document.getElementById('stripe-modal').classList.add('open');
 
@@ -822,7 +830,7 @@ async function confirmStripePayment() {
   if (error) {
     errEl.textContent = '❌ ' + error.message;
     errEl.style.display = 'block';
-    btn.textContent = '🔒 Payer et sécuriser le dépôt →';
+    btn.textContent = '🔒 Pay & secure deposit →';
     btn.disabled = false;
     return;
   }
@@ -836,7 +844,7 @@ async function confirmStripePayment() {
   }
 
   closeStripeModal();
-  toast('✅ Dépôt sécurisé ! À your arrivée you avez 24h for confirmer.');
+  toast('✅ Deposit secured! You have 24h from move-in to confirm.');
   loadDeposit();
 }
 
@@ -862,7 +870,7 @@ async function confirmEntryStripe(escrowId, paymentIntentId) {
 }
 
 async function refundDeposit(escrowId, paymentIntentId) {
-  if (!confirm('Confirm le remboursement du dépôt ?')) return;
+  if (!confirm('Confirm deposit refund request?')) return;
   try {
     const res = await fetch('/.netlify/functions/handle-deposit', {
       method: 'POST',
@@ -872,7 +880,7 @@ async function refundDeposit(escrowId, paymentIntentId) {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     await sb.from('escrow_requests').update({ status: 'refunded' }).eq('id', escrowId);
-    toast('↩ Remboursement initié — you recevrez le dépôt sous 5-10 jours ouvrés.');
+    toast('↩ Refund initiated — you will receive your deposit within 5-10 business days.');
     loadDeposit();
   } catch (e) {
     toast('❌ Error: ' + e.message);
@@ -1492,6 +1500,81 @@ async function submitTicket(){
   loadTickets();
 }
 
+let currentVisitTab='action';
+
+function switchVisitTab(tab){
+  currentVisitTab=tab;
+  document.querySelectorAll('.vtab').forEach(b=>b.classList.remove('vtab-active'));
+  document.getElementById('vtab-'+tab)?.classList.add('vtab-active');
+  renderVisitTab();
+}
+
+let _allVisits=[];
+let _allBookings=[];
+
+function renderVisitTab(){
+  const wrap=document.getElementById('tenant-visits-list');
+  if(!wrap)return;
+
+  const tab=currentVisitTab;
+  const now=new Date();
+
+  // Filtrer selon l'onglet
+  let items=[];
+  let emptyMsg='';
+
+  if(tab==='action'){
+    // À confirmer + en attente landlord sur réservation
+    const toConfirm=_allVisits.filter(v=>v.status==='agent_assigned'&&!v.tenant_confirmed);
+    const pendingBooking=_allBookings.filter(b=>b.status==='pending');
+    const toSign=_allVisits.filter(v=>v.status==='lease_pending'||v.status==='signing_scheduled');
+    items=[...toConfirm,...pendingBooking,...toSign];
+    emptyMsg='No action needed right now 🎉';
+  } else if(tab==='upcoming'){
+    items=_allVisits.filter(v=>
+      ['agent_assigned','confirmed','agents_applying','awaiting_landlord'].includes(v.status)&&
+      new Date(v.visit_date)>=now
+    );
+    emptyMsg='No upcoming visits — browse listings to request one';
+  } else if(tab==='after'){
+    items=_allVisits.filter(v=>v.status==='completed'||v.status==='tenant_interested');
+    emptyMsg='No visits waiting for your response';
+  } else if(tab==='rental'){
+    const accepted=_allBookings.filter(b=>b.status==='accepted');
+    items=[...accepted,..._allVisits.filter(v=>v.status==='booking_pending'||v.status==='edl_scheduled'||v.status==='move_in_ready')];
+    emptyMsg='No active rental yet';
+  } else if(tab==='past'){
+    items=_allVisits.filter(v=>
+      ['cancelled','declined','tenant_declined','no_show','done','move_in_ready'].includes(v.status)||
+      (v.status==='completed'&&new Date(v.visit_date)<now)
+    );
+    emptyMsg='No past visits yet';
+  }
+
+  // Update count badges
+  const actionCount=_allVisits.filter(v=>v.status==='agent_assigned'&&!v.tenant_confirmed).length+_allBookings.filter(b=>b.status==='pending').length;
+  const upcomingCount=_allVisits.filter(v=>['agent_assigned','confirmed','agents_applying','awaiting_landlord'].includes(v.status)&&new Date(v.visit_date)>=now).length;
+  const afterCount=_allVisits.filter(v=>v.status==='completed').length;
+  const rentalCount=_allBookings.filter(b=>b.status==='accepted').length;
+
+  const setBadge=(id,n)=>{
+    const el=document.getElementById(id);
+    if(el)el.textContent=n>0?`(${n})`:'';
+  };
+  setBadge('vtab-action-count',actionCount);
+  setBadge('vtab-upcoming-count',upcomingCount);
+  setBadge('vtab-after-count',afterCount);
+  setBadge('vtab-rental-count',rentalCount);
+
+  if(!items.length){
+    wrap.innerHTML=`<div class="empty"><div class="em">📅</div><p>${emptyMsg}</p></div>`;
+    return;
+  }
+
+  // Rendre les items — on réutilise le rendu existant
+  renderVisitItems(items, wrap);
+}
+
 async function loadTenantVisits(){
   const wrap=document.getElementById('tenant-visits-list');
   if(!wrap)return;
@@ -1520,100 +1603,258 @@ async function loadTenantVisits(){
     visitMsgs=msgs||[];
   }catch(e){}
 
+  // Stocker globalement pour les onglets
+  _allVisits = visits;
+
+  // Charger aussi les bookings du tenant
+  try{
+    const{data:bData}=await sb.from('bookings').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
+    _allBookings=bData||[];
+  }catch(e){_allBookings=[];}
+
+  // Mettre à jour le badge
   const badge=document.getElementById('nb-visits-t');
-  if(badge&&visitMsgs.filter(m=>!m.read).length>0){badge.style.display='inline';badge.textContent=visitMsgs.filter(m=>!m.read).length;}
+  const actionCount=_allVisits.filter(v=>v.status==='agent_assigned'&&!v.tenant_confirmed).length+_allBookings.filter(b=>b.status==='pending').length;
+  if(badge){badge.textContent=actionCount||'';badge.style.display=actionCount>0?'inline':'none';}
 
-  if(!visits.length&&!visitMsgs.length){
-    wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>';
-    return;
-  }
-
-  wrap.innerHTML=visits.map(v=>`
-    <div style="padding:1rem;background:${v.status==='agent_assigned'||v.status==='confirmed'?'rgba(76,175,125,.06)':'var(--s2)'};border:1px solid ${v.status==='agent_assigned'||v.status==='confirmed'?'rgba(76,175,125,.2)':'var(--b)'};border-radius:12px;margin-bottom:.75rem">
-      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem">
-        <div style="width:42px;height:42px;border-radius:10px;background:${v.status==='agent_assigned'?'rgba(76,175,125,.15)':'var(--tdim)'};display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">${v.status==='agent_assigned'||v.status==='confirmed'?'✅':'📅'}</div>
-        <div style="flex:1">
-          <div style="font-size:.88rem;font-weight:700">${v.listings?.title||'Property'}</div>
-          <div style="font-size:.75rem;color:var(--tm)">📍 ${v.listings?.full_address||v.listings?.zone||'Malta'}</div>
-        </div>
-        <span class="badge ${v.status==='agent_assigned'||v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':v.status==='agents_applying'?'b-sea':'b-dim'}">${
-          v.status==='awaiting_landlord'?'⏳ Pending':
-          v.status==='agents_applying'?'🏆 Agent being selected':
-          v.status==='agent_assigned'?'✅ Confirmed':
-          v.status==='confirmed'?'✅ Confirmed':
-          v.status==='date_rejected'?'📅 New date needed':
-          v.status==='cancelled'?'❌ Cancelled':v.status
-        }</span>
-      </div>
-      <div style="font-size:.82rem;color:var(--sea);font-weight:600;margin-bottom:.4rem">📅 ${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+(v.visit_time||'TBD'):'TBD'}</div>
-      ${v.agent_name?`<div style="font-size:.78rem;color:var(--green);margin-bottom:.4rem">🏆 Agent: <strong>${v.agent_name}</strong></div>`:''}
-      ${v.status==='awaiting_landlord'?`<div style="font-size:.75rem;color:var(--gold)">Waiting for landlord to confirm availability...</div>`:''}
-      ${v.status==='agents_applying'?`<div style="font-size:.75rem;color:var(--sea)">Landlord confirmed — best rated agent being selected...</div>`:''}
-      ${v.status==='agent_assigned'&&!v.tenant_confirmed?`
-        <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.75rem;margin-top:.5rem">
-          <div style="font-size:.82rem;font-weight:700;color:var(--green);margin-bottom:.3rem">🎉 Your visit is confirmed!</div>
-          <div style="font-size:.75rem;color:var(--tm);margin-bottom:.5rem">Please confirm you will attend. If you don't show up without cancelling 24h before, a €50 fee applies.</div>
-          <button class="btn bp" style="width:100%;justify-content:center" onclick="confirmTenantPresence('${v.id}')">✅ I confirm I will attend</button>
-        </div>`:''}
-      ${v.status==='agent_assigned'&&v.tenant_confirmed?`<div style="font-size:.75rem;color:var(--green);margin-top:.4rem">✅ You confirmed your presence — see you there!</div>`:''}
-      ${v.status==='date_rejected'?`
-        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
-          <div style="font-size:.78rem;color:var(--gold);margin-bottom:.3rem">The landlord is not available on this date. Please request a new visit.</div>
-          <button class="btn bg bsm" onclick="window.location.href='/'">🔍 Request new date</button>
-        </div>`:''}\
-      ${v.status==='completed'?`
-        <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem;margin-top:.5rem">
-          <div style="font-size:.85rem;font-weight:700;margin-bottom:.3rem">🏠 How did the visit go?</div>
-          <div style="font-size:.75rem;color:var(--tm);margin-bottom:.6rem">Are you interested in renting this property?</div>
-          <div style="display:flex;gap:.5rem">
-            <button onclick="showHoldingDeposit('${v.id}','${v.listing_id}',${v.listing_price||0})" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">✅ Yes, I want to rent!</button>
-            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Not interested</button>
-          </div>
-          <div id="holding-section-${v.id}" style="display:none;margin-top:.75rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.25);border-radius:10px;padding:.85rem">
-            <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">🔒 Reserve this property</div>
-            <div style="font-size:.72rem;color:var(--tm);margin-bottom:.6rem;line-height:1.5">Pay a <strong>Holding Deposit</strong> to reserve this property. The landlord will review your profile and proposed move-in date. Full refund if declined.</div>
-            <div style="margin-bottom:.6rem">
-              <label style="font-size:.72rem;font-weight:600;color:var(--tf);display:block;margin-bottom:.3rem">📅 Your desired move-in date *</label>
-              <input type="date" id="movein-${v.id}" class="fi" style="font-size:.82rem;width:100%">
-              <div style="font-size:.63rem;color:var(--td);margin-top:.2rem">The landlord can accept this date or propose a different one.</div>
-            </div>
-            <div id="holding-breakdown-${v.id}" style="background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.75rem"></div>
-            <div id="holding-card-${v.id}"></div>
-            <button id="holding-btn-${v.id}" onclick="payHoldingDepositFromVisits('${v.id}','${v.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:.4rem">🔒 Reserve & Pay →</button>
-            <div id="holding-done-${v.id}" style="display:none;text-align:center;font-size:.78rem;color:#4CAF7D;font-weight:600;padding:.5rem">✅ Reserved! Check your email to sign the agreement.</div>
-          </div>
-        </div>`:''}\
-      ${v.status==='tenant_interested'?`<div style="font-size:.78rem;color:#4CAF7D;font-weight:600;margin-top:.5rem;padding:.5rem .75rem;background:rgba(76,175,125,.08);border-radius:8px">🎉 Great! Waiting for landlord to confirm and generate the lease.</div>`:''}\
-      ${v.status==='tenant_declined'?`<div style="font-size:.78rem;color:var(--td);margin-top:.5rem;padding:.5rem .75rem;background:var(--s2);border-radius:8px">You declined this property. Browse more listings →</div>`:''}\
-      ${v.status==='lease_pending'?`<div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-top:.5rem;padding:.5rem .75rem;background:rgba(58,143,181,.08);border-radius:8px">📄 Lease being generated — check your email for signature.</div>`:''}
-      <div style="display:flex;gap:.4rem;margin-top:.5rem">
-        ${v.status==='awaiting_landlord'||v.status==='agents_applying'||v.status==='agent_assigned'?`<button class="btn bg bsm" style="font-size:.68rem" onclick="cancelVisit('${v.id}')">Cancel visit</button>`:''}
-      </div>
-    </div>`).join('');
+  // Rendre l'onglet actif
+  renderVisitTab();
 }
 
+function renderVisitItems(items, wrap){
+  if(!items.length){
+    wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>Nothing here yet</p></div>';
+    return;
+  }
+  const visits=items.filter(i=>i.visit_date!==undefined);
+  const bookings=items.filter(i=>i.holding_amount!==undefined);
 
+  let html='';
+
+  // Rendu bookings (réservations en attente)
+  bookings.forEach(b=>{
+    const moveIn=b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
+    html+=`<div style="padding:1rem;background:rgba(76,175,125,.06);border:2px solid rgba(76,175,125,.25);border-radius:12px;margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <span style="font-size:.72rem;font-weight:700;color:#4CAF7D;text-transform:uppercase">🔒 Reservation pending</span>
+        <span class="badge b-gold">${b.status==='accepted'?'✅ Accepted':'⏳ Awaiting landlord'}</span>
+      </div>
+      <div style="font-size:.85rem;font-weight:700;margin-bottom:.3rem">${b.listing_title||'Property'}</div>
+      <div style="font-size:.75rem;color:var(--td);margin-bottom:.3rem">📅 Desired move-in: ${moveIn}</div>
+      <div style="font-size:.75rem;color:var(--td)">💰 Holding deposit paid: €${b.holding_amount||0}</div>
+      ${b.status==='accepted'?`<div style="margin-top:.5rem;background:rgba(76,175,125,.1);border-radius:8px;padding:.5rem .75rem;font-size:.75rem;color:#4CAF7D;font-weight:600">🎉 Accepted! Check your email to sign the lease.</div>`:''}
+    </div>`;
+  });
+
+  // Rendu visits
+  visits.forEach(v=>{
+    const visitDate=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(v.visit_time||'TBD'):'TBD';
+    const statusLabel={
+      'awaiting_landlord':'⏳ Awaiting landlord',
+      'agents_applying':'🏆 Agent being selected',
+      'agent_assigned':'✅ Visit confirmed',
+      'confirmed':'✅ Confirmed — you RSVPd',
+      'completed':'🏁 Visit done',
+      'cancelled':'❌ Cancelled',
+      'tenant_declined':'👎 Not interested',
+      'tenant_interested':'🎉 Interested — pending',
+      'booking_pending':'🔒 Reservation sent',
+      'edl_scheduled':'📋 Move-in scheduled',
+      'move_in_ready':'🏠 Moved in',
+      'no_show':'🚫 No-show',
+      'date_rejected':'📅 Date not available',
+    }[v.status]||v.status;
+
+    const bgColor=v.status==='agent_assigned'||v.status==='confirmed'?'rgba(76,175,125,.06)':v.status==='completed'?'rgba(58,143,181,.06)':'var(--s2)';
+    const borderColor=v.status==='agent_assigned'||v.status==='confirmed'?'rgba(76,175,125,.2)':v.status==='completed'?'rgba(58,143,181,.2)':'var(--b)';
+
+    html+=`<div style="padding:1rem;background:${bgColor};border:1px solid ${borderColor};border-radius:12px;margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📅</div>
+        <div style="flex:1">
+          <div style="font-size:.88rem;font-weight:700">${v.listing_title||'Property'}</div>
+          <div style="font-size:.72rem;color:var(--tm)">📍 ${v.listing_zone||'Malta'}</div>
+        </div>
+        <span class="badge ${['agent_assigned','confirmed'].includes(v.status)?'b-green':['awaiting_landlord','agents_applying'].includes(v.status)?'b-gold':'b-dim'}" style="font-size:.62rem">${statusLabel}</span>
+      </div>
+      <div style="font-size:.75rem;color:var(--td);margin-bottom:.3rem">🗓 ${visitDate}</div>
+      ${v.agent_name?`<div style="font-size:.75rem;color:var(--td)">🏆 Agent: ${v.agent_name}</div>`:''}
+
+      ${v.status==='awaiting_landlord'?`<div style="font-size:.75rem;color:var(--gold);margin-top:.4rem">Waiting for landlord to confirm availability...</div>`:''}
+      ${v.status==='agents_applying'?`<div style="font-size:.75rem;color:var(--sea);margin-top:.4rem">Landlord confirmed — best rated agent being selected...</div>`:''}
+      ${v.status==='agent_assigned'&&!v.tenant_confirmed?`
+        <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.65rem;margin-top:.5rem">
+          <div style="font-size:.8rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Visit confirmed! Confirm your attendance</div>
+          <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem">€50 no-show fee if you miss without 24h cancellation.</div>
+          ${P?.stripe_customer_id
+            ?`<button class="btn bp" style="width:100%;justify-content:center;font-size:.82rem" onclick="confirmTenantPresence('${v.id}')">✅ I will attend</button>`
+            :`<div style="font-size:.72rem;color:var(--red);margin-bottom:.4rem">⚠️ Register your card first</div>
+              <button class="btn bp" style="width:100%;justify-content:center;font-size:.82rem;background:var(--sea)" onclick="registerCardForVisit('${v.id}')">💳 Register card →</button>`
+          }
+        </div>`:''
+      }
+      ${v.status==='confirmed'?`<div style="font-size:.75rem;color:#4CAF7D;margin-top:.4rem;font-weight:600">✅ You confirmed your attendance — see you there!</div>`:''}
+      ${v.status==='date_rejected'?`<div style="font-size:.75rem;color:var(--gold);margin-top:.4rem">📅 Date not available — <button style="background:none;border:none;color:var(--terra);cursor:pointer;font-size:.75rem;text-decoration:underline;padding:0" onclick="window.location.href='/'">request new date</button></div>`:''}
+      ${v.status==='completed'?`
+        <div style="background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.15);border-radius:8px;padding:.65rem;margin-top:.5rem">
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.4rem">🏠 How did it go?</div>
+          <div style="display:flex;gap:.4rem">
+            <button onclick="showHoldingDeposit('${v.id}','${v.listing_id}',${v.listing_price||0})" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ I want to rent!</button>
+            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.15);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Not interested</button>
+          </div>
+          <div id="holding-section-${v.id}" style="display:none;margin-top:.6rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.25);border-radius:10px;padding:.75rem">
+            <div style="font-size:.75rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">🔒 Reserve this property</div>
+            <div style="font-size:.7rem;color:var(--tm);margin-bottom:.5rem;line-height:1.5">Pay a Holding Deposit to reserve. Full refund if landlord declines.</div>
+            <div style="margin-bottom:.5rem">
+              <label style="font-size:.7rem;font-weight:600;display:block;margin-bottom:.2rem">📅 Desired move-in date *</label>
+              <input type="date" id="movein-${v.id}" class="fi" style="font-size:.8rem;width:100%">
+            </div>
+            <div id="holding-breakdown-${v.id}" style="background:rgba(255,255,255,.04);border-radius:8px;padding:.45rem .65rem;margin-bottom:.4rem;font-size:.73rem"></div>
+            <div id="holding-card-${v.id}"></div>
+            <button id="holding-btn-${v.id}" onclick="payHoldingDepositFromVisits('${v.id}','${v.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:.35rem">🔒 Reserve & Pay →</button>
+            <div id="holding-done-${v.id}" style="display:none;text-align:center;font-size:.75rem;color:#4CAF7D;font-weight:600;padding:.4rem">✅ Reserved! Check your email.</div>
+          </div>
+        </div>`:''}
+      ${v.status==='tenant_interested'?`<div style="font-size:.75rem;color:#4CAF7D;font-weight:600;margin-top:.4rem;padding:.5rem .65rem;background:rgba(76,175,125,.08);border-radius:8px">🎉 Waiting for landlord to set lease dates.</div>`:''}
+
+      <div style="display:flex;gap:.4rem;margin-top:.5rem">
+        ${['awaiting_landlord','agents_applying','agent_assigned','confirmed'].includes(v.status)
+          ?`<button class="btn bg bsm" style="font-size:.68rem" onclick="cancelVisit('${v.id}','${v.agent_id||''}','${v.listing_id||''}')">Cancel visit</button>`
+          :''}
+      </div>
+    </div>`;
+  });
+
+  wrap.innerHTML=html||'<div class="empty"><div class="em">📅</div><p>Nothing here</p></div>';
+}
+  // Double vérification — carte obligatoire
+  if(!P?.stripe_customer_id){
+    toast('⚠️ Please register your card first to confirm your presence.');
+    registerCardForVisit(visitId);
+    return;
+  }
 async function confirmTenantPresence(visitId){
+  if(!P?.stripe_customer_id){
+    toast('⚠️ Please register your card first.');
+    registerCardForVisit(visitId);
+    return;
+  }
   try{await sb.from('visits').update({status:'confirmed',tenant_confirmed:true}).eq('id',visitId);}catch(e){}
   toast('✅ Presence confirmed! See you at the visit.');
   loadTenantVisits();
 }
 
-async function cancelVisit(visitId){
-  if(!confirm('Cancel this visit? Free if 24h+ before the visit date.'))return;
-  const{data:visit}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
+async function registerCardForVisit(visitId){
+  // Ouvrir le modal d'enregistrement de carte (via visit-noshow setup_payment)
+  const btn=document.querySelector(`[onclick*="registerCardForVisit('${visitId}')"]`);
+  if(btn){btn.textContent='⏳ Setting up...';btn.disabled=true;}
 
-  if(visit?.visit_date){
-    const visitDateTime=new Date(visit.visit_date);
-    const now=new Date();
-    const hoursUntil=(visitDateTime-now)/(1000*60*60);
-    if(hoursUntil<24){
-      if(!confirm('⚠️ Less than 24 hours before the visit. A €50 no-show fee may apply. Continue?'))return;
+  try{
+    const res=await fetch('/.netlify/functions/visit-noshow',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'setup_payment',tenant_email:U.email,tenant_name:P?.full_name||'Tenant',visit_id:visitId})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Setup failed');
+
+    // Sauvegarder le customer_id
+    if(data.customer_id){
+      try{await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id);}catch(e){}
+      if(P)P.stripe_customer_id=data.customer_id;
     }
+
+    // Monter Stripe pour enregistrer la carte
+    if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
+
+    // Afficher un overlay pour enregistrer la carte
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+    overlay.innerHTML=`
+      <div style="background:var(--card,#1a1a1a);border-radius:16px;padding:1.75rem;max-width:380px;width:100%">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:.4rem">💳 Register your card</div>
+        <div style="font-size:.78rem;color:var(--td,#888);margin-bottom:1rem;line-height:1.5">Your card will only be charged €50 if you no-show without cancelling 24h before. Cancellations are always free.</div>
+        <div id="card-register-el" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:.75rem;margin-bottom:1rem"></div>
+        <button id="card-register-btn" style="width:100%;background:var(--terra,#E05A3A);color:white;border:none;border-radius:10px;padding:.85rem;font-size:.92rem;font-weight:700;cursor:pointer">Register card →</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;color:var(--td,#888);border:none;padding:.6rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const elements=stripeInstance.elements();
+    const cardEl=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}}}});
+    cardEl.mount('#card-register-el');
+
+    document.getElementById('card-register-btn').onclick=async()=>{
+      const registerBtn=document.getElementById('card-register-btn');
+      registerBtn.textContent='Saving...';registerBtn.disabled=true;
+      try{
+        const{error,setupIntent}=await stripeInstance.confirmCardSetup(data.client_secret,{payment_method:{card:cardEl}});
+        if(error)throw new Error(error.message);
+        overlay.remove();
+        if(P)P.stripe_customer_id=data.customer_id;
+        toast('✅ Card registered! You can now confirm your visit.');
+        loadTenantVisits(); // Recharger pour afficher le bouton de confirmation
+      }catch(e){
+        registerBtn.textContent='Register card →';registerBtn.disabled=false;
+        toast('❌ '+e.message);
+      }
+    };
+
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.textContent='💳 Register my card to confirm →';btn.disabled=false;}
+  }
+}
+
+async function cancelVisit(visitId, agentId, listingId){
+  if(!confirm('Cancel this visit? Free if 24h+ before the visit date.'))return;
+
+  let visit=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+
+  const visitDate=visit?.visit_date?new Date(visit.visit_date):null;
+  const now=new Date();
+  const hoursUntil=visitDate?(visitDate-now)/(1000*60*60):999;
+  const isLate=hoursUntil<24;
+
+  if(isLate){
+    if(!confirm('⚠️ Less than 24 hours before the visit. You may be charged €50 no-show fee. Continue cancelling?'))return;
   }
 
+  // Marquer la visite comme annulée
   try{await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);}catch(e){}
-  toast('✅ Visit cancelled.');
+
+  const agentToNotify=agentId||visit?.agent_id;
+  const listingToNotify=listingId||visit?.listing_id;
+  const visitDateStr=visitDate?.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})||'—';
+
+  // Notifier l'agent
+  if(agentToNotify&&listingToNotify){
+    try{await sb.from('messages').insert({
+      listing_id:listingToNotify,
+      sender_id:'system',
+      receiver_id:agentToNotify,
+      content:`❌ Visit cancelled by tenant.
+
+👤 Tenant: ${P?.full_name||'—'}
+📅 Visit was scheduled for: ${visitDateStr}
+
+${isLate?'⚠️ Cancelled less than 24 hours before — no-show fee may apply.':'✅ Cancelled more than 24 hours before — no fee.'}`,
+      type:'visit_cancelled'
+    });}catch(e){}
+  }
+
+  // Notifier le landlord
+  if(visit?.landlord_id&&listingToNotify){
+    try{await sb.from('messages').insert({
+      listing_id:listingToNotify,
+      sender_id:'system',
+      receiver_id:visit.landlord_id,
+      content:`❌ Visit cancelled by tenant (${P?.full_name||'—'}) scheduled for ${visitDateStr}.${isLate?' Less than 24h notice.':''}`,
+      type:'visit_cancelled'
+    });}catch(e){}
+  }
+
+  toast(isLate?'❌ Visit cancelled — less than 24h notice, fee may apply.':'✅ Visit cancelled — no fee.');
   loadTenantVisits();
 }
 
@@ -1810,11 +2051,11 @@ async function loadDeposit(){
             </div>
             ${e.status==='pending'?`
             <button class="btn bp" style="width:100%" onclick="openStripeModal({escrow_id:'${e.id}',listing_title:'${e.listing_title||''}',amount:${e.amount||0},landlord_id:'${e.landlord_id||''}',listing_id:'${e.listing_id||''}'})">
-              💳 Payer le dépôt maintenant →
+              💳 Pay deposit now →
             </button>`:''}
             ${e.status==='paid'?`
             <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--tm);margin-bottom:.75rem">
-              ⏰ You avez <strong>24h après your arrivée</strong> for confirmer. Allez dans "Confirm mon entrée" ci-dessous.
+              ⏰ You have <strong>24h after move-in</strong> to confirm. Allez dans "Confirm mon entrée" ci-dessous.
             </div>
             <div style="display:flex;gap:.5rem">
               <button class="btn bp bsm" onclick="confirmEntryStripe('${e.id}','${e.stripe_payment_intent_id||''}')">✅ Tout est OK</button>
@@ -1854,7 +2095,7 @@ async function confirmEntry(){
       listing_id:escrows[0].listing_id,
       sender_id:U.id,
       receiver_id:escrows[0].landlord_id,
-      content:`✅ ${P?.full_name||'The tenant'} a confirmé son entrée dans le logement. Le dépôt de €${(escrows[0].amount||0).toLocaleString()} sera libéré dans les 24h.${notes?'\n\nNote : '+notes:''}`
+      content:`✅ ${P?.full_name||'The tenant'} has confirmed move-in. The deposit of €${(escrows[0].amount||0).toLocaleString()} will be released within 24h.${notes?'\n\nNote : '+notes:''}`
     });
   }
   toast('✅ Entry confirmed! The deposit will be released to the landlord within 24h.');
