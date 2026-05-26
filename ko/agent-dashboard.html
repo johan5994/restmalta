@@ -550,13 +550,18 @@ async function loadVisits(){
   } else {
     rw.innerHTML=pendingRequests.map(m=>{
       const lines=m.content.split('\n');
-      const property=lines.find(l=>l.includes('Property:'))?.replace('Property:','').trim()||m.listings?.title||'Property';
-      const address=lines.find(l=>l.includes('Address:'))?.replace('Address:','').trim()||m.listings?.zone||'Malta';
-      const dateTime=lines.find(l=>l.includes('Date:'))?.replace('Date:','').trim()||'TBD';
-      const tenant=lines.find(l=>l.includes('Tenant:'))?.replace('Tenant:','').trim()||'Tenant';
-      const keyLine=lines.find(l=>l.includes('Key access:'))?.replace('Key access:','').trim()||'Contact landlord';
-      const keyDetail=lines.find(l=>l.includes('Key details:'))?.replace('Key details:','').trim()||'';
-      const ownerLine=lines.find(l=>l.includes('Owner:'))?.replace('Owner:','').trim()||'';
+      const extract=(key)=>{
+        const line=lines.find(l=>l.includes(key+':'));
+        if(!line)return null;
+        return line.substring(line.indexOf(key+':')+key.length+1).trim()||null;
+      };
+      const property=extract('Property')||m.listings?.title||'Property';
+      const address=extract('Address')||m.listings?.zone||'Malta';
+      const dateTime=extract('Date')||'TBD';
+      const tenant=extract('Tenant')||'Tenant';
+      const keyLine=extract('Key access')||'Contact landlord';
+      const keyDetail=extract('Key details')||'';
+      const ownerLine=extract('Owner')||'';
 
       const isAwaitingLandlord=m.content?.includes('Awaiting landlord confirmation')||m.content?.includes('awaiting_landlord');
       const isConfirmed=m.content?.includes('Landlord confirmed');
@@ -849,7 +854,7 @@ function renderUpcoming(){
   const up=visits.filter(v=>(v.visit_date||'')>=today).slice(0,3);
   const w=document.getElementById('upcoming-visits');
   if(!up.length){w.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📅</div><p style="font-size:.78rem">No upcoming visits</p></div>';return;}
-  w.innerHTML=up.map(v=>`<div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="background:var(--tdim);border-radius:8px;padding:.4rem .7rem;text-align:center;flex-shrink:0"><div style="font-size:.6rem;color:var(--td)">${new Date(v.visit_date||Date.now()).toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase()}</div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--terra)">${new Date(v.visit_date||Date.now()).getDate()}</div></div><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${v.listing_title||'Property'}</div><div style="font-size:.75rem;color:var(--tm)">${v.visit_time||'TBD'} · ${v.tenant_name||'Tenant'}</div></div><span class="badge ${v.status==='confirmed'?'b-green':'b-gold'}">${v.status}</span></div>`).join('');
+  w.innerHTML=up.map(v=>`<div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="background:var(--tdim);border-radius:8px;padding:.4rem .7rem;text-align:center;flex-shrink:0"><div style="font-size:.6rem;color:var(--td)">${new Date(v.visit_date||Date.now()).toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase()}</div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--terra)">${new Date(v.visit_date||Date.now()).getDate()}</div></div><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${v.listing_title||'Property'}</div><div style="font-size:.75rem;color:var(--tm)">${v.visit_time||'TBD'} · ${v.tenant_name||'Tenant'}</div></div><span class="badge ${v.status==='confirmed'||v.status==='agent_assigned'?'b-green':'b-gold'}">${v.status||'pending'}</span></div>`).join('');
 }
 
 function renderAllVisitsDirect(){
@@ -870,10 +875,34 @@ function renderAllVisitsDirect(){
   // Requêtes en attente (à candidater)
   if(requests.length){
     html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem;letter-spacing:.5px">📬 New requests (${requests.length})</div>`;
-    // Rendu via renderAgentVisitItems pour les requests
-    const tempDiv=document.createElement('div');
-    renderAgentVisitItems(requests, tempDiv);
-    html+=tempDiv.innerHTML;
+    requests.forEach(m=>{
+      const lines=m.content?m.content.split('\n'):[];
+      const extract=(key)=>{const line=lines.find(l=>l.includes(key+':'));if(!line)return null;return line.substring(line.indexOf(key+':')+key.length+1).trim()||null;};
+      const property=extract('Property')||m.listings?.title||'Property';
+      const address=extract('Address')||'Malta';
+      const dateTime=extract('Date')||'TBD';
+      const tenant=extract('Tenant')||'—';
+      const isApplied=m.visit_id&&appliedIds&&appliedIds.has(m.visit_id);
+      const timerEnd=m.visit_id?localStorage.getItem('timer_'+m.visit_id):null;
+      const timerActive=timerEnd&&Date.now()<parseInt(timerEnd);
+      let actionsHtml='';
+      if(timerActive||isApplied){
+        actionsHtml='<div style="width:100%;background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">⏳ Applied — selection in progress</div>'+(timerActive?'<div style="font-size:1.2rem;font-weight:700;color:var(--terra)" id="timer-'+m.visit_id+'">...</div>':'')+'<div style="font-size:.65rem;color:var(--td)">Best rated agent auto-selected after 5 min</div></div>';
+      } else {
+        const mid=m.id,mlid=m.listing_id,mvid=m.visit_id||'';
+        actionsHtml=`<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${mid}','${mlid}','${mvid}')">✅ I want this visit</button>`
+          +`<button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${mid}','${mlid}','${mvid}')">📅 Date not possible</button>`
+          +`<button class="btn bsm" style="flex:1;justify-content:center;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${mid}','${mlid}','${mvid}')">❌ Not available</button>`;
+      }
+      html+=`<div style="padding:.85rem;background:var(--s2);border:1px solid var(--b);border-radius:12px;margin-bottom:.6rem" data-visit-id="${m.visit_id||''}">
+        <div style="font-size:.88rem;font-weight:700;margin-bottom:.3rem">🏠 ${property}</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
+        <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
+        <div style="font-size:.75rem;color:var(--td);margin-bottom:.4rem">👤 ${tenant}</div>
+        <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">${actionsHtml}</div>
+      </div>`;
+    });
+    requests.forEach(m=>{if(!m.visit_id)return;const te=localStorage.getItem('timer_'+m.visit_id);if(te&&Date.now()<parseInt(te))startTimerDisplay(m.visit_id,parseInt(te));});
   }
   
   // Visites assignées
@@ -982,7 +1011,7 @@ function renderAgentVisitItems(items, w){
     }
 
     // Card simple pour les autres statuts
-    return`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${dateStr}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'}</div></div><span class="badge b-gold">${v.status}</span></div>`;
+    return`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${dateStr}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'}</div></div><span class="badge b-gold">${v.status||'—'}</span></div>`;
   }).join('');
 
   // Charger les détails des listings pour les fiches complètes
