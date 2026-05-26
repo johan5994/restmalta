@@ -347,13 +347,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- LEASES -->
     <!-- VISITS PAGE -->
     <div class="page" id="page-visits">
-      <div style="margin-bottom:1.2rem;display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:1rem;font-weight:700">📅 Visit requests</div>
-        <span class="badge b-gold" id="visits-page-count">0 pending</span>
+      <div style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:1rem;font-weight:700">📅 Visits & Rentals</div>
+        <span class="badge b-gold" id="visits-page-count">—</span>
       </div>
-      <div class="card">
-        <div class="cb" id="visits-page-list"><div class="ld"><div class="sp"></div></div></div>
+      <!-- Onglets landlord -->
+      <div style="display:flex;gap:.3rem;margin-bottom:.85rem;overflow-x:auto;padding-bottom:.2rem">
+        <button onclick="switchLLVisitTab('action')" id="lltab-action" class="vtab vtab-active">🔴 Action needed<span id="lltab-action-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchLLVisitTab('visits')" id="lltab-visits" class="vtab">📅 Upcoming visits<span id="lltab-visits-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchLLVisitTab('lease')" id="lltab-lease" class="vtab">📄 Lease pending<span id="lltab-lease-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchLLVisitTab('active')" id="lltab-active" class="vtab">✅ Active rentals<span id="lltab-active-count" style="margin-left:.3rem"></span></button>
+        <button onclick="switchLLVisitTab('past')" id="lltab-past" class="vtab">📁 Past</button>
       </div>
+      <div id="visits-page-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
 
     <div class="page" id="page-leases">
@@ -576,14 +582,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- INVENTORY -->
     <div class="page" id="page-inventory">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">Inventaire / Inventory / État des lieux</div>
+        <div style="font-size:1rem;font-weight:700">Entry & Exit Inventory</div>
         <div style="display:flex;gap:.5rem">
           <select class="fsel" style="width:auto;font-size:.78rem;padding:.35rem .7rem" id="inv-listing" onchange="loadInventory()"><option value="">Select un bien...</option></select>
           <button class="btn bg bsm" onclick="exportInventory()">📥 Export PDF</button>
         </div>
       </div>
       <div style="background:var(--sdim);border:1px solid rgba(58,143,181,.15);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.2rem;font-size:.82rem;color:var(--tm);line-height:1.6">
-        📋 Documentez l'état de chaque pièce et meuble à l'at entry and exit. The tenant signs digitally — this document protects you in case of dispute.r le dépôt.
+        📋 Document the condition of each room and item at entry and exit. The tenant signs digitally — this protects you in case of deposit disputes.
       </div>
 
       <!-- Entry / Exit toggle -->
@@ -607,8 +613,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
       <!-- Signature section -->
       <div style="margin-top:1rem;background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:1rem">
-        <div style="font-size:.82rem;font-weight:700;color:var(--green);margin-bottom:.5rem">✍️ Signature digitale</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Une fois l'inventory completed, send it to the tenant for electronic signature via DocuSeal.</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--green);margin-bottom:.5rem">✍️ Digital Signature</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Once inventory is completed, send it to the tenant for electronic signature via DocuSeal.</div>
         <div style="display:flex;gap:.75rem">
           <button class="btn bg" onclick="saveInventory()">💾 Save</button>
           <button class="btn bp" onclick="sendInventoryForSignature()">📤 Send for signature →</button>
@@ -623,7 +629,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
     </div>
 
-    <!-- SOUS-LOCATION -->
+    <!-- SUBLETTING -->
     <div class="page" id="page-sublet">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
         <div style="font-size:1rem;font-weight:700">Subletting</div>
@@ -843,6 +849,16 @@ let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingI
   if(!P||P.role!=='landlord'){window.location.href='/tenant-dashboard.html';return;}
   initUI();
   loadAll();
+
+  // Gérer le paramètre ?tab=profile (redirection depuis chkPost)
+  const urlParams=new URLSearchParams(window.location.search);
+  if(urlParams.get('tab')==='profile'){
+    setTimeout(()=>{
+      const profileBtn=document.querySelector('.ni[onclick*="profile"]');
+      sp('profile',profileBtn);
+      toast('👤 Please complete your profile to post a listing');
+    },800);
+  }
 })();
 
 function initUI(){
@@ -955,7 +971,7 @@ async function loadListings(){
   const tb=document.getElementById('listings-tbody');
   const tl={short:'🏠 Short-let',sublet:'🔑 Sous-loc',long:'📅 Long-let',both:'🔄 Les deux'};
   tb.innerHTML=(data||[]).map(l=>`<tr>
-    <td style="color:var(--txt);font-weight:500">${l.title}${l.mandat_exclusif?'<span style="margin-left:.4rem;background:rgba(139,92,246,.15);color:#8B5CF6;font-size:.6rem;font-weight:700;padding:.1rem .4rem;border-radius:100px">🤝 Exclu</span>':''}
+    <td style="color:var(--txt);font-weight:500">${l.title}${l.mandat_exclusif?'<span style="margin-left:.4rem;background:rgba(139,92,246,.15);color:#8B5CF6;font-size:.6rem;font-weight:700;padding:.1rem .4rem;border-radius:100px">🤝 Exclusive</span>':''}
       <div style="font-size:.7rem;color:var(--td)">📍 ${l.zone}</div></td>
     <td><span class="badge b-sea">${tl[l.type]||l.type}</span></td>
     <td style="color:var(--txt);font-weight:600">€${l.price}/mo</td>
@@ -986,328 +1002,239 @@ function openNewListing(){window.location.href='/';}
 
 /* LEASES */
 /* VISIT GROUPS */
+let currentLLVisitTab='action';
+let _llBookings=[];
+let _llVisits=[];
+let _llLeases=[];
+
+function switchLLVisitTab(tab){
+  currentLLVisitTab=tab;
+  document.querySelectorAll('#page-visits .vtab').forEach(b=>b.classList.remove('vtab-active'));
+  document.getElementById('lltab-'+tab)?.classList.add('vtab-active');
+  renderLLVisitTab();
+}
+
+function renderLLVisitTab(){
+  const wrap=document.getElementById('visits-page-list');
+  if(!wrap)return;
+  const tab=currentLLVisitTab;
+
+  if(tab==='action'){
+    // Réservations en attente + visites awaiting_landlord
+    const pendingBookings=_llBookings.filter(b=>b.status==='pending');
+    const awaitingVisits=_llVisits.filter(v=>v.status==='awaiting_landlord');
+    if(!pendingBookings.length&&!awaitingVisits.length){
+      wrap.innerHTML='<div class="empty"><div class="em">🎉</div><p>No action needed right now</p></div>';
+      return;
+    }
+    let html='';
+    // Bookings
+    if(pendingBookings.length){
+      html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#4CAF7D;margin-bottom:.5rem">🔒 Reservation Requests</div>`;
+      html+=renderLLBookings(pendingBookings);
+    }
+    // Visites awaiting
+    if(awaitingVisits.length){
+      html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--gold);margin:.75rem 0 .5rem">📅 Visit Date Requests</div>`;
+      html+=renderLLVisitItems(awaitingVisits);
+    }
+    wrap.innerHTML=html;
+    _llBookings.filter(b=>b.status==='pending').forEach(b=>loadBookingDossier(b));
+  } else if(tab==='visits'){
+    const upcoming=_llVisits.filter(v=>['agents_applying','agent_assigned','confirmed'].includes(v.status));
+    if(!upcoming.length){wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No upcoming visits scheduled</p></div>';return;}
+    wrap.innerHTML=renderLLVisitItems(upcoming);
+  } else if(tab==='lease'){
+    if(!_llLeases.filter(l=>l.status==='pending_signature').length){
+      wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No leases pending signature</p></div>';return;
+    }
+    wrap.innerHTML=_llLeases.filter(l=>l.status==='pending_signature').map(l=>`
+      <div style="padding:1rem;background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:12px;margin-bottom:.75rem">
+        <div style="font-size:.88rem;font-weight:700;margin-bottom:.3rem">📄 ${l.listing_title||'Property'}</div>
+        <div style="font-size:.75rem;color:var(--td)">Start: ${l.start_date||'—'} · Rent: €${l.rent||'—'}/mo</div>
+        <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-top:.3rem">⏳ Awaiting e-signature via DocuSeal — check your email</div>
+      </div>`).join('');
+  } else if(tab==='active'){
+    const active=_llLeases.filter(l=>l.status==='signed'||l.status==='active');
+    if(!active.length){wrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>No active rentals yet</p></div>';return;}
+    wrap.innerHTML=active.map(l=>`
+      <div style="padding:1rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:12px;margin-bottom:.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+          <div style="font-size:.88rem;font-weight:700">🏠 ${l.listing_title||'Property'}</div>
+          <span class="badge b-green">Active</span>
+        </div>
+        <div style="font-size:.75rem;color:var(--td)">Tenant: ${l.tenant_name||'—'}</div>
+        <div style="font-size:.75rem;color:var(--td)">Lease: ${l.start_date||'—'} → ${l.end_date||'—'}</div>
+        <div style="font-size:.82rem;font-weight:700;color:#4CAF7D;margin-top:.3rem">€${l.rent||'—'}/month</div>
+      </div>`).join('');
+  } else if(tab==='past'){
+    const past=_llVisits.filter(v=>['done','cancelled','declined','no_show','tenant_declined'].includes(v.status));
+    if(!past.length){wrap.innerHTML='<div class="empty"><div class="em">📁</div><p>No past visits yet</p></div>';return;}
+    wrap.innerHTML=renderLLVisitItems(past);
+  }
+}
+
+function renderLLBookings(bookings){
+  return bookings.map(b=>{
+    const deadline=new Date(new Date(b.created_at).getTime()+48*60*60*1000);
+    const hoursLeft=Math.max(0,Math.floor((deadline-Date.now())/3600000));
+    const urgentColor=hoursLeft<12?'var(--red)':hoursLeft<24?'var(--gold)':'#4CAF7D';
+    const moveIn=b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'}):'—';
+    return`<div style="background:var(--card);border:1.5px solid rgba(76,175,125,.25);border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="booking-card-${b.id}">
+      <div style="background:linear-gradient(135deg,rgba(76,175,125,.1),rgba(58,143,181,.06));padding:.85rem 1rem;border-bottom:1px solid var(--b)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <div style="width:34px;height:34px;border-radius:50%;background:#4CAF7D;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:white">${(b.tenant_name||'T')[0].toUpperCase()}</div>
+            <div>
+              <div style="font-size:.88rem;font-weight:700">${b.tenant_name||'—'}</div>
+              <div style="font-size:.65rem;color:var(--td)">Reservation request</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.65rem;color:${urgentColor};font-weight:600">⏰ ${hoursLeft}h left</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:.3rem">
+          <div style="flex:1;background:rgba(76,175,125,.1);border-radius:6px;padding:.35rem .5rem;text-align:center">
+            <div style="font-size:.6rem;color:var(--td)">Rent</div>
+            <div style="font-size:.82rem;font-weight:700">€${b.monthly_rent||'—'}/mo</div>
+          </div>
+          <div style="flex:1;background:rgba(76,175,125,.1);border-radius:6px;padding:.35rem .5rem;text-align:center">
+            <div style="font-size:.6rem;color:var(--td)">Holding ✅</div>
+            <div style="font-size:.82rem;font-weight:700;color:#4CAF7D">€${b.holding_amount||'—'}</div>
+          </div>
+          <div style="flex:1;background:rgba(58,143,181,.08);border-radius:6px;padding:.35rem .5rem;text-align:center">
+            <div style="font-size:.6rem;color:var(--td)">Move-in</div>
+            <div style="font-size:.7rem;font-weight:600">${b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—'}</div>
+          </div>
+        </div>
+      </div>
+      <div id="booking-dossier-${b.id}" style="padding:.75rem 1rem;border-bottom:1px solid var(--b)">
+        <div style="text-align:center;color:var(--td);font-size:.75rem;padding:.3rem">Loading tenant profile...</div>
+      </div>
+      <div style="padding:.75rem 1rem">
+        ${b.move_in_date?`<div style="background:rgba(58,143,181,.08);border-radius:6px;padding:.35rem .6rem;margin-bottom:.5rem;font-size:.75rem"><span style="color:var(--td)">📅 Desired move-in: </span><span style="font-weight:700;color:var(--sea)">${moveIn}</span></div>`:''}
+        <div style="display:flex;gap:.4rem;margin-bottom:.4rem">
+          <button onclick="showLeaseDatesBooking('${b.id}','${b.move_in_date||''}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">✅ Accept date</button>
+          <button onclick="showProposeDate('${b.id}')" style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">📅 Other date</button>
+          <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
+        </div>
+        <div id="propose-date-${b.id}" style="display:none;margin-bottom:.4rem;background:rgba(58,143,181,.05);border:1px solid rgba(58,143,181,.15);border-radius:8px;padding:.55rem">
+          <div style="font-size:.7rem;font-weight:600;color:var(--sea);margin-bottom:.3rem">Propose another date:</div>
+          <input type="date" id="propose-input-${b.id}" class="fi" style="font-size:.8rem;width:100%;margin-bottom:.35rem">
+          <button onclick="sendProposedDate('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">Send →</button>
+        </div>
+        <div id="decline-form-${b.id}" style="display:none;margin-bottom:.4rem;background:rgba(224,90,90,.04);border:1px solid rgba(224,90,90,.15);border-radius:8px;padding:.55rem">
+          <select id="decline-reason-${b.id}" style="width:100%;padding:.45rem;border-radius:7px;border:1px solid var(--b);background:var(--s2);color:var(--tf);font-size:.75rem;margin-bottom:.35rem">
+            <option value="">Select reason...</option>
+            <option value="pets">🐾 Pets not accepted</option>
+            <option value="occupants">👥 Too many occupants</option>
+            <option value="financial">💼 Financial concern</option>
+            <option value="visa">🛂 Visa concern</option>
+            <option value="unavailable">🚫 Property unavailable</option>
+            <option value="other">Other</option>
+          </select>
+          <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">Confirm decline → Auto-refund</button>
+        </div>
+        <div id="lease-dates-${b.id}" style="display:none;margin-top:.4rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:8px;padding:.65rem">
+          <div style="font-size:.73rem;font-weight:700;color:var(--terra);margin-bottom:.45rem">📅 Set move-in date (= signing day)</div>
+          <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%;margin-bottom:.45rem" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
+          <input type="hidden" id="bend-${b.id}"><input type="hidden" id="bedl-${b.id}">
+          <div style="background:rgba(212,168,71,.08);border-radius:6px;padding:.4rem .6rem;margin-bottom:.45rem;font-size:.7rem;color:var(--gold)">
+            💳 Commission (${b.listing_type==='exclusive'?'35%':'40%'} TTC = €${Math.round((b.monthly_rent||0)*(b.listing_type==='exclusive'?0.35:0.40))}) charged on accept.
+          </div>
+          <button onclick="generateLeaseFromBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">📄 Accept & Generate Lease →</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLLVisitItems(visits){
+  return visits.map(g=>{
+    const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'})+' at '+(g.visit_time||'TBD'):'TBD';
+    const statusLabel={'awaiting_landlord':'⏳ Awaiting your confirmation','agents_applying':'🏆 Agent being selected','agent_assigned':'✅ Agent assigned','confirmed':'✅ Confirmed','done':'✅ Done','cancelled':'❌ Cancelled','no_show':'🚫 No-show','tenant_declined':'👎 Not interested'}[g.status]||g.status;
+    return`<div style="padding:.85rem;background:var(--s2);border:1px solid var(--b);border-radius:12px;margin-bottom:.65rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+        <div style="font-size:.85rem;font-weight:700">👤 ${g.tenant_name||'Tenant'}</div>
+        <span class="badge ${g.status==='awaiting_landlord'?'b-gold':g.status==='agent_assigned'||g.status==='confirmed'?'b-green':'b-dim'}" style="font-size:.62rem">${statusLabel}</span>
+      </div>
+      <div style="font-size:.73rem;color:var(--td);margin-bottom:.25rem">🗓 ${visitDateStr}</div>
+      ${g.agent_name?`<div style="font-size:.73rem;color:var(--td)">🏆 Agent: ${g.agent_name}</div>`:''}
+      ${g.status==='awaiting_landlord'?`
+        <div style="display:flex;gap:.4rem;margin-top:.5rem">
+          <button onclick="landlordConfirmVisit('${g.id}','confirm','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Available</button>
+          <button onclick="landlordConfirmVisit('${g.id}','reject','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.2);border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Not available</button>
+        </div>`:''}
+      ${!g.has_agent&&g.status==='agent_assigned'?`<div style="margin-top:.4rem"><button class="btn bg bsm" style="width:100%;justify-content:center;font-size:.75rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button></div>`:''}
+      ${g.has_agent?'<div style="font-size:.68rem;color:var(--td);margin-top:.4rem;padding:.3rem .5rem;background:var(--s2);border-radius:6px">👷 Agent handles this visit</div>':''}
+    </div>`;
+  }).join('');
+}
+
 async function loadVisitsPage(){
   const wrap=document.getElementById('visits-page-list');
-  const cnt=document.getElementById('visits-page-count');
   if(!wrap)return;
+  wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
 
-  // ── Bookings (Holding Deposits) en attente ──
-  let bookings=[];
+  // Charger tous les bookings (toutes statuts)
   try{
-    const{data:bData}=await sb.from('bookings').select('*').eq('landlord_id',U.id).eq('status','pending').order('created_at',{ascending:false});
-    bookings=bData||[];
+    const{data:bData}=await sb.from('bookings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    _llBookings=bData||[];
     // Enrichir avec le type de listing
-    if(bookings.length){
-      const lIds=[...new Set(bookings.map(b=>b.listing_id).filter(Boolean))];
+    if(_llBookings.length){
+      const lIds=[...new Set(_llBookings.map(b=>b.listing_id).filter(Boolean))];
       if(lIds.length){
         try{
           const{data:ls}=await sb.from('listings').select('id,type').in('id',lIds);
           const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l.type;});
-          bookings=bookings.map(b=>({...b,listing_type:lMap[b.listing_id]||'long'}));
+          _llBookings=_llBookings.map(b=>({...b,listing_type:lMap[b.listing_id]||'long'}));
         }catch(e){}
       }
     }
-  }catch(e){}
+  }catch(e){_llBookings=[];}
 
-  let groups=[];
+  // Charger toutes les visites
   try{
-    const{data:visitData}=await sb.from('visits').select('*').eq('landlord_id',U.id).neq('status','done').neq('status','declined').neq('status','cancelled').order('visit_date',{ascending:true});
-    groups=visitData||[];
-  }catch(e){}
+    const{data:visitData}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('visit_date',{ascending:true});
+    _llVisits=visitData||[];
+    // Enrichir avec has_agent
+    if(_llVisits.length){
+      const lIds=[...new Set(_llVisits.map(g=>g.listing_id).filter(Boolean))];
+      if(lIds.length){
+        try{
+          const{data:ls}=await sb.from('listings').select('id,wants_agent,agent_service').in('id',lIds);
+          const lMap={};(ls||[]).forEach(l=>{lMap[l.id]={wants_agent:l.wants_agent,agent_service:l.agent_service};});
+          _llVisits=_llVisits.map(g=>({...g,has_agent:lMap[g.listing_id]?.wants_agent&&lMap[g.listing_id]?.agent_service==='full'}));
+        }catch(e){}
+      }
+    }
+  }catch(e){_llVisits=[];}
 
-  const totalPending=bookings.length+groups.filter(g=>g.status==='awaiting_landlord').length;
-  if(cnt)cnt.textContent=`${totalPending} pending`;
+  // Charger les baux
+  try{
+    const{data:leaseData}=await sb.from('leases').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    _llLeases=leaseData||[];
+  }catch(e){_llLeases=[];}
+
+  // Badges
+  const actionCount=_llBookings.filter(b=>b.status==='pending').length+_llVisits.filter(v=>v.status==='awaiting_landlord').length;
+  const cnt=document.getElementById('visits-page-count');
+  if(cnt)cnt.textContent=actionCount>0?`${actionCount} action${actionCount>1?'s':''} needed`:'All good';
+
   const badge=document.getElementById('nb-visits-ll');
-  if(badge){badge.textContent=totalPending;badge.style.display=totalPending>0?'inline':'none';}
+  if(badge){badge.textContent=actionCount;badge.style.display=actionCount>0?'inline':'none';}
 
-  if(!bookings.length&&!groups.length){
-    wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visit requests yet.<br>When tenants request visits or reserve a property, it will appear here.</p></div>';
-    return;
-  }
+  // Mettre à jour les compteurs d'onglets
+  const setBadge=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n>0?`(${n})`:'';}
+  setBadge('lltab-action-count',actionCount);
+  setBadge('lltab-visits-count',_llVisits.filter(v=>['agents_applying','agent_assigned','confirmed'].includes(v.status)).length);
+  setBadge('lltab-lease-count',_llLeases.filter(l=>l.status==='pending_signature').length);
+  setBadge('lltab-active-count',_llLeases.filter(l=>l.status==='signed'||l.status==='active').length);
 
-  // Rendu bookings
-  let bookingsHtml='';
-  if(bookings.length){
-    bookingsHtml=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4CAF7D;margin-bottom:.75rem;display:flex;align-items:center;gap:.4rem">
-      <span style="background:#4CAF7D;color:white;border-radius:100px;padding:.1rem .5rem;font-size:.68rem">${bookings.length}</span>
-      New Reservation Request${bookings.length>1?'s':''}
-    </div>`;
-    bookingsHtml+=bookings.map(b=>{
-      const createdAt=new Date(b.created_at);
-      const deadline=new Date(createdAt.getTime()+48*60*60*1000);
-      const deadlineStr=deadline.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+deadline.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-      const hoursLeft=Math.max(0,Math.floor((deadline-Date.now())/3600000));
-      const urgentColor=hoursLeft<12?'var(--red)':hoursLeft<24?'var(--gold)':'#4CAF7D';
-
-      return`<div style="background:var(--card);border:1.5px solid rgba(76,175,125,.25);border-radius:16px;overflow:hidden;margin-bottom:1rem;box-shadow:0 2px 12px rgba(0,0,0,.08)" id="booking-card-${b.id}">
-
-        <!-- Header -->
-        <div style="background:linear-gradient(135deg,rgba(76,175,125,.12),rgba(58,143,181,.08));padding:1rem 1.2rem;border-bottom:1px solid var(--b)">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
-            <div style="display:flex;align-items:center;gap:.5rem">
-              <div style="width:36px;height:36px;border-radius:50%;background:#4CAF7D;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:white">${(b.tenant_name||'T')[0].toUpperCase()}</div>
-              <div>
-                <div style="font-size:.95rem;font-weight:700">${b.tenant_name||'—'}</div>
-                <div style="font-size:.68rem;color:var(--td)">Wants to rent your property</div>
-              </div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:.65rem;color:${urgentColor};font-weight:600">⏰ ${hoursLeft}h left</div>
-              <div style="font-size:.6rem;color:var(--td)">Deadline: ${deadlineStr}</div>
-            </div>
-          </div>
-          <!-- Financials rapides -->
-          <div style="display:flex;gap:.4rem;margin-top:.5rem">
-            <div style="flex:1;background:rgba(76,175,125,.1);border-radius:8px;padding:.4rem .6rem;text-align:center">
-              <div style="font-size:.65rem;color:var(--td)">Monthly rent</div>
-              <div style="font-size:.88rem;font-weight:700">€${b.monthly_rent||'—'}</div>
-            </div>
-            <div style="flex:1;background:rgba(76,175,125,.1);border-radius:8px;padding:.4rem .6rem;text-align:center">
-              <div style="font-size:.65rem;color:var(--td)">Holding paid ✅</div>
-              <div style="font-size:.88rem;font-weight:700;color:#4CAF7D">€${b.holding_amount||'—'}</div>
-            </div>
-            <div style="flex:1;background:rgba(255,255,255,.04);border-radius:8px;padding:.4rem .6rem;text-align:center">
-              <div style="font-size:.65rem;color:var(--td)">Your commission</div>
-              <div style="font-size:.88rem;font-weight:700;color:var(--terra)">€${Math.round((b.monthly_rent||0)*0.40)}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dossier tenant -->
-        <div id="booking-dossier-${b.id}" style="padding:.85rem 1.2rem;border-bottom:1px solid var(--b)">
-          <div style="text-align:center;color:var(--td);font-size:.78rem;padding:.5rem">Loading tenant profile...</div>
-        </div>
-
-        <!-- Actions principales -->
-        <div style="padding:.85rem 1.2rem">
-          <!-- Date souhaitée par le tenant -->
-          ${b.move_in_date?`<div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.78rem">
-            <span style="color:var(--td)">📅 Desired move-in: </span>
-            <span style="font-weight:700;color:var(--sea)">${new Date(b.move_in_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span>
-          </div>`:''}
-          <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
-            <button onclick="showLeaseDatesBooking('${b.id}','${b.move_in_date||''}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">✅ Accept date</button>
-            <button onclick="showProposeDate('${b.id}')" style="flex:1;background:rgba(58,143,181,.15);color:var(--sea);border:1.5px solid rgba(58,143,181,.3);border-radius:10px;padding:.75rem;font-size:.78rem;font-weight:600;cursor:pointer">📅 Other date</button>
-            <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1.5px solid rgba(224,90,90,.4);border-radius:10px;padding:.75rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Decline</button>
-          </div>
-          <!-- Proposer une autre date -->
-          <div id="propose-date-${b.id}" style="display:none;margin-bottom:.5rem;background:rgba(58,143,181,.05);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.65rem">
-            <div style="font-size:.72rem;font-weight:600;color:var(--sea);margin-bottom:.3rem">📅 Propose another move-in date:</div>
-            <input type="date" id="propose-input-${b.id}" class="fi" style="font-size:.82rem;width:100%;margin-bottom:.4rem">
-            <button onclick="sendProposedDate('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer">Send proposal to tenant →</button>
-          </div>
-          <div style="font-size:.65rem;color:var(--td);text-align:center">If you decline → tenant is fully refunded automatically</div>
-
-          <!-- Decline form -->
-          <div id="decline-form-${b.id}" style="display:none;margin-top:.65rem;background:rgba(224,90,90,.05);border:1px solid rgba(224,90,90,.2);border-radius:10px;padding:.75rem">
-            <div style="font-size:.75rem;font-weight:600;color:var(--red);margin-bottom:.4rem">Select reason for decline:</div>
-            <select id="decline-reason-${b.id}" style="width:100%;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--b);background:var(--s2);color:var(--tf);font-size:.78rem;margin-bottom:.5rem">
-              <option value="">Choose a reason...</option>
-              <option value="pets">🐾 Pets not accepted</option>
-              <option value="occupants">👥 Too many occupants</option>
-              <option value="financial">💼 Financial profile concern</option>
-              <option value="visa">🛂 Visa/nationality concern</option>
-              <option value="unavailable">🚫 Property no longer available</option>
-              <option value="other">Other</option>
-            </select>
-            <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">Confirm decline → Auto-refund tenant</button>
-          </div>
-
-          <!-- Accept — Lease dates -->
-          <div id="lease-dates-${b.id}" style="display:none;margin-top:.65rem;background:rgba(58,143,181,.05);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem">
-            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.6rem">📅 Set the move-in date</div>
-            <div style="margin-bottom:.5rem">
-              <label style="font-size:.68rem;color:var(--td);display:block;margin-bottom:.2rem">🏠 Start date (= move-in day) *</label>
-              <div style="font-size:.62rem;color:var(--td);margin-bottom:.3rem">This is also the signing day — lease signed, entry inventory done, keys handed over.</div>
-              <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
-            </div>
-            <input type="hidden" id="bend-${b.id}">
-            <input type="hidden" id="bedl-${b.id}">
-            <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.72rem;color:var(--gold)">
-              💳 Your commission (40% TTC = €${Math.round((b.monthly_rent||0)*0.40)}) will be charged when you click Accept.
-            </div>
-            <button onclick="generateLeaseFromBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">📄 Pay commission & Generate Lease →</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  const visitsSection=groups.length?`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--td);margin:.75rem 0 .5rem">📅 Visit Requests</div>`:'';
-  wrap.innerHTML=bookingsHtml+visitsSection+'<div id="visits-inline"></div>';
-  // Attendre que le DOM soit rendu
-  requestAnimationFrame(()=>{
-    bookings.forEach(b=>loadBookingDossier(b));
-  });
-
-  const visitWrap=document.getElementById('visits-inline');
-  if(!visitWrap||!groups.length)return;
-  visitWrap.innerHTML=groups.map(g=>{
-    const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(g.visit_time||'TBD'):'TBD';
-
-    if(g.status==='awaiting_landlord'){
-      return`<div style="padding:1rem;background:rgba(212,168,71,.06);border:1px solid rgba(212,168,71,.2);border-radius:12px;margin-bottom:.75rem">
-        <div style="font-size:.88rem;font-weight:700;margin-bottom:.2rem">📅 Visit request</div>
-        <div style="font-size:.78rem;color:var(--tm);margin-bottom:.1rem">👤 Tenant: <strong>${g.tenant_name||'—'}</strong></div>
-        <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.75rem">🗓 ${visitDateStr}</div>
-        <div style="font-size:.82rem;color:var(--tm);margin-bottom:.6rem">Is your property available on this date?</div>
-        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-          <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')">✅ Yes — available</button>
-          <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')">📅 Not this date</button>
-          <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="landlordConfirmVisit('${g.id}','unavailable','${g.listing_id}','${g.tenant_id}')">❌ No longer available</button>
-        </div>
-      </div>`;
-    }
-
-    const statusLabels={agents_applying:'🏆 Agents applying — best selected in 5 min',agent_assigned:`🏆 Agent assigned: ${g.agent_name||'—'}`,confirmed:'✅ Visit confirmed',completed:'✅ Visit completed',tenant_declined:'❌ Tenant not interested',landlord_declined:'❌ You declined',lease_pending:'📄 Lease pending signature',entry_inventory_pending:'📋 Entry inventory pending',move_in_ready:'🎉 Tenant moved in'};
-    const statusColors={agents_applying:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)',completed:'var(--green)',tenant_declined:'var(--red)',landlord_declined:'var(--red)',lease_pending:'var(--sea)',entry_inventory_pending:'var(--gold)',move_in_ready:'var(--green)'};
-
-    // ── Tenant intéressé → afficher dossier complet ──
-    if(g.status==='tenant_interested'){
-      return`<div style="padding:1.2rem;background:rgba(76,175,125,.05);border:2px solid rgba(76,175,125,.3);border-radius:14px;margin-bottom:.75rem" id="tenant-card-${g.id}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-          <div>
-            <div style="font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:.2rem">🎉 Tenant wants to rent!</div>
-            <div style="font-size:1rem;font-weight:700">${g.tenant_name||'—'}</div>
-          </div>
-          <span style="background:rgba(76,175,125,.15);color:var(--green);padding:.3rem .7rem;border-radius:100px;font-size:.72rem;font-weight:700">Interested</span>
-        </div>
-
-        <!-- Dossier tenant — chargé dynamiquement -->
-        <div id="dossier-${g.id}" style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
-          <div style="font-size:.75rem;color:var(--td);text-align:center">Loading tenant dossier...</div>
-        </div>
-
-        <!-- Dates de bail -->
-        <div style="background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
-          <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">📅 Set move-in date</div>
-          <div>
-            <label style="font-size:.68rem;color:var(--td)">🏠 Start date (= move-in & signing day) *</label>
-            <input type="date" id="start-${g.id}" class="fi" style="font-size:.8rem;margin-top:.3rem;width:100%" onchange="autoSetEndDateVisit('${g.id}','${g.listing_type||'long'}')">
-
-            <input type="hidden" id="end-${g.id}">
-          </div>
-        </div>
-
-        <!-- Boutons -->
-        <div style="display:flex;gap:.5rem">
-          <button onclick="acceptTenantFromVisits('${g.id}','${g.listing_id}','${g.tenant_id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.7rem;font-size:.85rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
-          <button onclick="declineTenantFromVisits('${g.id}','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(224,90,90,.15);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.7rem;font-size:.82rem;font-weight:600;cursor:pointer">❌ Decline</button>
-        </div>
-      </div>`;
-    }
-    const statusColor=statusColors[g.status]||'var(--td)';
-
-    return`<div style="padding:1rem;background:var(--s2);border:1px solid var(--b);border-radius:12px;margin-bottom:.75rem">
-      <div style="font-size:.88rem;font-weight:700;margin-bottom:.2rem">📅 Visit</div>
-      <div style="font-size:.78rem;color:var(--tm);margin-bottom:.1rem">👤 ${g.tenant_name||'—'}</div>
-      <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">🗓 ${visitDateStr}</div>
-      <div style="font-size:.75rem;color:${statusColor};font-weight:600">${statusLabels[g.status]||g.status}</div>
-      <div style="display:flex;gap:.4rem;margin-top:.5rem">
-        <button class="btn bg bsm" onclick="markVisitDone('${g.id}')">✅ Visit done</button>
-        <button class="btn bg bsm" onclick="declineVisit('${g.id}')">❌ Cancel</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Charger les dossiers tenants pour les visites tenant_interested
-  groups.filter(g=>g.status==='tenant_interested').forEach(g=>loadTenantDossier(g));
+  renderLLVisitTab();
 }
 
-async function loadTenantDossier(visit){
-  const container=document.getElementById(`dossier-${visit.id}`);
-  if(!container)return;
-  let profile=null;
-  try{const{data:p}=await sb.from('profiles').select('*').eq('clerk_id',visit.tenant_id).single();profile=p;}catch(e){}
-  if(!profile){container.innerHTML='<div style="font-size:.75rem;color:var(--td);text-align:center">Tenant profile not found</div>';return;}
-  const verifiedBadge=profile.verified
-    ?'<span style="background:rgba(76,175,125,.15);color:#4CAF7D;padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">✅ Verified</span>'
-    :'<span style="background:rgba(212,168,71,.15);color:var(--gold);padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">⚠️ Not verified</span>';
-  container.innerHTML=`
-    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.6rem">📋 Tenant Dossier ${verifiedBadge}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.78rem">
-      <div><span style="color:var(--td)">Full name</span><div style="font-weight:600">${profile.full_name||'—'}</div></div>
-      <div><span style="color:var(--td)">Phone</span><div style="font-weight:600">${profile.phone||'—'}</div></div>
-      <div><span style="color:var(--td)">Nationality</span><div style="font-weight:600">${profile.nationality||'—'}</div></div>
-      <div><span style="color:var(--td)">Date of birth</span><div style="font-weight:600">${profile.date_of_birth||'—'}</div></div>
-      <div><span style="color:var(--td)">Passport/ID</span><div style="font-weight:600">${profile.passport_number||'—'}</div></div>
-      <div><span style="color:var(--td)">Email</span><div style="font-weight:600">${profile.email||'—'}</div></div>
-      <div style="grid-column:1/-1"><span style="color:var(--td)">Home address</span><div style="font-weight:600">${profile.home_address||'—'}</div></div>
-      ${profile.malta_address?`<div style="grid-column:1/-1"><span style="color:var(--td)">Malta address</span><div style="font-weight:600">${profile.malta_address}</div></div>`:''}
-      <div><span style="color:var(--td)">Reason for stay</span><div style="font-weight:600">${profile.reason_for_stay||'—'}</div></div>
-      <div><span style="color:var(--td)">Duration</span><div style="font-weight:600">${profile.stay_duration||'—'}</div></div>
-      ${profile.emprent?`<div style="grid-column:1/-1"><span style="color:var(--td)">Employer/University</span><div style="font-weight:600">${profile.emprent}</div></div>`:''}
-      ${profile.father_name?`<div><span style="color:var(--td)">Father's name</span><div style="font-weight:600">${profile.father_name}</div></div>`:''}
-      ${profile.mother_name?`<div><span style="color:var(--td)">Mother's name</span><div style="font-weight:600">${profile.mother_name}</div></div>`:''}
-    </div>`;
-}
-
-async function loadVisitGroups(){
-  const wrap=document.getElementById('visit-groups-list');
-  const cnt=document.getElementById('visit-groups-count');
-  if(!wrap)return;
-
-  let groups=[];
-  try{
-    const{data:visitData}=await sb.from('visits')
-      .select('*')
-      .eq('landlord_id',U.id)
-      .neq('status','done')
-      .neq('status','declined')
-      .neq('status','cancelled')
-      .order('visit_date',{ascending:true});
-    groups=visitData||[];
-  }catch(e){}
-
-  if(cnt)cnt.textContent=groups.length;
-
-  if(!groups.length){
-    wrap.innerHTML='<div style="text-align:center;padding:1.5rem;font-size:.83rem;color:var(--td)">No visit requests yet</div>';
-    return;
-  }
-
-  wrap.innerHTML=groups.map(g=>{
-    const listingTitle=g.listing_title||g.listings?.title||'Listing';
-    const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+(g.visit_time||'TBD'):'TBD';
-
-    if(g.status==='awaiting_landlord'){
-      return`<div style="padding:.85rem 0;border-bottom:1px solid var(--b)">
-        <div style="display:flex;align-items:flex-start;gap:.75rem">
-          <div style="width:40px;height:40px;border-radius:10px;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📅</div>
-          <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600">${listingTitle}</div>
-            <div style="font-size:.75rem;color:var(--tm);margin:.1rem 0">👤 ${g.tenant_name||'Tenant'} · 📅 ${visitDateStr}</div>
-            <div style="font-size:.72rem;color:var(--gold);font-weight:600">⏳ Awaiting your confirmation</div>
-          </div>
-        </div>
-        <div style="font-size:.78rem;color:var(--tm);margin:.5rem 0">Is your property available on this date?</div>
-        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-          <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')">✅ Available</button>
-          <button class="btn bg bsm" style="flex:1;justify-content:center" onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')">📅 Not available this date</button>
-          <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="landlordConfirmVisit('${g.id}','unavailable','${g.listing_id}','${g.tenant_id}')">❌ Property no longer available</button>
-        </div>
-      </div>`;
-    }
-
-    const statusColor={agents_applying:'var(--sea)',agent_assigned:'var(--green)',confirmed:'var(--green)'}[g.status]||'var(--td)';
-    const statusLabel={agents_applying:'🏆 Agents applying — best will be selected in 5 min',agent_assigned:`🏆 Agent: ${g.agent_name||'—'}`,confirmed:'✅ Confirmed'}[g.status]||g.status;
-
-    return`<div style="padding:.85rem 0;border-bottom:1px solid var(--b)">
-      <div style="display:flex;align-items:flex-start;gap:.75rem">
-        <div style="width:40px;height:40px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🏠</div>
-        <div style="flex:1">
-          <div style="font-size:.85rem;font-weight:600">${listingTitle}</div>
-          <div style="font-size:.75rem;color:var(--tm);margin:.1rem 0">👤 ${g.tenant_name||'Tenant'} · 📅 ${visitDateStr}</div>
-          <div style="font-size:.72rem;color:${statusColor};font-weight:600">${statusLabel}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap">
-        <button class="btn bg bsm" style="font-size:.68rem" onclick="markVisitDone('${g.id}')">✅ Visit done</button>
-        <button class="btn bg bsm" style="font-size:.68rem" onclick="declineVisit('${g.id}')">❌ Cancel</button>
-      </div>
-    </div>`;
-  }).join('');
-}
 
 async function loadBookingDossier(booking){
   const container=document.getElementById(`booking-dossier-${booking.id}`);
@@ -1429,7 +1356,7 @@ function autoSetEndDate(bookingId, leaseType){
   const endStr=end.toISOString().split('T')[0];
   // Remplir les champs cachés
   document.getElementById(`bend-${bookingId}`).value=endStr;
-  document.getElementById(`bedl-${bookingId}`).value=startInput.value; // EDL = même jour que start
+  document.getElementById(`bedl-${bookingId}`).value=startInput.value; // EDL = same day as start
   // Afficher le preview
   const preview=document.getElementById(`bend-preview-text-${bookingId}`);
   if(preview) preview.textContent=end.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
