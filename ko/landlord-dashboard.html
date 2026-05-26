@@ -1569,14 +1569,33 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     for(const agent of agents){
       if(!agent.clerk_id)continue;
       try{
-        await sb.from('messages').insert({
-          listing_id:listingId,
-          sender_id:'system',
-          receiver_id:agent.clerk_id,
-          content:`✅ LANDLORD CONFIRMED — Apply now!\n\nProperty: ${listing?.title||'Listing'}\nAddress: ${listing?.full_address||listing?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\n⏱ You have 5 minutes to apply. Best rated agent will be automatically selected.`,
-          visit_id:visitId,
-          type:'visit_request'
-        });
+        // Mettre à jour le message existant au lieu d'en créer un nouveau
+        const{data:existing}=await sb.from('messages')
+          .select('id')
+          .eq('receiver_id',agent.clerk_id)
+          .eq('visit_id',visitId)
+          .eq('type','visit_request')
+          .maybeSingle();
+
+        const newContent=`✅ LANDLORD CONFIRMED — Apply now!\n\nProperty: ${listing?.title||'Listing'}\nAddress: ${listing?.full_address||listing?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\n⏱ You have 5 minutes to apply. Best rated agent will be automatically selected.`;
+
+        if(existing?.id){
+          // Update le message existant
+          await sb.from('messages').update({
+            content:newContent,
+            read:false
+          }).eq('id',existing.id);
+        } else {
+          // Créer seulement si n'existe pas
+          await sb.from('messages').insert({
+            listing_id:listingId,
+            sender_id:'system',
+            receiver_id:agent.clerk_id,
+            content:newContent,
+            visit_id:visitId,
+            type:'visit_request'
+          });
+        }
       }catch(e){}
     }
 
