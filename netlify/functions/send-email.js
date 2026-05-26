@@ -189,6 +189,62 @@ const templates = {
     `
   }),
 
+  // Holding deposit — notification au landlord
+  holding_deposit_landlord: ({ landlordName, tenantName, tenantPhone, tenantNationality, tenantEmployer, holdingAmount, listingTitle, dashboardUrl }) => ({
+    subject: `🏠 New reservation request — ${listingTitle}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:12px">
+        <div style="background:#E05A3A;padding:20px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:white;margin:0;font-size:24px">RestMalta</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px">
+          <h2 style="color:#1a1a1a">🎉 A tenant wants to reserve your property!</h2>
+          <p style="color:#666">Hi ${landlordName}, <strong>${tenantName}</strong> has paid a holding deposit of <strong>€${holdingAmount}</strong> for <strong>${listingTitle}</strong>.</p>
+          <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0">
+            <p style="margin:5px 0;font-weight:bold">📋 Tenant Profile</p>
+            <p style="margin:5px 0"><strong>Name:</strong> ${tenantName}</p>
+            <p style="margin:5px 0"><strong>Phone:</strong> ${tenantPhone}</p>
+            <p style="margin:5px 0"><strong>Nationality:</strong> ${tenantNationality}</p>
+            <p style="margin:5px 0"><strong>Employer:</strong> ${tenantEmployer}</p>
+          </div>
+          <div style="background:#fff3cd;border-left:4px solid #E05A3A;padding:15px;border-radius:8px;margin:20px 0">
+            <p style="margin:0;font-weight:bold">⏰ You have 48 hours to accept or decline</p>
+            <p style="margin:8px 0 0 0;color:#666;font-size:14px">If you decline, the tenant is automatically refunded. If you accept, the deposit is deducted from the first month.</p>
+          </div>
+          <a href="${dashboardUrl}" style="display:inline-block;background:#4CAF7D;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px;font-size:16px">
+            Review full dossier & respond →
+          </a>
+        </div>
+        <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">RestMalta — Malta's rental platform</p>
+      </div>
+    `
+  }),
+
+  // Holding deposit refundé — au tenant
+  holding_deposit_refunded: ({ tenantName, listingTitle, reason, dashboardUrl }) => ({
+    subject: `💰 Holding deposit refunded — ${listingTitle}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:12px">
+        <div style="background:#E05A3A;padding:20px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:white;margin:0;font-size:24px">RestMalta</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px">
+          <h2 style="color:#1a1a1a">Your holding deposit has been refunded</h2>
+          <p style="color:#666">Hi ${tenantName}, unfortunately the landlord has declined your application for <strong>${listingTitle}</strong>.</p>
+          ${reason ? `<p style="color:#666"><strong>Reason:</strong> ${reason}</p>` : ''}
+          <div style="background:#e8f5e9;border:1px solid #4CAF7D;border-radius:10px;padding:16px;margin:20px 0">
+            <p style="margin:0;font-weight:bold;color:#1a1a1a">✅ Your holding deposit has been fully refunded</p>
+            <p style="margin:8px 0 0 0;color:#666;font-size:14px">The refund will appear on your card within 5-10 business days.</p>
+          </div>
+          <a href="${dashboardUrl}" style="display:inline-block;background:#E05A3A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px">
+            Find another property →
+          </a>
+        </div>
+        <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">RestMalta — Malta's rental platform</p>
+      </div>
+    `
+  }),
+
   // Visit date rejected — to tenant
   visit_date_rejected: ({ tenantName, listingTitle, dashboardUrl }) => ({
     subject: `📅 Visit date not available — ${listingTitle}`,
