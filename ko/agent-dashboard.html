@@ -490,6 +490,7 @@ async function loadNotifications(){
 async function loadVisits(){
   visitMsgs=[];
   let confirmedVisits=[];
+  let appliedIds=new Set();
   try{
     const{data:vm}=await sb.from('messages')
       .select('*')
@@ -501,7 +502,6 @@ async function loadVisits(){
     if(rawMsgs.length){
       const visitIds=rawMsgs.map(m=>m.visit_id).filter(Boolean);
       let doneIds=new Set();
-      let appliedIds=new Set();
       if(visitIds.length){
         try{
           const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
