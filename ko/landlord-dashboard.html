@@ -1184,28 +1184,65 @@ async function loadVisitsPage(){
 
 function renderVisitCard(g, isPast=false){
   const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(g.visit_time||'TBD'):'TBD';
-  const statusLabel={'awaiting_landlord':'⏳ Awaiting your confirmation','agents_applying':'🏆 Agent being selected','agent_assigned':'✅ Agent assigned','confirmed':'✅ Confirmed','done':'✅ Done','cancelled':'❌ Cancelled','no_show':'🚫 No-show','tenant_declined':'👎 Not interested','date_rejected':'📅 Date rejected'}[g.status]||g.status;
-  const badgeClass={'awaiting_landlord':'b-gold','agents_applying':'b-sea','agent_assigned':'b-green','confirmed':'b-green'}[g.status]||'b-dim';
-  return`<div style="padding:.85rem;background:${isPast?'transparent':'var(--s2)'};border:1px solid var(--b);border-radius:12px;margin-bottom:.6rem;opacity:${isPast?'.65':'1'}">
+
+  const statusConfig={
+    'awaiting_landlord': {label:'⏳ Awaiting your confirmation', cls:'b-gold'},
+    'agents_applying':   {label:'🏆 Searching for agent...', cls:'b-sea'},
+    'agent_assigned':    {label:'✅ Agent assigned', cls:'b-green'},
+    'confirmed':         {label:'✅ Visit confirmed', cls:'b-green'},
+    'done':              {label:'🏁 Done', cls:'b-dim'},
+    'cancelled':         {label:'❌ Cancelled', cls:'b-dim'},
+    'no_show':           {label:'🚫 No-show', cls:'b-dim'},
+    'tenant_declined':   {label:'👎 Not interested', cls:'b-dim'},
+    'date_rejected':     {label:'📅 Date rejected', cls:'b-dim'},
+    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-green'},
+  };
+  const sc=statusConfig[g.status]||{label:g.status, cls:'b-dim'};
+
+  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Call landlord'};
+
+  return`<div style="padding:.85rem;background:${isPast?'transparent':'var(--s2)'};border:1px solid ${isPast?'var(--b)':['agent_assigned','confirmed'].includes(g.status)?'rgba(76,175,125,.25)':g.status==='agents_applying'?'rgba(58,143,181,.25)':'var(--b)'};border-radius:12px;margin-bottom:.6rem;opacity:${isPast?'.6':'1'}">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
       <div style="font-size:.88rem;font-weight:700">👤 ${g.tenant_name||'—'}</div>
-      <span class="badge ${badgeClass}" style="font-size:.62rem">${statusLabel}</span>
+      <span class="badge ${sc.cls}" style="font-size:.62rem">${sc.label}</span>
     </div>
-    <div style="font-size:.73rem;color:var(--td);margin-bottom:.2rem">🗓 ${visitDateStr}</div>
-    ${g.agent_name?`<div style="font-size:.72rem;color:var(--td)">🏆 Agent: ${g.agent_name}</div>`:''}
+    <div style="font-size:.73rem;color:var(--td);margin-bottom:.25rem">🗓 ${visitDateStr}</div>
+
+    ${g.status==='agents_applying'?`
+      <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
+        <div style="font-size:.75rem;color:var(--sea);font-weight:600">🏆 Searching for best agent...</div>
+        <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected within 5 minutes.</div>
+      </div>`:''}
+
+    ${g.status==='agent_assigned'?`
+      <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
+        <div style="font-size:.75rem;color:#4CAF7D;font-weight:600">🏆 Agent: ${g.agent_name||'—'}</div>
+        <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">⏳ Waiting for tenant to confirm attendance...</div>
+      </div>`:''}
+
+    ${g.status==='confirmed'?`
+      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:8px;padding:.55rem .75rem;margin-top:.4rem">
+        <div style="font-size:.8rem;font-weight:700;color:#4CAF7D;margin-bottom:.35rem">✅ Visit fully confirmed!</div>
+        <div style="font-size:.73rem;color:var(--tm)">🏆 Agent: <strong>${g.agent_name||'—'}</strong></div>
+        <div style="font-size:.73rem;color:var(--tm)">👤 Tenant: <strong>${g.tenant_name||'—'}</strong></div>
+        <div style="font-size:.73rem;color:var(--tm)">📅 ${visitDateStr}</div>
+        ${g.key_type?`<div style="font-size:.73rem;color:var(--tm);margin-top:.3rem">🔑 ${keyLabels[g.key_type]||g.key_type}</div>`:''}
+        ${g.key_location?`<div style="font-size:.7rem;color:var(--td)">└ ${g.key_location}</div>`:''}
+      </div>`:''}
+
     ${!isPast&&g.status==='awaiting_landlord'?`
       <div style="display:flex;gap:.4rem;margin-top:.5rem">
         <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Available</button>
-        <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.2);border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Not available</button>
+        <button onclick="landlordProposeDate('${g.id}','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">📅 Other date</button>
+        <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
       </div>`:''}
-    ${!isPast&&!g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`
+    ${!isPast&&!g.has_agent&&g.status==='agent_assigned'?`
       <div style="margin-top:.4rem">
         <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
       </div>`:''}
-    ${!isPast&&g.has_agent?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
+    ${!isPast&&g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
   </div>`;
 }
-
 
 async function loadBookingDossier(booking){
   const container=document.getElementById(`booking-dossier-${booking.id}`);
@@ -1544,6 +1581,37 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     toast('❌ Error: '+e.message);
     console.error(e);
   }
+}
+function landlordProposeDate(visitId, listingId, tenantId){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+  overlay.innerHTML=`
+    <div style="background:var(--card);border-radius:16px;padding:1.75rem;max-width:340px;width:100%">
+      <div style="font-size:1rem;font-weight:700;margin-bottom:.4rem">📅 Propose another date</div>
+      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">The tenant will be notified and can accept or request a different date.</div>
+      <input type="date" id="ll-propose-date" class="fi" style="width:100%;margin-bottom:.75rem">
+      <input type="time" id="ll-propose-time" class="fi" style="width:100%;margin-bottom:.75rem" value="14:00">
+      <button onclick="sendLLProposedDate('${visitId}','${listingId}','${tenantId}',this.closest('[style*=fixed]'))" style="width:100%;background:var(--sea);color:white;border:none;border-radius:10px;padding:.85rem;font-size:.9rem;font-weight:700;cursor:pointer">Send to tenant →</button>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;color:var(--td);border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
+  const newDate=document.getElementById('ll-propose-date')?.value;
+  const newTime=document.getElementById('ll-propose-time')?.value||'14:00';
+  if(!newDate){toast('⚠️ Please select a date');return;}
+  overlay?.remove();
+  try{
+    await sb.from('visits').update({status:'date_rejected',proposed_date:newDate,proposed_time:newTime}).eq('id',visitId);
+    await sb.from('messages').insert({
+      listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+      content:`📅 The landlord proposes a new date for your visit:\n\n📅 ${new Date(newDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} at ${newTime}\n\nPlease go to your dashboard → My Visits to confirm or request another date.`,
+      type:'visit_date_proposed'
+    });
+    toast('✅ New date sent to tenant.');
+    loadVisitsPage();
+  }catch(e){toast('❌ '+e.message);}
 }
 async function landlordConfirmVisit(visitId, response, listingId, tenantId){
   if(response==='yes'){
