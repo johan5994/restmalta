@@ -485,19 +485,45 @@ footer ul a:hover{color:var(--terra)}
 <div class="page" id="page-auth">
   <div class="awrap"><div class="acard">
     <div class="atitle">Welcome to RestMalta</div>
-    <div class="asub">Sign in to access your dashboard, chat with landlords and manage your rental</div>
-    <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:1.5rem">
-      <button onclick="signInWithGoogle()" style="width:100%;padding:.85rem;border:1.5px solid rgba(107,95,82,.2);border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;color:#1A1410;transition:all .2s" onmouseover="this.style.borderColor='#4285F4'" onmouseout="this.style.borderColor='rgba(107,95,82,.2)'">
-        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        Continue with Google
-      </button>
-      <button onclick="signInWithFacebook()" style="width:100%;padding:.85rem;border:none;border-radius:12px;background:#1877F2;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;color:white;transition:all .2s" onmouseover="this.style.background='#0d6edb'" onmouseout="this.style.background='#1877F2'">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-        Continue with Facebook
-      </button>
+    <div class="asub">First, tell us who you are</div>
+
+    <!-- Étape 1 : Choix du rôle -->
+    <div id="auth-step-role" style="margin-top:1.25rem">
+      <div style="display:flex;flex-direction:column;gap:.6rem">
+        <button onclick="selectAuthRole('tenant')" id="role-btn-tenant" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;transition:all .2s">
+          <span style="font-size:1.6rem">🎒</span>
+          <div style="text-align:left"><div>Tenant / Intern</div><div style="font-size:.72rem;color:var(--stone-l);font-weight:400">I'm looking for a flat in Malta</div></div>
+        </button>
+        <button onclick="selectAuthRole('landlord')" id="role-btn-landlord" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;transition:all .2s">
+          <span style="font-size:1.6rem">🏠</span>
+          <div style="text-align:left"><div>Landlord</div><div style="font-size:.72rem;color:var(--stone-l);font-weight:400">I want to list my property</div></div>
+        </button>
+        <button onclick="selectAuthRole('agent')" id="role-btn-agent" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;transition:all .2s">
+          <span style="font-size:1.6rem">🏆</span>
+          <div style="text-align:left"><div>Real Estate Agent</div><div style="font-size:.72rem;color:var(--stone-l);font-weight:400">I do visits and help landlords rent</div></div>
+        </button>
+      </div>
     </div>
-    <div style="margin-top:1.5rem;font-size:.75rem;color:var(--stone-l);text-align:center;line-height:1.6">
-      By continuing, you agree to RestMalta's Terms of Service.<br>✅ Free for tenants · 🔒 Secure · 🇲🇹 Malta only
+
+    <!-- Step 2: Sign in (hidden until role is chosen) -->
+    <div id="auth-step-signin" style="display:none;margin-top:1.25rem">
+      <div id="auth-role-badge" style="background:rgba(201,85,58,.08);border:1px solid rgba(201,85,58,.15);border-radius:8px;padding:.5rem .75rem;font-size:.78rem;font-weight:600;color:var(--terra);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between">
+        <span id="auth-role-label">—</span>
+        <button onclick="resetAuthRole()" style="background:none;border:none;color:var(--stone-l);cursor:pointer;font-size:.72rem">Change</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.75rem">
+        <button onclick="signInWithGoogle()" style="width:100%;padding:.85rem;border:1.5px solid rgba(107,95,82,.2);border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;color:#1A1410;transition:all .2s" onmouseover="this.style.borderColor='#4285F4'" onmouseout="this.style.borderColor='rgba(107,95,82,.2)'">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <button onclick="signInWithFacebook()" style="width:100%;padding:.85rem;border:none;border-radius:12px;background:#1877F2;display:flex;align-items:center;justify-content:center;gap:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;color:white;transition:all .2s" onmouseover="this.style.background='#0d6edb'" onmouseout="this.style.background='#1877F2'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Continue with Facebook
+        </button>
+      </div>
+      <div style="margin-top:1rem;font-size:.72rem;color:var(--stone-l);text-align:center;line-height:1.6">
+        ✅ Free for tenants · 🔒 Secure · 🇲🇹 Malta only
+      </div>
     </div>
   </div></div>
 </div>
@@ -510,18 +536,18 @@ footer ul a:hover{color:var(--terra)}
     <div class="fcard">
       <h3>📋 Listing details</h3>
 
-      <!-- Type de location — point 1 & 2 -->
+      <!-- Lease type -->
       <div class="fg2">
-        <label>Type de location accepté *</label>
+        <label>Lease type *</label>
         <div class="ttog">
-          <button class="tbtn active" onclick="setT(this,'short')">🏠 Short-let uniquement</button>
-          <button class="tbtn" onclick="setT(this,'long')">📅 Long-let uniquement</button>
+          <button class="tbtn active" onclick="setT(this,'short')">🏠 Short-let only</button>
+          <button class="tbtn" onclick="setT(this,'long')">📅 Long-let only</button>
           <button class="tbtn" onclick="setT(this,'both')">🔄 Short & Long</button>
           <button class="tbtn" onclick="setT(this,'sublet')">🔑 Subletting</button>
         </div>
         <input type="hidden" id="pt" value="short">
         <div id="type-info" style="margin-top:.5rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
-          🏠 Short-let : location courte durée (tourisme, stage, expat). Lease spécifique Malta.
+          🏠 Short-let: short-term rental (tourism, internship, expat). Malta-specific lease.
         </div>
       </div>
 
@@ -635,14 +661,14 @@ footer ul a:hover{color:var(--terra)}
       <div id="sublet-notice" style="display:none;background:rgba(212,168,71,.07);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
         <div style="font-size:.78rem;font-weight:700;color:var(--ochre);margin-bottom:.4rem">⚠️ Obligations légales — Subletting à Malta</div>
         <div style="font-size:.73rem;color:var(--stone);line-height:1.6">
-          En postant une sous-location, you confirmez :<br>
-          ✓ Avoir l'accord <strong>écrit</strong> from the property owner<br>
-          ✓ Être en mesure de fournir le contrat signé si demandé<br>
+          By posting a sublet, you confirm:<br>
+          ✓ Have written consent from the property owner<br>
+          ✓ Be able to provide the signed contract if requested<br>
           ✓ Comprendre que <strong>l'enregistrement auprès de la Housing Authority est your responsabilité</strong> — RestMalta n'effectue pas cet enregistrement<br>
           ✓ RestMalta est une plateforme de mise en relation uniquement
         </div>
         <label style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem;font-size:.78rem;cursor:pointer">
-          <input type="checkbox" id="sublet-confirm" required> Je confirme avoir lu et accepté ces obligations
+          <input type="checkbox" id="sublet-confirm" required> I confirm I have read and accept these obligations
         </label>
       </div>
 
@@ -657,7 +683,7 @@ footer ul a:hover{color:var(--terra)}
           </label>
           <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
             <input type="radio" name="agent-service" id="agent-opt-full" value="full" style="margin-top:.1rem">
-            <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry inventory</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and the entry inventory on your behalf. Commission: 30% from landlord + 30% from tenant. Attestation is NOT included.</div></div>
+            <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry inventory</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and the entry inventory on your behalf. Commission: 40% TTC from tenant + 40% TTC from landlord. Exclusive mandate: 35% TTC from landlord. Attestation is NOT included.</div></div>
           </label>
         </div>
 
@@ -688,7 +714,7 @@ footer ul a:hover{color:var(--terra)}
             </select>
           </div>
           <div class="fg2">
-            <label>During entry inventory (état des lieux)</label>
+            <label>During entry inventory (EDL)</label>
             <select class="fi" id="p-inventory-presence" style="cursor:pointer" onchange="toggleSignAuth(this.value)">
               <option value="mandatory">✅ I will be there</option>
               <option value="if_possible">👋 If possible (agent signs if I can't make it)</option>
@@ -821,13 +847,13 @@ footer ul a:hover{color:var(--terra)}
 
           <!-- Escrow deposit option — for tenants not on the island -->
           <div style="margin-bottom:1rem;background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:12px;padding:.9rem 1rem">
-            <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.4rem">🔐 Sécuriser mon dépôt de garantie</div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.4rem">🔐 Secure my security deposit</div>
             <div style="font-size:.72rem;color:var(--stone);margin-bottom:.75rem;line-height:1.5">You n'êtes pas encore à Malta ? RestMalta peut sécuriser your dépôt. À your arrivée you avez <strong>24h</strong> to confirm the property matches the listing. If all good → deposit released to landlord. If issues → deppôt remboursé.</div>
             <div style="display:flex;flex-direction:column;gap:.4rem">
               <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid rgba(76,175,125,.2);background:rgba(76,175,125,.04)" id="escrow-yes-wrap">
                 <input type="radio" name="escrow-opt" id="escrow-yes" value="yes" onchange="selectEscrow('yes')" style="margin-top:.15rem">
                 <div>
-                  <div style="font-size:.8rem;font-weight:600">✅ Oui — je veux sécuriser mon dépôt</div>
+                  <div style="font-size:.8rem;font-weight:600">✅ Yes — I want to secure my deposit</div>
                   <div style="font-size:.68rem;color:var(--stone-l)">Recommandé si you arrivez de l'étranger</div>
                 </div>
               </label>
@@ -1021,7 +1047,8 @@ async function initClerk() {
   let initialUser = clerk.user;
 
   if (initialUser) {
-    await sU(initialUser, false);
+    // Au chargement initial — montrer le picker si pas de rôle
+    await sU(initialUser, true);
   }
   loadL(); updC();
 
@@ -1029,7 +1056,7 @@ async function initClerk() {
     if (user) {
       const isNewLogin = !initialUser;
       initialUser = user;
-      sU(user, isNewLogin);
+      sU(user, true); // toujours montrer le picker si pas de rôle
     } else {
       initialUser = null;
       U = null; P = null; updN();
@@ -1044,64 +1071,119 @@ async function sU(clerkUser, showPicker=true) {
     clerk: clerkUser
   };
   const { data } = await sb.from('profiles').select('*').eq('clerk_id', U.id).single();
-  if (data) {
+  if (data && data.role) {
+    // Complete profile with role → all good
     P = data;
     updN();
+  } else if (data && !data.role) {
+    // Profile exists but no role → show picker
+    P = data;
+    if(showPicker) showRolePicker(data.full_name || clerkUser.fullName || '');
   } else {
-    // Pas de profil trouvé — affiche le role picker
+    // Pas de profil du tout → créer et montrer le picker
     const full_name = clerkUser.fullName || clerkUser.firstName || '';
     P = { clerk_id: U.id, full_name, email: U.email, role: null };
-    showRolePicker(full_name);
+    if(showPicker) showRolePicker(full_name);
   }
 }
 
-function showRolePicker(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const firstName = name?.split(' ')[0] || 'there';
-  const modal = document.createElement('div');
-  modal.id = 'role-picker';
-  modal.style.cssText = 'position:fixed;inset:0;background:var(--warm);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
-  modal.innerHTML = `
-    <div style="background:white;border-radius:24px;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(26,20,16,.12);text-align:center">
-      <div style="font-size:2.5rem;margin-bottom:1rem">👋</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:900;margin-bottom:.5rem">Welcome, ${firstName}!</div>
-      <div style="color:var(--stone);font-size:.95rem;margin-bottom:2rem">I am joining RestMalta as a...</div>
-      <div style="display:flex;flex-direction:column;gap:.75rem">
-        <button onclick="setRoleAndContinue('tenant')" style="width:100%;padding:1.1rem;border-radius:14px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:1rem" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='rgba(107,95,82,.15)'">
-          <span style="font-size:1.8rem">🎒</span>
-          <div style="text-align:left"><div>Tenant / Intern</div><div style="font-size:.78rem;color:var(--stone-l);font-weight:400">I'm looking for a flat in Malta</div></div>
-        </button>
-        <button onclick="setRoleAndContinue('landlord')" style="width:100%;padding:1.1rem;border-radius:14px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:1rem" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='rgba(107,95,82,.15)'">
-          <span style="font-size:1.8rem">🏠</span>
-          <div style="text-align:left"><div>Landlord</div><div style="font-size:.78rem;color:var(--stone-l);font-weight:400">I want to list my property</div></div>
-        </button>
-        <button onclick="setRoleAndContinue('agent')" style="width:100%;padding:1.1rem;border-radius:14px;border:2px solid rgba(107,95,82,.15);background:var(--warm);font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:1rem" onmouseover="this.style.borderColor='#6C63FF'" onmouseout="this.style.borderColor='rgba(107,95,82,.15)'">
-          <span style="font-size:1.8rem">🏆</span>
-          <div style="text-align:left"><div>Real Estate Agent</div><div style="font-size:.78rem;color:var(--stone-l);font-weight:400">I do visits and help landlords rent</div></div>
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
+// Rôle pré-sélectionné avant connexion
+let pendingRole = null;
+
+function selectAuthRole(role){
+  pendingRole = role;
+  // Highlight le bouton sélectionné
+  ['tenant','landlord','agent'].forEach(r=>{
+    const btn=document.getElementById(`role-btn-${r}`);
+    if(btn) btn.style.borderColor = r===role ? 'var(--terra)' : 'rgba(107,95,82,.15)';
+  });
+  // Passer à l'étape connexion
+  document.getElementById('auth-step-role').style.display='none';
+  document.getElementById('auth-step-signin').style.display='block';
+  const labels={'tenant':'🎒 Tenant / Intern','landlord':'🏠 Landlord','agent':'🏆 Real Estate Agent'};
+  document.getElementById('auth-role-label').textContent=labels[role]||role;
 }
 
+function resetAuthRole(){
+  pendingRole=null;
+  document.getElementById('auth-step-role').style.display='block';
+  document.getElementById('auth-step-signin').style.display='none';
+}
+
+function showRolePicker(name) {
+  // Ne plus utiliser l'ancien modal — rediriger vers la page auth
+  go('auth');
+}
+
+async function sU(clerkUser, showPicker=true) {
+  U = {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    clerk: clerkUser
+  };
+
+  const { data } = await sb.from('profiles').select('*').eq('clerk_id', U.id).single();
+
+  if (data && data.role) {
+    // Complete profile → redirect to dashboard
+    P = data;
+    updN();
+    // Si on était sur la page auth → rediriger
+    if(document.getElementById('page-auth')?.classList.contains('active')){
+      if(data.role==='landlord') window.location.href='/landlord-dashboard.html';
+      else if(data.role==='agent') window.location.href='/agent-dashboard.html';
+      else go('home');
+    }
+  } else {
+    // Pas de profil ou pas de rôle
+    const full_name = clerkUser.fullName || clerkUser.firstName || '';
+    P = data || { clerk_id: U.id, full_name, email: U.email, role: null };
+
+    if(pendingRole){
+      // Rôle déjà choisi avant connexion → créer le profil directement
+      await setRoleAndContinue(pendingRole);
+    } else if(showPicker){
+      go('auth');
+    }
+  }
+}
+
+
 async function setRoleAndContinue(role) {
-  const full_name = P.full_name || '';
-  // Génère un UUID aléatoire for la colonne id (primary key UUID)
-  const uuid = crypto.randomUUID();
-  const { error } = await sb.from('profiles').insert({
-    id: uuid,
-    clerk_id: U.id,
-    full_name,
-    email: U.email,
-    role
-  });
-  if (error) { toast('❌ Error saving profile: ' + error.message); console.error(error); return; }
-  P = { id: uuid, clerk_id: U.id, full_name, email: U.email, role };
-  document.getElementById('role-picker')?.remove();
-  updN();
-  toast('🎉 Welcome to RestMalta!');
-  loadL(); updC();
-  go('home');
+  try {
+    if(!U){toast('❌ Please sign in first');return;}
+
+    const full_name = P?.full_name || U.clerk?.fullName || U.clerk?.firstName || '';
+    const email = P?.email || U.email || U.clerk?.primaryEmailAddress?.emailAddress || '';
+
+    // Upsert — fonctionne que le profil existe ou non
+    const { data, error } = await sb.from('profiles').upsert({
+      clerk_id: U.id,
+      full_name,
+      email,
+      role
+    }, { onConflict: 'clerk_id' }).select().single();
+
+    if (error) {
+      console.error('Profile upsert error:', error);
+      toast('❌ Error: ' + error.message);
+      return;
+    }
+
+    P = data;
+    document.getElementById('role-picker')?.remove();
+    updN();
+    toast('🎉 Welcome to RestMalta!');
+
+    // Rediriger vers le bon dashboard
+    if(role === 'landlord') window.location.href = '/landlord-dashboard.html';
+    else if(role === 'agent') window.location.href = '/agent-dashboard.html';
+    else { loadL(); updC(); go('home'); }
+
+  } catch(e) {
+    console.error('setRoleAndContinue error:', e);
+    toast('❌ ' + e.message);
+  }
 }
 
 initClerk();
@@ -1437,7 +1519,7 @@ async function sendMsg(){
   // Build message with escrow info
   let fullMessage=c;
   if(escrowChoice){
-    fullMessage=c+'\n\n🔐 [Escrow option activated — je souhaite sécuriser mon dépôt via RestMalta. À mon arrivée j\'aurai 24h for confirmer que tout est conforme.]';
+    fullMessage=c+'\n\n🔐 [Escrow option activated — I want to secure my deposit via RestMalta. À mon arrivée j\'aurai 24h for confirmer que tout est conforme.]';
   }
 
   // Handle co-tenants
@@ -1551,7 +1633,7 @@ async function payHoldingDeposit(){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Payment failed');
 
-    // 2 — Confirmer le paiement avec la carte Stripe
+    // 2 — Confirm payment with Stripe card
     const{error,paymentIntent}=await window._reserveStripe.confirmCardPayment(data.client_secret,{
       payment_method:{card:window._reserveCardEl}
     });
@@ -1824,15 +1906,39 @@ function toggleKeyDetail(val){
 
 function chkPost(){
   if(!U){toast('Please sign in to post a listing');go('auth');return;}
-  if(P?.role!=='landlord'){toast('You need a landlord account to post. Please sign out and create a new account as landlord.');return;}
-  // Check profile completeness
-  const required=[P?.full_name,P?.phone,P?.nationality,P?.passport_number,P?.date_of_birth,P?.place_of_birth,P?.father_name,P?.mother_name,P?.mother_maiden,P?.malta_address,P?.iban];
-  const missing=required.filter(f=>!f).length;
-  if(missing>0){
-    toast(`⚠️ Complete your profile first (${missing} field${missing>1?'s':''} missing)`);
-    window.location.href='/landlord-dashboard.html#profile';
+  if(P?.role!=='landlord'){toast('⚠️ You need a landlord account to post.');return;}
+
+  // Vérifier les champs essentiels du profil
+  const missing=[];
+  if(!P?.full_name) missing.push('Full name');
+  if(!P?.phone) missing.push('Phone');
+  if(!P?.passport_number) missing.push('Passport/ID');
+  if(!P?.iban) missing.push('IBAN (for payments)');
+
+  if(missing.length>0){
+    // Afficher un message clair et rediriger vers le profil
+    const msg=missing.length===1
+      ? `⚠️ Please complete your profile before posting — missing: ${missing[0]}`
+      : `⚠️ Please complete your profile before posting — ${missing.length} fields missing`;
+
+    // Toast visible + modal de confirmation
+    toast(msg);
+
+    // Afficher un modal d'alerte
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+    overlay.innerHTML=`
+      <div style="background:var(--card,#1a1a1a);border-radius:16px;padding:2rem;max-width:360px;width:100%;text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:.75rem">📋</div>
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Complete your profile first</div>
+        <div style="font-size:.82rem;color:var(--td,#888);margin-bottom:1rem;line-height:1.5">To post a listing, RestMalta needs to verify your identity.<br><br>Missing: <strong style="color:var(--terra)">${missing.join(', ')}</strong></div>
+        <button onclick="this.closest('[style*=fixed]').remove();window.location.href='/landlord-dashboard.html?tab=profile'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.85rem;font-size:.95rem;font-weight:700;cursor:pointer">Complete my profile →</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;color:var(--td,#888);border:none;padding:.6rem;font-size:.82rem;cursor:pointer;margin-top:.3rem">Cancel</button>
+      </div>`;
+    document.body.appendChild(overlay);
     return;
   }
+
   go('post');
 }
 
@@ -2026,20 +2132,20 @@ Rent: €${listing.price}/month
 
 Le landlord confie à RestMalta, à titre exclusif, la mission de trouver un tenant for le bien désigné ci-dessus.
 
-DURÉE : 3 months à compter de la date ci-dessus.
+DURATION: 3 months from the date above.
 
-EXCLUSIVITÉ : Pendant la durée du mandat, the landlord s'agree to:
+EXCLUSIVITY: During the mandate period, the landlord agrees to:
 - Not publish this property on any other platform
 - Direct all enquiries to RestMaltae location reçue directement
 - Ne pas conclure de location sans passer par RestMalta
 
 AVANTAGES EXCLUSIF :
-- Commission réduite : 3.5% (au lieu de 5%)
-- Mise en avant prioritaire dans les résultats de recherche
+- Reduced commission: 35% TTC (instead of 40% TTC)
+- Priority placement in search results
 - Badge "Mandat Exclusif" visible sur l'listing
 - Priority RestMalta support
 
-By publishing this property with the exclusive mandate checked, the landlord accepte les présentes conditions.
+By publishing this property with the exclusive mandate checked, the landlord accepts these terms and conditions.
 
 Généré automatiquement par RestMalta — restmalta.com`;
   const blob=new Blob([contractText],{type:'text/plain'});
