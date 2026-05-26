@@ -721,28 +721,22 @@ function restoreTimers(){
 }
 
 async function triggerSelection(visitId, listingId){
-  // Vérifier si déjà assigné
   let visit=null;
-  try{const{data}=await sb.from('visits').select('status,agent_id').eq('id',visitId).single();visit=data;}catch(e){}
+  try{const{data}=await sb.from('visits').select('status,agent_id,listing_id').eq('id',visitId).single();visit=data;}catch(e){}
 
   if(visit?.status==='agent_assigned'||visit?.status==='confirmed'){
-    // Déjà assigné — recharger pour voir si c'est nous
     loadVisits();
     return;
   }
 
-  // Appeler select-best-agent
   try{
-    const res=await fetch('/.netlify/functions/select-best-agent',{
+    await fetch('/.netlify/functions/schedule-selection',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({visit_id:visitId, wait_minutes:0})
+      body:JSON.stringify({visit_id:visitId, listing_id:listingId||visit?.listing_id, trigger:'manual'})
     });
-    const data=await res.json();
-    console.log('Selection result:', data);
   }catch(e){console.error('Selection error:',e);}
 
-  // Recharger pour voir le résultat
   await loadVisits();
 }
 
@@ -860,93 +854,66 @@ function renderUpcoming(){
 function renderAllVisitsDirect(){
   const w=document.getElementById('all-visits-list');
   if(!w)return;
-  // Séparer: requêtes en attente vs visites assignées vs terminées
-  const requests=visitMsgs||[];
-  const assigned=(visits||[]).filter(v=>!['cancelled','done','no_show','move_in_ready'].includes(v.status));
+
+  const assigned=(visits||[]).filter(v=>!['cancelled','no_show','move_in_ready'].includes(v.status));
   const past=(visits||[]).filter(v=>['cancelled','done','no_show','move_in_ready'].includes(v.status));
+
+  if(!assigned.length&&!past.length){
+    w.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits assigned yet</p></div>';
+    return;
+  }
+
+  let html='';
+
+  // Visites assignées
+  assigned.forEach(v=>{
+    const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(v.visit_time||'TBD'):'TBD';
+    const statusLabel={'agent_assigned':'✅ Confirmed','confirmed':'✅ Confirmed','edl_scheduled':'📋 Signing day','signing_day':'📋 Signing day','completed':'🏁 Done','lease_pending':'📄 Lease pending'}[v.status]||v.status;
+    const badgeClass=['agent_assigned','confirmed'].includes(v.status)?'b-green':v.status==='edl_scheduled'||v.status==='signing_day'?'b-sea':'b-gold';
+
+    html+=`<div style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:.85rem;margin-bottom:.6rem" id="visit-card-${v.id}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+        <div style="font-size:.88rem;font-weight:700">${v.listing_title||v.listing_address||'Property'}</div>
+        <span class="badge ${badgeClass}" style="font-size:.62rem">${statusLabel}</span>
+      </div>
+      <div style="font-size:.73rem;color:var(--td);margin-bottom:.2rem">📍 ${v.listing_zone||v.listing_address||'Malta'}</div>
+      <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">🗓 ${dateStr}</div>
+      <div style="font-size:.73rem;color:var(--td);margin-bottom:.3rem">👤 ${v.tenant_name||'—'}</div>
+      ${v.tenant_email?`<div style="font-size:.7rem;color:var(--td);margin-bottom:.35rem">✉️ ${v.tenant_email}</div>`:''}
+      ${v.key_info?`<div style="background:rgba(58,143,181,.08);border-radius:7px;padding:.4rem .6rem;margin-bottom:.4rem;font-size:.72rem">🔑 ${v.key_info}</div>`:''}
+      <div style="display:flex;gap:.4rem;margin-top:.4rem">
+        ${v.status==='edl_scheduled'||v.status==='signing_day'
+          ?`<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" onclick="startSigningDay('${v.id}')">📋 Start Signing Day</button>`
+          :v.status==='agent_assigned'||v.status==='confirmed'
+            ?`<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" onclick="markVisitDone('${v.id}')">✅ Mark visit done</button>`
+            :''
+        }
+        <button class="btn bg bsm" style="font-size:.72rem" onclick="showVisitIssueOptions('${v.id}','${v.listing_id||''}','${v.tenant_id||''}','${v.landlord_id||''}')">⚠️ Issue</button>
+      </div>
+    </div>`;
+  });
+
+  // Visites passées grisées
+  if(past.length){
+    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem">
+      <div style="flex:1;height:1px;background:var(--b)"></div><span>Past visits</span><div style="flex:1;height:1px;background:var(--b)"></div>
+    </div>`;
+    past.forEach(v=>{
+      html+=`<div style="background:transparent;border:1px solid var(--b);border-radius:10px;padding:.7rem;margin-bottom:.4rem;opacity:.6">
+        <div style="font-size:.82rem;font-weight:600">${v.listing_title||'Property'}</div>
+        <div style="font-size:.72rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'} · ${v.status}</div>
+      </div>`;
+    });
+  }
+
+  w.innerHTML=html;
+}
   
   if(!requests.length&&!assigned.length&&!past.length){
     w.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet</p></div>';
     return;
   }
   
-  let html='';
-  
-  // Requêtes en attente (à candidater)
-  if(requests.length){
-    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem;letter-spacing:.5px">📬 New requests (${requests.length})</div>`;
-    requests.forEach(m=>{
-      const lines=m.content?m.content.split('\n'):[];
-      const extract=(key)=>{const line=lines.find(l=>l.includes(key+':'));if(!line)return null;return line.substring(line.indexOf(key+':')+key.length+1).trim()||null;};
-      const property=extract('Property')||m.listings?.title||'Property';
-      const address=extract('Address')||'Malta';
-      const dateTime=extract('Date')||'TBD';
-      const tenant=extract('Tenant')||'—';
-      const isApplied=m.visit_id&&appliedIds&&appliedIds.has(m.visit_id);
-      const timerEnd=m.visit_id?localStorage.getItem('timer_'+m.visit_id):null;
-      const timerActive=timerEnd&&Date.now()<parseInt(timerEnd);
-      let actionsHtml='';
-      if(timerActive||isApplied){
-        actionsHtml='<div style="width:100%;background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">⏳ Applied — selection in progress</div>'+(timerActive?'<div style="font-size:1.2rem;font-weight:700;color:var(--terra)" id="timer-'+m.visit_id+'">...</div>':'')+'<div style="font-size:.65rem;color:var(--td)">Best rated agent auto-selected after 5 min</div></div>';
-      } else {
-        const mid=m.id,mlid=m.listing_id,mvid=m.visit_id||'';
-        actionsHtml=`<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${mid}','${mlid}','${mvid}')">✅ I want this visit</button>`
-          +`<button class="btn bg bsm" style="flex:1;justify-content:center" onclick="wrongDateVisit('${mid}','${mlid}','${mvid}')">📅 Date not possible</button>`
-          +`<button class="btn bsm" style="flex:1;justify-content:center;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${mid}','${mlid}','${mvid}')">❌ Not available</button>`;
-      }
-      html+=`<div style="padding:.85rem;background:var(--s2);border:1px solid var(--b);border-radius:12px;margin-bottom:.6rem" data-visit-id="${m.visit_id||''}">
-        <div style="font-size:.88rem;font-weight:700;margin-bottom:.3rem">🏠 ${property}</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
-        <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
-        <div style="font-size:.75rem;color:var(--td);margin-bottom:.4rem">👤 ${tenant}</div>
-        <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">${actionsHtml}</div>
-      </div>`;
-    });
-    requests.forEach(m=>{if(!m.visit_id)return;const te=localStorage.getItem('timer_'+m.visit_id);if(te&&Date.now()<parseInt(te))startTimerDisplay(m.visit_id,parseInt(te));});
-  }
-  
-  // Visites assignées
-  if(assigned.length){
-    if(requests.length) html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--sea);margin:.75rem 0 .5rem;letter-spacing:.5px">📅 My visits (${assigned.length})</div>`;
-    assigned.forEach(v=>{
-      const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(v.visit_time||'TBD'):'TBD';
-      const statusLabel={'agent_assigned':'✅ Confirmed','confirmed':'✅ Confirmed','edl_scheduled':'📋 Signing day','signing_day':'📋 Signing day'}[v.status]||v.status;
-      html+=`<div style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:.85rem;margin-bottom:.6rem" id="visit-card-${v.id}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-          <div style="font-size:.88rem;font-weight:700">${v.listing_title||'Property'}</div>
-          <span class="badge b-green" style="font-size:.62rem">${statusLabel}</span>
-        </div>
-        <div style="font-size:.73rem;color:var(--td);margin-bottom:.2rem">🗓 ${dateStr}</div>
-        <div style="font-size:.73rem;color:var(--td);margin-bottom:.2rem">👤 ${v.tenant_name||'—'}</div>
-        ${v.listing_address?`<div style="font-size:.72rem;color:var(--td)">📍 ${v.listing_address}</div>`:''}
-        <div style="display:flex;gap:.4rem;margin-top:.5rem">
-          ${v.status==='edl_scheduled'||v.status==='signing_day'
-            ?`<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" onclick="startSigningDay('${v.id}')">📋 Start Signing Day</button>`
-            :`<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" onclick="markVisitDone('${v.id}')">✅ Mark done</button>`
-          }
-          <button class="btn bg bsm" style="font-size:.72rem" onclick="showVisitIssueOptions('${v.id}','${v.listing_id||''}','${v.tenant_id||''}','${v.landlord_id||''}')">⚠️ Issue</button>
-        </div>
-        <div id="signing-panel-${v.id}" style="display:none;padding:.6rem 0 0 0;border-top:1px solid var(--b);margin-top:.5rem"></div>
-      </div>`;
-    });
-  }
-  
-  // Visites passées
-  if(past.length){
-    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem">
-      <div style="flex:1;height:1px;background:var(--b)"></div><span>Past visits</span><div style="flex:1;height:1px;background:var(--b)"></div>
-    </div>`;
-    past.forEach(v=>{
-      html+=`<div style="background:transparent;border:1px solid var(--b);border-radius:10px;padding:.7rem;margin-bottom:.4rem;opacity:.65">
-        <div style="font-size:.82rem;font-weight:600">${v.listing_title||'Property'}</div>
-        <div style="font-size:.72rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'} · ${v.status}</div>
-      </div>`;
-    });
-  }
-  
-  w.innerHTML=html;
-}
-
 function renderAgentVisitItems(items, w){
   if(!w)return;
   const visibleVisits=items;
