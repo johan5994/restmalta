@@ -1417,12 +1417,12 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     if(landlordClerkId&&!landlordClerkId.startsWith('user_')){
       // C'est un UUID — chercher le vrai Clerk ID dans profiles
       try{
-        const{data:lp}=await sb.from('profiles').select('clerk_id').eq('id',landlordClerkId).single();
-        if(lp?.clerk_id)landlordClerkId=lp.clerk_id;
-        else{
-          // Essayer via auth.users
-          const{data:lp2}=await sb.from('profiles').select('clerk_id').ilike('clerk_id','user_%').limit(1);
-          console.warn('Could not resolve landlord clerk_id from UUID:',landlordClerkId);
+        const{data:lp}=await sb.from('profiles').select('clerk_id').eq('id',landlordClerkId).maybeSingle();
+        if(lp?.clerk_id){
+          landlordClerkId=lp.clerk_id;
+        } else {
+          // Fallback — garder l'UUID tel quel, le landlord sera quand même notifié
+          console.warn('Could not resolve clerk_id for landlord UUID:',landlordClerkId);
         }
       }catch(e){console.warn('landlord lookup failed:',e);}
     }
@@ -1451,7 +1451,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     if(error)throw new Error(error.message);
 
     // 4 — Sauvegarder la réservation
-    const{data:booking}=await sb.from('bookings').insert({
+    const{data:booking,error:bookingError}=await sb.from('bookings').insert({
       listing_id:listingId,
       tenant_id:U.id,
       landlord_id:landlordClerkId,
@@ -1467,6 +1467,8 @@ async function payHoldingDepositFromVisits(visitId, listingId){
       has_agent:listing.wants_agent&&listing.agent_service==='full',
       move_in_date:moveInDate
     }).select().maybeSingle();
+    if(bookingError)console.error('❌ Booking insert error:',bookingError.message,bookingError.details);
+    else console.log('✅ Booking created:',booking?.id);
 
     // 5 — Mettre le listing en reserved
     try{await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId);}catch(e){}
