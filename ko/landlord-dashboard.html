@@ -1019,7 +1019,7 @@ async function loadVisitsPage(){
     // Récupérer d'abord tous les listing IDs du landlord
     const{data:myListings}=await sb.from('listings').select('id,landlord_id,type').eq('landlord_id',U.id);
     const myListingIds=(myListings||[]).map(l=>l.id);
-    
+
     // Chercher bookings par landlord_id (Clerk ID) OU par listing_id (pour les anciens bookings)
     let bQuery=sb.from('bookings').select('*').eq('status','pending').order('created_at',{ascending:false});
     if(myListingIds.length){
@@ -1338,42 +1338,6 @@ async function loadBookingDossier(booking){
         </div>`
       :'<div style="font-size:.67rem;color:var(--td);text-align:center;padding:.2rem">New tenant — no previous reviews</div>'
     }`;
-}
-
-function autoSetEndDateVisit(visitId, leaseType){
-  const startInput=document.getElementById(`start-${visitId}`);
-  if(!startInput?.value)return;
-  const start=new Date(startInput.value);
-  const end=new Date(start);
-  if(leaseType==='short') end.setMonth(end.getMonth()+6);
-  else end.setFullYear(end.getFullYear()+1);
-  const endStr=end.toISOString().split('T')[0];
-  document.getElementById(`end-${visitId}`).value=endStr;
-  const preview=document.getElementById(`end-preview-${visitId}`);
-  if(preview) preview.textContent=`End date: ${end.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} (${leaseType==='short'?'6 months':'1 year'})`;
-}
-
-function autoSetEndDate(bookingId, leaseType){
-  const startInput=document.getElementById(`bstart-${bookingId}`);
-  if(!startInput?.value)return;
-  const start=new Date(startInput.value);
-  // Long-let = +1 an, Short-let = +6 mois
-  const end=new Date(start);
-  if(leaseType==='short') end.setMonth(end.getMonth()+6);
-  else end.setFullYear(end.getFullYear()+1);
-  const endStr=end.toISOString().split('T')[0];
-  // Remplir les champs cachés
-  document.getElementById(`bend-${bookingId}`).value=endStr;
-  document.getElementById(`bedl-${bookingId}`).value=startInput.value; // EDL = same day as start
-  // Afficher le preview
-  const preview=document.getElementById(`bend-preview-text-${bookingId}`);
-  if(preview) preview.textContent=end.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-}
-
-function showProposeDate(bookingId){
-  document.getElementById(`propose-date-${bookingId}`).style.display='block';
-  document.getElementById(`lease-dates-${bookingId}`).style.display='none';
-  document.getElementById(`decline-form-${bookingId}`).style.display='none';
 }
 
 async function sendProposedDate(bookingId, listingId, tenantId){
