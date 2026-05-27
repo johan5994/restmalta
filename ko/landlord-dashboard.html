@@ -1021,7 +1021,7 @@ async function loadVisitsPage(){
     const myListingIds=(myListings||[]).map(l=>l.id);
 
     // Chercher bookings par landlord_id (Clerk ID) OU par listing_id (pour les anciens bookings)
-    let bQuery=sb.from('bookings').select('*').eq('status','pending').order('created_at',{ascending:false});
+    let bQuery=sb.from('bookings').select('*').in('status',['pending','booking_pending']).order('created_at',{ascending:false});
     if(myListingIds.length){
       bQuery=bQuery.or(`landlord_id.eq.${U.id},listing_id.in.(${myListingIds.join(',')})`);
     } else {
@@ -1162,7 +1162,7 @@ async function loadVisitsPage(){
   }
 
   // ── Rendu des visites normales ───────────────────────────────
-  const doneStatuses=['done','declined','cancelled','tenant_declined','no_show','date_rejected','booking_pending','lease_pending','move_in_ready'];
+  const doneStatuses=['done','declined','cancelled','tenant_declined','no_show','date_rejected','move_in_ready'];
   const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status));
   const pastGroups=groups.filter(g=>doneStatuses.includes(g.status));
 
