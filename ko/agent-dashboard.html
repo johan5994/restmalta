@@ -483,9 +483,27 @@ function initUI(){
 
 async function loadAll(){
   await loadVisits();
-  await loadListings();
+  try{await loadListings();}catch(e){}
   try{await renderRevChart();}catch(e){}
   try{await loadNotifications();}catch(e){}
+}
+
+async function loadListings(){
+  try{
+    const{data:ls}=await sb.from('listings').select('id,title,zone').eq('agent_id',U.id).limit(20);
+    listings=ls||[];
+    const sel=document.getElementById('vm-listing');
+    if(sel){sel.innerHTML='<option value="">Select listing</option>'+(listings.map(l=>`<option value="${l.id}">${l.title||'—'} — ${l.zone||''}</option>`).join(''));}
+  }catch(e){}
+}
+
+async function markVisitDone(visitId){
+  if(!confirm('Mark this visit as done?'))return;
+  try{
+    await sb.from('visits').update({status:'done'}).eq('id',visitId);
+    toast('✅ Visit marked as done!');
+    await loadVisits();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function loadNotifications(){
@@ -678,8 +696,16 @@ async function loadVisits(){
                 }
                 <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
               </div>`
-            :`<button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
-
+            :isAwaitingLandlord&&!isConfirmed
+            ?`<div style="width:100%;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.5rem .7rem;text-align:center;margin-bottom:.3rem">
+                <div style="font-size:.73rem;color:var(--gold);font-weight:600">⏳ Waiting for landlord...</div>
+                <div style="font-size:.65rem;color:var(--td)">You'll be notified when confirmed.</div>
+              </div>
+              <button class="btn bsm" style="flex:1;justify-content:center;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);font-size:.72rem" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Not available</button>`
+            :`<div style="width:100%;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .65rem;margin-bottom:.3rem;text-align:center">
+                <div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Landlord confirmed — apply now!</div>
+              </div>
+              <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
               <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Not available</button>`
           }
         </div>
@@ -732,6 +758,15 @@ async function applyForVisit(msgId, listingId, visitId){
 
   try{
     const{data:current}=await sb.from('visits').select('status,agent_id').eq('id',visitId).single();
+    
+    // Vérifier que le landlord a confirmé la dispo
+    if(current?.status==='awaiting_landlord'){
+      toast('⏳ Wait for the landlord to confirm availability first.');
+      await loadVisits();
+      return;
+    }
+    
+    // Vérifier qu'aucun autre agent n'a été assigné
     if(current?.agent_id){
       toast('⚠️ Another agent was just assigned. Better luck next time!');
       await loadVisits();
@@ -743,7 +778,7 @@ async function applyForVisit(msgId, listingId, visitId){
       agent_name:P?.full_name||'Agent',
       status:'agent_assigned',
       agents_applying_since:new Date().toISOString()
-    }).eq('id',visitId);
+    }).eq('id',visitId).in('status',['agents_applying']);
 
     let visit=null;try{const{data:_v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=_v;}catch(e){}
     let listing=null;try{const{data:_l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=_l;}catch(e){}
