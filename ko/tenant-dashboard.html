@@ -1771,11 +1771,11 @@ async function loadTenantVisits(){
       }
       ${v.status==='confirmed'?`<div style="font-size:.73rem;color:#4CAF7D;font-weight:600;margin-top:.3rem">✅ Confirmed — see you there!</div>`:''}
       ${v.status==='completed'?`
-        <div style="background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.15);border-radius:8px;padding:.65rem;margin-top:.5rem">
-          <div style="font-size:.82rem;font-weight:700;margin-bottom:.4rem">🏠 How did it go?</div>
-          <div style="display:flex;gap:.4rem">
-            <button onclick="showHoldingDeposit('${v.id}','${v.listing_id}',${v.listing_price||0})" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ I want to rent!</button>
-            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.15);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:600;cursor:pointer">❌ Not interested</button>
+        <div style="background:rgba(76,175,125,.08);border:2px solid rgba(76,175,125,.3);border-radius:10px;padding:.75rem;margin-top:.5rem">
+          <div style="font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:#4CAF7D">🏠 Visit done! Do you want to rent?</div>
+          <div style="display:flex;gap:.5rem">
+            <button onclick="showHoldingDeposit('${v.id}','${v.listing_id}',${v.listing_price||0})" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:9px;padding:.7rem;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(76,175,125,.3)">✅ Yes, I want to rent!</button>
+            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.12);color:#E05A5A;border:1.5px solid rgba(224,90,90,.4);border-radius:9px;padding:.7rem;font-size:.82rem;font-weight:700;cursor:pointer">❌ Not interested</button>
           </div>
           <div id="holding-section-${v.id}" style="display:none;margin-top:.6rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.25);border-radius:10px;padding:.75rem">
             <div style="font-size:.75rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">🔒 Reserve this property</div>
