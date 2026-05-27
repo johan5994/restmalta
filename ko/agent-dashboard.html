@@ -500,8 +500,29 @@ async function loadListings(){
 async function markVisitDone(visitId){
   if(!confirm('Mark this visit as done?'))return;
   try{
-    await sb.from('visits').update({status:'done'}).eq('id',visitId);
-    toast('✅ Visit marked as done!');
+    // Récupérer les infos de la visite
+    let visit=null;
+    try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+
+    // Passer en 'completed' — le tenant doit décider s'il veut louer
+    await sb.from('visits').update({status:'completed'}).eq('id',visitId);
+
+    // Notifier le tenant
+    if(visit?.tenant_id&&visit?.listing_id){
+      try{await sb.from('messages').insert({
+        listing_id:visit.listing_id,
+        sender_id:'system',
+        receiver_id:visit.tenant_id,
+        content:`🏁 Visit completed!
+
+Your visit for ${visit.listing_title||'the property'} is done.
+
+Do you want to rent this property? Go to your dashboard → My Visits to decide.`,
+        type:'visit_completed'
+      });}catch(e){}
+    }
+
+    toast('✅ Visit marked as done! Tenant has been notified.');
     await loadVisits();
   }catch(e){toast('❌ '+e.message);}
 }
@@ -549,7 +570,7 @@ async function loadVisits(){
         try{
           const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
           (vs||[]).forEach(v=>{
-            if(['agent_assigned','confirmed','cancelled','no_agent','date_rejected'].includes(v.status)){
+            if(['agent_assigned','confirmed','cancelled','no_agent','date_rejected','done','completed','booking_pending','tenant_declined','no_show'].includes(v.status)){
               doneIds.add(v.id);
             }
           });
@@ -983,17 +1004,18 @@ function renderAllVisitsDirect(){
 
 async function loadLandlordInfo(landlordId, visitId){
   const el=document.getElementById('ll-info-'+visitId);
-  if(!el)return;
+  if(!el||el.dataset.loaded==='1')return; // Éviter re-chargement en boucle
+  el.dataset.loaded='1';
   try{
     const{data:lp}=await sb.from('profiles').select('full_name,phone,email').eq('clerk_id',landlordId).single();
-    if(!lp){if(el)el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';return;}
+    if(!lp){el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';return;}
     el.innerHTML='<div style="display:flex;align-items:center;gap:.6rem">'
       +'<div style="width:34px;height:34px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:.9rem;flex-shrink:0">'+(lp.full_name||'L')[0].toUpperCase()+'</div>'
       +'<div><div style="font-size:.85rem;font-weight:700">'+(lp.full_name||'—')+'</div>'
       +(lp.phone?'<div style="font-size:.73rem;color:var(--terra)"><a href="tel:'+lp.phone+'" style="color:var(--terra);text-decoration:none">📞 '+lp.phone+'</a></div>':'')
       +(lp.email?'<div style="font-size:.68rem;color:var(--td)">✉️ '+lp.email+'</div>':'')
       +'</div></div>';
-  }catch(e){if(el)el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';}
+  }catch(e){el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';}
 }
 
 
