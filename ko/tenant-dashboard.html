@@ -1748,8 +1748,16 @@ async function loadTenantVisits(){
       <div style="font-size:.73rem;color:var(--td);margin-bottom:.25rem">🗓 ${dateStr}</div>
       ${v.listing_zone?`<div style="font-size:.72rem;color:var(--td)">📍 ${v.listing_zone}</div>`:''}
       ${v.agent_name?`<div style="font-size:.72rem;color:var(--td)">🏆 Agent: ${v.agent_name}</div>`:''}
-      ${v.status==='awaiting_landlord'?`<div style="font-size:.73rem;color:var(--gold);margin-top:.3rem">Waiting for landlord to confirm availability...</div>`:''}
-      ${v.status==='agents_applying'?`<div style="font-size:.73rem;color:var(--sea);margin-top:.3rem">Landlord confirmed — best rated agent being selected...</div>`:''}
+      ${v.status==='awaiting_landlord'?`
+        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
+          <div style="font-size:.75rem;color:var(--gold);font-weight:600">⏳ Step 1/3 — Awaiting landlord confirmation</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">The landlord needs to confirm the date is available.</div>
+        </div>`:''}
+      ${v.status==='agents_applying'?`
+        <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
+          <div style="font-size:.75rem;color:var(--sea);font-weight:600">✅ Step 2/3 — Landlord confirmed! Agent being assigned...</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">The best available agent is being selected for your visit.</div>
+        </div>`:''}
       ${v.status==='agent_assigned'&&!v.tenant_confirmed?`
         <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
           <div style="font-size:.8rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Confirm your attendance!</div>
