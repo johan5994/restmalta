@@ -547,11 +547,44 @@ async function loadVisits(){
       }
       visitMsgs=deduped.filter(m=>!m.visit_id||!doneIds.has(m.visit_id));
     }
+      // Enrichir avec le prix du listing
+      const listingIds=[...new Set(visitMsgs.map(m=>m.listing_id).filter(Boolean))];
+      if(listingIds.length){
+        try{
+          const{data:ls}=await sb.from('listings').select('id,price').in('id',listingIds);
+          const priceMap={};(ls||[]).forEach(l=>{priceMap[l.id]=l.price;});
+          visitMsgs=visitMsgs.map(m=>({...m,listing_price:priceMap[m.listing_id]||0}));
+        }catch(e){}
+      }
+
   }catch(e){console.warn('loadVisitMsgs:',e.message);visitMsgs=[];}
 
   try{
     const{data:cv}=await sb.from('visits').select('*').eq('agent_id',U.id).order('visit_date',{ascending:true});
     confirmedVisits=cv||[];
+    if(confirmedVisits.length){
+      const lIds=[...new Set(confirmedVisits.map(v=>v.listing_id).filter(Boolean))];
+      if(lIds.length){
+        try{
+          const{data:ls}=await sb.from('listings').select('id,title,zone,full_address,key_type,key_location,price').in('id',lIds);
+          const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
+          const tIds=[...new Set(confirmedVisits.map(v=>v.tenant_id).filter(Boolean))];
+          let tMap={};
+          if(tIds.length){try{const{data:tp}=await sb.from('profiles').select('clerk_id,phone,email').in('clerk_id',tIds);(tp||[]).forEach(p=>{tMap[p.clerk_id]=p;});}catch(e){}}
+          confirmedVisits=confirmedVisits.map(v=>({
+            ...v,
+            listing_title:v.listing_title||lMap[v.listing_id]?.title||'Property',
+            listing_zone:v.listing_zone||lMap[v.listing_id]?.zone||'Malta',
+            listing_address:v.listing_address||lMap[v.listing_id]?.full_address||lMap[v.listing_id]?.zone||'Malta',
+            listing_price:v.listing_price||lMap[v.listing_id]?.price||0,
+            key_type:v.key_type||lMap[v.listing_id]?.key_type||'',
+            key_location:v.key_location||lMap[v.listing_id]?.key_location||'',
+            tenant_phone:v.tenant_phone||tMap[v.tenant_id]?.phone||'',
+            tenant_email:v.tenant_email||tMap[v.tenant_id]?.email||''
+          }));
+        }catch(e){}
+      }
+    }
 
     // Enrichir avec les infos du listing
     if(confirmedVisits.length){
@@ -617,7 +650,17 @@ async function loadVisits(){
         <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">🏠 ${property}</div>
         <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
         <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
-        <div style="font-size:.75rem;color:var(--td);margin-bottom:.4rem">👤 ${tenant}</div>
+        <div style="font-size:.75rem;color:var(--td);margin-bottom:.3rem">👤 ${tenant}</div>
+        <div style="display:flex;gap:.35rem;margin-bottom:.4rem">
+          <div style="background:rgba(76,175,125,.1);border-radius:6px;padding:.3rem .5rem;flex:1;text-align:center;font-size:.7rem">
+            <div style="color:var(--td)">Rent</div>
+            <div style="font-weight:700">${m.listing_price?'€'+m.listing_price+'/mo':'—'}</div>
+          </div>
+          <div style="background:rgba(76,175,125,.15);border-radius:6px;padding:.3rem .5rem;flex:1.5;text-align:center;font-size:.7rem">
+            <div style="color:var(--td)">Your commission (70%)</div>
+            <div style="font-weight:700;color:#4CAF7D">${m.listing_price?'€'+Math.round(m.listing_price*0.80*0.70):' Check listing'}</div>
+          </div>
+        </div>
         ${keyLine&&keyLine!=='Contact landlord'?`<div style="background:rgba(58,143,181,.08);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem">
           <div>🔑 <strong>Keys:</strong> ${keyLine}</div>
           ${keyDetail?`<div style="color:var(--tm);margin-top:.2rem">└ ${keyDetail}</div>`:''}
@@ -679,7 +722,6 @@ function startTimerDisplay(visitId, endTime){
 async function applyForVisit(msgId, listingId, visitId){
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
-  // Enregistrer la candidature
   try{
     await sb.from('messages').insert({
       listing_id:listingId, sender_id:U.id, receiver_id:'system',
@@ -688,55 +730,52 @@ async function applyForVisit(msgId, listingId, visitId){
     });
   }catch(e){}
 
-  // Premier arrivé premier servi — assigner immédiatement
   try{
-    // Vérifier que personne n'a été assigné entre temps
     const{data:current}=await sb.from('visits').select('status,agent_id').eq('id',visitId).single();
-    if(current?.status==='agent_assigned'||current?.agent_id){
+    if(current?.agent_id){
       toast('⚠️ Another agent was just assigned. Better luck next time!');
       await loadVisits();
       return;
     }
 
-    // Assigner directement
     await sb.from('visits').update({
       agent_id:U.id,
       agent_name:P?.full_name||'Agent',
       status:'agent_assigned',
       agents_applying_since:new Date().toISOString()
-    }).eq('id',visitId).in('status',['awaiting_landlord','agents_applying']);
+    }).eq('id',visitId);
 
-    // Récupérer les infos de la visite
-    const{data:visit}=await sb.from('visits').select('*').eq('id',visitId).single().catch(()=>({data:null}));
-    const{data:listing}=await sb.from('listings').select('*').eq('id',listingId).single().catch(()=>({data:null}));
-    const{data:tenantProfile}=await sb.from('profiles').select('full_name,phone').eq('clerk_id',visit?.tenant_id||'').single().catch(()=>({data:null}));
+    let visit=null;try{const{data:_v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=_v;}catch(e){}
+    let listing=null;try{const{data:_l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=_l;}catch(e){}
 
     const visitDateStr=visit?.visit_date?new Date(visit.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(visit?.visit_time||'TBD'):'TBD';
-    const tenantPhone=tenantProfile?.phone||'—';
-    const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Call landlord'};
-    const keyInfo=keyLabels[listing?.key_type]||'Contact landlord';
 
-    // Notifier le tenant
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:visit?.tenant_id,
-      content:`✅ Your visit is confirmed!\n\nAgent: ${P?.full_name||'Agent'}\nDate: ${visitDateStr}\nProperty: ${listing?.title||'—'}\nAddress: ${listing?.full_address||listing?.zone||'—'}\n\n⚠️ Please confirm your attendance in your dashboard → My Visits.\nNO-SHOW: €50 fee if no-show without 24h cancellation.`,
+      content:`✅ Your visit is confirmed!
+
+Agent: ${P?.full_name||'Agent'}
+Date: ${visitDateStr}
+Property: ${listing?.title||'—'}
+Address: ${listing?.full_address||listing?.zone||'—'}
+
+⚠️ Please confirm your attendance in My Visits.
+€50 no-show fee if you miss without 24h cancellation.`,
       type:'visit_confirmed_noshow'
     });}catch(e){}
 
-    // Notifier le landlord
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:visit?.landlord_id,
-      content:`✅ Visit assigned!\n\nAgent: ${P?.full_name||'Agent'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}`,
+      content:`✅ Visit assigned!
+
+Agent: ${P?.full_name||'Agent'}
+Date: ${visitDateStr}
+Tenant: ${visit?.tenant_name||'—'}`,
       type:'visit_info'
     });}catch(e){}
 
-    // Sauvegarder le chrono dans localStorage
-    const endTime=Date.now()+(5*60*1000);
-    localStorage.setItem('timer_'+visitId, endTime);
-
-    toast('🎉 You got the visit! Check your dashboard.');
     appliedIds.add(visitId);
-
+    toast('🎉 You got the visit! Check All visits.');
   }catch(e){
     console.error('applyForVisit error:',e);
     toast('❌ Could not apply: '+e.message);
@@ -745,106 +784,6 @@ async function applyForVisit(msgId, listingId, visitId){
   await loadVisits();
 }
 
-// ── Chrono persistant ─────────────────────────────────────────
-function showTimer(actionsDiv, visitId, endTime){
-  actionsDiv.innerHTML=`
-    <div style="background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem .85rem;text-align:center">
-      <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">⏳ Applied! Agent being selected in:</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${visitId}">5:00</div>
-      <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
-    </div>`;
-
-  const interval=setInterval(()=>{
-    const remaining=endTime-Date.now();
-    const timerEl=document.getElementById(`timer-${visitId}`);
-    if(!timerEl){clearInterval(interval);return;}
-    if(remaining<=0){
-      clearInterval(interval);
-      localStorage.removeItem('timer_'+visitId);
-      timerEl.textContent='Selecting...';
-      triggerSelection(visitId, null);
-    } else {
-      const m=Math.floor(remaining/60000);
-      const s=Math.floor((remaining%60000)/1000);
-      timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;
-    }
-  },1000);
-}
-
-function restoreTimers(){
-  // Restaurer les chronos actifs depuis localStorage
-  for(const key of Object.keys(localStorage)){
-    if(!key.startsWith('timer_'))continue;
-    const visitId=key.replace('timer_','');
-    const endTime=parseInt(localStorage.getItem(key));
-    if(!endTime)continue;
-    if(Date.now()>endTime){
-      // Temps écoulé pendant l'absence — déclencher la sélection
-      localStorage.removeItem(key);
-      triggerSelection(visitId, null);
-      continue;
-    }
-    // Remettre le chrono dans la card
-    const cardEl=document.querySelector(`[data-visit-id="${visitId}"]`);
-    if(cardEl){
-      const actionsDiv=cardEl.querySelector('.visit-actions');
-      if(actionsDiv) showTimer(actionsDiv, visitId, endTime);
-    }
-  }
-}
-
-async function triggerSelection(visitId, listingId){
-  let visit=null;
-  try{const{data}=await sb.from('visits').select('status,agent_id,listing_id').eq('id',visitId).single();visit=data;}catch(e){}
-
-  if(visit?.status==='agent_assigned'||visit?.status==='confirmed'){
-    loadVisits();
-    return;
-  }
-
-  try{
-    await fetch('/.netlify/functions/schedule-selection',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({visit_id:visitId, listing_id:listingId||visit?.listing_id, trigger:'manual'})
-    });
-  }catch(e){console.error('Selection error:',e);}
-
-  await loadVisits();
-}
-
-async function validateVisit(msgId, listingId, visitId){
-  // Register as available — same as applyForVisit
-  await applyForVisit(msgId, listingId, visitId);
-}
-
-function generateVisitSheet(visit, listing){
-  if(!visit||!listing)return'Visit details pending.';
-  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
-  const inventoryLabels={mandatory:'✅ Owner will be present',if_possible:'👋 Owner if possible (agent signs if absent)',not_needed:'❌ Agent signs on behalf of owner'};
-  return`━━━━━━━━━━━━━━━━━━━━━━━━
-📋 VISIT SHEET — RestMalta
-━━━━━━━━━━━━━━━━━━━━━━━━
-🏠 Property: ${listing.title||'—'}
-📍 Address: ${listing.full_address||listing.zone||'—'}
-📅 Date: ${visit.visit_date||'—'} at ${visit.visit_time||'TBD'}
-👤 Tenant: ${visit.tenant_name||'—'}
-🏆 Agent: ${P?.full_name||'RestMalta Agent'}
-
-🛏 Bedrooms: ${listing.bedrooms||listing.spots||'—'}
-🏷 Type: ${listing.type==='short'?'Short-let':'Long-let'}
-💰 Rent: €${listing.price||'—'}/month
-${listing.furnished?'✅ Furnished':'❌ Unfurnished'}
-${listing.bills_included?'✅ Bills included':''}
-${listing.parking?'✅ Parking':''}
-${listing.pool?'✅ Pool':''}
-
-🔑 Key access: ${keyLabels[listing.key_type]||'Contact landlord'}
-${listing.key_location?'└ '+listing.key_location:''}
-
-📝 Entry inventory: ${inventoryLabels[listing.inventory_presence]||'Owner present'}
-━━━━━━━━━━━━━━━━━━━━━━━━`;
-}
 
 async function wrongDateVisit(msgId, listingId, visitId){
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
@@ -928,7 +867,7 @@ function renderAllVisitsDirect(){
   const w=document.getElementById('all-visits-list');
   if(!w)return;
 
-  const assigned=(visits||[]).filter(v=>!['cancelled','no_show','move_in_ready'].includes(v.status));
+  const assigned=(visits||[]).filter(v=>!['cancelled','no_show','move_in_ready','done'].includes(v.status));
   const past=(visits||[]).filter(v=>['cancelled','done','no_show','move_in_ready'].includes(v.status));
 
   if(!assigned.length&&!past.length){
@@ -938,802 +877,90 @@ function renderAllVisitsDirect(){
 
   let html='';
 
-  // Visites assignées
   assigned.forEach(v=>{
-    const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(v.visit_time||'TBD'):'TBD';
-    const statusLabel={'agent_assigned':'✅ Confirmed','confirmed':'✅ Confirmed','edl_scheduled':'📋 Signing day','signing_day':'📋 Signing day','completed':'🏁 Done','lease_pending':'📄 Lease pending'}[v.status]||v.status;
-    const badgeClass=['agent_assigned','confirmed'].includes(v.status)?'b-green':v.status==='edl_scheduled'||v.status==='signing_day'?'b-sea':'b-gold';
+    const keyL={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour',agent:'🏆 Agent has keys',landlord:'📞 Call landlord'};
+    const keyDisplay=keyL[v.key_type]||v.key_info||'Contact landlord';
+    const sc=['agent_assigned','confirmed'].includes(v.status)?'rgba(76,175,125,.1)':['edl_scheduled','signing_day'].includes(v.status)?'rgba(58,143,181,.1)':'var(--s2)';
+    const bc=['agent_assigned','confirmed'].includes(v.status)?'rgba(76,175,125,.3)':['edl_scheduled','signing_day'].includes(v.status)?'rgba(58,143,181,.3)':'var(--b)';
+    const statusBadge={'agent_assigned':'✅ Confirmed','confirmed':'✅ Tenant confirmed','edl_scheduled':'📋 Signing day','signing_day':'📋 Signing day','completed':'🏁 Done','lease_pending':'📄 Lease pending'}[v.status]||v.status;
+    const badgeCls=['agent_assigned','confirmed'].includes(v.status)?'b-green':['edl_scheduled','signing_day'].includes(v.status)?'b-sea':'b-gold';
+    const keyCode=v.key_location?'<div style="font-size:.68rem;color:var(--sea)">Code: '+v.key_location+'</div>':'';
+    const tPhone=v.tenant_phone?'<div style="font-size:.73rem"><a href="tel:'+v.tenant_phone+'" style="color:var(--sea);text-decoration:none">📞 '+v.tenant_phone+'</a></div>':'';
+    const tEmail=v.tenant_email?'<div style="font-size:.68rem;color:var(--td)">✉️ '+v.tenant_email+'</div>':'';
+    let doneBtn='';
+    if(['agent_assigned','confirmed'].includes(v.status)) doneBtn='<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" data-vid="'+v.id+'" onclick="markVisitDone(this.dataset.vid)">✅ Visit done</button>';
+    else if(['edl_scheduled','signing_day'].includes(v.status)) doneBtn='<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" data-vid="'+v.id+'" onclick="startSigningDay(this.dataset.vid)">📋 Signing Day</button>';
+    const issueBtn='<button class="btn bg bsm" style="font-size:.72rem" data-vid="'+v.id+'" data-lid="'+(v.listing_id||'')+'" data-tid="'+(v.tenant_id||'')+'" data-llid="'+(v.landlord_id||'')+'" onclick="showVisitIssueOptions(this.dataset.vid,this.dataset.lid,this.dataset.tid,this.dataset.llid)">⚠️ Issue</button>';
 
-    html+=`<div style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:.85rem;margin-bottom:.6rem" id="visit-card-${v.id}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-        <div style="font-size:.88rem;font-weight:700">${v.listing_title||v.listing_address||'Property'}</div>
-        <span class="badge ${badgeClass}" style="font-size:.62rem">${statusLabel}</span>
-      </div>
-      <div style="font-size:.73rem;color:var(--td);margin-bottom:.2rem">📍 ${v.listing_zone||v.listing_address||'Malta'}</div>
-      <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">🗓 ${dateStr}</div>
-      <div style="font-size:.73rem;color:var(--td);margin-bottom:.3rem">👤 ${v.tenant_name||'—'}</div>
-      ${v.tenant_email?`<div style="font-size:.7rem;color:var(--td);margin-bottom:.35rem">✉️ ${v.tenant_email}</div>`:''}
-      ${v.key_info?`<div style="background:rgba(58,143,181,.08);border-radius:7px;padding:.4rem .6rem;margin-bottom:.4rem;font-size:.72rem">🔑 ${v.key_info}</div>`:''}
-      <div style="display:flex;gap:.4rem;margin-top:.4rem">
-        ${v.status==='edl_scheduled'||v.status==='signing_day'
-          ?`<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" onclick="startSigningDay('${v.id}')">📋 Start Signing Day</button>`
-          :v.status==='agent_assigned'||v.status==='confirmed'
-            ?`<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" onclick="markVisitDone('${v.id}')">✅ Mark visit done</button>`
-            :''
-        }
-        <button class="btn bg bsm" style="font-size:.72rem" onclick="showVisitIssueOptions('${v.id}','${v.listing_id||''}','${v.tenant_id||''}','${v.landlord_id||''}')">⚠️ Issue</button>
-      </div>
-    </div>`;
+    html+='<div style="background:'+sc+';border:1.5px solid '+bc+';border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="visit-card-'+v.id+'">'
+      +'<div style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">'
+        +'<div><div style="font-size:.92rem;font-weight:800">'+(v.listing_title||'Property')+'</div>'
+        +'<div style="font-size:.72rem;color:var(--td);margin-top:.1rem">📍 '+(v.listing_address||v.listing_zone||'Malta')+'</div></div>'
+        +'<span class="badge '+badgeCls+'" style="font-size:.62rem;flex-shrink:0;margin-left:.5rem">'+statusBadge+'</span>'
+      +'</div>'
+      +'<div style="padding:.7rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;border-bottom:1px solid rgba(255,255,255,.06)">'
+        +'<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .65rem">'
+          +'<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.25rem">📅 Date & Time</div>'
+          +'<div style="font-size:.82rem;font-weight:700;color:var(--sea)">'+(v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):'TBD')+'</div>'
+          +'<div style="font-size:.75rem;color:var(--tf)">'+(v.visit_time||'TBD')+'</div>'
+        +'</div>'
+        +'<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .65rem">'
+          +'<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.25rem">🔑 Key Access</div>'
+          +'<div style="font-size:.75rem;font-weight:700">'+keyDisplay+'</div>'+keyCode
+        +'</div>'
+      +'</div>'
+      +'<div style="padding:.65rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)">'
+        +'<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.4rem">👤 Tenant</div>'
+        +'<div style="display:flex;align-items:center;gap:.6rem">'
+          +'<div style="width:34px;height:34px;border-radius:50%;background:var(--sea);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:.9rem;flex-shrink:0">'+(v.tenant_name||'T')[0].toUpperCase()+'</div>'
+          +'<div><div style="font-size:.85rem;font-weight:700">'+(v.tenant_name||'—')+'</div>'+tPhone+tEmail+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="padding:.65rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)">'
+        +'<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.4rem">🏠 Landlord</div>'
+        +'<div id="ll-info-'+v.id+'"><div style="font-size:.75rem;color:var(--td)">Loading...</div></div>'
+      +'</div>'
+      +'<div style="padding:.5rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:.5rem">'
+        +'<div style="background:rgba(255,255,255,.04);border-radius:7px;padding:.4rem .65rem;flex:1;text-align:center">'
+          +'<div style="font-size:.6rem;color:var(--td)">Rent</div>'
+          +'<div style="font-size:.88rem;font-weight:700">€'+(v.listing_price||'—')+'/mo</div>'
+        +'</div>'
+        +'<div style="background:rgba(76,175,125,.1);border-radius:7px;padding:.4rem .65rem;flex:2;text-align:center">'
+          +'<div style="font-size:.6rem;color:var(--td)">Your commission (70%)</div>'
+          +'<div style="font-size:.88rem;font-weight:700;color:#4CAF7D">€'+(v.listing_price?Math.round(v.listing_price*(0.40+0.40)*0.70):'—')+'</div>'
+          +'<div style="font-size:.6rem;color:var(--td)">tenant 40% + landlord 40%</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="padding:.65rem 1rem;display:flex;gap:.4rem">'+doneBtn+issueBtn+'</div>'
+    +'</div>';
+    if(v.landlord_id) loadLandlordInfo(v.landlord_id, v.id);
   });
 
-  // Visites passées grisées
   if(past.length){
-    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem">
-      <div style="flex:1;height:1px;background:var(--b)"></div><span>Past visits</span><div style="flex:1;height:1px;background:var(--b)"></div>
-    </div>`;
+    html+='<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:1px;background:var(--b)"></div><span>Past visits</span><div style="flex:1;height:1px;background:var(--b)"></div></div>';
     past.forEach(v=>{
-      html+=`<div style="background:transparent;border:1px solid var(--b);border-radius:10px;padding:.7rem;margin-bottom:.4rem;opacity:.6">
-        <div style="font-size:.82rem;font-weight:600">${v.listing_title||'Property'}</div>
-        <div style="font-size:.72rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'} · ${v.status}</div>
-      </div>`;
+      html+='<div style="background:transparent;border:1px solid var(--b);border-radius:10px;padding:.7rem;margin-bottom:.4rem;opacity:.6"><div style="font-size:.82rem;font-weight:600">'+(v.listing_title||'Property')+'</div><div style="font-size:.72rem;color:var(--td)">'+(v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—')+' · '+v.status+'</div></div>';
     });
   }
 
   w.innerHTML=html;
 }
-function renderAgentVisitItems(items, w){
-  if(!w)return;
-  const visibleVisits=items;
-  if(!visibleVisits.length){
-    w.innerHTML='<div class="empty"><div class="em">📅</div><p>Nothing here yet</p></div>';
-    return;
-  }
-  w.innerHTML=visibleVisits.map(v=>{
-    const isAssigned=v.status==='agent_assigned'||v.status==='confirmed'||v.status==='edl_scheduled'||v.status==='signing_day';
-    const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'TBD';
 
-    if(isAssigned){
-      // ── Fiche de visite complète ──
-      return`<div style="background:var(--s2);border:1px solid rgba(76,175,125,.3);border-radius:14px;overflow:hidden;margin-bottom:1rem">
-        <!-- Header -->
-        <div style="background:linear-gradient(135deg,rgba(76,175,125,.15),rgba(58,143,181,.1));padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:.2rem">📋 Visit Sheet — RestMalta</div>
-            <div style="font-size:1rem;font-weight:700">${v.listing_title||'Property'}</div>
-          </div>
-          <span class="badge b-green">✅ Confirmed</span>
-        </div>
-        <!-- Infos principales -->
-        <div style="padding:1rem 1.2rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-          <div>
-            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">📅 Date & Time</div>
-            <div style="font-size:.88rem;font-weight:600;color:var(--terra)">${dateStr}</div>
-            <div style="font-size:.82rem;color:var(--tm)">at ${v.visit_time||'TBD'}</div>
-          </div>
-          <div>
-            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">👤 Tenant</div>
-            <div style="font-size:.88rem;font-weight:600">${v.tenant_name||'—'}</div>
-            <div style="font-size:.75rem;color:var(--tm)">${v.tenant_email||'—'}</div>
-            ${v.tenant_phone?`<div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-top:.2rem">📞 ${v.tenant_phone}</div>`:''}
-          </div>
-          <div>
-            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">📍 Address</div>
-            <div style="font-size:.85rem;font-weight:600">${v.listing_address||v.listing_zone||'—'}</div>
-          </div>
-          <div>
-            <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.3rem">🔑 Key Access</div>
-            <div style="font-size:.85rem;font-weight:600">${v.key_info||'Contact landlord'}</div>
-          </div>
-        </div>
-        <!-- Détails listing -->
-        <div id="listing-details-${v.id}" style="padding:0 1.2rem 1rem">
-          <div style="font-size:.75rem;color:var(--td);text-align:center;padding:.5rem">Loading property details...</div>
-        </div>
-        <!-- Actions selon statut -->
-        <div style="padding:.75rem 1.2rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-wrap:wrap">
-          ${(v.status==='entry_inventory_pending'||v.status==='edl_scheduled')
-            ?`<button class="btn bp bsm" onclick="startSigningDay('${v.id}')" style="flex:2;justify-content:center;background:var(--terra)">📋 Start Signing Day — EDL + Lease</button>`
-            :v.status==='signing_day'
-            ?`<button class="btn bp bsm" onclick="completeSigningDay('${v.id}')" style="flex:2;justify-content:center;background:#4CAF7D">🔑 Keys Handed Over → Complete</button>`
-            :`<button class="btn bp bsm" onclick="markVisitDone('${v.id}')" style="flex:1;justify-content:center">✅ Mark visit as done</button>`
-          }
-          <button class="btn bg bsm" onclick="showVisitIssueOptions('${v.id}','${v.listing_id||''}','${v.tenant_id||''}','${v.landlord_id||''}')" style="flex:1;justify-content:center">⚠️ Issue</button>
-        </div>
-        <!-- Signing day panel -->
-        <div id="signing-panel-${v.id}" style="display:none;padding:.75rem 1.2rem;border-top:1px solid var(--b)"></div>
-      </div>`;
-    }
-
-    // Card simple pour les autres statuts
-    return`<div class="vcard"><div class="vtime"><div class="vt-h">${(v.visit_time||'--').split(':')[0]}</div><div class="vt-m">${(v.visit_time||'--').split(':')[1]||'00'}</div></div><div class="vinfo"><div class="vtitle">${v.listing_title||'Property'}</div><div class="vsub">${dateStr}</div><div class="vtenant"><div class="vav">${(v.tenant_name||'T')[0].toUpperCase()}</div>${v.tenant_name||'Tenant'}</div></div><span class="badge b-gold">${v.status||'—'}</span></div>`;
-  }).join('');
-
-  // Charger les détails des listings pour les fiches complètes
-  visibleVisits.filter(v=>v.status==='agent_assigned'||v.status==='confirmed').forEach(v=>loadVisitListingDetails(v));
-}
-
-async function loadVisitListingDetails(visit){
-  const container=document.getElementById(`listing-details-${visit.id}`);
-  if(!container)return;
-
-  let listing=null;
+async function loadLandlordInfo(landlordId, visitId){
+  const el=document.getElementById('ll-info-'+visitId);
+  if(!el)return;
   try{
-    const{data}=await sb.from('listings').select('*').eq('id',visit.listing_id).single();
-    listing=data;
-  }catch(e){}
-
-  if(!listing){
-    container.innerHTML='<div style="font-size:.75rem;color:var(--td);text-align:center;padding:.5rem">Property details not available</div>';
-    return;
-  }
-
-  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
-  const inventoryLabels={mandatory:'✅ Owner will be present',if_possible:'👋 Owner if possible',not_needed:'❌ Agent signs on behalf of owner'};
-
-  container.innerHTML=`
-    <!-- Détails propriété -->
-    <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.75rem">
-        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem">
-          <div style="font-size:1.1rem">🛏</div>
-          <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Bedrooms</div>
-          <div style="font-size:.85rem;font-weight:700">${listing.bedrooms||listing.spots||'—'}</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem">
-          <div style="font-size:1.1rem">💰</div>
-          <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Rent</div>
-          <div style="font-size:.85rem;font-weight:700">€${listing.price||'—'}/mo</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem">
-          <div style="font-size:1.1rem">${listing.type==='short'?'⏱':'📅'}</div>
-          <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Type</div>
-          <div style="font-size:.85rem;font-weight:700">${listing.type==='short'?'Short-let':'Long-let'}</div>
-        </div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.75rem">
-        ${listing.furnished?'<span style="background:rgba(76,175,125,.15);color:var(--green);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">✅ Furnished</span>':''}
-        ${listing.bills_included?'<span style="background:rgba(76,175,125,.15);color:var(--green);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">✅ Bills included</span>':''}
-        ${listing.parking?'<span style="background:rgba(58,143,181,.15);color:var(--sea);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">🅿️ Parking</span>':''}
-        ${listing.pool?'<span style="background:rgba(58,143,181,.15);color:var(--sea);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">🏊 Pool</span>':''}
-        ${listing.pets?'<span style="background:rgba(212,168,71,.15);color:var(--gold);padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:600">🐾 Pets OK</span>':''}
-      </div>
-      <!-- Keys and inventory -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
-        <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.65rem">
-          <div style="font-size:.65rem;font-weight:700;color:var(--sea);margin-bottom:.3rem">🔑 KEY ACCESS</div>
-          <div style="font-size:.8rem;font-weight:600">${keyLabels[listing.key_type]||'Contact landlord'}</div>
-          ${listing.key_location?`<div style="font-size:.72rem;color:var(--tm);margin-top:.2rem">└ ${listing.key_location}</div>`:''}
-        </div>
-        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.65rem">
-          <div style="font-size:.65rem;font-weight:700;color:var(--gold);margin-bottom:.3rem">📝 INVENTORY</div>
-          <div style="font-size:.8rem;font-weight:600">${inventoryLabels[listing.inventory_presence]||'Owner present'}</div>
-        </div>
-      </div>
-      ${listing.notes||listing.description?`<div style="margin-top:.75rem;font-size:.78rem;color:var(--tm);line-height:1.5;padding:.6rem;background:rgba(255,255,255,.03);border-radius:8px">📌 ${(listing.notes||listing.description||'').substring(0,200)}${(listing.notes||listing.description||'').length>200?'...':''}</div>`:''}
-    </div>`;
+    const{data:lp}=await sb.from('profiles').select('full_name,phone,email').eq('clerk_id',landlordId).single();
+    if(!lp){if(el)el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';return;}
+    el.innerHTML='<div style="display:flex;align-items:center;gap:.6rem">'
+      +'<div style="width:34px;height:34px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:.9rem;flex-shrink:0">'+(lp.full_name||'L')[0].toUpperCase()+'</div>'
+      +'<div><div style="font-size:.85rem;font-weight:700">'+(lp.full_name||'—')+'</div>'
+      +(lp.phone?'<div style="font-size:.73rem;color:var(--terra)"><a href="tel:'+lp.phone+'" style="color:var(--terra);text-decoration:none">📞 '+lp.phone+'</a></div>':'')
+      +(lp.email?'<div style="font-size:.68rem;color:var(--td)">✉️ '+lp.email+'</div>':'')
+      +'</div></div>';
+  }catch(e){if(el)el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';}
 }
 
-async function startSigningDay(visitId){
-  // Marquer le statut signing_day
-  try{await sb.from('visits').update({status:'signing_day'}).eq('id',visitId);}catch(e){}
-
-  const panel=document.getElementById(`signing-panel-${visitId}`);
-  if(!panel)return;
-
-  // Récupérer les données
-  let visit=null;
-  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
-  let lease=null;
-  try{const{data:l}=await sb.from('leases').select('*').eq('listing_id',visit?.listing_id).eq('tenant_id',visit?.tenant_id).order('created_at',{ascending:false}).limit(1).single();lease=l;}catch(e){}
-  let listing=null;
-  try{const{data:li}=await sb.from('listings').select('*').eq('id',visit?.listing_id).single();listing=li;}catch(e){}
-  let tenantProfile=null;
-  try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',visit?.tenant_id).single();tenantProfile=tp;}catch(e){}
-  let landlordProfile=null;
-  try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',visit?.landlord_id).single();landlordProfile=lp;}catch(e){}
-
-  const holdingPaid=lease?.holding_deposit_paid||0;
-  const firstMonth=listing?.price||0;
-  const remaining=Math.max(0,firstMonth-holdingPaid);
-  const deposit=listing?.deposit||0;
-  const totalDue=deposit+remaining;
-  const revTag=landlordProfile?.revolut_tag||'';
-  const revLink=revTag.startsWith('@')?`https://revolut.me/${revTag.replace('@','')}?amount=${totalDue}`:'';
-
-  panel.style.display='block';
-  panel.innerHTML=`
-    <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem">📋 Signing Day — Step by Step</div>
-
-    <!-- Étape 0 : Form H ARMS -->
-    <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
-      <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">0️⃣ ARMS Form H — Electricity & Water</div>
-      <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem;line-height:1.5">The tenant must sign <strong>Form H</strong> to declare the number of occupants. Without this, they'll pay up to 30% more on electricity bills (commercial rate instead of residential).</div>
-      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.72rem;color:var(--gold)">
-        ⚡ Critical for ARMS billing — do this before handing over keys.
-      </div>
-      <a href="https://www.arms.com.mt/form-h" target="_blank" style="display:block;width:100%;background:rgba(212,168,71,.15);color:var(--gold);border:1px solid rgba(212,168,71,.3);border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none">📋 Open ARMS Form H →</a>
-      <div style="font-size:.65rem;color:var(--td);margin-top:.3rem;text-align:center">Print or fill digitally — both parties sign on the spot</div>
-    </div>
-
-    <!-- Étape 1 : EDL -->
-    <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
-      <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">1️⃣ Entry Inventory (État des Lieux)</div>
-      <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem">Take photos of each room, note condition, read meters. Both parties present.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem">
-        <div><label style="font-size:.65rem;color:var(--td)">💧 Water meter</label><input type="text" id="meter-water-${visitId}" class="fi" placeholder="e.g. 1234.5" style="font-size:.78rem;margin-top:.2rem"></div>
-        <div><label style="font-size:.65rem;color:var(--td)">⚡ Electricity meter</label><input type="text" id="meter-elec-${visitId}" class="fi" placeholder="e.g. 5678.9" style="font-size:.78rem;margin-top:.2rem"></div>
-      </div>
-      <div><label style="font-size:.65rem;color:var(--td)">📝 Inventory notes (defects, remarks)</label><textarea id="inv-notes-${visitId}" style="width:100%;border:1px solid var(--b);border-radius:8px;background:var(--s2);color:var(--tf);padding:.5rem;font-size:.75rem;margin-top:.2rem;resize:vertical" rows="3" placeholder="e.g. Small scratch on bedroom wall, fridge door handle loose..."></textarea></div>
-    </div>
-
-    <!-- Step 2: Live lease signing -->
-    <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
-      <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">2️⃣ Lease Signature — Live</div>
-      <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem">Send the signing link directly to the tenant's phone. Both sign on the spot.</div>
-      ${lease?.docuseal_id
-        ?`<button onclick="sendSigningLink('${visitId}','${visit?.tenant_id||''}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">📱 Send signing link to tenant's phone</button>`
-        :`<div style="font-size:.75rem;color:var(--red)">⚠️ No lease found — landlord must generate the lease first.</div>`
-      }
-      <div id="signing-status-${visitId}" style="margin-top:.4rem;font-size:.72rem;color:var(--td)"></div>
-    </div>
-
-    <!-- Étape 3 : Fiche de paiement -->
-    <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
-      <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">3️⃣ Payment Sheet for Tenant</div>
-      <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;margin-bottom:.5rem">
-        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Security deposit</span><span>€${deposit}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">First month rent</span><span>€${firstMonth}</span></div>
-        ${holdingPaid>0?`<div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding deposit already paid</span><span style="color:#4CAF7D">- €${holdingPaid}</span></div>`:''}
-        <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.2rem;margin-top:.2rem"><span>Total due to landlord</span><span>€${totalDue}</span></div>
-      </div>
-      <div style="font-size:.72rem;margin-bottom:.4rem">
-        <div style="font-weight:600;margin-bottom:.2rem">🏦 Bank transfer:</div>
-        <div style="color:var(--tm)">${landlordProfile?.iban||'—'}</div>
-        <div style="color:var(--td)">Name: ${landlordProfile?.full_name||'—'}</div>
-        ${revLink?`<div style="margin-top:.3rem"><a href="${revLink}" target="_blank" style="color:#6c5ce7;font-weight:600">💜 Pay via Revolut →</a></div>`:''}
-      </div>
-      <button onclick="sendPaymentSheet('${visitId}','${visit?.tenant_id||''}',${totalDue},'${landlordProfile?.iban||''}','${landlordProfile?.full_name||''}','${revLink}','${visit?.listing_id||''}')" style="width:100%;background:var(--gold);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">💶 Send payment sheet to tenant</button>
-      <div id="payment-sheet-status-${visitId}" style="margin-top:.4rem;font-size:.72rem;color:var(--td)"></div>
-    </div>
-
-    <!-- Étape 4 : Remise des clés -->
-    <div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem">
-      <div style="font-size:.8rem;font-weight:700;margin-bottom:.3rem;color:#4CAF7D">4️⃣ Key Handover</div>
-      <div style="font-size:.72rem;color:var(--tm);margin-bottom:.5rem">Once everything is signed and payment confirmed, hand over the keys.</div>
-      <button onclick="completeSigningDay('${visitId}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.7rem;font-size:.85rem;font-weight:700;cursor:pointer">🔑 Keys Handed Over → Complete Move-In</button>
-    </div>`;
-
-  // Scroll vers le panel
-  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
-  loadVisits();
-}
-
-async function sendSigningLink(visitId, tenantId){
-  const status=document.getElementById(`signing-status-${visitId}`);
-  if(status)status.textContent='⏳ Sending link...';
-
-  let visit=null;
-  try{const{data:v}=await sb.from('visits').select('listing_id,tenant_id').eq('id',visitId).single();visit=v;}catch(e){}
-  let lease=null;
-  try{const{data:l}=await sb.from('leases').select('docuseal_id').eq('listing_id',visit?.listing_id).eq('tenant_id',visit?.tenant_id).order('created_at',{ascending:false}).limit(1).single();lease=l;}catch(e){}
-
-  if(!lease?.docuseal_id){
-    if(status)status.textContent='❌ No lease found.';return;
-  }
-
-  // Notifier le tenant par message avec lien DocuSeal
-  try{
-    await sb.from('messages').insert({
-      listing_id:visit.listing_id,
-      sender_id:'system',
-      receiver_id:tenantId,
-      content:`📱 The agent is waiting for your signature!\n\nPlease sign your lease now — it only takes 2 minutes.\n\nCheck your email for the DocuSeal signing link, or ask the agent to show you the link on their device.`,
-      type:'sign_now'
-    });
-    if(status)status.textContent='✅ Notification sent to tenant — check email or messages.';
-  }catch(e){
-    if(status)status.textContent='❌ Error: '+e.message;
-  }
-}
-
-async function sendPaymentSheet(visitId, tenantId, totalDue, iban, landlordName, revLink, listingId){
-  const status=document.getElementById(`payment-sheet-status-${visitId}`);
-  if(status)status.textContent='⏳ Sending...';
-
-  try{
-    await sb.from('messages').insert({
-      listing_id:listingId,
-      sender_id:'system',
-      receiver_id:tenantId,
-      content:`💶 Payment due to your landlord:\n\nTotal: €${totalDue}\n\n🏦 Bank transfer (IBAN):\n${iban||'—'}\nName: ${landlordName||'—'}\n${revLink?`\n💜 Pay via Revolut:\n${revLink}`:''}\n\nPlease pay now and click "I've paid" in your dashboard once done.`,
-      type:'payment_due_onsite'
-    });
-    if(status)status.innerHTML='✅ Payment sheet sent to tenant\'s dashboard.';
-  }catch(e){
-    if(status)status.textContent='❌ Error: '+e.message;
-  }
-}
-
-async function completeSigningDay(visitId){
-  if(!confirm('Confirm keys have been handed over and move-in is complete?'))return;
-
-  let visit=null;
-  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
-
-  // Save meter readings
-  const waterMeter=document.getElementById(`meter-water-${visitId}`)?.value||'';
-  const elecMeter=document.getElementById(`meter-elec-${visitId}`)?.value||'';
-  const notes=document.getElementById(`inv-notes-${visitId}`)?.value||'';
-
-  try{
-    await sb.from('visits').update({
-      status:'move_in_ready',
-      water_meter:waterMeter,
-      electricity_meter:elecMeter,
-      inventory_notes:notes
-    }).eq('id',visitId);
-  }catch(e){}
-
-  // Notifier tenant
-  if(visit?.tenant_id){
-    try{await sb.from('messages').insert({
-      listing_id:visit.listing_id,sender_id:'system',receiver_id:visit.tenant_id,
-      content:`🎉 Welcome home!\n\n🏠 ${visit.listing_title||'Your new home'} is yours!\n\n📋 Entry inventory completed by ${P?.full_name||'agent'}.\n💧 Water meter: ${waterMeter||'—'}\n⚡ Electricity meter: ${elecMeter||'—'}\n\n⚠️ Important: Register your lease with the Housing Authority within 10 days:\nrentregistration.mt\n\n🏡 Enjoy your new home in Malta!`,
-      type:'move_in_ready'
-    });}catch(e){}
-  }
-
-  // Notifier landlord
-  if(visit?.landlord_id){
-    try{await sb.from('messages').insert({
-      listing_id:visit.listing_id,sender_id:'system',receiver_id:visit.landlord_id,
-      content:`✅ Move-in complete!\n\n🏠 ${visit.listing_title||'Property'}\n👤 Tenant: ${visit.tenant_name||'—'}\n\n📋 Entry inventory done by ${P?.full_name||'agent'}.\n💧 Water meter: ${waterMeter||'—'}\n⚡ Electricity meter: ${elecMeter||'—'}\n${notes?`\nNotes: ${notes}`:''}\n\n⚠️ Register the lease at rentregistration.mt within 10 days.`,
-      type:'entry_inventory_done'
-    });}catch(e){}
-  }
-
-  toast('🎉 Move-in complete! Tenant and landlord notified.');
-  loadVisits();
-}
-
-async function markEntryInventoryDone(visitId){
-  // Rediriger vers startSigningDay
-  startSigningDay(visitId);
-}
-
-async function markVisitDone(visitId){
-  if(!confirm('Confirm entry inventory is complete? This will notify all parties and allow the tenant to move in.'))return;
-
-  let visit=null;
-  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
-
-  try{await sb.from('visits').update({status:'move_in_ready'}).eq('id',visitId);}catch(e){}
-
-  // Notify tenant — can move in
-  if(visit?.tenant_id){
-    try{
-      await sb.from('messages').insert({
-        listing_id:visit.listing_id,
-        sender_id:'system',
-        receiver_id:visit.tenant_id,
-        content:`🎉 Entry inventory complete!\n\n🏠 ${visit.listing_title||'Your new home'} is ready for you to move in.\n\nWelcome to your new home in Malta! 🇲🇹\n\n⚠️ Remember to register your lease with the Housing Authority within 10 days:\nrentregistration.mt`,
-        type:'move_in_ready'
-      });
-    }catch(e){}
-  }
-
-  // Notifier landlord
-  if(visit?.landlord_id){
-    try{
-      await sb.from('messages').insert({
-        listing_id:visit.listing_id,
-        sender_id:'system',
-        receiver_id:visit.landlord_id,
-        content:`✅ Entry inventory completed by ${P?.full_name||'agent'}.\n\n🏠 ${visit.listing_title||'Property'}\n👤 Tenant: ${visit.tenant_name||'—'}\n\nThe tenant has been notified and can now move in.`,
-        type:'entry_inventory_done'
-      });
-    }catch(e){}
-  }
-
-  toast('🎉 Entry inventory done — tenant notified to move in!');
-  loadVisits();
-}
-
-async function markVisitDone(visitId){
-  if(!confirm('Mark this visit as completed?'))return;
-
-  let visit=null;
-  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
-
-  try{await sb.from('visits').update({status:'completed'}).eq('id',visitId);}catch(e){}
-
-  // Notifier le tenant avec les boutons interested/not interested
-  if(visit?.tenant_id&&visit?.listing_id){
-    try{
-      await sb.from('messages').insert({
-        listing_id:visit.listing_id,
-        sender_id:'system',
-        receiver_id:visit.tenant_id,
-        content:`🏠 Your visit to ${visit.listing_title||'the property'} is complete!\n\nAre you interested in renting this property?`,
-        type:'visit_interest_check',
-        visit_id:visitId
-      });
-    }catch(e){}
-  }
-
-  toast('✅ Visit marked as done — tenant has been asked if they want to rent.');
-  loadVisits();
-}
-
-function showVisitIssueOptions(visitId, listingId, tenantId, landlordId){
-  // Afficher un overlay avec les options
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
-  overlay.innerHTML=`
-    <div style="background:var(--card,#1a1a1a);border-radius:16px;padding:1.75rem;max-width:360px;width:100%">
-      <div style="font-size:1rem;font-weight:700;margin-bottom:.4rem">⚠️ What happened?</div>
-      <div style="font-size:.78rem;color:var(--td,#888);margin-bottom:1.25rem">Select the issue with this visit</div>
-      <div style="display:flex;flex-direction:column;gap:.6rem">
-        <button onclick="chargeNoShow('${visitId}','${listingId}','${tenantId}','${landlordId}',this.closest('[style*=fixed]'))" style="width:100%;background:rgba(224,90,90,.12);color:#E05A5A;border:1.5px solid rgba(224,90,90,.3);border-radius:10px;padding:.85rem;font-size:.88rem;font-weight:700;cursor:pointer;text-align:left">
-          🚫 Tenant did not show up<br><span style="font-size:.72rem;font-weight:400;opacity:.8">→ Charge €50 no-show fee to tenant</span>
-        </button>
-        <button onclick="reportAccessIssue('${visitId}','${listingId}','${landlordId}',this.closest('[style*=fixed]'))" style="width:100%;background:rgba(212,168,71,.08);color:var(--gold,#D4A847);border:1.5px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem;font-size:.88rem;font-weight:700;cursor:pointer;text-align:left">
-          🔑 Access problem<br><span style="font-size:.72rem;font-weight:400;opacity:.8">→ No keys, wrong address, locked</span>
-        </button>
-        <button onclick="reportOtherIssue('${visitId}','${listingId}','${landlordId}',this.closest('[style*=fixed]'))" style="width:100%;background:rgba(255,255,255,.04);color:var(--tf,#ccc);border:1.5px solid rgba(255,255,255,.08);border-radius:10px;padding:.85rem;font-size:.88rem;font-weight:700;cursor:pointer;text-align:left">
-          📝 Other issue<br><span style="font-size:.72rem;font-weight:400;opacity:.8">→ Describe the problem</span>
-        </button>
-      </div>
-      <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;color:var(--td,#888);border:none;padding:.6rem;font-size:.8rem;cursor:pointer;margin-top:.4rem">Cancel</button>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-
-async function chargeNoShow(visitId, listingId, tenantId, landlordId, overlay){
-  if(!confirm('Confirm tenant no-show? €50 will be charged to their registered card.'))return;
-  overlay?.remove();
-
-  toast('⏳ Processing no-show fee...');
-
-  // Récupérer l'email et le nom du tenant
-  let tenantEmail='', tenantName='', tenantStripeId='';
-  try{
-    const{data:tp}=await sb.from('profiles').select('email,full_name,stripe_customer_id').eq('clerk_id',tenantId).single();
-    tenantEmail=tp?.email||'';
-    tenantName=tp?.full_name||'Tenant';
-    tenantStripeId=tp?.stripe_customer_id||'';
-  }catch(e){}
-
-  if(!tenantStripeId){
-    toast('❌ No card on file for this tenant — cannot charge fee.');
-    // Notifier quand même
-    try{await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:landlordId,content:`🚫 Tenant no-show reported by agent ${P?.full_name||'Agent'}.\n\n⚠️ No card on file — €50 fee could not be charged automatically.\nPlease contact RestMalta support.`,type:'visit_noshow'});}catch(e){}
-    return;
-  }
-
-  try{
-    // Prélever les 50€ via visit-noshow
-    const res=await fetch('/.netlify/functions/visit-noshow',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        action:'charge_noshow',
-        tenant_email:tenantEmail,
-        tenant_name:tenantName,
-        visit_id:visitId
-      })
-    });
-    const data=await res.json();
-
-    if(data.success){
-      // Marquer la visite comme no-show
-      try{await sb.from('visits').update({status:'no_show'}).eq('id',visitId);}catch(e){}
-
-      // Notifier le tenant
-      try{await sb.from('messages').insert({
-        listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:`🚫 No-show fee charged.\n\nYou did not attend your visit and did not cancel 24h+ in advance.\n\n💳 €50 has been charged to your registered card.\n\nIf you believe this is an error, please contact RestMalta support.`,
-        type:'noshow_charged'
-      });}catch(e){}
-
-      // Notifier le landlord
-      try{await sb.from('messages').insert({
-        listing_id:listingId,sender_id:'system',receiver_id:landlordId,
-        content:`🚫 Tenant no-show — €50 fee charged.\n\nAgent: ${P?.full_name||'—'}\nTenant did not attend the visit.\n\n✅ €50 no-show fee has been automatically charged to the tenant's card.\n\nThe property is back to available for new visits.`,
-        type:'visit_noshow'
-      });}catch(e){}
-
-      toast('✅ €50 no-show fee charged to tenant.');
-      loadVisits();
-    } else {
-      toast('❌ Failed to charge fee: '+(data.error||'Unknown error'));
-    }
-  }catch(e){
-    toast('❌ Error: '+e.message);
-  }
-}
-
-async function reportAccessIssue(visitId, listingId, landlordId, overlay){
-  overlay?.remove();
-  try{await sb.from('visits').update({status:'issue_reported'}).eq('id',visitId);}catch(e){}
-  try{await sb.from('messages').insert({
-    listing_id:listingId,sender_id:U.id,receiver_id:landlordId,
-    content:`🔑 Access problem reported by agent ${P?.full_name||'Agent'}.\n\nCould not access the property — no keys, wrong address, or property locked.\n\nPlease contact the agent urgently.`,
-    type:'visit_issue'
-  });}catch(e){}
-  toast('⚠️ Access issue reported to landlord.');
-  loadVisits();
-}
-
-async function reportOtherIssue(visitId, listingId, landlordId, overlay){
-  overlay?.remove();
-  const issue=prompt('Describe the issue:');
-  if(!issue)return;
-  try{await sb.from('visits').update({status:'issue_reported'}).eq('id',visitId);}catch(e){}
-  try{await sb.from('messages').insert({
-    listing_id:listingId,sender_id:U.id,receiver_id:landlordId,
-    content:`⚠️ Issue reported by agent ${P?.full_name||'Agent'}:\n\n${issue}`,
-    type:'visit_issue'
-  });}catch(e){}
-  toast('⚠️ Issue reported to landlord.');
-  loadVisits();
-}
-
-async function reportIssue(visitId){
-  // Kept for compatibility — redirect to new function
-  const v=document.querySelector(`[onclick*="showVisitIssueOptions('${visitId}"]`);
-  if(v)v.click();
-}
-
-
-// Helper thread_id
-function makeThreadId(listingId, id1, id2){
-  return listingId + '__' + [id1, id2].sort().join('__');
-}
-// ── Messages agent ────────────────────────────────────────────
-let agentActiveListing=null;
-let agentActiveReceiver=null;
-let agentActiveThread=null;
-let agentChatChannel=null;
-
-async function loadAgentMessages(){
-  const list=document.getElementById('agent-msg-list');
-  if(!list)return;
-
-  try{
-    // Charger tous les messages envoyés/reçus par l'agent
-    const{data:received}=await sb.from('messages').select('*').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false});
-    const{data:sent}=await sb.from('messages').select('*').eq('sender_id',U.id).neq('type','visit_request').neq('receiver_id','system').order('created_at',{ascending:false});
-
-    // Grouper par THREAD (listing_id + interlocuteur) — pas juste listing_id
-    // → une conversation séparée avec tenant et landlord même pour le même bien
-    const threadMap=new Map();
-    [...(received||[]),...(sent||[])].forEach(m=>{
-      if(!m.listing_id)return;
-      const otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
-      if(!otherId||otherId==='system')return;
-      const tid=makeThreadId(m.listing_id,U.id,otherId);
-      if(!threadMap.has(tid)||new Date(m.created_at)>new Date(threadMap.get(tid).created_at)){
-        threadMap.set(tid,{...m,_tid:tid,_otherId:otherId});
-      }
-    });
-
-    const convs=[...threadMap.values()].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-    const unread=(received||[]).filter(m=>!m.read&&m.type!=='visit_request').length;
-
-    const badge=document.getElementById('nb-agent-msg');
-    if(badge){badge.textContent=unread;badge.style.display=unread>0?'inline':'none';}
-
-    if(!convs.length){
-      list.innerHTML='<div style="text-align:center;padding:2rem;color:var(--td);font-size:.83rem">No conversations yet</div>';
-      return;
-    }
-
-    // Charger les profils des interlocuteurs
-    const otherIds=[...new Set(convs.map(m=>m._otherId).filter(Boolean))];
-    let profileMap={};
-    if(otherIds.length){
-      const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name,role').in('clerk_id',otherIds);
-      (profiles||[]).forEach(p=>{profileMap[p.clerk_id]=p;});
-    }
-
-    // Charger les listings
-    const listingIds=[...new Set(convs.map(m=>m.listing_id).filter(Boolean))];
-    let listingMap={};
-    if(listingIds.length){
-      const{data:listings}=await sb.from('listings').select('id,title,zone').in('id',listingIds);
-      (listings||[]).forEach(l=>{listingMap[l.id]=l;});
-    }
-
-    list.innerHTML=convs.map(m=>{
-      const other=profileMap[m._otherId];
-      const listing=listingMap[m.listing_id];
-      const isUnread=m.receiver_id===U.id&&!m.read;
-      const roleIco=other?.role==='landlord'?'🏠':other?.role==='tenant'?'👤':'💬';
-      const roleBadge=other?.role==='landlord'
-        ?'<span style="font-size:.62rem;background:rgba(201,85,58,.1);color:var(--terra);padding:.1rem .4rem;border-radius:100px;font-weight:600;margin-left:.3rem">Landlord</span>'
-        :'<span style="font-size:.62rem;background:rgba(58,143,181,.1);color:var(--sea);padding:.1rem .4rem;border-radius:100px;font-weight:600;margin-left:.3rem">Tenant</span>';
-      const preview=m.content?.substring(0,60)+(m.content?.length>60?'...':'');
-      const time=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-      return`<div onclick="openAgentMsg('${m.listing_id}','${m._otherId}','${(listing?.title||'Property').replace(/'/g,"\\'")}','${(other?.full_name||'').replace(/'/g,"\\'")}','${other?.role||''}','${m._tid}')"
-        style="padding:.9rem 1.2rem;border-bottom:1px solid var(--b);cursor:pointer;display:flex;gap:.75rem;align-items:center;${isUnread?'background:rgba(58,143,181,.05)':''}" class="msg-row">
-        <div style="width:38px;height:38px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${roleIco}</div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
-            <div style="font-weight:${isUnread?'700':'500'};font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              ${other?.full_name||'—'}${roleBadge}
-            </div>
-            <div style="font-size:.68rem;color:var(--td);flex-shrink:0;margin-left:.5rem">${time}</div>
-          </div>
-          <div style="font-size:.72rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${listing?.title||'Property'} · ${listing?.zone||'Malta'}</div>
-          <div style="font-size:.73rem;color:var(--td);margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
-        </div>
-        ${isUnread?'<div style="width:8px;height:8px;border-radius:50%;background:var(--terra);flex-shrink:0"></div>':''}
-      </div>`;
-    }).join('');
-  }catch(e){console.error('loadAgentMessages:',e);}
-}
-async function openAgentMsg(listingId, receiverId, listingTitle, otherName, otherRole, threadId){
-  agentActiveListing=listingId;
-  agentActiveReceiver=receiverId;
-  agentActiveThread=threadId||makeThreadId(listingId,U.id,receiverId||'');
-
-  const roleIco=otherRole==='landlord'?'🏠 Landlord':otherRole==='tenant'?'👤 Tenant':'💬';
-  document.getElementById('agent-msg-title').textContent=listingTitle;
-  document.getElementById('agent-msg-sub').textContent=`${roleIco}: ${otherName}`;
-  document.getElementById('agent-msg-modal').classList.add('open');
-
-  await loadAgentThread(listingId);
-
-  // Marquer comme lus
-  try{await sb.from('messages').update({read:true}).eq('listing_id',listingId).eq('receiver_id',U.id);}catch(e){}
-
-  // Real-time
-  if(agentChatChannel)sb.removeChannel(agentChatChannel);
-  agentChatChannel=sb.channel('agent-chat-'+listingId)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`listing_id=eq.${listingId}`},()=>{
-      loadAgentThread(listingId);
-    }).subscribe();
-}
-
-async function loadAgentThread(listingId){
-  const thread=document.getElementById('agent-msg-thread');
-  if(!thread)return;
-  try{
-    let data=[];
-    const tid=agentActiveThread||makeThreadId(listingId,U.id,agentActiveReceiver||'');
-    const{data:byThread}=await sb.from('messages').select('*').eq('thread_id',tid).order('created_at',{ascending:true});
-    if(byThread&&byThread.length){
-      data=byThread;
-    } else {
-      const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).or(`sender_id.eq.${U.id},receiver_id.eq.${U.id}`).order('created_at',{ascending:true});
-      const otherId=agentActiveReceiver;
-      data=(byListing||[]).filter(m=>m.sender_id===otherId||m.receiver_id===otherId||m.sender_id==='system');
-    }
-    thread.innerHTML='';
-    data.filter(m=>m.type!=='visit_request').forEach(m=>{
-      const isMe=m.sender_id===U.id;
-      const div=document.createElement('div');
-      div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
-      div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word;white-space:pre-wrap">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
-      thread.appendChild(div);
-    });
-    thread.scrollTop=thread.scrollHeight;
-  }catch(e){}
-}
-
-
-function filterContactData(text){
-  if(!text)return text;
-  text=text.replace(/(?:\+356|00356)?\s?[279]\d{3}\s?\d{4}/g,'[📵 Number hidden by RestMalta]');
-  text=text.replace(/(\+\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g,'[📵 Number hidden by RestMalta]');
-  text=text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[📧 Email hidden by RestMalta]');
-  text=text.replace(/whatsapp|telegram|signal|viber/gi,'[RestMalta chat only]');
-  return text;
-}
-
-async function sendAgentMsg(){
-  const input=document.getElementById('agent-msg-input');
-  const content=input?.value.trim();
-  if(!content||!agentActiveListing||!agentActiveReceiver)return;
-  input.value='';
-  try{
-    const tid=agentActiveThread||makeThreadId(agentActiveListing,U.id,agentActiveReceiver||'');
-    await sb.from('messages').insert({
-      listing_id:agentActiveListing,
-      sender_id:U.id,
-      receiver_id:agentActiveReceiver,
-      thread_id:tid,
-      content,
-      type:'message'
-    });
-    loadAgentThread(agentActiveListing);
-    loadAgentMessages();
-  }catch(e){}
-}
-
-function closeAgentMsg(){
-  document.getElementById('agent-msg-modal').classList.remove('open');
-  if(agentChatChannel)sb.removeChannel(agentChatChannel);
-  loadAgentMessages();
-}
-
-async function loadListings(){
-  const{data}=await sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false}).limit(20);
-  listings=data||[];
-  document.getElementById('k-list').textContent=listings.length;
-  document.getElementById('listing-count').textContent=`${listings.length} active`;
-  document.getElementById('zone-listings-count').textContent=listings.length;
-  document.getElementById('vm-listing').innerHTML='<option value="">Select a listing...</option>'+listings.map(l=>`<option value="${l.id}">${l.title} — ${l.zone}</option>`).join('');
-  const w=document.getElementById('agent-listings');
-  if(!listings.length){w.innerHTML='<div class="empty"><div class="em">🏠</div><p>No listings yet</p></div>';return;}
-  w.innerHTML=listings.map(l=>`<div class="pcard-agent"><div class="pimg-sm">${l.photos&&l.photos[0]?`<img src="${l.photos[0]}">`:'🏠'}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.75rem;color:var(--tm)">📍 ${l.zone} · €${l.price}/mo</div></div><div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end"><span class="badge b-green">Active</span></div></div>`).join('');
-  const zw=document.getElementById('zone-listings-list');
-  zw.innerHTML=listings.slice(0,6).map(l=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="font-size:1.1rem">🏠</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div><div style="font-size:.7rem;color:var(--td)">€${l.price}/mo</div></div></div>`).join('');
-}
-
-async function renderRevChart(){
-  // Load real commission data
-  let comms=[];try{const{data:_c}=await sb.from('commissions').select('*').eq('agent_id',U.id);comms=_c||[];}catch(e){}
-  const totalEarned=(comms||[]).reduce((s,c)=>s+(c.agent_amount||0),0);
-  const now=new Date();
-  const thisMonth=(comms||[]).filter(c=>new Date(c.created_at).getMonth()===now.getMonth()).reduce((s,c)=>s+(c.agent_amount||0),0);
-  const pending=(comms||[]).filter(c=>c.status==='pending').reduce((s,c)=>s+(c.agent_amount||0),0);
-  
-  if(document.getElementById('rev-total'))document.getElementById('rev-total').textContent=totalEarned>0?'€'+totalEarned.toLocaleString():'€0';
-  if(document.getElementById('rev-month'))document.getElementById('rev-month').textContent=thisMonth>0?'€'+thisMonth.toLocaleString():'€0';
-  if(document.getElementById('rev-pending'))document.getElementById('rev-pending').textContent=pending>0?'€'+pending.toLocaleString():'€0';
-  document.getElementById('k-rev').textContent=thisMonth>0?'€'+thisMonth.toLocaleString():'€0';
-  document.getElementById('k-conv').textContent='—';
-  
-  // Build 6-month chart from real data
-  const months=[];const vals=[];
-  for(let i=5;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    months.push(d.toLocaleDateString('en-GB',{month:'short'}));
-    const monthTotal=(comms||[]).filter(c=>{const cd=new Date(c.created_at);return cd.getMonth()===d.getMonth()&&cd.getFullYear()===d.getFullYear();}).reduce((s,c)=>s+(c.agent_amount||0),0);
-    vals.push(monthTotal);
-  }
-  const max=Math.max(...vals)||1;
-  document.getElementById('rev-chart').innerHTML=vals.map((v,i)=>`<div class="rev-bar ${i===5?'active':''}" style="height:${Math.max(4,(v/max)*100)}%;flex:1" title="€${v}"></div>`).join('');
-  document.getElementById('rev-labels').innerHTML=months.map(m=>`<div style="text-align:center;font-size:.65rem;color:var(--td);margin-top:.3rem">${m}</div>`).join('');
-  
-  // Load commission table
-  const tb=document.getElementById('comm-table');
-  if(tb){
-    if(!(comms||[]).length){
-      tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--td);font-size:.82rem;padding:.75rem">No earnings yet — complete visits to earn commissions</td></tr>';
-    } else {
-      tb.innerHTML=(comms||[]).map(c=>`<tr><td>${c.property_address||'—'}</td><td>${c.tenant_name||'—'}</td><td>${c.lease_type||'—'}</td><td style="color:var(--green)">€${c.agent_amount||0}</td><td><span class="badge ${c.status==='paid'?'b-green':'b-gold'}">${c.status==='paid'?'Paid':'Pending'}</span></td><td style="color:var(--td)">${new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td></tr>`).join('');
-    }
-  }
-  
-  // Load score from reviews
-  let reviews=[];try{const{data:_r}=await sb.from('reviews').select('*').eq('agent_id',U.id);reviews=_r||[];}catch(e){}
-  if(reviews&&reviews.length){
-    const avg=(reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length);
-    const score=(avg*2).toFixed(1); // convert 5-star to /10
-    const pct=parseFloat(score)/10;
-    if(document.getElementById('score-val'))document.getElementById('score-val').textContent=score;
-    if(document.getElementById('score-arc'))document.getElementById('score-arc').setAttribute('stroke-dashoffset',Math.max(0,213.6-(213.6*pct)));
-    if(document.getElementById('score-badge'))document.getElementById('score-badge').textContent=parseFloat(score)>=8?'🏆 Top Agent':parseFloat(score)>=6?'⭐ Good Agent':'📈 Building reputation';
-    if(document.getElementById('score-reviews'))document.getElementById('score-reviews').textContent=`Based on ${reviews.length} review${reviews.length>1?'s':''}`;
-    if(document.getElementById('reviews-list')){
-      document.getElementById('reviews-list').innerHTML=reviews.slice(0,5).map(r=>`<div style="padding:.75rem 0;border-bottom:1px solid var(--b)"><div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem"><span>${'⭐'.repeat(r.rating||0)}</span><span style="font-size:.7rem;color:var(--td)">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span></div><div style="font-size:.82rem;color:var(--tm)">${r.comment||'No comment'}</div></div>`).join('');
-    }
-  }
-  
-  // Load zone
-  if(P?.agent_zone){
-    if(document.getElementById('zone-name'))document.getElementById('zone-name').textContent=P.agent_zone;
-    if(document.getElementById('zone-name-2'))document.getElementById('zone-name-2').textContent=P.agent_zone;
-  }
-  
-  // Profile completeness for score bar
-  const fields=[P?.full_name,P?.phone,P?.passport_number];
-  const pct2=Math.round(fields.filter(Boolean).length/fields.length*100);
-  if(document.getElementById('sbar-profile'))document.getElementById('sbar-profile').style.width=pct2+'%';
-  if(document.getElementById('sval-profile'))document.getElementById('sval-profile').textContent=Math.round(pct2/10*10)/10;
-}
 
 function renderCalendar(){
   const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
