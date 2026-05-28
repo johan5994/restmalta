@@ -1125,6 +1125,44 @@ async function loadVisitsPage(){
             <span style="color:var(--td)">📅 Desired move-in: </span>
             <span style="font-weight:700;color:var(--sea)">${moveIn}</span>
           </div>`:''}
+
+          <!-- Aperçu du bail -->
+          <div style="background:var(--s2);border:1.5px solid rgba(76,175,125,.2);border-radius:10px;overflow:hidden;margin-bottom:.6rem">
+            <div style="padding:.5rem .75rem;background:rgba(76,175,125,.08);border-bottom:1px solid rgba(76,175,125,.15);display:flex;align-items:center;gap:.4rem">
+              <span>📄</span>
+              <span style="font-size:.78rem;font-weight:700;color:#4CAF7D">Lease preview</span>
+              <span style="margin-left:auto;font-size:.65rem;color:var(--td)">Signed on entry day</span>
+            </div>
+            <div style="padding:.6rem .75rem">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem">
+                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
+                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Move-in</div>
+                  <div style="font-size:.78rem;font-weight:700;color:var(--sea)">${moveIn||'TBD'}</div>
+                </div>
+                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
+                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Duration</div>
+                  <div style="font-size:.78rem;font-weight:700">${b.listing_type==='short'?'6 months':'1 year min.'}</div>
+                </div>
+                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
+                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Monthly rent</div>
+                  <div style="font-size:.88rem;font-weight:800;color:#4CAF7D">€${b.monthly_rent||b.listing_price||'—'}/mo</div>
+                </div>
+                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
+                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Holding paid</div>
+                  <div style="font-size:.88rem;font-weight:800">€${b.holding_amount||'—'}</div>
+                </div>
+              </div>
+              <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
+                👤 Tenant: <strong>${b.tenant_name||'—'}</strong><br>
+                ✉️ ${b.tenant_email||'—'}<br>
+                📅 Lease end: <strong>${b.listing_type==='short'?'+6 months':'+1 year'}</strong>
+              </div>
+              <div style="margin-top:.5rem;padding:.4rem .6rem;background:rgba(212,168,71,.08);border-radius:7px;font-size:.68rem;color:var(--gold)">
+                ⚠️ Full lease signed on entry day with agent. No surprises.
+              </div>
+            </div>
+          </div>
+
           <div style="display:flex;gap:.4rem;margin-bottom:.4rem">
             <button onclick="showLeaseDatesBooking('${b.id}','${b.move_in_date||''}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">✅ Accept</button>
             <button onclick="showProposeDate('${b.id}')" style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">📅 Other date</button>
@@ -1147,18 +1185,8 @@ async function loadVisitsPage(){
             </select>
             <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">Confirm decline → Auto-refund tenant</button>
           </div>
-          <div id="lease-dates-${b.id}" style="display:none;margin-top:.4rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:8px;padding:.65rem">
-            <div style="font-size:.73rem;font-weight:700;color:var(--terra);margin-bottom:.45rem">📅 Set move-in date (= signing day)</div>
-            <div id="date-summary-${b.id}" style="display:none;background:rgba(58,143,181,.08);border-radius:7px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.72rem;color:var(--sea)"></div>
-            <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%;margin-bottom:.45rem" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
-            <input type="hidden" id="bend-${b.id}">
-            <input type="hidden" id="bedl-${b.id}">
-            <div style="background:rgba(212,168,71,.08);border-radius:6px;padding:.4rem .6rem;margin-bottom:.45rem;font-size:.7rem;color:var(--gold)">
-              💳 Commission landlord: ${b.listing_type==='exclusive'?'35%':'40%'} TTC = €${Math.round((b.monthly_rent||b.listing_price||0)*(b.listing_type==='exclusive'?0.35:0.40))}
-            </div>
-            <div id="commission-payment-form-${b.id}" style="margin-top:.4rem"></div>
-            <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay Commission & Generate Lease →</button>
-          </div>
+          <div id="commission-payment-form-${b.id}" style="margin-top:.4rem"></div>
+          <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer;margin-top:.3rem" id="accept-btn-${b.id}">💳 Accept & Pay Commission →</button>
         </div>
       </div>`;
     }).join('');
@@ -1498,7 +1526,7 @@ async function showCommissionPayment(bookingId, listingId, tenantId, monthlyRent
 
   // Charger Stripe
   if(!window.stripe){
-    const stripeKey='pk_live_51REGsRFMCFDGaDhJdVNDOON4D9G2XDJ0UilPtR5SBSqG34s5f3HjpVJFMwXBrqb0WJ7l9JC3MMmGEJv47pAhLKWP00fv04VHp7';
+    const stripeKey='pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ';
     if(!window.stripe) window.stripe=Stripe(stripeKey);
   }
 
