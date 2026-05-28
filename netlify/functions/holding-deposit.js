@@ -25,6 +25,43 @@ exports.handler = async (event) => {
 
     const { action, ...params } = JSON.parse(event.body);
 
+    // ── ACTION: Commission landlord ──
+    if (action === 'create_landlord_commission') {
+      const { booking_id, amount_cents, landlord_id, landlord_email } = params;
+
+      // Créer ou récupérer le customer Stripe
+      let customerId;
+      const existing = await stripe.customers.list({ email: landlord_email, limit: 1 });
+      if (existing.data.length > 0) {
+        customerId = existing.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: landlord_email,
+          metadata: { landlord_id, booking_id }
+        });
+        customerId = customer.id;
+      }
+
+      // PaymentIntent pour la commission landlord
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount_cents,
+        currency: 'eur',
+        customer: customerId,
+        payment_method_types: ['card'],
+        metadata: { type: 'landlord_commission', booking_id, landlord_id },
+        description: 'RestMalta — Commission landlord'
+      });
+
+      return {
+        statusCode: 200, headers,
+        body: JSON.stringify({
+          success: true,
+          client_secret: paymentIntent.client_secret,
+          customer_id: customerId
+        })
+      };
+    }
+
     // ── ACTION: Créer l'intention de paiement pour le Holding Deposit ──
     if (action === 'create_holding') {
       const { listing_id, tenant_id, tenant_email, tenant_name, tenant_stripe_customer_id, monthly_rent, has_agent } = params;
