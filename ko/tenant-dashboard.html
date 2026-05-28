@@ -668,7 +668,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
 
           <!-- Reference letter — Optional -->
-          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0">
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">⭐</div>
             <div style="flex:1">
               <div style="font-size:.85rem;font-weight:600">Landlord reference letter <span style="font-weight:400;color:var(--td)">(optional)</span></div>
@@ -677,6 +677,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div id="doc-ref-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
             <button class="btn bg bsm" onclick="document.getElementById('doc-ref-input').click()">Upload</button>
             <input type="file" id="doc-ref-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'reference_letter','doc-ref-status')">
+          </div>
+
+          <!-- Rent receipts x3 — Optional -->
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏠</div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600">Rent receipt 1 <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">Most recent monthly rent receipt from previous landlord</div>
+            </div>
+            <div id="doc-rent1-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-rent1-input').click()">Upload</button>
+            <input type="file" id="doc-rent1-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'rent1','doc-rent1-status')">
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏠</div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600">Rent receipt 2 <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">2nd most recent monthly rent receipt</div>
+            </div>
+            <div id="doc-rent2-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-rent2-input').click()">Upload</button>
+            <input type="file" id="doc-rent2-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'rent2','doc-rent2-status')">
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏠</div>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600">Rent receipt 3 <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.72rem;color:var(--tm)">3rd most recent monthly rent receipt</div>
+            </div>
+            <div id="doc-rent3-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
+            <button class="btn bg bsm" onclick="document.getElementById('doc-rent3-input').click()">Upload</button>
+            <input type="file" id="doc-rent3-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'rent3','doc-rent3-status')">
           </div>
 
           <div id="dossier-check-result" style="margin-top:.75rem"></div>
@@ -775,6 +807,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Tenant score</div><div style="font-size:.85rem;color:var(--terra);font-weight:700" id="dos-score">—</div></div>
             </div>
           </div>
+
+          <!-- DOCUMENTS -->
+          <div style="border:1px solid var(--b);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem;background:rgba(58,143,181,.04)">
+            <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">📄 Your documents</div>
+            <div style="font-size:.78rem;color:var(--tm);margin-bottom:.75rem">Upload your ID (required) and supporting documents to strengthen your application.</div>
+            <button class="btn bp" style="width:100%;justify-content:center" onclick="sp('overview',document.querySelectorAll('.ni')[0])">📄 Manage my documents →</button>
+          </div>
+
 
           <div style="display:flex;gap:.75rem">
             <button class="btn bp" style="flex:1;justify-content:center" onclick="copyDossierLink()">📋 Copy dossier link</button>
@@ -1755,12 +1795,12 @@ async function loadTenantVisits(){
         </div>`:''}
       ${v.status==='agents_applying'?`
         <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
-          <div style="font-size:.75rem;color:var(--sea);font-weight:600">✅ Step 2/3 — Landlord confirmed! Agent being assigned...</div>
-          <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">The best available agent is being selected for your visit.</div>
+          <div style="font-size:.75rem;color:var(--sea);font-weight:600">✅ Step 2/3 — Landlord confirmed! Finding your agent...</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">An agent is being assigned. You'll confirm attendance in step 3.</div>
         </div>`:''}
       ${v.status==='agent_assigned'&&!v.tenant_confirmed?`
         <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
-          <div style="font-size:.8rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Confirm your attendance!</div>
+          <div style="font-size:.8rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">✅ Step 3/3 — Agent assigned! Confirm your attendance</div>
           <div style="font-size:.72rem;color:var(--tm);margin-bottom:.4rem">€50 no-show fee if you miss without 24h cancellation.</div>
           ${P?.stripe_customer_id
             ?`<button class="btn bp" style="width:100%;justify-content:center;font-size:.82rem" onclick="confirmTenantPresence('${v.id}')">✅ I will attend</button>`
@@ -2374,6 +2414,59 @@ function copyDossierLink(){
   navigator.clipboard.writeText(window.location.origin+'/dossier/'+U.id);
   toast('📋 Dossier link copied!');
 }
+
+async function uploadDocument(input, docType){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>10*1024*1024){toast('❌ File too large — max 10MB');return;}
+  const statusEl=document.getElementById('doc-status-'+docType);
+  const checkEl=document.getElementById('doc-check-'+docType);
+  const viewEl=document.getElementById('doc-view-'+docType);
+  if(statusEl)statusEl.textContent='Uploading...';
+  try{
+    const ext=file.name.split('.').pop();
+    const path=U.id+'/'+docType+'.'+ext;
+    const{error}=await sb.storage.from('tenant-documents').upload(path,file,{upsert:true});
+    if(error)throw new Error(error.message);
+    const docs=(P?.documents)||{};
+    docs[docType]={path,name:file.name,uploaded_at:new Date().toISOString()};
+    await sb.from('profiles').update({documents:JSON.stringify(docs)}).eq('clerk_id',U.id);
+    if(P)P.documents=docs;
+    if(statusEl)statusEl.textContent=file.name;
+    if(checkEl)checkEl.style.display='inline';
+    if(viewEl)viewEl.style.display='inline';
+    toast('✅ Document uploaded!');
+  }catch(e){
+    if(statusEl)statusEl.textContent='Upload failed';
+    toast('❌ '+e.message);
+  }
+}
+
+async function viewDocument(docType){
+  const docs=P?.documents||{};
+  const doc=typeof docs==='string'?JSON.parse(docs):docs;
+  const d=doc[docType];
+  if(!d?.path){toast('⚠️ No document uploaded');return;}
+  try{
+    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(d.path,300);
+    if(data?.signedUrl)window.open(data.signedUrl,'_blank');
+  }catch(e){toast('❌ Could not open document');}
+}
+
+function loadDocuments(){
+  const raw=P?.documents||{};
+  const docs=typeof raw==='string'?JSON.parse(raw):raw;
+  Object.entries(docs).forEach(([docType,doc])=>{
+    if(!doc?.path)return;
+    const statusEl=document.getElementById('doc-status-'+docType);
+    const checkEl=document.getElementById('doc-check-'+docType);
+    const viewEl=document.getElementById('doc-view-'+docType);
+    if(statusEl)statusEl.textContent=doc.name||'Uploaded';
+    if(checkEl)checkEl.style.display='inline';
+    if(viewEl)viewEl.style.display='inline';
+  });
+}
+
 
 function downloadDossier(){
   toast('📥 Generating PDF dossier...');
