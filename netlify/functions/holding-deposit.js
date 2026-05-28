@@ -131,7 +131,6 @@ exports.handler = async (event) => {
     if (action === 'landlord_accept') {
       const { booking_id } = params;
 
-      // Récupérer la réservation
       let booking = null;
       try {
         const { data } = await sb.from('bookings').select('*').eq('id', booking_id).single();
@@ -140,23 +139,31 @@ exports.handler = async (event) => {
 
       if (!booking) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Booking not found' }) };
 
-      // Capturer le PaymentIntent (débiter la carte du tenant)
-      const intent = await stripe.paymentIntents.capture(booking.payment_intent_id);
-
-      // Mettre à jour le statut
-      await sb.from('bookings').update({
-        status: 'accepted',
-        accepted_at: new Date().toISOString(),
-        stripe_captured: true
-      }).eq('id', booking_id);
-
-      // Mettre à jour le listing → Reserved
-      await sb.from('listings').update({ status: 'rented', reserved_by: booking.tenant_id, active: false }).eq('id', booking.listing_id);
+      // REMBOURSER le holding deposit — c'était juste une pré-autorisation
+      // Le tenant paiera dépôt + loyer directement au landlord
+      let refundResult = 'skipped';
+      if (booking.payment_intent_id) {
+        try {
+          const intent = await stripe.paymentIntents.retrieve(booking.payment_intent_id);
+          if (intent.status === 'requires_capture') {
+            // Annuler l'autorisation (pas encore capturée → juste annuler)
+            await stripe.paymentIntents.cancel(booking.payment_intent_id);
+            refundResult = 'authorization_cancelled';
+          } else if (intent.status === 'succeeded') {
+            // Déjà capturée → rembourser
+            await stripe.refunds.create({ payment_intent: booking.payment_intent_id });
+            refundResult = 'refunded';
+          }
+        } catch(e) {
+          console.warn('Refund/cancel error (non-blocking):', e.message);
+          refundResult = 'error: ' + e.message;
+        }
+      }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, status: 'captured', intent_status: intent.status })
+        body: JSON.stringify({ success: true, status: 'holding_released', refund: refundResult })
       };
     }
 
