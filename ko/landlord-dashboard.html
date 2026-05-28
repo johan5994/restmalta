@@ -1154,7 +1154,6 @@ async function loadVisitsPage(){
               </div>
               <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
                 👤 Tenant: <strong>${b.tenant_name||'—'}</strong><br>
-                ✉️ ${b.tenant_email||'—'}<br>
                 📅 Lease end: <strong>${b.listing_type==='short'?'+6 months':'+1 year'}</strong>
               </div>
               <div style="margin-top:.5rem;padding:.4rem .6rem;background:rgba(212,168,71,.08);border-radius:7px;font-size:.68rem;color:var(--gold)">
@@ -1220,12 +1219,14 @@ function renderVisitCard(g, isPast=false){
     'agents_applying':   {label:'🏆 Searching for agent...', cls:'b-sea'},
     'agent_assigned':    {label:'✅ Agent assigned', cls:'b-green'},
     'confirmed':         {label:'✅ Visit confirmed', cls:'b-green'},
-    'done':              {label:'🏁 Done', cls:'b-dim'},
+    'done':              {label:'🏁 Visit done', cls:'b-dim'},
+    'completed':         {label:'🏁 Visit done', cls:'b-dim'},
     'cancelled':         {label:'❌ Cancelled', cls:'b-dim'},
     'no_show':           {label:'🚫 No-show', cls:'b-dim'},
     'tenant_declined':   {label:'👎 Not interested', cls:'b-dim'},
     'date_rejected':     {label:'📅 Date rejected', cls:'b-dim'},
-    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-green'},
+    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-sea'},
+    'edl_scheduled':     {label:'📋 EDL scheduled', cls:'b-green'},
   };
   const sc=statusConfig[g.status]||{label:g.status, cls:'b-dim'};
 
@@ -1248,6 +1249,13 @@ function renderVisitCard(g, isPast=false){
       <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
         <div style="font-size:.75rem;color:#4CAF7D;font-weight:600">🏆 Agent: ${g.agent_name||'—'}</div>
         <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">⏳ Waiting for tenant to confirm attendance...</div>
+      </div>`:''}
+
+    ${g.status==='edl_scheduled'?`
+      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:8px;padding:.65rem .75rem;margin-top:.4rem">
+        <div style="font-size:.82rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Application accepted!</div>
+        <div style="font-size:.75rem;color:var(--tm);line-height:1.8">👤 Tenant: <strong>${g.tenant_name||'—'}</strong> · 🏆 Agent: <strong>${g.agent_name||'—'}</strong><br>📋 Entry inventory: <strong>${g.edl_date?new Date(g.edl_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'Date to confirm'}</strong></div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:.3rem">📄 Lease signed on entry day with agent.</div>
       </div>`:''}
 
     ${g.status==='confirmed'?`
