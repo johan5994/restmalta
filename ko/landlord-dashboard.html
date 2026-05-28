@@ -1338,7 +1338,17 @@ async function loadBookingDossier(booking){
           <span style="font-size:.85rem;font-weight:700;color:var(--gold)">⭐ ${profile.avg_rating?.toFixed(1)||'—'} (${profile.review_count} review${profile.review_count>1?'s':''})</span>
         </div>`
       :'<div style="font-size:.67rem;color:var(--td);text-align:center;padding:.2rem">New tenant — no previous reviews</div>'
-    }`;
+    }
+
+    <div style="margin-top:.6rem;border-top:1px solid var(--b);padding-top:.6rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.4rem">📄 Documents</div>
+      <div id="tenant-docs-${booking.id}" style="display:flex;flex-direction:column;gap:.3rem">
+        <div style="font-size:.72rem;color:var(--td)">Loading documents...</div>
+      </div>
+    </div>`;
+
+  // Charger les documents du tenant
+  setTimeout(()=>loadTenantDocuments(booking.tenant_id, booking.id), 100);
 }
 
 async function sendProposedDate(bookingId, listingId, tenantId){
@@ -1436,11 +1446,30 @@ async function confirmDeclineBooking(bookingId, listingId, tenantId){
 }
 
 async function generateLeaseFromBooking(bookingId, listingId, tenantId){
-  const startDate=document.getElementById(`bstart-${bookingId}`)?.value;
-  const endDate=document.getElementById(`bend-${bookingId}`)?.value;
-  const edlDate=document.getElementById(`bedl-${bookingId}`)?.value;
-  if(!startDate||!endDate){toast('⚠️ Please set lease start and end dates');return;}
-  if(!edlDate){toast('⚠️ Please set the entry inventory & key handover date');return;}
+  let startDate=document.getElementById(`bstart-${bookingId}`)?.value;
+  let endDate=document.getElementById(`bend-${bookingId}`)?.value;
+  let edlDate=document.getElementById(`bedl-${bookingId}`)?.value;
+
+  // Si dates manquantes → les calculer depuis le booking
+  if(!startDate||!endDate||!edlDate){
+    let booking=null;
+    try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
+    let listing=null;
+    try{const{data:l}=await sb.from('listings').select('id,type,price').eq('id',listingId).single();listing=l;}catch(e){}
+
+    if(!startDate) startDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
+    if(!edlDate) edlDate=startDate;
+
+    if(!endDate){
+      const start=new Date(startDate);
+      const isShort=listing?.type==='short'||listing?.type==='sublet';
+      if(isShort) start.setMonth(start.getMonth()+6);
+      else start.setFullYear(start.getFullYear()+1);
+      endDate=start.toISOString().split('T')[0];
+    }
+  }
+
+  if(!startDate||!endDate){toast('⚠️ Please set the move-in date');return;}
 
   toast('⏳ Processing commission & generating lease...');
 
@@ -3333,6 +3362,8 @@ async function llRunVerification(){
     load.style.display='none';res.style.display='block';
     res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.3);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.5rem">⏳</div><div style="font-weight:700;color:var(--gold);margin-bottom:.3rem">Documents submitted</div><div style="font-size:.8rem;color:var(--tm)">A RestMalta team member will verify your documents within 24h.</div></div>`;
   }
+  // Charger les documents du tenant
+  setTimeout(()=>loadTenantDocuments(booking.tenant_id, booking.id), 100);
 }
 
 function llFail(msg){return`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.5rem">❌</div><div style="font-weight:700;color:var(--terra);margin-bottom:.3rem">Verification failed</div><div style="font-size:.8rem;color:var(--tm);margin-bottom:.75rem">${msg}</div><button class="btn bp bsm" onclick="llShowStep1()">Try again →</button></div>`;}
