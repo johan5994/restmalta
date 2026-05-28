@@ -1617,7 +1617,7 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     if(bErr)console.warn('Booking update:',bErr.message);
 
     // 3 — Mettre à jour listing → reserved
-    await sb.from('listings').update({status:'reserved'}).eq('id',listingId).catch(()=>{});
+    try{await sb.from('listings').update({status:'reserved'}).eq('id',listingId);}catch(e){}
 
     // 4 — Notifier le tenant
     const firstMonth=listing?.price||0;
@@ -1656,7 +1656,7 @@ See you on ${edlFormatted}!`,
     try{
       const{data:visit}=await sb.from('visits').select('agent_id').eq('listing_id',listingId).in('status',['completed','agent_assigned','confirmed','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
       if(visit?.agent_id){
-        await sb.from('messages').insert({
+        try{await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
           content:`📋 EDL scheduled!
 
@@ -1665,8 +1665,8 @@ See you on ${edlFormatted}!`,
 👤 Tenant: ${tenantProfile?.full_name||'—'} — 📞 ${tenantProfile?.phone||'—'}
 📅 ${edlFormatted}`,
           type:'edl_scheduled'
-        }).catch(()=>{});
-        await sb.from('visits').update({status:'edl_scheduled'}).eq('agent_id',visit.agent_id).eq('listing_id',listingId).catch(()=>{});
+        });}catch(e){}
+        try{await sb.from('visits').update({status:'edl_scheduled'}).eq('agent_id',visit.agent_id).eq('listing_id',listingId);}catch(e){}
       }
     }catch(e){}
 
