@@ -1383,11 +1383,13 @@ async function declarePaidFromMessage(msgId, listingId){
 async function showHoldingDeposit(visitId, listingId, listingPrice){
   let price=parseFloat(listingPrice)||0;
   let hasAgent=false;
-  if(!price){
-    try{const{data:l}=await sb.from('listings').select('price,wants_agent,agent_service').eq('id',listingId).single();price=l?.price||0;hasAgent=l?.wants_agent&&l?.agent_service==='full';}catch(e){}
-  } else {
-    try{const{data:l}=await sb.from('listings').select('wants_agent,agent_service').eq('id',listingId).single();hasAgent=l?.wants_agent&&l?.agent_service==='full';}catch(e){}
-  }
+  let listing=null;
+  try{
+    const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();
+    listing=l;
+    price=l?.price||price;
+    hasAgent=l?.wants_agent&&l?.agent_service==='full';
+  }catch(e){}
 
   const section=document.getElementById(`holding-section-${visitId}`);
   if(!section)return;
@@ -1399,14 +1401,76 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
   const total=holding+commission;
   const rateLabel=hasAgent?'40% TTC (with agent)':'15% TTC (direct)';
 
+  // Générer un aperçu du bail complet
+  let leasePreview='';
+  try{
+    const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();
+    const moveInDate=new Date();
+    moveInDate.setDate(moveInDate.getDate()+7); // move-in dans 7 jours par défaut
+    const startStr=moveInDate.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const endDate=new Date(moveInDate);
+    if(listing?.type==='short') endDate.setMonth(endDate.getMonth()+6);
+    else endDate.setFullYear(endDate.getFullYear()+1);
+    const endStr=endDate.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const leaseDuration=listing?.type==='short'?'6 months':'1 year';
+    const noticePeriod=listing?.notice_period||'1 month';
+    const billsInfo=listing?.bills_included?'✅ Included in rent':'❌ Not included';
+
+    leasePreview=`<div style="background:var(--s2);border:1.5px solid rgba(76,175,125,.25);border-radius:12px;overflow:hidden;margin-bottom:.75rem">
+      <div style="padding:.6rem 1rem;background:rgba(76,175,125,.1);border-bottom:1px solid rgba(76,175,125,.2);display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:1rem">📄</span>
+        <div style="font-size:.82rem;font-weight:700;color:#4CAF7D">Lease Preview</div>
+        <div style="margin-left:auto;font-size:.68rem;color:var(--td)">Full lease sent after payment</div>
+      </div>
+      <div style="padding:.75rem 1rem">
+
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.4rem">🏠 Property</div>
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:.15rem">${listing?.title||'Property'}</div>
+        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">📍 ${listing?.full_address||listing?.zone||'Malta'}</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
+          <div style="background:var(--card);border-radius:8px;padding:.5rem .65rem">
+            <div style="font-size:.6rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.2rem">Move-in</div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--sea)">${startStr}</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:.5rem .65rem">
+            <div style="font-size:.6rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.2rem">Lease end</div>
+            <div style="font-size:.78rem;font-weight:700">${endStr}</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:.5rem .65rem">
+            <div style="font-size:.6rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.2rem">Monthly rent</div>
+            <div style="font-size:.85rem;font-weight:800;color:#4CAF7D">€${price}/mo</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:.5rem .65rem">
+            <div style="font-size:.6rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.2rem">Security deposit</div>
+            <div style="font-size:.85rem;font-weight:800">€${listing?.deposit||0}</div>
+          </div>
+        </div>
+
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.35rem">📋 Key terms</div>
+        <div style="font-size:.75rem;color:var(--tm);line-height:1.9">
+          ⏱ Duration: <strong>${leaseDuration}</strong><br>
+          🔔 Notice period: <strong>${noticePeriod}</strong><br>
+          💡 Bills: <strong>${billsInfo}</strong><br>
+          👤 Tenant: <strong>${tp?.full_name||P?.full_name||'—'}</strong><br>
+          🆔 Passport/ID: <strong>${tp?.passport_number||'—'}</strong>
+        </div>
+
+        <div style="margin-top:.65rem;padding:.5rem .7rem;background:rgba(212,168,71,.08);border-radius:7px;font-size:.68rem;color:var(--gold);line-height:1.6">
+          ⚠️ The final lease with full details (landlord info, IBAN, signatures) will be sent to your email for e-signature once the landlord accepts your application.
+        </div>
+      </div>
+    </div>`;
+  }catch(e){leasePreview='';}
+
   const breakdown=document.getElementById(`holding-breakdown-${visitId}`);
   if(breakdown) breakdown.innerHTML=`
+    ${leasePreview}
     <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding Deposit (½ month)</span><span>€${holding}</span></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (${rateLabel})</span><span>€${commission}</span></div>
     <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.2rem;margin-top:.2rem"><span>Total today</span><span>€${total}</span></div>
     <div style="font-size:.65rem;color:var(--td);margin-top:.3rem">💚 Holding Deposit deducted from first month. Full refund if landlord declines.</div>`;
 
-  // Stocker pour payHoldingDepositFromVisits
   const cardWrap=document.getElementById(`holding-card-${visitId}`);
   if(cardWrap&&!cardWrap._mounted){
     try{
