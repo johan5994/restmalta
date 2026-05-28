@@ -182,6 +182,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}}
 </style>
+  <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 
@@ -1497,8 +1498,8 @@ async function showCommissionPayment(bookingId, listingId, tenantId, monthlyRent
 
   // Charger Stripe
   if(!window.stripe){
-    const sk=document.getElementById('stripe-pk')?.content||'pk_live_51REGsRFMCFDGaDhJdVNDOON4D9G2XDJ0UilPtR5SBSqG34s5f3HjpVJFMwXBrqb0WJ7l9JC3MMmGEJv47pAhLKWP00fv04VHp7';
-    window.stripe=Stripe(sk);
+    const stripeKey='pk_live_51REGsRFMCFDGaDhJdVNDOON4D9G2XDJ0UilPtR5SBSqG34s5f3HjpVJFMwXBrqb0WJ7l9JC3MMmGEJv47pAhLKWP00fv04VHp7';
+    if(!window.stripe) window.stripe=Stripe(stripeKey);
   }
 
   // Créer le Setup ou PaymentIntent via holding-deposit function
