@@ -1083,7 +1083,7 @@ async function loadVisitsPage(){
       const hoursLeft=Math.max(0,Math.floor((deadline-Date.now())/3600000));
       const urgentColor=hoursLeft<12?'var(--red)':hoursLeft<24?'var(--gold)':'#4CAF7D';
       const moveIn=b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long'}):'—';
-      return`<div style="background:var(--card);border:1.5px solid rgba(76,175,125,.25);border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="booking-card-${b.id}">
+      return`<div style="background:var(--card);border:1.5px solid rgba(76,175,125,.25);border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="booking-card-${b.id}" data-listing-type="${b.listing_type||'long'}">
         <div style="background:linear-gradient(135deg,rgba(76,175,125,.1),rgba(58,143,181,.06));padding:.85rem 1rem;border-bottom:1px solid var(--b)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
             <div style="display:flex;align-items:center;gap:.5rem">
@@ -1148,11 +1148,12 @@ async function loadVisitsPage(){
           </div>
           <div id="lease-dates-${b.id}" style="display:none;margin-top:.4rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:8px;padding:.65rem">
             <div style="font-size:.73rem;font-weight:700;color:var(--terra);margin-bottom:.45rem">📅 Set move-in date (= signing day)</div>
+            <div id="date-summary-${b.id}" style="display:none;background:rgba(58,143,181,.08);border-radius:7px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.72rem;color:var(--sea)"></div>
             <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%;margin-bottom:.45rem" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
             <input type="hidden" id="bend-${b.id}">
             <input type="hidden" id="bedl-${b.id}">
             <div style="background:rgba(212,168,71,.08);border-radius:6px;padding:.4rem .6rem;margin-bottom:.45rem;font-size:.7rem;color:var(--gold)">
-              💳 Commission charged on accept: €${Math.round((b.monthly_rent||0)*(b.listing_type==='exclusive'?0.35:0.40))} (${b.listing_type==='exclusive'?'35%':'40%'} TTC)
+              💳 Commission landlord: ${b.listing_type==='exclusive'?'35%':'40%'} TTC = €${Math.round((b.monthly_rent||b.listing_price||0)*(b.listing_type==='exclusive'?0.35:0.40))}
             </div>
             <button onclick="generateLeaseFromBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">📄 Accept & Generate Lease →</button>
           </div>
@@ -1360,17 +1361,41 @@ async function sendProposedDate(bookingId, listingId, tenantId){
   document.getElementById(`propose-date-${bookingId}`).style.display='none';
 }
 
+function showProposeDate(bookingId){
+  const el=document.getElementById('propose-date-'+bookingId);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function showDeclineBooking(bookingId){
+  const el=document.getElementById('decline-form-'+bookingId);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+
 function showLeaseDatesBooking(bookingId, moveInDate){
   document.getElementById(`lease-dates-${bookingId}`).style.display='block';
   document.getElementById(`decline-form-${bookingId}`).style.display='none';
   document.getElementById(`propose-date-${bookingId}`).style.display='none';
+
+  // Récupérer le type depuis le booking card
+  const card=document.getElementById(`booking-card-${bookingId}`);
+  const listingType=card?.dataset.listingType||'long';
+
   // Pré-remplir avec la date souhaitée par le tenant
   if(moveInDate){
     const startInput=document.getElementById(`bstart-${bookingId}`);
     if(startInput){
       startInput.value=moveInDate;
-      // Déclencher le calcul de la date de fin
-      autoSetEndDate(bookingId,'long'); // sera recalculé avec le bon type
+      autoSetEndDate(bookingId, listingType);
+
+      // Afficher un résumé des dates calculées
+      const end=document.getElementById(`bend-${bookingId}`)?.value;
+      const summary=document.getElementById(`date-summary-${bookingId}`);
+      if(summary&&end){
+        const endDate=new Date(end).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+        const moveInStr=new Date(moveInDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+        summary.innerHTML=`📅 Move-in: <strong>${moveInStr}</strong> → Lease ends: <strong>${endDate}</strong> (${listingType==='short'?'6 months':'1 year'})`;
+        summary.style.display='block';
+      }
     }
   }
 }
@@ -1884,27 +1909,39 @@ async function markHARegistered(leaseId){
   loadListings();
 }
 
-function autoSetEndDate(){
-  const type=document.getElementById('lease-type')?.value;
-  const startVal=document.getElementById('lease-start')?.value;
-  const endInput=document.getElementById('lease-end');
-  const hint=document.getElementById('end-date-hint');
-  if(!startVal||!endInput)return;
-  const start=new Date(startVal);
-  if(type==='short'||type==='sublet'){
-    // Short-let: exactly 6 months
-    const end=new Date(start);
-    end.setMonth(end.getMonth()+6);
-    endInput.value=end.toISOString().split('T')[0];
-    if(hint)hint.textContent='(auto: +6 months)';
-  } else {
-    // Long-let: minimum 1 year
-    const end=new Date(start);
-    end.setFullYear(end.getFullYear()+1);
-    endInput.value=end.toISOString().split('T')[0];
-    if(hint)hint.textContent='(auto: +1 year minimum)';
+function autoSetEndDate(bookingId, leaseType){
+  if(!bookingId){
+    // Version originale sans booking
+    const type=document.getElementById('lease-type')?.value;
+    const startVal=document.getElementById('lease-start')?.value;
+    const endInput=document.getElementById('lease-end');
+    const hint=document.getElementById('end-date-hint');
+    if(!startVal||!endInput)return;
+    const start=new Date(startVal);
+    if(type==='short'||type==='sublet'){
+      const end=new Date(start);end.setMonth(end.getMonth()+6);
+      endInput.value=end.toISOString().split('T')[0];
+      if(hint)hint.textContent='(auto: +6 months)';
+    } else {
+      const end=new Date(start);end.setFullYear(end.getFullYear()+1);
+      endInput.value=end.toISOString().split('T')[0];
+      if(hint)hint.textContent='(auto: +1 year minimum)';
+    }
+    checkLeaseReady();
+    return;
   }
-  checkLeaseReady();
+  // Version avec bookingId
+  const startVal=document.getElementById('bstart-'+bookingId)?.value;
+  if(!startVal)return;
+  const start=new Date(startVal);
+  const type=leaseType||'long';
+  const end=new Date(start);
+  if(type==='short'||type==='sublet') end.setMonth(end.getMonth()+6);
+  else end.setFullYear(end.getFullYear()+1);
+  const endInput=document.getElementById('bend-'+bookingId);
+  const edlInput=document.getElementById('bedl-'+bookingId);
+  if(endInput)endInput.value=end.toISOString().split('T')[0];
+  if(edlInput)edlInput.value=startVal; // EDL = jour du move-in
 }
 
 function onLeaseListingChange(id){
