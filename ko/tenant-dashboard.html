@@ -1396,7 +1396,7 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
   section.style.display='block';
 
   const tenantRate=hasAgent?0.40:0.15;
-  const holding=Math.round(price/2);
+  const holding=Math.round(price/2); // 50% bonne foi — pré-auth remboursée après réponse landlord
   const commission=Math.round(price*tenantRate);
   const total=holding+commission;
   const rateLabel=hasAgent?'40% TTC (with agent)':'15% TTC (direct)';
@@ -1456,8 +1456,8 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
           🆔 Passport/ID: <strong>${tp?.passport_number||'—'}</strong>
         </div>
 
-        <div style="margin-top:.65rem;padding:.5rem .7rem;background:rgba(212,168,71,.08);border-radius:7px;font-size:.68rem;color:var(--gold);line-height:1.6">
-          ⚠️ The final lease with full details (landlord info, IBAN, signatures) will be sent to your email for e-signature once the landlord accepts your application.
+        <div style="margin-top:.65rem;padding:.5rem .7rem;background:rgba(76,175,125,.08);border-radius:7px;font-size:.68rem;color:#4CAF7D;line-height:1.6">
+          ✅ <strong>This is a pre-authorisation only (50% deposit of good faith)</strong> — your card is not charged immediately. Once the landlord responds, this hold is automatically released and you pay deposit + first month directly to the landlord.
         </div>
       </div>
     </div>`;
@@ -1499,7 +1499,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     const price=cardWrap._price||0;
     const hasAgent=cardWrap._hasAgent||false;
     const tenantRate=hasAgent?0.40:0.15;
-    const holding=Math.round(price/2);
+    const holding=Math.round(price/2); // 50% bonne foi — pré-auth remboursée après réponse landlord
     const commission=Math.round(price*tenantRate);
 
     // Récupérer la date souhaitée
@@ -1827,18 +1827,65 @@ async function loadTenantVisits(){
 
   // Bookings actifs
   activeBookings.forEach(b=>{
-    const moveIn=b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
-    const isPending=b.status==='pending';
+    const moveIn=b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'—';
+    const isPending=b.status==='pending'||b.status==='booking_pending';
+    const isAccepted=b.status==='accepted';
+    const rent=b.monthly_rent||b.listing_price||0;
+    const holding=b.holding_amount||0;
+    const deposit=rent; // 1 mois de dépôt
+    const firstMonthRemaining=Math.max(0,rent-holding);
+    const totalDue=deposit+firstMonthRemaining;
+
+    if(isAccepted){
+      html+=`<div style="background:linear-gradient(135deg,rgba(76,175,125,.1),rgba(58,143,181,.06));border:2px solid rgba(76,175,125,.35);border-radius:14px;overflow:hidden;margin-bottom:.85rem">
+        <div style="padding:.65rem 1rem;background:rgba(76,175,125,.15);border-bottom:1px solid rgba(76,175,125,.2);display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:1.2rem">🎉</span>
+          <span style="font-size:.85rem;font-weight:800;color:#4CAF7D">Application accepted!</span>
+          <span style="margin-left:auto;font-size:.65rem;color:#4CAF7D;background:rgba(76,175,125,.15);padding:.15rem .5rem;border-radius:20px">✅ Confirmed</span>
+        </div>
+        <div style="padding:.75rem 1rem">
+          <div style="font-size:.92rem;font-weight:700;margin-bottom:.15rem">${b.listing_title||'Property'}</div>
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.65rem">📅 Move-in: <strong style="color:var(--sea)">${moveIn}</strong></div>
+
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.35rem">💶 Amount due to landlord before move-in</div>
+          <div style="background:var(--card);border-radius:10px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--b)">
+            <div style="display:flex;justify-content:space-between;padding:.45rem .75rem;border-bottom:1px solid var(--b)">
+              <span style="font-size:.78rem;color:var(--tm)">🔐 Security deposit</span>
+              <span style="font-size:.82rem;font-weight:700">€${deposit}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:.45rem .75rem;border-bottom:1px solid var(--b)">
+              <span style="font-size:.78rem;color:var(--tm)">🏠 1st month rent</span>
+              <span style="font-size:.82rem;font-weight:700">€${rent}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:.5rem .75rem;background:rgba(76,175,125,.08)">
+              <span style="font-size:.82rem;font-weight:700">Total due to landlord</span>
+              <span style="font-size:.9rem;font-weight:800;color:#4CAF7D">€${deposit+rent}</span>
+            </div>
+            <div style="padding:.35rem .75rem;background:rgba(76,175,125,.05);font-size:.68rem;color:#4CAF7D">
+              ✅ Your holding deposit (€${holding} — 50% pre-auth) has been automatically released back to your card.
+            </div>
+          </div>
+
+          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem">
+            <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:.2rem">📋 Entry inventory & key handover</div>
+            <div style="font-size:.78rem;color:var(--tm)">${b.edl_date?new Date(b.edl_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'Your agent will confirm the date'}</div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">📄 Lease will be signed on this day with the agent present.</div>
+          </div>
+
+          <div style="font-size:.7rem;color:var(--td);text-align:center">💬 Transfer amount above to landlord before move-in. Check messages for IBAN details.</div>
+        </div>
+      </div>`;
+      return;
+    }
+
     html+=`<div style="padding:.85rem;background:${isPending?'rgba(76,175,125,.06)':'rgba(58,143,181,.06)'};border:1.5px solid ${isPending?'rgba(76,175,125,.25)':'rgba(58,143,181,.25)'};border-radius:12px;margin-bottom:.65rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-        <span style="font-size:.72rem;font-weight:700;color:${isPending?'#4CAF7D':'var(--sea)'}">🔒 ${isPending?'Reservation pending — awaiting landlord':'Reservation accepted!'}</span>
+        <span style="font-size:.72rem;font-weight:700;color:${isPending?'#4CAF7D':'var(--sea)'}">🔒 ${isPending?'Reservation pending — awaiting landlord response':'Reservation sent'}</span>
       </div>
       <div style="font-size:.88rem;font-weight:700;margin-bottom:.3rem">${b.listing_title||'Property'}</div>
       <div style="font-size:.75rem;color:var(--td)">📅 Move-in: ${moveIn} · 💰 Holding paid: €${b.holding_amount||0}</div>
-      ${b.status==='accepted'?'<div style="margin-top:.4rem;font-size:.78rem;color:var(--sea);font-weight:600">📄 Check your email to sign the lease</div>':''}
     </div>`;
   });
-
   // Visites actives
   activeVisits.forEach(v=>{
     const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(v.visit_time||'TBD'):'TBD';
