@@ -1164,7 +1164,7 @@ async function loadVisitsPage(){
           </div>
 
           <div style="display:flex;gap:.4rem;margin-bottom:.4rem">
-            <button onclick="showLeaseDatesBooking('${b.id}','${b.move_in_date||''}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">✅ Accept</button>
+            <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">✅ Accept</button>
             <button onclick="showProposeDate('${b.id}')" style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">📅 Other date</button>
             <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
           </div>
@@ -1186,7 +1186,6 @@ async function loadVisitsPage(){
             <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">Confirm decline → Auto-refund tenant</button>
           </div>
           <div id="commission-payment-form-${b.id}" style="margin-top:.4rem"></div>
-          <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer;margin-top:.3rem" id="accept-btn-${b.id}">💳 Accept & Pay Commission →</button>
         </div>
       </div>`;
     }).join('');
@@ -1558,7 +1557,7 @@ async function showCommissionPayment(bookingId, listingId, tenantId, monthlyRent
     <div style="background:var(--s2);border:1px solid rgba(212,168,71,.3);border-radius:10px;padding:.85rem;margin-bottom:.5rem">
       <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.6rem">💳 Commission landlord: ${rate*100}% TTC = €${commission}</div>
       <div id="ll-card-el-${bookingId}" style="background:var(--card);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.65rem"></div>
-      <button id="ll-pay-btn-${bookingId}" onclick="payLandlordCommission('${bookingId}','${listingId}','${tenantId}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay €${commission} & Generate Lease →</button>
+      <button id="ll-pay-btn-${bookingId}" onclick="payLandlordCommission('${bookingId}','${listingId}','${tenantId}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay €${commission} & Confirm →</button>
     </div>`;
 
   const elements=window.stripe.elements();
@@ -1592,189 +1591,93 @@ async function payLandlordCommission(bookingId, listingId, tenantId){
 }
 
 async function generateLeaseFromBooking(bookingId, listingId, tenantId){
-  let startDate=document.getElementById(`bstart-${bookingId}`)?.value;
-  let endDate=document.getElementById(`bend-${bookingId}`)?.value;
-  let edlDate=document.getElementById(`bedl-${bookingId}`)?.value;
-
-  // Si dates manquantes → les calculer depuis le booking
-  if(!startDate||!endDate||!edlDate){
-    let booking=null;
-    try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
-    let listing=null;
-    try{const{data:l}=await sb.from('listings').select('id,type,price').eq('id',listingId).single();listing=l;}catch(e){}
-
-    if(!startDate) startDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
-    if(!edlDate) edlDate=startDate;
-
-    if(!endDate){
-      const start=new Date(startDate);
-      const isShort=listing?.type==='short'||listing?.type==='sublet';
-      if(isShort) start.setMonth(start.getMonth()+6);
-      else start.setFullYear(start.getFullYear()+1);
-      endDate=start.toISOString().split('T')[0];
-    }
-  }
-
-  if(!startDate||!endDate){toast('⚠️ Please set the move-in date');return;}
-
-  toast('⏳ Processing commission & generating lease...');
-
+  toast('⏳ Processing acceptance...');
   try{
-    // 1 — Charger les données d'abord
-    let booking=null;
+    let booking=null,listing=null,tenantProfile=null,landlordProfile=null;
     try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
-    let listing=null;
     try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
-    let tenantProfile=null;
     try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',tenantId).single();tenantProfile=tp;}catch(e){}
-    let landlordProfile=null;
     try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();landlordProfile=lp;}catch(e){}
 
-    if(!listing||!tenantProfile||!landlordProfile)throw new Error('Could not load profiles');
+    const moveInDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
+    const edlFormatted=new Date(moveInDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-    const hasAgent=listing.wants_agent&&listing.agent_service==='full';
-    let commissionPaymentUrl=null;
-    const landlordRate=hasAgent?0.40:0.00;
-    const landlordCommission=Math.round((listing.price||0)*landlordRate);
-
-    // 2 — Commission landlord (ne bloque pas si erreur)
-    if(landlordCommission>0){
-      try{
-        const commRes=await fetch('/.netlify/functions/create-commission',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
-            lease_id:bookingId,
-            monthly_rent:listing.price||0,
-            landlord_email:landlordProfile.email||'',
-            landlord_name:landlordProfile.full_name||'',
-            landlord_stripe_customer_id:landlordProfile.stripe_customer_id||null,
-            tenant_email:tenantProfile.email||'',
-            tenant_name:tenantProfile.full_name||'',
-            tenant_stripe_customer_id:null,
-            property_address:listing.full_address||listing.zone||'',
-            has_agent:hasAgent,
-            holding_commission_already_paid:true
-          })
-        });
-        const commData=await commRes.json();
-        if(commData.success){
-          if(commData.landlord?.payment_url){
-            commissionPaymentUrl=commData.landlord.payment_url;
-            // Ouvrir le lien de paiement immédiatement
-            window.open(commData.landlord.payment_url,'_blank');
-            toast('💳 Commission payment opened — please complete it. Lease is being generated...');
-          } else if(commData.landlord?.method==='direct_charge'){
-            toast('✅ Commission charged! Generating lease...');
-          }
-        }
-      }catch(e){console.warn('Commission error (non-blocking):',e.message);}
-    }
-
-    // Capturer le Holding Deposit — ignorer si déjà capturé
-    let captureOk=true;
+    // 1 — Capturer Holding Deposit (ignorer si déjà capturé)
     try{
-      const res=await fetch('/.netlify/functions/holding-deposit',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})
-      });
-      const data=await res.json();
-      if(!data.success&&!data.error?.includes('already been captured')){
-        console.warn('Holding deposit capture warning:',data.error);
-      }
-    }catch(e){console.warn('Holding capture error:',e.message);}
+      const res=await fetch('/.netlify/functions/holding-deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})});
+      const d=await res.json();
+      if(!d.success&&!d.error?.includes('already'))console.warn('Holding:',d.error);
+    }catch(e){console.warn('Holding capture:',e.message);}
 
-    // 4 — Générer le bail DocuSeal
-    const leaseRes=await fetch('/.netlify/functions/generate-lease',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        type:listing.type==='short'?'short':'long',
-        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
-        coTenants:[],
-        listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
-        start_date:startDate,end_date:endDate
-      })
-    });
-    const leaseData=await leaseRes.json();
-    if(!leaseData.success)throw new Error('Lease generation failed');
+    // 2 — Mettre à jour booking → accepted
+    const{error:bErr}=await sb.from('bookings').update({
+      status:'accepted',
+      accepted_at:new Date().toISOString()
+    }).eq('id',bookingId);
+    if(bErr)console.warn('Booking update:',bErr.message);
 
-    // 5 — Sauvegarder le bail
-    try{await sb.from('leases').insert({
-      listing_id:listingId,landlord_id:U.id,tenant_id:tenantId,
-      docuseal_id:leaseData.submission_id?String(leaseData.submission_id):null,
-      status:'pending_signature',rent:listing.price,
-      start_date:startDate,end_date:endDate,
-      edl_date:edlDate,
-      listing_title:listing.title||'',
-      deposit:listing.deposit||0,
-      booking_id:bookingId,
-      holding_deposit_paid:booking?.holding_amount||0
-    });}catch(e){}
+    // 3 — Mettre à jour listing → reserved
+    await sb.from('listings').update({status:'reserved'}).eq('id',listingId).catch(()=>{});
 
-    // 6 — Marquer booking accepted
-    try{await sb.from('bookings').update({status:'accepted',accepted_at:new Date().toISOString(),edl_date:edlDate}).eq('id',bookingId);}catch(e){}
-
-    // 7 — Notifier le tenant
+    // 4 — Notifier le tenant
+    const firstMonth=listing?.price||0;
     const holdingPaid=booking?.holding_amount||0;
-    const firstMonth=listing.price||0;
-    const remaining=firstMonth-holdingPaid;
-    const deposit=listing.deposit||0;
-    const revTag=landlordProfile.revolut_tag||'';
-    const revLink=revTag.startsWith('@')?`\n💜 Revolut: https://revolut.me/${revTag.replace('@','')}?amount=${deposit+remaining}`:'';
-    const edlFormatted=new Date(edlDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const remaining=Math.max(0,firstMonth-holdingPaid);
+    const deposit=listing?.deposit||0;
+    const ibanInfo=landlordProfile?.iban?`
+🏦 IBAN: ${landlordProfile.iban}
+Name: ${landlordProfile?.full_name||''}`:'';
+    const revTag=landlordProfile?.revolut_tag||'';
+    const revInfo=revTag?`
+💜 Revolut: https://revolut.me/${revTag.replace('@','')}?amount=${deposit+remaining}`:'';
 
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:`🎉 Your reservation has been accepted!\n\n📄 Your lease has been sent to your email for e-signature via DocuSeal. Please sign it.\n\n📋 Entry inventory & key handover: ${edlFormatted}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💶 PAYMENT DUE TO LANDLORD BEFORE MOVE-IN\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 Security deposit: €${deposit}\n🏠 First month: €${firstMonth} (- €${holdingPaid} holding = €${remaining} remaining)\n💰 Total still due: €${deposit+remaining}\n\n🏦 IBAN: ${landlordProfile.iban||'—'}\nName: ${landlordProfile.full_name||'—'}${revLink}\n\nPay AFTER signing the lease. Then click "I've paid" in your dashboard.`,
-      type:'booking_accepted'
-    });}catch(e){}
+      content:`🎉 Your application has been accepted!
 
-    // 8 — Notifier l'agent pour l'EDL
+📋 Entry inventory & key handover: ${edlFormatted}
+
+Your agent will confirm the exact time.
+
+━━━━━━━━━━━━━━
+💶 AMOUNT DUE TO LANDLORD
+━━━━━━━━━━━━━━
+🔐 Security deposit: €${deposit}
+🏠 First month (- €${holdingPaid} holding already paid): €${remaining}
+💰 Total due: €${deposit+remaining}${ibanInfo}${revInfo}
+
+📄 Lease will be signed on entry day with agent present.
+
+See you on ${edlFormatted}!`,
+      type:'booking_accepted'
+    });}catch(e){console.warn('Tenant msg:',e);}
+
+    // 5 — Notifier l'agent
     try{
-      const{data:visit}=await sb.from('visits').select('agent_id').eq('listing_id',listingId).in('status',['completed','booking_pending']).order('created_at',{ascending:false}).limit(1).single();
+      const{data:visit}=await sb.from('visits').select('agent_id').eq('listing_id',listingId).in('status',['completed','agent_assigned','confirmed','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
       if(visit?.agent_id){
-        try{await sb.from('messages').insert({
+        await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
-          content:`📋 Entry inventory scheduled!\n\n🏠 ${listing.title||'Property'}\n📍 ${listing.full_address||listing.zone||'—'}\n👤 Tenant: ${tenantProfile.full_name||'—'} — 📞 ${tenantProfile.phone||'—'}\n\n📅 Entry inventory & key handover: ${edlFormatted}`,
+          content:`📋 EDL scheduled!
+
+🏠 ${listing?.title||'Property'}
+📍 ${listing?.full_address||listing?.zone||'—'}
+👤 Tenant: ${tenantProfile?.full_name||'—'} — 📞 ${tenantProfile?.phone||'—'}
+📅 ${edlFormatted}`,
           type:'edl_scheduled'
-        });}catch(e){}
-        try{await sb.from('visits').update({status:'edl_scheduled',edl_date:edlDate}).eq('agent_id',visit.agent_id).eq('listing_id',listingId);}catch(e){}
+        }).catch(()=>{});
+        await sb.from('visits').update({status:'edl_scheduled'}).eq('agent_id',visit.agent_id).eq('listing_id',listingId).catch(()=>{});
       }
     }catch(e){}
 
-    // Si lien de paiement commission → envoyer par message au landlord
-    if(commissionPaymentUrl){
-      try{await sb.from('messages').insert({
-        listing_id:listingId,sender_id:'system',receiver_id:U.id,
-        content:`💳 Commission payment required!\n\nPlease pay your commission (${hasAgent?(listing.exclusive?'35%':'40%'):'0%'} TTC = €${landlordCommission}) to finalize the lease:\n\n${commissionPaymentUrl}\n\nThe lease has been generated and sent to the tenant for signature.`,
-        type:'commission_payment'
-      });}catch(e){}
-      toast('🎉 Lease sent! Check your messages to pay your commission.');
-    } else {
-      toast('🎉 Commission paid + lease sent + agent notified!');
-    }
-    loadVisitsPage();
+    toast('🎉 Accepted! Tenant & agent notified.');
+    setTimeout(()=>loadVisitsPage(), 1000);
 
   }catch(e){
-    toast('❌ Error: '+e.message);
-    console.error(e);
+    toast('❌ '+e.message);
+    console.error('Accept error:',e);
   }
 }
-function landlordProposeDate(visitId, listingId, tenantId){
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
-  overlay.innerHTML=`
-    <div style="background:var(--card);border-radius:16px;padding:1.75rem;max-width:340px;width:100%">
-      <div style="font-size:1rem;font-weight:700;margin-bottom:.4rem">📅 Propose another date</div>
-      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">The tenant will be notified and can accept or request a different date.</div>
-      <input type="date" id="ll-propose-date" class="fi" style="width:100%;margin-bottom:.75rem">
-      <input type="time" id="ll-propose-time" class="fi" style="width:100%;margin-bottom:.75rem" value="14:00">
-      <button onclick="sendLLProposedDate('${visitId}','${listingId}','${tenantId}',this.closest('[style*=fixed]'))" style="width:100%;background:var(--sea);color:white;border:none;border-radius:10px;padding:.85rem;font-size:.9rem;font-weight:700;cursor:pointer">Send to tenant →</button>
-      <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;color:var(--td);border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-
 async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
   const newDate=document.getElementById('ll-propose-date')?.value;
   const newTime=document.getElementById('ll-propose-time')?.value||'14:00';
