@@ -1155,7 +1155,8 @@ async function loadVisitsPage(){
             <div style="background:rgba(212,168,71,.08);border-radius:6px;padding:.4rem .6rem;margin-bottom:.45rem;font-size:.7rem;color:var(--gold)">
               💳 Commission landlord: ${b.listing_type==='exclusive'?'35%':'40%'} TTC = €${Math.round((b.monthly_rent||b.listing_price||0)*(b.listing_type==='exclusive'?0.35:0.40))}
             </div>
-            <button onclick="generateLeaseFromBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">📄 Accept & Generate Lease →</button>
+            <div id="commission-payment-form-${b.id}" style="margin-top:.4rem"></div>
+            <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay Commission & Generate Lease →</button>
           </div>
         </div>
       </div>`;
@@ -1243,6 +1244,35 @@ function renderVisitCard(g, isPast=false){
       </div>`:''}
     ${!isPast&&g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
   </div>`;
+}
+
+async function loadTenantDocuments(tenantId, bookingId){
+  const el=document.getElementById('tenant-docs-'+bookingId);
+  if(!el)return;
+  try{
+    const{data:profile}=await sb.from('profiles').select('documents').eq('clerk_id',tenantId).single();
+    const raw=profile?.documents;
+    if(!raw){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
+    const docs=typeof raw==='string'?JSON.parse(raw):raw;
+    const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference',rent1:'🏠 Rent receipt 1',rent2:'🏠 Rent receipt 2',rent3:'🏠 Rent receipt 3',student:'🎓 Student card'};
+    const entries=Object.entries(docs).filter(([,d])=>d?.path);
+    if(!entries.length){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
+    el.innerHTML=entries.map(([key,doc])=>{
+      const p=doc.path.replace(/'/g,"\'");
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.35rem .6rem;margin-bottom:.25rem">'
+        +'<div style="font-size:.75rem;font-weight:600">'+(docLabels[key]||key)+'</div>'
+        +'<button onclick="viewTenantDoc(this.dataset.path)" data-path="'+doc.path+'" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">View</button>'
+        +'</div>';
+    }).join('');
+  }catch(e){if(el)el.innerHTML='<div style="font-size:.72rem;color:var(--red)">Error loading documents</div>';}
+}
+
+async function viewTenantDoc(path){
+  try{
+    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
+    if(data?.signedUrl)window.open(data.signedUrl,'_blank');
+    else toast('❌ Could not open document');
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function loadBookingDossier(booking){
@@ -1445,6 +1475,93 @@ async function confirmDeclineBooking(bookingId, listingId, tenantId){
   }
 }
 
+async function showCommissionPayment(bookingId, listingId, tenantId, monthlyRent){
+  const wrap=document.getElementById('commission-payment-form-'+bookingId);
+  if(!wrap)return;
+  if(wrap._mounted){wrap.style.display=wrap.style.display==='none'?'block':'none';return;}
+
+  // Calculer la commission
+  let listing=null;
+  try{const{data:l}=await sb.from('listings').select('price,type,wants_agent,agent_service').eq('id',listingId).single();listing=l;}catch(e){}
+  const price=listing?.price||monthlyRent||0;
+  const hasAgent=listing?.wants_agent&&listing?.agent_service==='full';
+  const rate=hasAgent?0.40:0.00;
+  const commission=Math.round(price*rate);
+
+  if(commission===0){
+    // Pas de commission → générer directement
+    toast('✅ No commission required — generating lease...');
+    await generateLeaseFromBooking(bookingId, listingId, tenantId);
+    return;
+  }
+
+  // Charger Stripe
+  if(!window.stripe){
+    const sk=document.getElementById('stripe-pk')?.content||'pk_live_51REGsRFMCFDGaDhJdVNDOON4D9G2XDJ0UilPtR5SBSqG34s5f3HjpVJFMwXBrqb0WJ7l9JC3MMmGEJv47pAhLKWP00fv04VHp7';
+    window.stripe=Stripe(sk);
+  }
+
+  // Créer le Setup ou PaymentIntent via holding-deposit function
+  let clientSecret=null;
+  let customerId=null;
+  try{
+    const res=await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'create_landlord_commission',
+        booking_id:bookingId,
+        amount_cents:commission*100,
+        landlord_id:U.id,
+        landlord_email:P?.email||''
+      })
+    });
+    const data=await res.json();
+    clientSecret=data.client_secret;
+    customerId=data.customer_id;
+  }catch(e){toast('❌ '+e.message);return;}
+
+  if(!clientSecret){toast('❌ Could not initialize payment');return;}
+
+  // Monter le formulaire Stripe
+  wrap.style.display='block';
+  wrap._mounted=true;
+  wrap.innerHTML=`
+    <div style="background:var(--s2);border:1px solid rgba(212,168,71,.3);border-radius:10px;padding:.85rem;margin-bottom:.5rem">
+      <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.6rem">💳 Commission landlord: ${rate*100}% TTC = €${commission}</div>
+      <div id="ll-card-el-${bookingId}" style="background:var(--card);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.65rem"></div>
+      <button id="ll-pay-btn-${bookingId}" onclick="payLandlordCommission('${bookingId}','${listingId}','${tenantId}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay €${commission} & Generate Lease →</button>
+    </div>`;
+
+  const elements=window.stripe.elements();
+  const card=elements.create('card',{style:{base:{color:'#fff',fontSize:'14px'}}});
+  card.mount('#ll-card-el-'+bookingId);
+  wrap._card=card;
+  wrap._clientSecret=clientSecret;
+  wrap._customerId=customerId;
+  wrap._commission=commission;
+}
+
+async function payLandlordCommission(bookingId, listingId, tenantId){
+  const wrap=document.getElementById('commission-payment-form-'+bookingId);
+  const btn=document.getElementById('ll-pay-btn-'+bookingId);
+  if(!wrap||!wrap._card)return;
+  if(btn)btn.disabled=true;
+  toast('⏳ Processing payment...');
+
+  try{
+    const{error,paymentIntent}=await window.stripe.confirmCardPayment(wrap._clientSecret,{
+      payment_method:{card:wrap._card}
+    });
+    if(error)throw new Error(error.message);
+
+    toast('✅ Commission paid! Generating lease...');
+    await generateLeaseFromBooking(bookingId, listingId, tenantId);
+  }catch(e){
+    if(btn)btn.disabled=false;
+    toast('❌ '+e.message);
+  }
+}
+
 async function generateLeaseFromBooking(bookingId, listingId, tenantId){
   let startDate=document.getElementById(`bstart-${bookingId}`)?.value;
   let endDate=document.getElementById(`bend-${bookingId}`)?.value;
@@ -1487,51 +1604,55 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     if(!listing||!tenantProfile||!landlordProfile)throw new Error('Could not load profiles');
 
     const hasAgent=listing.wants_agent&&listing.agent_service==='full';
+    let commissionPaymentUrl=null;
     const landlordRate=hasAgent?0.40:0.00;
     const landlordCommission=Math.round((listing.price||0)*landlordRate);
 
-    // 2 — Prélever commission landlord maintenant (si avec agent)
+    // 2 — Commission landlord (ne bloque pas si erreur)
     if(landlordCommission>0){
-      toast('⏳ Processing your commission payment...');
-      const commRes=await fetch('/.netlify/functions/create-commission',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          lease_id:bookingId, // temporaire avant création du lease
-          monthly_rent:listing.price||0,
-          landlord_email:landlordProfile.email||'',
-          landlord_name:landlordProfile.full_name||'',
-          landlord_stripe_customer_id:landlordProfile.stripe_customer_id||null,
-          tenant_email:tenantProfile.email||'',
-          tenant_name:tenantProfile.full_name||'',
-          tenant_stripe_customer_id:null, // tenant a déjà payé au booking
-          property_address:listing.full_address||listing.zone||'',
-          has_agent:hasAgent,
-          holding_commission_already_paid:true // tenant a déjà payé
-        })
-      });
-      const commData=await commRes.json();
-
-      if(!commData.success)throw new Error('Commission payment failed');
-
-      // Si lien de paiement → ouvrir dans un nouvel onglet
-      if(commData.landlord?.method==='checkout_link'&&commData.landlord?.payment_url){
-        // Sauvegarder l'état pour continuer après paiement
-        localStorage.setItem('pending_lease_'+bookingId, JSON.stringify({bookingId,listingId,tenantId,startDate,endDate,edlDate}));
-        toast('💳 Please complete your commission payment to proceed.');
-        window.open(commData.landlord.payment_url,'_blank');
-        return;
-      }
-      // Si prélèvement direct → continuer
-      toast('✅ Commission paid! Generating lease...');
+      try{
+        const commRes=await fetch('/.netlify/functions/create-commission',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            lease_id:bookingId,
+            monthly_rent:listing.price||0,
+            landlord_email:landlordProfile.email||'',
+            landlord_name:landlordProfile.full_name||'',
+            landlord_stripe_customer_id:landlordProfile.stripe_customer_id||null,
+            tenant_email:tenantProfile.email||'',
+            tenant_name:tenantProfile.full_name||'',
+            tenant_stripe_customer_id:null,
+            property_address:listing.full_address||listing.zone||'',
+            has_agent:hasAgent,
+            holding_commission_already_paid:true
+          })
+        });
+        const commData=await commRes.json();
+        if(commData.success){
+          if(commData.landlord?.payment_url){
+            commissionPaymentUrl=commData.landlord.payment_url;
+            // Ouvrir le lien de paiement immédiatement
+            window.open(commData.landlord.payment_url,'_blank');
+            toast('💳 Commission payment opened — please complete it. Lease is being generated...');
+          } else if(commData.landlord?.method==='direct_charge'){
+            toast('✅ Commission charged! Generating lease...');
+          }
+        }
+      }catch(e){console.warn('Commission error (non-blocking):',e.message);}
     }
 
-    // 3 — Capturer le Holding Deposit Stripe du tenant
-    const res=await fetch('/.netlify/functions/holding-deposit',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})
-    });
-    const data=await res.json();
-    if(!data.success)throw new Error(data.error);
+    // Capturer le Holding Deposit — ignorer si déjà capturé
+    let captureOk=true;
+    try{
+      const res=await fetch('/.netlify/functions/holding-deposit',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})
+      });
+      const data=await res.json();
+      if(!data.success&&!data.error?.includes('already been captured')){
+        console.warn('Holding deposit capture warning:',data.error);
+      }
+    }catch(e){console.warn('Holding capture error:',e.message);}
 
     // 4 — Générer le bail DocuSeal
     const leaseRes=await fetch('/.netlify/functions/generate-lease',{
@@ -1592,7 +1713,17 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
       }
     }catch(e){}
 
-    toast('🎉 Commission paid + lease sent + agent notified!');
+    // Si lien de paiement commission → envoyer par message au landlord
+    if(commissionPaymentUrl){
+      try{await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:U.id,
+        content:`💳 Commission payment required!\n\nPlease pay your commission (${hasAgent?(listing.exclusive?'35%':'40%'):'0%'} TTC = €${landlordCommission}) to finalize the lease:\n\n${commissionPaymentUrl}\n\nThe lease has been generated and sent to the tenant for signature.`,
+        type:'commission_payment'
+      });}catch(e){}
+      toast('🎉 Lease sent! Check your messages to pay your commission.');
+    } else {
+      toast('🎉 Commission paid + lease sent + agent notified!');
+    }
     loadVisitsPage();
 
   }catch(e){
