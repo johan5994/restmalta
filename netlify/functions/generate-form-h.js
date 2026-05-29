@@ -138,28 +138,36 @@ exports.handler = async (event) => {
 </body>
 </html>`;
 
+    if (!DOCU_KEY) {
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, message: 'DocuSeal not configured' }) };
+    }
     const res = await fetch(DOCU_URL, {
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         html,
-        send_email: true,
+        send_email: false,
         submitters: [
           { role: 'Owner', email: landlord?.email, name: landlord?.name || 'Landlord' },
           { role: 'Resident', email: tenant?.email, name: tenant?.name || 'Tenant' }
-        ],
-        message: {
-          subject: `Form H — ARMS Declaration — ${listing?.address || 'Malta Property'} — Please sign`,
-          body: `Please find attached the Form H (ARMS Declaration of Number of Residents) for the property at ${listing?.address || 'Malta'}. Both parties must sign and then submit to ARMS within 30 days.`
-        }
+        ]
       })
     });
 
     const data = await res.json();
+    const submitters_data = Array.isArray(data) ? data : (data.submitters || []);
+    const ownerData = submitters_data.find(s => s.role === 'Owner') || submitters_data[0];
+    const residentData = submitters_data.find(s => s.role === 'Resident') || submitters_data[1];
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ success: true, submission_id: data.id || data[0]?.id })
+      body: JSON.stringify({
+        success: true,
+        submission_id: submitters_data[0]?.submission_id,
+        owner_embed_src: ownerData?.embed_src || null,
+        resident_embed_src: residentData?.embed_src || null
+      })
     };
 
   } catch (e) {
