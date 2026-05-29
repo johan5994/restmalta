@@ -49,7 +49,7 @@ exports.handler = async (event) => {
         customer: customerId,
         payment_method_types: ['card'],
         metadata: { type: 'landlord_commission', booking_id, landlord_id },
-        description: 'RestMalta — Commission landlord'
+        description: 'Platform commission — landlord'
       });
 
       return {
@@ -109,7 +109,7 @@ exports.handler = async (event) => {
           monthly_rent: Math.round(monthly_rent * 100),
           has_agent: String(has_agent || false)
         },
-        description: `RestMalta — Holding Deposit + Commission (tenant)`
+        description: `Holding Deposit + Platform Fee`
       });
 
       return {
