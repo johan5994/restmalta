@@ -1125,45 +1125,8 @@ async function loadVisitsPage(){
             <span style="color:var(--td)">📅 Desired move-in: </span>
             <span style="font-weight:700;color:var(--sea)">${moveIn}</span>
           </div>`:''}
-
-          <!-- Aperçu du bail -->
-          <div style="background:var(--s2);border:1.5px solid rgba(76,175,125,.2);border-radius:10px;overflow:hidden;margin-bottom:.6rem">
-            <div style="padding:.5rem .75rem;background:rgba(76,175,125,.08);border-bottom:1px solid rgba(76,175,125,.15);display:flex;align-items:center;gap:.4rem">
-              <span>📄</span>
-              <span style="font-size:.78rem;font-weight:700;color:#4CAF7D">Lease preview</span>
-              <span style="margin-left:auto;font-size:.65rem;color:var(--td)">Signed on entry day</span>
-            </div>
-            <div style="padding:.6rem .75rem">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem">
-                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
-                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Move-in</div>
-                  <div style="font-size:.78rem;font-weight:700;color:var(--sea)">${moveIn||'TBD'}</div>
-                </div>
-                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
-                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Duration</div>
-                  <div style="font-size:.78rem;font-weight:700">${b.listing_type==='short'?'6 months':'1 year min.'}</div>
-                </div>
-                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
-                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Monthly rent</div>
-                  <div style="font-size:.88rem;font-weight:800;color:#4CAF7D">€${b.monthly_rent||b.listing_price||'—'}/mo</div>
-                </div>
-                <div style="background:var(--card);border-radius:7px;padding:.4rem .55rem">
-                  <div style="font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.15rem">Holding paid</div>
-                  <div style="font-size:.88rem;font-weight:800">€${b.holding_amount||'—'}</div>
-                </div>
-              </div>
-              <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
-                👤 Tenant: <strong>${b.tenant_name||'—'}</strong><br>
-                📅 Lease end: <strong>${b.listing_type==='short'?'+6 months':'+1 year'}</strong>
-              </div>
-              <div style="margin-top:.5rem;padding:.4rem .6rem;background:rgba(212,168,71,.08);border-radius:7px;font-size:.68rem;color:var(--gold)">
-                ⚠️ Full lease signed on entry day with agent. No surprises.
-              </div>
-            </div>
-          </div>
-
           <div style="display:flex;gap:.4rem;margin-bottom:.4rem">
-            <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">✅ Accept</button>
+            <button onclick="showLeaseDatesBooking('${b.id}','${b.move_in_date||''}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">✅ Accept</button>
             <button onclick="showProposeDate('${b.id}')" style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">📅 Other date</button>
             <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
           </div>
@@ -1184,7 +1147,18 @@ async function loadVisitsPage(){
             </select>
             <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">Confirm decline → Auto-refund tenant</button>
           </div>
-          <div id="commission-payment-form-${b.id}" style="margin-top:.4rem"></div>
+          <div id="lease-dates-${b.id}" style="display:none;margin-top:.4rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:8px;padding:.65rem">
+            <div style="font-size:.73rem;font-weight:700;color:var(--terra);margin-bottom:.45rem">📅 Set move-in date (= signing day)</div>
+            <div id="date-summary-${b.id}" style="display:none;background:rgba(58,143,181,.08);border-radius:7px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.72rem;color:var(--sea)"></div>
+            <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%;margin-bottom:.45rem" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
+            <input type="hidden" id="bend-${b.id}">
+            <input type="hidden" id="bedl-${b.id}">
+            <div style="background:rgba(212,168,71,.08);border-radius:6px;padding:.4rem .6rem;margin-bottom:.45rem;font-size:.7rem;color:var(--gold)">
+              💳 Commission landlord: ${b.listing_type==='exclusive'?'35%':'40%'} TTC = €${Math.round((b.monthly_rent||b.listing_price||0)*(b.listing_type==='exclusive'?0.35:0.40))}
+            </div>
+            <div id="commission-payment-form-${b.id}" style="margin-top:.4rem"></div>
+            <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay Commission & Generate Lease →</button>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -1219,14 +1193,12 @@ function renderVisitCard(g, isPast=false){
     'agents_applying':   {label:'🏆 Searching for agent...', cls:'b-sea'},
     'agent_assigned':    {label:'✅ Agent assigned', cls:'b-green'},
     'confirmed':         {label:'✅ Visit confirmed', cls:'b-green'},
-    'done':              {label:'🏁 Visit done', cls:'b-dim'},
-    'completed':         {label:'🏁 Visit done', cls:'b-dim'},
+    'done':              {label:'🏁 Done', cls:'b-dim'},
     'cancelled':         {label:'❌ Cancelled', cls:'b-dim'},
     'no_show':           {label:'🚫 No-show', cls:'b-dim'},
     'tenant_declined':   {label:'👎 Not interested', cls:'b-dim'},
     'date_rejected':     {label:'📅 Date rejected', cls:'b-dim'},
-    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-sea'},
-    'edl_scheduled':     {label:'📋 EDL scheduled', cls:'b-green'},
+    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-green'},
   };
   const sc=statusConfig[g.status]||{label:g.status, cls:'b-dim'};
 
@@ -1249,13 +1221,6 @@ function renderVisitCard(g, isPast=false){
       <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
         <div style="font-size:.75rem;color:#4CAF7D;font-weight:600">🏆 Agent: ${g.agent_name||'—'}</div>
         <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">⏳ Waiting for tenant to confirm attendance...</div>
-      </div>`:''}
-
-    ${g.status==='edl_scheduled'?`
-      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:8px;padding:.65rem .75rem;margin-top:.4rem">
-        <div style="font-size:.82rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Application accepted!</div>
-        <div style="font-size:.75rem;color:var(--tm);line-height:1.8">👤 Tenant: <strong>${g.tenant_name||'—'}</strong> · 🏆 Agent: <strong>${g.agent_name||'—'}</strong><br>📋 Entry inventory: <strong>${g.edl_date?new Date(g.edl_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'Date to confirm'}</strong></div>
-        <div style="font-size:.68rem;color:var(--td);margin-top:.3rem">📄 Lease signed on entry day with agent.</div>
       </div>`:''}
 
     ${g.status==='confirmed'?`
@@ -1385,7 +1350,7 @@ async function loadBookingDossier(booking){
         <div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Home address (country of origin)</div><div style="font-weight:600">${profile.home_address||'—'}</div></div>
         ${profile.malta_address?`<div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Current address in Malta</div><div style="font-weight:600">${profile.malta_address}</div></div>`:''}
       </div>
-      <div style="margin-top:.5rem;font-size:.63rem;color:var(--td);background:rgba(58,143,181,.06);border-radius:6px;padding:.3rem .5rem">🔒 Contact details shared only after lease signature via platform messaging</div>
+      <div style="margin-top:.5rem;font-size:.63rem;color:var(--td);background:rgba(58,143,181,.06);border-radius:6px;padding:.3rem .5rem">🔒 Contact details shared only after lease signature via RestMalta messaging</div>
     </div>
 
     <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
@@ -1412,6 +1377,36 @@ async function loadBookingDossier(booking){
         <div style="font-size:.72rem;color:var(--td)">Loading documents...</div>
       </div>
     </div>`;
+
+  // Ajouter bouton signature si lease embed disponible
+  if(booking.lease_landlord_embed){
+    const container=document.getElementById('dossier-'+booking.id);
+    if(container){
+      const sigDiv=document.createElement('div');
+      sigDiv.style.cssText='margin-top:.6rem;border-top:1px solid var(--b);padding-top:.6rem';
+      sigDiv.innerHTML='<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4CAF7D;margin-bottom:.4rem">✍️ Lease Agreement</div>'
+        +(booking.lease_signed_landlord
+          ?'<div style="font-size:.75rem;color:#4CAF7D;font-weight:600">✅ You signed the lease!</div>'
+          :'<button onclick="openSigningDocLL(this.dataset.src,\'Lease Agreement\')" data-src="'+booking.lease_landlord_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:9px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer">📄 Sign Lease Agreement →</button>');
+      if(booking.first_payment_sent&&!booking.first_payment_confirmed){
+        const payDiv=document.createElement('div');
+        payDiv.style.cssText='margin-top:.4rem';
+        payDiv.innerHTML='<div style="font-size:.73rem;color:var(--gold);margin-bottom:.25rem">💶 Tenant says payment sent:</div>'
+          +'<div style="display:flex;gap:.35rem">'
+          +'<button onclick="confirmFirstPaymentReceived(this.dataset.id,true)" data-id="'+booking.id+'" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">✅ Received</button>'
+          +'<button onclick="confirmFirstPaymentReceived(this.dataset.id,false)" data-id="'+booking.id+'" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">❌ Not received</button>'
+          +'</div>';
+        container.appendChild(payDiv);
+      }
+      if(booking.first_payment_confirmed){
+        const paidDiv=document.createElement('div');
+        paidDiv.style.cssText='margin-top:.4rem;font-size:.72rem;color:#4CAF7D;font-weight:600';
+        paidDiv.textContent='✅ Payment confirmed';
+        container.appendChild(paidDiv);
+      }
+      container.appendChild(sigDiv);
+    }
+  }
 
   // Charger les documents du tenant
   setTimeout(()=>loadTenantDocuments(booking.tenant_id, booking.id), 100);
@@ -1533,7 +1528,7 @@ async function showCommissionPayment(bookingId, listingId, tenantId, monthlyRent
 
   // Charger Stripe
   if(!window.stripe){
-    const stripeKey='pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ';
+    const stripeKey='pk_live_51REGsRFMCFDGaDhJdVNDOON4D9G2XDJ0UilPtR5SBSqG34s5f3HjpVJFMwXBrqb0WJ7l9JC3MMmGEJv47pAhLKWP00fv04VHp7';
     if(!window.stripe) window.stripe=Stripe(stripeKey);
   }
 
@@ -1565,7 +1560,7 @@ async function showCommissionPayment(bookingId, listingId, tenantId, monthlyRent
     <div style="background:var(--s2);border:1px solid rgba(212,168,71,.3);border-radius:10px;padding:.85rem;margin-bottom:.5rem">
       <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.6rem">💳 Commission landlord: ${rate*100}% TTC = €${commission}</div>
       <div id="ll-card-el-${bookingId}" style="background:var(--card);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.65rem"></div>
-      <button id="ll-pay-btn-${bookingId}" onclick="payLandlordCommission('${bookingId}','${listingId}','${tenantId}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay €${commission} & Confirm →</button>
+      <button id="ll-pay-btn-${bookingId}" onclick="payLandlordCommission('${bookingId}','${listingId}','${tenantId}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay €${commission} & Generate Lease →</button>
     </div>`;
 
   const elements=window.stripe.elements();
@@ -1607,84 +1602,95 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',tenantId).single();tenantProfile=tp;}catch(e){}
     try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();landlordProfile=lp;}catch(e){}
 
-    const moveInDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
-    const edlFormatted=new Date(moveInDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const startDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
+    const endDate=(()=>{const d=new Date(startDate);if(listing?.type==='short')d.setMonth(d.getMonth()+6);else d.setFullYear(d.getFullYear()+1);return d.toISOString().split('T')[0];})();
 
-    // 1 — Capturer Holding Deposit (ignorer si déjà capturé)
+    // 1 — Capturer Holding Deposit
     try{
       const res=await fetch('/.netlify/functions/holding-deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})});
       const d=await res.json();
       if(!d.success&&!d.error?.includes('already'))console.warn('Holding:',d.error);
-    }catch(e){console.warn('Holding capture:',e.message);}
+    }catch(e){console.warn('Holding:',e.message);}
 
-    // 2 — Mettre à jour booking → accepted
-    const{error:bErr}=await sb.from('bookings').update({
+    // 2 — Générer le bail
+    let lessorEmbed=null,lesseeEmbed=null,submissionId=null;
+    try{
+      const res=await fetch('/.netlify/functions/generate-lease',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          type:listing?.type==='short'?'short':'long',
+          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:listing?.payment_due_day||1},
+          start_date:startDate,end_date:endDate
+        })
+      });
+      const data=await res.json();
+      if(data.success){lessorEmbed=data.lessor_embed_src;lesseeEmbed=data.lessee_embed_src;submissionId=data.submission_id;}
+    }catch(e){console.warn('Lease:',e.message);}
+
+    // 3 — Mettre à jour booking
+    await sb.from('bookings').update({
       status:'accepted',
-      accepted_at:new Date().toISOString()
+      accepted_at:new Date().toISOString(),
+      lease_landlord_embed:lessorEmbed,
+      lease_tenant_embed:lesseeEmbed,
+      lease_submission_id:submissionId?String(submissionId):null,
+      lease_start:startDate,
+      lease_end:endDate,
+      landlord_iban:landlordProfile?.iban||null,
+      landlord_revolut:landlordProfile?.revolut_tag||null,
+      payment_due_day:listing?.payment_due_day||1,
+      deposit:listing?.deposit||listing?.price||0
     }).eq('id',bookingId);
-    if(bErr)console.warn('Booking update:',bErr.message);
 
-    // 3 — Mettre à jour listing → reserved
+    // 4 — Listing reserved
     try{await sb.from('listings').update({status:'reserved'}).eq('id',listingId);}catch(e){}
 
-    // 4 — Notifier le tenant
+    // 5 — Notifier tenant
     const firstMonth=listing?.price||0;
     const holdingPaid=booking?.holding_amount||0;
-    const remaining=Math.max(0,firstMonth-holdingPaid);
-    const deposit=listing?.deposit||0;
-    const ibanInfo=landlordProfile?.iban?`
-🏦 IBAN: ${landlordProfile.iban}
-Name: ${landlordProfile?.full_name||''}`:'';
+    const deposit=listing?.deposit||listing?.price||0;
+    const ibanInfo=landlordProfile?.iban?'\n🏦 IBAN: '+landlordProfile.iban+'\nName: '+(landlordProfile?.full_name||''):'';
     const revTag=landlordProfile?.revolut_tag||'';
-    const revInfo=revTag?`
-💜 Revolut: https://revolut.me/${revTag.replace('@','')}?amount=${deposit+remaining}`:'';
+    const revInfo=revTag?'\n💜 Revolut: https://revolut.me/'+revTag.replace('@',''):'';
+    const payDue=listing?.payment_due_day||1;
 
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:`🎉 Your application has been accepted!
-
-📋 Entry inventory & key handover: ${edlFormatted}
-
-Your agent will confirm the exact time.
-
-━━━━━━━━━━━━━━
-💶 AMOUNT DUE TO LANDLORD
-━━━━━━━━━━━━━━
-🔐 Security deposit: €${deposit}
-🏠 First month (- €${holdingPaid} holding already paid): €${remaining}
-💰 Total due: €${deposit+remaining}${ibanInfo}${revInfo}
-
-📄 Lease will be signed on entry day with agent present.
-
-See you on ${edlFormatted}!`,
+      content:'🎉 Your application has been accepted!\n\n'
+        +'📄 Your lease is ready to sign — check your visits page.\n\n'
+        +'━━━━━━━━━━━━━━\n💶 AMOUNT DUE TO LANDLORD\n━━━━━━━━━━━━━━\n'
+        +'🔐 Security deposit: €'+deposit+'\n'
+        +'🏠 First month (prorata): calculated in your visits page\n'
+        +(holdingPaid?'✅ Holding released: €'+holdingPaid+'\n':'')
+        +ibanInfo+revInfo
+        +'\n📋 Entry inventory done on move-in day once lease is signed.',
       type:'booking_accepted'
-    });}catch(e){console.warn('Tenant msg:',e);}
+    });}catch(e){}
 
-    // 5 — Notifier l'agent
+    // 6 — Notifier landlord
+    try{await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:U.id,
+      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the tenant will transfer the deposit + first month.',
+      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the tenant will transfer the deposit + first month.',
+    });}catch(e){}
+
+    // 7 — Notifier agent
     try{
       const{data:visit}=await sb.from('visits').select('agent_id').eq('listing_id',listingId).in('status',['completed','agent_assigned','confirmed','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
       if(visit?.agent_id){
-        try{await sb.from('messages').insert({
-          listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
-          content:`📋 EDL scheduled!
-
-🏠 ${listing?.title||'Property'}
-📍 ${listing?.full_address||listing?.zone||'—'}
-👤 Tenant: ${tenantProfile?.full_name||'—'} — 📞 ${tenantProfile?.phone||'—'}
-📅 ${edlFormatted}`,
-          type:'edl_scheduled'
-        });}catch(e){}
-        try{await sb.from('visits').update({status:'edl_scheduled'}).eq('agent_id',visit.agent_id).eq('listing_id',listingId);}catch(e){}
+        await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,content:'📋 Application accepted!\n\n🏠 '+(listing?.title||'Property')+'\n👤 Tenant: '+(tenantProfile?.full_name||'—')+'\n\nLease being signed.',type:'booking_accepted'}).catch(()=>{});
+        await sb.from('visits').update({status:'edl_scheduled'}).eq('agent_id',visit.agent_id).eq('listing_id',listingId).catch(()=>{});
       }
     }catch(e){}
 
-    toast('🎉 Accepted! Tenant & agent notified.');
-    setTimeout(()=>loadVisitsPage(), 1000);
 
-  }catch(e){
-    toast('❌ '+e.message);
-    console.error('Accept error:',e);
-  }
+
+
+    toast(lessorEmbed?'🎉 Accepted! Sign the lease in your visits page.':'🎉 Accepted! Tenant notified.');
+    loadVisitsPage();
+  }catch(e){toast('❌ '+e.message);console.error(e);}
 }
 async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
   const newDate=document.getElementById('ll-propose-date')?.value;
@@ -1872,7 +1878,7 @@ function filterContactData(text){
   text=text.replace(/(?:\+356|00356)?\s?[279]\d{3}\s?\d{4}/g,'[📵 Number hidden by RestMalta]');
   text=text.replace(/(\+\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g,'[📵 Number hidden by RestMalta]');
   text=text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[📧 Email hidden by RestMalta]');
-  text=text.replace(/whatsapp|telegram|signal|viber/gi,'[[Platform chat only]]');
+  text=text.replace(/whatsapp|telegram|signal|viber/gi,'[RestMalta chat only]');
   return text;
 }
 
@@ -3438,6 +3444,136 @@ async function llRunVerification(){
 }
 
 function llFail(msg){return`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.5rem">❌</div><div style="font-weight:700;color:var(--terra);margin-bottom:.3rem">Verification failed</div><div style="font-size:.8rem;color:var(--tm);margin-bottom:.75rem">${msg}</div><button class="btn bp bsm" onclick="llShowStep1()">Try again →</button></div>`;}
+
+async function showCommissionPayment(bookingId,listingId,tenantId,monthlyRent){
+  const wrap=document.getElementById('commission-payment-form-'+bookingId);
+  if(!wrap)return;
+  if(wrap._mounted){wrap.style.display=wrap.style.display==='none'?'block':'none';return;}
+  let listing=null;
+  try{const{data:l}=await sb.from('listings').select('price,type,wants_agent,agent_service').eq('id',listingId).single();listing=l;}catch(e){}
+  const price=listing?.price||monthlyRent||0;
+  const hasAgent=listing?.wants_agent&&listing?.agent_service==='full';
+  const rate=hasAgent?0.40:0.00;
+  const commission=Math.round(price*rate);
+  if(commission===0){toast('✅ No commission required — generating lease...');await generateLeaseFromBooking(bookingId,listingId,tenantId);return;}
+  if(!window.stripe)window.stripe=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
+  let clientSecret=null;
+  try{
+    const res=await fetch('/.netlify/functions/holding-deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create_landlord_commission',booking_id:bookingId,amount_cents:commission*100,landlord_id:U.id,landlord_email:P?.email||''})});
+    const data=await res.json();
+    clientSecret=data.client_secret;
+  }catch(e){toast('❌ '+e.message);return;}
+  if(!clientSecret){toast('❌ Could not initialize payment');return;}
+  wrap.style.display='block';
+  wrap._mounted=true;
+  wrap.innerHTML='<div style="background:var(--s2);border:1px solid rgba(212,168,71,.3);border-radius:10px;padding:.85rem;margin-bottom:.5rem">'
+    +'<div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.6rem">💳 Commission landlord: '+(rate*100)+'% TTC = €'+commission+'</div>'
+    +'<div id="ll-card-el-'+bookingId+'" style="background:var(--card);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.65rem"></div>'
+    +'<button id="ll-pay-btn-'+bookingId+'" data-bid="'+bookingId+'" data-lid="'+listingId+'" data-tid="'+tenantId+'" onclick="payLandlordCommission(this.dataset.bid,this.dataset.lid,this.dataset.tid)" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay €'+commission+' & Accept →</button>'
+    +'</div>';
+  const elements=window.stripe.elements();
+  const card=elements.create('card',{style:{base:{color:'#fff',fontSize:'14px'}}});
+  card.mount('#ll-card-el-'+bookingId);
+  wrap._card=card;
+  wrap._clientSecret=clientSecret;
+}
+
+async function payLandlordCommission(bookingId,listingId,tenantId){
+  const wrap=document.getElementById('commission-payment-form-'+bookingId);
+  const btn=document.getElementById('ll-pay-btn-'+bookingId);
+  if(!wrap||!wrap._card)return;
+  if(btn)btn.disabled=true;
+  toast('⏳ Processing payment...');
+  try{
+    const{error,paymentIntent}=await window.stripe.confirmCardPayment(wrap._clientSecret,{payment_method:{card:wrap._card}});
+    if(error)throw new Error(error.message);
+    toast('✅ Commission paid! Generating lease...');
+    await generateLeaseFromBooking(bookingId,listingId,tenantId);
+  }catch(e){
+    if(btn)btn.disabled=false;
+    toast('❌ '+e.message);
+  }
+}
+
+function openSigningDocLL(embedSrc,title){
+  if(!embedSrc){toast('⚠️ Document not ready yet');return;}
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  const header=document.createElement('div');
+  header.style.cssText='background:var(--card);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b)';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ '+(title||'Document')+'</div>';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;color:var(--t);font-size:1.2rem;cursor:pointer';
+  closeBtn.textContent='✕';
+  closeBtn.onclick=()=>modal.remove();
+  header.appendChild(closeBtn);
+  const body=document.createElement('div');
+  body.style.cssText='flex:1;overflow:hidden;background:white';
+  const form=document.createElement('docuseal-form');
+  form.setAttribute('data-src',embedSrc);
+  form.style.cssText='width:100%;height:100%;display:block';
+  body.appendChild(form);
+  modal.appendChild(header);
+  modal.appendChild(body);
+  document.body.appendChild(modal);
+  if(!window.docusealLoaded){
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;};
+    document.head.appendChild(s);
+  }
+}
+
+async function confirmFirstPaymentReceived(bookingId,received){
+  try{
+    if(received){
+      await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
+      const{data:b}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
+      if(b?.tenant_id){
+        await sb.from('messages').insert({listing_id:b.listing_id,sender_id:'system',receiver_id:b.tenant_id,content:'✅ Payment confirmed by landlord!\n\nEverything is set for your move-in. Your agent will contact you for the entry inventory.',type:'payment_confirmed'});
+
+      }
+      toast('✅ Payment confirmed! Tenant notified.');
+    }else{
+      await sb.from('bookings').update({first_payment_sent:false}).eq('id',bookingId);
+      const{data:b}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
+      if(b?.tenant_id){
+        await sb.from('messages').insert({listing_id:b.listing_id,sender_id:'system',receiver_id:b.tenant_id,content:'⚠️ Payment not received yet.\n\nThe landlord has not received your payment. Please check the transfer and try again.',type:'payment_not_received'});
+      }
+      toast('⚠️ Tenant notified — payment not received.');
+    }
+    loadVisitsPage();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function loadTenantDocuments(tenantId,bookingId){
+  const el=document.getElementById('tenant-docs-'+bookingId);
+  if(!el)return;
+  try{
+    const{data:profile}=await sb.from('profiles').select('documents').eq('clerk_id',tenantId).single();
+    const raw=profile?.documents;
+    if(!raw){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
+    const docs=typeof raw==='string'?JSON.parse(raw):raw;
+    const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference',rent1:'🏠 Rent receipt 1',rent2:'🏠 Rent receipt 2',rent3:'🏠 Rent receipt 3',student:'🎓 Student card'};
+    const entries=Object.entries(docs).filter(([,d])=>d?.path);
+    if(!entries.length){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
+    el.innerHTML=entries.map(([key,doc])=>{
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.35rem .6rem;margin-bottom:.25rem">'
+        +'<div style="font-size:.75rem;font-weight:600">'+(docLabels[key]||key)+'</div>'
+        +'<button data-path="'+doc.path+'" onclick="viewTenantDoc(this.dataset.path)" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">View</button>'
+        +'</div>';
+    }).join('');
+  }catch(e){if(el)el.innerHTML='<div style="font-size:.72rem;color:var(--red)">Error loading</div>';}
+}
+
+async function viewTenantDoc(path){
+  try{
+    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
+    if(data?.signedUrl)window.open(data.signedUrl,'_blank');
+    else toast('❌ Could not open document');
+  }catch(e){toast('❌ '+e.message);}
+}
+
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 
