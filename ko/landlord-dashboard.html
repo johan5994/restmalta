@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1255,7 +1255,7 @@ function renderVisitCard(g, isPast=false){
         <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
       </div>`:''}
     ${!isPast&&g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
-    \${!isPast&&['edl_scheduled','signing_day','move_in_ready'].includes(g.status)&&g.booking?\`<div style="margin-top:.5rem;border-top:1px solid var(--b);padding-top:.5rem">\${g.booking.lease_landlord_embed?(!g.booking.lease_signed_landlord?'<button onclick="openSigningDocLL(this.dataset.src,\'Lease\')" data-src="'+g.booking.lease_landlord_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.75rem;font-weight:700;cursor:pointer">📄 Sign Lease →</button>':'<div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Lease signed'+(g.booking.lease_signed_tenant?' & tenant ✅':' — waiting tenant ⏳')+'</div>'):''}\${g.booking.first_payment_sent&&!g.booking.first_payment_confirmed?'<div style="font-size:.72rem;color:var(--gold);margin:.3rem 0 .2rem">💶 Tenant says paid:</div><div style="display:flex;gap:.3rem"><button onclick="confirmFirstPaymentReceived(this.dataset.id,true)" data-id="'+g.booking.id+'" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">✅ Received</button><button onclick="confirmFirstPaymentReceived(this.dataset.id,false)" data-id="'+g.booking.id+'" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">❌ Not yet</button></div>':''}\${g.booking.first_payment_confirmed?'<div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Payment confirmed</div>':''}</div>\`:''}
+    ${!isPast&&['edl_scheduled','signing_day','move_in_ready'].includes(g.status)&&g.booking?`<div style="margin-top:.5rem;border-top:1px solid var(--b);padding-top:.5rem">${g.booking.lease_landlord_embed?(!g.booking.lease_signed_landlord?'<button onclick="openSigningDocLL(this.dataset.src,\'Lease\') data-src="'+g.booking.lease_landlord_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.75rem;font-weight:700;cursor:pointer">📄 Sign Lease →</button>':'<div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Lease signed'+(g.booking.lease_signed_tenant?' & tenant ✅':' — waiting tenant ⏳')+'</div>'):''}\${g.booking.first_payment_sent&&!g.booking.first_payment_confirmed?'<div style="font-size:.72rem;color:var(--gold);margin:.3rem 0 .2rem">💶 Tenant says paid:</div><div style="display:flex;gap:.3rem"><button onclick="confirmFirstPaymentReceived(this.dataset.id,true)" data-id="'+g.booking.id+'" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;cursor:pointer">✅ Received</button><button onclick="confirmFirstPaymentReceived(this.dataset.id,false)" data-id="'+g.booking.id+'" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;cursor:pointer">❌ Not yet</button></div>':''}\${g.booking.first_payment_confirmed?'<div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Payment confirmed</div>':''}</div>`:''}
   </div>`;
 }
 
@@ -1389,6 +1389,18 @@ async function loadBookingDossier(booking){
         <div style="font-size:.72rem;color:var(--td)">Loading documents...</div>
       </div>
     </div>`;
+
+  // Bouton regenerate lease si booking accepted mais pas d'embed
+  if(booking.status==='accepted'&&!booking.lease_landlord_embed){
+    const container=document.getElementById('dossier-'+booking.id);
+    if(container){
+      const regenDiv=document.createElement('div');
+      regenDiv.style.cssText='margin-top:.6rem;border-top:1px solid var(--b);padding-top:.6rem';
+      regenDiv.innerHTML='<div style="font-size:.73rem;color:var(--gold);margin-bottom:.4rem">⏳ Lease not yet generated</div>'
+        +'<button data-bid="'+booking.id+'" data-lid="'+booking.listing_id+'" data-tid="'+(booking.tenant_id||'')+'" onclick="regenLease(this.dataset.bid,this.dataset.lid,this.dataset.tid)" style="width:100%;background:var(--terra);color:white;border:none;border-radius:9px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer">🔄 Generate Lease Now →</button>';
+      container.appendChild(regenDiv);
+    }
+  }
 
   // Ajouter bouton signature si lease embed disponible
   if(booking.lease_landlord_embed){
@@ -1638,7 +1650,15 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
         })
       });
       const data=await res.json();
-      if(data.success){lessorEmbed=data.lessor_embed_src;lesseeEmbed=data.lessee_embed_src;submissionId=data.submission_id;}
+      if(data.success){
+          lessorEmbed=data.lessor_embed_src;
+          lesseeEmbed=data.lessee_embed_src;
+          submissionId=data.submission_id;
+          // Si pas de DocuSeal, stocker le HTML du bail pour affichage direct
+          if(!lessorEmbed&&data.lease_html){
+            window._leaseHTML=data.lease_html;
+          }
+        }
     }catch(e){console.warn('Lease:',e.message);}
 
     // 3 — Mettre à jour booking
@@ -3506,6 +3526,57 @@ async function payLandlordCommission(bookingId,listingId,tenantId){
     toast('❌ '+e.message);
   }
 }
+
+async function regenLease(bookingId, listingId, tenantId){
+  toast('⏳ Generating lease...');
+  try{
+    let listing=null,tenantProfile=null,landlordProfile=null;
+    try{const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=l;}catch(e){}
+    try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',tenantId).single();tenantProfile=tp;}catch(e){}
+    try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();landlordProfile=lp;}catch(e){}
+    let booking=null;
+    try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
+
+    const startDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
+    const endDate=(()=>{const d=new Date(startDate);if(listing?.type==='short')d.setMonth(d.getMonth()+6);else d.setFullYear(d.getFullYear()+1);return d.toISOString().split('T')[0];})();
+
+    const res=await fetch('/.netlify/functions/generate-lease',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:listing?.type==='short'?'short':'long',
+        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+        tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+        listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:listing?.payment_due_day||1},
+        start_date:startDate,end_date:endDate
+      })
+    });
+    const data=await res.json();
+    if(data.success){
+      await sb.from('bookings').update({
+        lease_landlord_embed:data.lessor_embed_src||null,
+        lease_tenant_embed:data.lessee_embed_src||null,
+        lease_submission_id:data.submission_id?String(data.submission_id):null,
+        landlord_iban:landlordProfile?.iban||null,
+        landlord_revolut:landlordProfile?.revolut_tag||null
+      }).eq('id',bookingId);
+
+      // Notifier tenant
+      if(tenantId&&data.lessee_embed_src){
+        await sb.from('messages').insert({
+          listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+          content:'📄 Your lease is ready to sign! Go to your visits page.',
+          type:'lease_ready'
+        }).catch(()=>{});
+      }
+
+      toast('✅ Lease generated! '+(data.lessor_embed_src?'Ready to sign.':'Check visits page.'));
+      loadVisitsPage();
+    } else {
+      toast('❌ Failed: '+(data.error||data.message||'Unknown error'));
+    }
+  }catch(e){toast('❌ '+e.message);}
+}
+
 
 function openSigningDocLL(embedSrc,title){
   if(!embedSrc){toast('⚠️ Document not ready yet');return;}
