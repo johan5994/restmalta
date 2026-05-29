@@ -1802,6 +1802,29 @@ async function loadTenantVisits(){
   try{
     const{data:bData}=await sb.from('bookings').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
     bookings=bData||[];
+
+    // Enrichir les bookings accepted avec IBAN landlord si manquant
+    const acceptedBookings=bookings.filter(b=>b.status==='accepted'&&!b.landlord_iban);
+    if(acceptedBookings.length){
+      try{
+        const lIds=[...new Set(acceptedBookings.map(b=>b.listing_id).filter(Boolean))];
+        const{data:listings}=await sb.from('listings').select('id,landlord_id').in('id',lIds);
+        const llIds=[...new Set((listings||[]).map(l=>l.landlord_id).filter(Boolean))];
+        if(llIds.length){
+          const{data:profiles}=await sb.from('profiles').select('clerk_id,iban,revolut_tag').in('clerk_id',llIds);
+          const pMap={};(profiles||[]).forEach(p=>{pMap[p.clerk_id]=p;});
+          const lMap={};(listings||[]).forEach(l=>{lMap[l.id]=l.landlord_id;});
+          bookings=bookings.map(b=>{
+            if(b.status==='accepted'&&!b.landlord_iban){
+              const llId=lMap[b.listing_id];
+              const prof=llId?pMap[llId]:null;
+              if(prof?.iban)return{...b,landlord_iban:prof.iban,landlord_revolut:prof.revolut_tag||null};
+            }
+            return b;
+          });
+        }
+      }catch(e){}
+    }
   }catch(e){}
 
   // Badge
