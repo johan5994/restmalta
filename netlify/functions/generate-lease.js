@@ -159,10 +159,11 @@ exports.handler = async (event) => {
 <ol type="i">
   <li>The lessor shall ensure that all utilities and other fees or bills payable in respect of rent/consumption until the commencement of the lease are duly paid and settled.</li>
   <li>Annex B shall include Automated Revenue and Management Services (ARMS), Form H and Form N duly filled and signed by both parties to this agreement.</li>
-  <li>Both parties to this agreement declare that water/electricity meters were read on <strong>${meterDate}</strong>:
-    <div class="meter-box">
-      <p><strong>Water meter reading:</strong> ${meter_water || '_______________'}</p>
-      <p><strong>Electricity meter reading:</strong> ${meter_electricity || '_______________'}</p>
+  <li>Both parties to this agreement declare that water/electricity meters were read on the day of the entry inventory and key handover. The meter readings shall be recorded in <strong>Annex A (Entry Inventory and Condition Form)</strong>, which forms an integral part of this agreement and shall be annexed hereto on the day of move-in.
+    <div class="meter-box" style="background:#fffbeb;border:1px solid #f6d860;padding:10px;border-radius:5px;margin-top:6px">
+      <p style="font-weight:700;color:#744210">📋 ANNEX A — To be completed on move-in day:</p>
+      <p>Water meter reading: <em>to be annexed on ${start_date ? new Date(start_date).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) : 'move-in day'}</em></p>
+      <p>Electricity meter reading: <em>to be annexed on ${start_date ? new Date(start_date).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) : 'move-in day'}</em></p>
     </div>
   </li>
 </ol>
@@ -220,17 +221,16 @@ ${inventory_notes ? `
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         html,
-        send_email: true,
-        submitters,
-        message: {
-          subject: `${type === 'long' ? 'Long' : 'Short'} Private Residential Lease — ${listing?.address || 'Malta Property'} — Please sign`,
-          body: `Please find attached your residential lease agreement for the property at ${listing?.address || 'Malta'}. Please review and sign the document at your earliest convenience.`
-        }
+        send_email: false,
+        submitters
       })
     });
 
     const data = await res.json();
-    const submissionId = data.id || data[0]?.id;
+    const submitters_data = Array.isArray(data) ? data : (data.submitters || []);
+    const submissionId = submitters_data[0]?.submission_id || data.id;
+    const lessorData = submitters_data.find(s => s.role === 'Lessor') || submitters_data[0];
+    const lesseeData = submitters_data.find(s => s.role === 'Lessee') || submitters_data[1];
 
     return {
       statusCode: 200,
@@ -239,8 +239,8 @@ ${inventory_notes ? `
         success: true,
         submission_id: submissionId,
         type,
-        landlord_email: landlord?.email,
-        tenant_email: tenant?.email
+        lessor_embed_src: lessorData?.embed_src || null,
+        lessee_embed_src: lesseeData?.embed_src || null
       })
     };
 
