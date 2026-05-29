@@ -197,30 +197,38 @@ ${general_notes ? `
 </html>`;
 
     // Envoyer à DocuSeal
+    if (!DOCU_KEY) {
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, message: 'DocuSeal not configured' }) };
+    }
     const res = await fetch(DOCU_URL, {
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         html,
-        send_email: true,
+        send_email: false,
         submitters: [
           { role: 'Lessor', email: landlord?.email, name: landlord?.name || 'Landlord' },
           { role: 'Lessee', email: tenant?.email, name: tenant?.name || 'Tenant' }
-        ],
-        message: {
-          subject: `Property Inventory & Condition Form — ${listing?.address || 'Malta'} — Please sign`,
-          body: `Please find attached the property inventory and condition form for ${listing?.address || 'the property'}. Please review and sign at your earliest convenience.`
-        }
+        ]
       })
     });
 
     const data = await res.json();
-    const submissionId = data.id || data[0]?.id;
+    const submitters_data = Array.isArray(data) ? data : (data.submitters || []);
+    const lessorData = submitters_data.find(s => s.role === 'Lessor') || submitters_data[0];
+    const lesseeData = submitters_data.find(s => s.role === 'Lessee') || submitters_data[1];
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ success: true, submission_id: submissionId })
+      body: JSON.stringify({
+        success: true,
+        submission_id: submitters_data[0]?.submission_id,
+        lessor_embed_src: lessorData?.embed_src || null,
+        lessee_embed_src: lesseeData?.embed_src || null,
+        lessor_slug: lessorData?.slug || null,
+        lessee_slug: lesseeData?.slug || null
+      })
     };
 
   } catch (e) {
