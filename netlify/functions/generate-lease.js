@@ -1,287 +1,251 @@
+const { createClient } = require('@supabase/supabase-js');
+
+const DOCU_KEY = process.env.DOCUSEAL_API_KEY;
+const DOCU_URL = 'https://api.docuseal.eu/submissions/init';
+
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
-
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Method not allowed' };
 
   try {
-    const { type, landlord, tenant, coTenants, listing, start_date, end_date } = JSON.parse(event.body);
+    const {
+      type = 'long', // 'long' ou 'short'
+      landlord,      // { name, passport, dob, address, email }
+      tenant,        // { name, passport, dob, nationality, address, email }
+      coTenants,     // []
+      listing,       // { address, price, deposit, payment_due_day, bills, notice_period }
+      start_date,
+      end_date,
+      meter_water,
+      meter_electricity,
+      inventory_notes,
+      short_let_reason // pour short-let: 'work', 'study', 'medical', 'tourism', 'other'
+    } = JSON.parse(event.body);
 
-    const DOCU_KEY = process.env.DOCUSEAL_KEY;
-
-    const typeLabel = {
-      long: 'Long Private Residential Lease',
-      short: 'Short Private Residential Lease',
-      sublet: 'Subletting Agreement',
-      both: 'Private Residential Lease'
-    }[type] || 'Private Residential Lease';
-
+    // Formater les dates
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    const startFormatted = start_date ? new Date(start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-    const endFormatted = end_date ? new Date(end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const startFmt = start_date ? new Date(start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '_______________';
+    const endFmt = end_date ? new Date(end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '_______________';
+    const meterDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    // Build co-lessees HTML
-    let coLesseesHtml = '';
-    if (coTenants && coTenants.length) {
-      coTenants.forEach((ct, i) => {
-        coLesseesHtml += `
-          <div class="section-title">CO-LESSEE ${i + 2}</div>
-          <table class="info-table">
-            <tr><td class="label">Full name</td><td class="value">${ct.name || '—'}</td></tr>
-            <tr><td class="label">ID/Passport</td><td class="value">${ct.passport || '—'}</td></tr>
-            <tr><td class="label">Nationality</td><td class="value">${ct.nationality || '—'}</td></tr>
-            <tr><td class="label">Date of birth</td><td class="value">${ct.dob || '—'}</td></tr>
-            <tr><td class="label">Email</td><td class="value">${ct.email || '—'}</td></tr>
-          </table>`;
-      });
-    }
+    const duration = type === 'short' ? '6 months' : '1 year';
+    const diFermo = type === 'short' ? '1 month' : '6 months';
 
-    // Build co-lessees signature blocks
-    let coSigHtml = '';
-    if (coTenants && coTenants.length) {
-      coTenants.forEach((ct, i) => {
-        coSigHtml += `
-          <div class="sig-block">
-            <div class="sig-name">CO-LESSEE ${i + 2}: ${ct.name || '—'}</div>
-            <div class="sig-line"></div>
-            <div class="sig-label">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: _______________</div>
-          </div>`;
-      });
-    }
+    const shortReasons = {
+      work: 'the lessee is required to reside in Malta for work purposes',
+      study: 'the lessee is required to reside in Malta for study/educational purposes',
+      medical: 'the lessee is required to reside in Malta for medical treatment purposes',
+      tourism: 'the lessee is required to reside in Malta temporarily',
+      other: 'the lessee requires temporary accommodation in Malta'
+    };
 
-    const diFormoText = listing.di_fermo && listing.di_fermo !== 'none'
-      ? `The Lessee agrees to remain in the premises for a compulsory Di Fermo period of <strong>${listing.di_fermo}</strong>.`
-      : 'No Di Fermo (compulsory period) applies to this lease.';
-
-    const shortLetCategory = type === 'short' ? `
-      <div class="section-title">LESSEE CATEGORY (SHORT-LET)</div>
-      <p>The reason for which the premises is being leased for a short period is because the lessee is a:</p>
-      <p>☐ (a) Non-resident worker employed for less than 6 months<br>
-      ☐ (b) Non-resident student enrolled in courses for less than 6 months<br>
-      ☐ (c) Resident needing alternative primary residence for less than 6 months<br>
-      ☐ (d) Non-resident not seeking to establish long residence in Malta</p>
-      <p><em>Supporting documentation attached as Annex A.</em></p>` : '';
-
+    // Générer le HTML du bail officiel maltais
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
-  body { font-family: 'Times New Roman', serif; font-size: 11pt; color: #1a1410; margin: 0; padding: 40px; line-height: 1.6; }
-  .header { background: #C9553A; color: white; padding: 16px 24px; margin: -40px -40px 30px -40px; display: flex; justify-content: space-between; align-items: center; }
-  .header-title { font-size: 14pt; font-weight: bold; }
-  .header-sub { font-size: 9pt; opacity: 0.85; }
-  h1 { font-size: 16pt; text-align: center; color: #C9553A; margin-bottom: 4px; }
-  .subtitle { text-align: center; color: #6B5F52; font-size: 9pt; margin-bottom: 24px; }
-  .section-title { background: #C9553A; color: white; padding: 6px 10px; font-weight: bold; font-size: 10pt; margin: 18px -10px 10px -10px; }
-  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-  .info-table td { padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 10.5pt; }
-  .info-table .label { font-weight: bold; color: #6B5F52; width: 35%; }
-  .info-table .value { color: #1a1410; }
-  p { font-size: 10.5pt; margin: 6px 0; text-align: justify; }
-  .clause-title { font-weight: bold; margin-top: 8px; }
-  .warning { background: #FFF8E6; border: 1px solid #D4A847; padding: 10px 14px; margin: 16px 0; font-size: 9.5pt; }
-  .sig-section { margin-top: 30px; }
-  .sig-row { display: flex; gap: 20px; margin-bottom: 24px; }
-  .sig-block { flex: 1; border-top: 1px solid #6B5F52; padding-top: 10px; }
-  .sig-name { font-weight: bold; font-size: 10pt; margin-bottom: 30px; }
-  .sig-line { border-bottom: 1px solid #333; margin-bottom: 6px; height: 40px; }
-  .sig-label { font-size: 8.5pt; color: #6B5F52; }
-  .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc; font-size: 8pt; color: #6B5F52; text-align: center; }
+  body { font-family: "Times New Roman", Times, serif; font-size: 11pt; line-height: 1.6; margin: 2cm; color: #000; }
+  h1 { text-align: center; font-size: 13pt; text-transform: uppercase; font-weight: bold; margin-bottom: 20px; }
+  h2 { font-size: 11pt; font-weight: bold; margin-top: 16px; margin-bottom: 6px; }
+  .details { margin-bottom: 20px; }
+  .field { border-bottom: 1px solid #000; display: inline-block; min-width: 150px; }
+  .field-long { border-bottom: 1px solid #000; display: inline-block; min-width: 300px; }
+  ol { margin: 8px 0; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  .italic { font-style: italic; }
+  .section { margin-top: 16px; }
+  .sig-block { margin-top: 40px; display: flex; justify-content: space-between; }
+  .sig-box { width: 45%; }
+  .sig-line { border-top: 1px solid #000; margin-top: 60px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #000; padding: 6px 8px; font-size: 10pt; }
+  th { background: #f0f0f0; font-weight: bold; text-align: center; }
+  .meter-box { background: #f9f9f9; border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+  @media print { body { margin: 1.5cm; } }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-title">RestMalta</div>
-  <div class="header-sub">${typeLabel}</div>
+<h1>${type === 'long' ? 'LONG' : 'SHORT'} PRIVATE RESIDENTIAL LEASE</h1>
+
+<div class="details">
+  <p>This, day of <span class="field-long">${today}</span></p>
+
+  <p>By the present private writing there appear on the one part <span class="field-long">${landlord?.name || '_______________'}</span>, 
+  son/daughter of <span class="field">${landlord?.father_name || '_______________'}</span> 
+  and <span class="field">${landlord?.mother_name || '_______________'}</span> 
+  neè <span class="field">${landlord?.mother_maiden || '_______________'}</span>, 
+  born in <span class="field">${landlord?.place_of_birth || '_______________'}</span> 
+  and residing at <span class="field-long">${landlord?.address || '_______________'}</span>, 
+  holder of a legally valid identification document number <span class="field">${landlord?.passport || '_______________'}</span> 
+  and user of e-mail address <span class="field-long">${landlord?.email || '_______________'}</span>, 
+  hereinafter referred to as the <strong>lessor</strong>.</p>
+
+  <p>And on the other part <span class="field-long">${tenant?.name || '_______________'}</span>, 
+  son/daughter of <span class="field">${tenant?.father_name || '_______________'}</span> 
+  and <span class="field">${tenant?.mother_name || '_______________'}</span> 
+  neè <span class="field">${tenant?.mother_maiden || '_______________'}</span>, 
+  born in <span class="field">${tenant?.place_of_birth || '_______________'}</span> 
+  and residing at <span class="field-long">${tenant?.address || '_______________'}</span>, 
+  holder of a legally valid identification document number <span class="field">${tenant?.passport || '_______________'}</span> 
+  and user of e-mail address <span class="field-long">${tenant?.email || '_______________'}</span>, 
+  hereinafter referred to as the <strong>lessee</strong>.</p>
+
+  <p>And hereby the lessor is granting by title of lease to the lessee who under the same title of lease accepts 
+  <span class="field-long">${listing?.address || '_______________'}</span> 
+  hereinafter referred to as the premises, subject to the following terms and conditions:</p>
 </div>
 
-<h1>${typeLabel.toUpperCase()}</h1>
-<p class="subtitle">In accordance with the Private Residential Leases Act, Chapter 604 of the Laws of Malta (SL 604.02)<br>
-Generated on ${today} by RestMalta — restmalta.com</p>
+<div class="section">
+<h2>Payment &amp; Duration</h2>
+<ol type="i">
+  <li>The lease shall run for a period of <strong>${duration}</strong> with effect as from the 
+  <strong>${startFmt}</strong> up to and including <strong>${endFmt}</strong>.</li>
 
-<p>This, <strong>${today}</strong></p>
-<p>By the present private writing there appear on the one part:</p>
+  ${type === 'short' ? `
+  <li>The reason for which the premises is being leased for a short period is because ${shortReasons[short_let_reason] || shortReasons.other}.</li>
+  <li>The lessee may be released from the contract after the first compulsory month by giving at least one (1) week's notice to the lessor by means of a registered letter. This contract cannot be renewed.</li>
+  ` : `
+  <li>After the first compulsory period of <strong>${diFermo}</strong>, the lessee may, at any time, notify the lessor of his/her intention to terminate the agreement, by giving at least one (1) month's written notice to the lessor by means of a registered letter.</li>
+  <li>If, within at least three (3) months of the termination of the present agreement, the lessor fails to notify the lessee of his/her intention not to renew the lease, or to renew it under different conditions, the present agreement shall be renewed, under the same conditions, for a period of one (1) year.</li>
+  `}
 
-<div class="section-title">LESSOR (LANDLORD)</div>
-<table class="info-table">
-  <tr><td class="label">Full name</td><td class="value">${landlord.name || '—'}</td></tr>
-  <tr><td class="label">ID/Passport No.</td><td class="value">${landlord.passport || '—'}</td></tr>
-  <tr><td class="label">Address in Malta</td><td class="value">${landlord.address || '—'}</td></tr>
-  <tr><td class="label">Phone</td><td class="value">${landlord.phone || '—'}</td></tr>
-  <tr><td class="label">Email</td><td class="value">${landlord.email || '—'}</td></tr>
-  <tr><td class="label">IBAN</td><td class="value">${landlord.iban || '—'}</td></tr>
-</table>
-<p>hereinafter referred to as the <strong>Lessor</strong>.</p>
+  <li>The monthly rent payable by the lessee to the lessor for the use and enjoyment of the premises is 
+  <strong>€${listing?.price || '___'}/month</strong>, 
+  payable on or before the <strong>${listing?.payment_due_day || '1st'}</strong> day of each month.</li>
 
-<div class="section-title">LESSEE (TENANT) — PRIMARY</div>
-<table class="info-table">
-  <tr><td class="label">Full name</td><td class="value">${tenant.name || '—'}</td></tr>
-  <tr><td class="label">ID/Passport No.</td><td class="value">${tenant.passport || '—'}</td></tr>
-  <tr><td class="label">Nationality</td><td class="value">${tenant.nationality || '—'}</td></tr>
-  <tr><td class="label">Date of birth</td><td class="value">${tenant.dob || '—'}</td></tr>
-  <tr><td class="label">Home address</td><td class="value">${tenant.address || '—'}</td></tr>
-  <tr><td class="label">Phone</td><td class="value">${tenant.phone || '—'}</td></tr>
-  <tr><td class="label">Email</td><td class="value">${tenant.email || '—'}</td></tr>
-</table>
-<p>hereinafter referred to as the <strong>Lessee</strong>. All lessees are jointly and severally liable.</p>
+  ${type === 'long' ? `
+  <li>After the first year of the agreement the monthly rent may increase in proportion to the yearly adjustment of the Property Price Index (PPI), published by the National Statistics Office (NSO). Any annual increase in rent shall not exceed five percent (5%) of the rent established.</li>
+  ` : ''}
 
-${coLesseesHtml}
+  <li class="italic">[add any other clauses, deemed necessary provided that said clauses are in full respect of the laws of Malta].</li>
+</ol>
+</div>
 
-<div class="section-title">PREMISES</div>
-<p>The Lessor grants by title of lease to the Lessee who accepts: <strong>${listing.address || '—'}, Malta</strong></p>
-${shortLetCategory}
+<div class="section">
+<h2>Deposit</h2>
+<ol type="i">
+  <li>The lessee hereby pays unto the lessor who accepts and issues due receipt, the further sum of 
+  <strong>€${listing?.deposit || '___'}</strong> being a deposit paid by the said lessee in security of the payment of such amounts which in terms of law or of this agreement are payable by the lessee.</li>
+  <li>The deposit paid in terms of this paragraph is to be retained by the lessor for the duration of the lease and shall be thereafter released by the same lessor, in part or in whole, as the case may be, provided that the premises after having been inspected by the lessor (or his/her agent) is found to be in the same condition (except fair wear and tear) as it was when occupation was effected and upon verification and confirmation of the payment by the lessee of all such amounts which in terms of law or of this agreement are or shall become due by the lessee.</li>
+  <li>Annex A shall include an inventory containing all the movables present in the premises. The list shall include photographs of the state in which any of the movables have been delivered to the lessee.</li>
+  <li>The payment by the lessee of the deposit set out in this paragraph shall not release the lessee from the obligation to pay such amounts which in terms of law or of this agreement are payable by the lessee.</li>
+  <li>The lessor shall be freely entitled to set off and thereafter retain, the deposit or part thereof, against the unpaid portion of any amounts payable by the lessee in terms of the law or of this agreement.</li>
+</ol>
+</div>
 
-<div class="section-title">PAYMENT &amp; DURATION</div>
-<table class="info-table">
-  <tr><td class="label">Lease start date</td><td class="value">${startFormatted}</td></tr>
-  <tr><td class="label">Lease end date</td><td class="value">${endFormatted}</td></tr>
-  <tr><td class="label">Monthly rent</td><td class="value"><strong>€${listing.price || '—'}</strong></td></tr>
-  <tr><td class="label">Security deposit</td><td class="value">€${listing.deposit || '0'}</td></tr>
-  <tr><td class="label">Rent due day</td><td class="value">${listing.payment_due_day || '1'}st of each month</td></tr>
-  <tr><td class="label">Payment method</td><td class="value">Bank transfer to IBAN: ${landlord.iban || '—'}</td></tr>
-  <tr><td class="label">Bills</td><td class="value">${listing.bills || 'Excluded'}</td></tr>
-  ${listing.notice_period ? `<tr><td class="label">Notice period</td><td class="value">${listing.notice_period}</td></tr>` : ''}
-</table>
-<p>${diFormoText}</p>
-${type === 'short' ? '<p><strong>This agreement shall NOT be renewed.</strong> A new contract must be signed for any continued occupancy.</p>' : ''}
-${type === 'long' ? '<p>After the first year, rent may increase in proportion to the Property Price Index (PPI), not exceeding 5% per year.</p>' : ''}
+<div class="section">
+<h2>Obligations of the Lessee</h2>
+<ol type="i">
+  <li>The lessee shall use the premises for residential purposes only and shall not without the written consent of the lessor, use them for any other purpose, whether commercial, industrial or otherwise.</li>
+  <li>The lessee shall not sublet, transfer or otherwise assign the premises, in whole or in part, without the prior written consent of the lessor.</li>
+  <li>The lessee shall be responsible for the payment of all water and electricity bills and all other utilities accruing from the date of commencement of the lease.</li>
+  <li>The lessee shall maintain the premises in a clean and tidy state and upon the termination of the lease, shall return the premises to the lessor in the same state and condition as they were found at the commencement of the lease, fair wear and tear excepted.</li>
+  <li>All extraordinary structural repairs, save those occasioned or contributed to by the acts or omissions of the lessee shall be executed by the lessor and the expenses incurred or incurable in connection with such repairs shall be borne by the lessor, and the lessee shall not, unless authorised so to do by the lessor, perform or order the performance of any extraordinary repairs except in urgent cases and only in accordance with the law.</li>
+  <li>At the termination of the lease, the lessee is to surrender the premises unto the lessor in a good state of repair, clean and tidy, fair wear and tear accepted.</li>
+  <li>The lessee shall not, under any circumstance, and without the written consent of the lessor, be entitled to execute and perform any improvements or alterations of whatever nature to the premises.</li>
+  <li class="italic">[add any other clauses, deemed necessary provided that said clauses are in full respect of the laws of Malta]</li>
+</ol>
+</div>
 
-<div class="section-title">DEPOSIT</div>
-<p>(i) The Lessee pays unto the Lessor a security deposit of <strong>€${listing.deposit || '0'}</strong> in security of all obligations under this lease.</p>
-<p>(ii) The deposit shall be returned within <strong>10 days</strong> of vacating, subject to deductions for damages beyond fair wear and tear, as evidenced by the inventory (Annex A).</p>
-<p>(iii) An inventory of the property's contents is annexed as Annex A and forms an integral part of this agreement.</p>
+<div class="section">
+<h2>Utility Bills &amp; Services</h2>
+<ol type="i">
+  <li>The lessor shall ensure that all utilities and other fees or bills payable in respect of rent/consumption until the commencement of the lease are duly paid and settled.</li>
+  <li>Annex B shall include Automated Revenue and Management Services (ARMS), Form H and Form N duly filled and signed by both parties to this agreement.</li>
+  <li>Both parties to this agreement declare that water/electricity meters were read on <strong>${meterDate}</strong>:
+    <div class="meter-box">
+      <p><strong>Water meter reading:</strong> ${meter_water || '_______________'}</p>
+      <p><strong>Electricity meter reading:</strong> ${meter_electricity || '_______________'}</p>
+    </div>
+  </li>
+</ol>
+</div>
 
-<div class="section-title">USE OF PREMISES</div>
-<p>(i) The Lessee shall exclusively utilise the premises as a private residence. No other use is permitted.</p>
-<p>(ii) The Lessor will not recognise any other person than the Lessee for complete responsibility of the property.</p>
-
-<div class="section-title">CONDITION &amp; MAINTENANCE</div>
-<p>(i) The Lessee acknowledges having examined the premises and declares there are no apparent defects except those noted in the inventory.</p>
-<p>(ii) The Lessee shall maintain the premises with the care of a bonus paterfamilias and perform all ordinary maintenance.</p>
-<p>(iii) All extraordinary structural repairs shall be borne by the Lessor. The Lessee shall notify the Lessor promptly of any structural issues.</p>
-<p>(iv) At termination, the Lessee shall surrender the premises in good repair, clean and tidy, fair wear and tear accepted.</p>
-<p>(v) No improvements or alterations may be made without the written consent of the Lessor.</p>
-
-<div class="section-title">UTILITY BILLS &amp; SERVICES</div>
-<p>(i) The Lessor ensures all utilities are paid until lease commencement.</p>
-<p>(ii) Annex B includes ARMS Form H and Form N signed by both parties.</p>
-
-<div class="section-title">TERMINATION &amp; RENEWAL</div>
 ${type === 'long' ? `
-<p>(i) After expiry of the Di Fermo period, the Lessee may terminate by giving ${listing.notice_period || '1 month'} written notice by registered letter.</p>
-<p>(ii) If the Lessor fails to notify non-renewal at least 3 months before expiry, the lease renews automatically for 1 year under the same conditions.</p>` : `
-<p>(i) After 1 month from commencement, the Lessee may terminate by giving 1 week's notice by registered letter. No penalty applies.</p>
-<p>(ii) This agreement expires automatically on the end date and shall NOT be renewed.</p>`}
-
-<div class="section-title">MISCELLANEOUS</div>
-<p>(i) <strong>Registration:</strong> The Lessor undertakes to register this lease with the Housing Authority of Malta within 10 days of commencement. An unregistered lease is null and void under Cap. 604.</p>
-<p>(ii) <strong>Governing Law:</strong> This agreement is governed by the Private Residential Leases Act, Cap. 604, and the laws of Malta.</p>
-<p>(iii) Additional clauses: _______________________________________________</p>
-
-<div class="warning">
-  ⚠️ <strong>IMPORTANT:</strong> This lease must be registered with the Housing Authority of Malta within 10 days of commencement (rentregistration.mt). An unregistered lease is null and void. Both parties should retain a copy of the registration confirmation.
+<div class="section">
+<h2>Termination &amp; Renewal Notices</h2>
+<ol type="i">
+  <li>The lessee, may at any time, after the expiration of the compulsory period established by the law, notify the lessor of his/her intention to terminate the agreement, in the manner provided for by the law.</li>
+  <li>If, within at least three (3) months of the termination of the present agreement, the lessor fails to notify the lessee of his/her intention not to renew the lease, or to renew it under different conditions, the present agreement shall be renewed, under the same conditions, for a period of one (1) year.</li>
+  <li class="italic">[add any other clauses, deemed necessary provided that said clauses are in full respect of the laws of Malta]</li>
+</ol>
 </div>
+` : ''}
 
-<div class="section-title">SIGNATURES</div>
-<p>Both parties confirm they have read, understood and agree to all terms of this lease agreement.</p>
+${inventory_notes ? `
+<div class="section">
+<h2>General Observations / Additional Notes</h2>
+<p>${inventory_notes}</p>
+</div>
+` : ''}
 
-<div class="sig-section">
-  <div class="sig-row">
-    <div class="sig-block">
-      <div class="sig-name">LESSOR: ${landlord.name || '—'}</div>
-      <div class="sig-line"></div>
-      <div class="sig-label">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: _______________</div>
-      <p style="font-size:9pt;margin-top:6px">ID/Passport: ${landlord.passport || '—'}</p>
-    </div>
-    <div class="sig-block">
-      <div class="sig-name">LESSEE 1: ${tenant.name || '—'}</div>
-      <div class="sig-line"></div>
-      <div class="sig-label">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: _______________</div>
-      <p style="font-size:9pt;margin-top:6px">ID/Passport: ${tenant.passport || '—'}</p>
-    </div>
+<div class="section sig-block">
+  <div class="sig-box">
+    <p><strong>LESSOR (Landlord)</strong></p>
+    <p>${landlord?.name || '_______________'}</p>
+    <div class="sig-line"></div>
+    <p style="font-size:9pt;color:#666">Signature &amp; Date</p>
   </div>
-  ${coSigHtml ? `<div class="sig-row">${coSigHtml}</div>` : ''}
+  <div class="sig-box">
+    <p><strong>LESSEE (Tenant)</strong></p>
+    <p>${tenant?.name || '_______________'}</p>
+    <div class="sig-line"></div>
+    <p style="font-size:9pt;color:#666">Signature &amp; Date</p>
+  </div>
 </div>
 
-<div class="footer">
-  This contract is based on the official ${typeLabel} template — Housing Authority of Malta (SL 604.02)<br>
-  Generated by RestMalta — restmalta.com | ${today}
-</div>
+<p style="font-size:8pt;color:#888;margin-top:20px;text-align:center">
+  This agreement is drawn up in accordance with the Private Residential Leases Act, Chapter 604 of the Laws of Malta.<br>
+  This lease must be registered with the Housing Authority within 30 days from commencement at <a href="https://rentregistration.mt">rentregistration.mt</a>
+</p>
 
 </body>
 </html>`;
 
-    // Build submitters
-    const finalSubmitters = [
-      { role: 'Lessor', email: landlord.email, name: landlord.name || 'Landlord' },
-      { role: 'Lessee1', email: tenant.email, name: tenant.name || 'Tenant' }
+    // Envoyer à DocuSeal
+    const submitters = [
+      { role: 'Lessor', email: landlord?.email, name: landlord?.name || 'Landlord' },
+      { role: 'Lessee', email: tenant?.email, name: tenant?.name || 'Tenant' }
     ];
 
-    if (coTenants && coTenants.length) {
-      coTenants.forEach((ct, i) => {
-        if(ct.email) finalSubmitters.push({
-          role: `Lessee${i+2}`,
-          email: ct.email,
-          name: ct.name || 'Co-Tenant'
-        });
-      });
-    }
-
-    // Send to DocuSeal as HTML document (no template needed)
-    const res = await fetch('https://api.docuseal.eu/submissions/init', {
+    const res = await fetch(DOCU_URL, {
       method: 'POST',
-      headers: {
-        'X-Auth-Token': DOCU_KEY,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        html: html,
+        html,
         send_email: true,
-        submitters: finalSubmitters,
+        submitters,
         message: {
-          subject: `RestMalta — ${typeLabel} to sign`,
-          body: `Please review and sign your ${typeLabel} for ${listing.address || 'your property'} in Malta. Monthly rent: €${listing.price}. Start date: ${startFormatted}.`
+          subject: `${type === 'long' ? 'Long' : 'Short'} Private Residential Lease — ${listing?.address || 'Malta Property'} — Please sign`,
+          body: `Please find attached your residential lease agreement for the property at ${listing?.address || 'Malta'}. Please review and sign the document at your earliest convenience.`
         }
       })
     });
 
     const data = await res.json();
-    console.log('DocuSeal response:', JSON.stringify(data));
+    const submissionId = data.id || data[0]?.id;
 
-    if (data.id || (Array.isArray(data) && data[0]?.id)) {
-      const submissionId = data.id || data[0]?.id;
-      const submitters = data.submitters || data[0]?.submitters || [];
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          submission_id: submissionId,
-          html,
-          signing_url: submitters[1]?.embed_src || submitters[0]?.embed_src || null
-        })
-      };
-    } else {
-      // Fallback — return HTML for download even if DocuSeal fails
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          submission_id: null,
-          html,
-          fallback: true,
-          docuseal_error: data
-        })
-      };
-    }
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        submission_id: submissionId,
+        type,
+        landlord_email: landlord?.email,
+        tenant_email: tenant?.email
+      })
+    };
+
   } catch (e) {
+    console.error('generate-lease error:', e.message);
     return {
       statusCode: 500,
       headers,
