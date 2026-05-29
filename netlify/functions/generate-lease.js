@@ -1,5 +1,3 @@
-const { createClient } = require('@supabase/supabase-js');
-
 const DOCU_KEY = process.env.DOCUSEAL_API_KEY;
 const DOCU_URL = 'https://api.docuseal.eu/submissions/init';
 
@@ -210,7 +208,24 @@ ${inventory_notes ? `
 </body>
 </html>`;
 
-    // Envoyer à DocuSeal
+    // Envoyer à DocuSeal si clé disponible
+    if (!DOCU_KEY) {
+      // Pas de DocuSeal — retourner succès avec HTML du bail
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          submission_id: null,
+          type,
+          lessor_embed_src: null,
+          lessee_embed_src: null,
+          lease_html: html,
+          message: 'Lease generated — DocuSeal not configured'
+        })
+      };
+    }
+
     const submitters = [
       { role: 'Lessor', email: landlord?.email, name: landlord?.name || 'Landlord' },
       { role: 'Lessee', email: tenant?.email, name: tenant?.name || 'Tenant' }
@@ -219,12 +234,25 @@ ${inventory_notes ? `
     const res = await fetch(DOCU_URL, {
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        html,
-        send_email: false,
-        submitters
-      })
+      body: JSON.stringify({ html, send_email: false, submitters })
     });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('DocuSeal error:', errText);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          submission_id: null,
+          lessor_embed_src: null,
+          lessee_embed_src: null,
+          lease_html: html,
+          message: 'DocuSeal error: ' + errText.slice(0, 200)
+        })
+      };
+    }
 
     const data = await res.json();
     const submitters_data = Array.isArray(data) ? data : (data.submitters || []);
