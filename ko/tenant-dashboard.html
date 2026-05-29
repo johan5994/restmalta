@@ -1837,6 +1837,22 @@ async function loadTenantVisits(){
     const totalDue=deposit+firstMonthRemaining;
 
     if(isAccepted){
+      // Calculer le prorata du premier loyer
+      const moveInDate=b.move_in_date?new Date(b.move_in_date):new Date();
+      const payDueDay=b.payment_due_day||1;
+      const daysInMonth=new Date(moveInDate.getFullYear(),moveInDate.getMonth()+1,0).getDate();
+      const moveInDay=moveInDate.getDate();
+      // Jours restants dans le mois jusqu'au prochain jour de paiement
+      let prorataFirst=0;
+      if(moveInDay<=payDueDay){
+        // Move-in avant le jour de paiement → payer les jours restants
+        prorataFirst=Math.round(rent*((payDueDay-moveInDay)/daysInMonth));
+      } else {
+        // Move-in après le jour de paiement → payer jusqu'à fin de mois
+        prorataFirst=Math.round(rent*((daysInMonth-moveInDay+1)/daysInMonth));
+      }
+      const totalDue=(b.deposit||rent)+prorataFirst;
+
       html+=`<div style="background:linear-gradient(135deg,rgba(76,175,125,.1),rgba(58,143,181,.06));border:2px solid rgba(76,175,125,.35);border-radius:14px;overflow:hidden;margin-bottom:.85rem">
         <div style="padding:.65rem 1rem;background:rgba(76,175,125,.15);border-bottom:1px solid rgba(76,175,125,.2);display:flex;align-items:center;gap:.5rem">
           <span style="font-size:1.2rem">🎉</span>
@@ -1847,32 +1863,45 @@ async function loadTenantVisits(){
           <div style="font-size:.92rem;font-weight:700;margin-bottom:.15rem">${b.listing_title||'Property'}</div>
           <div style="font-size:.75rem;color:var(--td);margin-bottom:.65rem">📅 Move-in: <strong style="color:var(--sea)">${moveIn}</strong></div>
 
-          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.35rem">💶 Amount due to landlord before move-in</div>
+          <!-- Bail à signer -->
+          ${b.lease_tenant_embed?`
+          <div style="background:${b.lease_signed_tenant?'rgba(76,175,125,.06)':'rgba(201,85,58,.06)'};border:1px solid ${b.lease_signed_tenant?'rgba(76,175,125,.25)':'rgba(201,85,58,.25)'};border-radius:10px;padding:.6rem .75rem;margin-bottom:.5rem">
+            <div style="font-size:.75rem;font-weight:700;color:${b.lease_signed_tenant?'#4CAF7D':'var(--terra)'};margin-bottom:.3rem">${b.lease_signed_tenant?'✅ Lease signed!':'📄 Lease ready to sign'}</div>
+            ${!b.lease_signed_tenant
+              ?'<button onclick="openSigningDoc(this.dataset.src,\'Lease Agreement\') data-src="'+b.lease_tenant_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">✍️ Sign Lease Agreement →</button>'
+              :'<div style="font-size:.72rem;color:var(--tm)">'+(b.lease_signed_landlord?'Both parties signed ✅':'Waiting for landlord signature ⏳')+'</div>'}
+          </div>`:
+          '<div style="background:rgba(212,168,71,.06);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--gold)">⏳ Lease being prepared...</div>'}
+
+          <!-- Paiement -->
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.35rem">💶 Amount due to landlord</div>
           <div style="background:var(--card);border-radius:10px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--b)">
-            <div style="display:flex;justify-content:space-between;padding:.45rem .75rem;border-bottom:1px solid var(--b)">
-              <span style="font-size:.78rem;color:var(--tm)">🔐 Security deposit</span>
-              <span style="font-size:.82rem;font-weight:700">€${deposit}</span>
+            <div style="display:flex;justify-content:space-between;padding:.4rem .75rem;border-bottom:1px solid var(--b)">
+              <span style="font-size:.75rem;color:var(--tm)">🔐 Security deposit</span>
+              <span style="font-size:.8rem;font-weight:700">€${b.deposit||rent}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:.45rem .75rem;border-bottom:1px solid var(--b)">
-              <span style="font-size:.78rem;color:var(--tm)">🏠 1st month rent</span>
-              <span style="font-size:.82rem;font-weight:700">€${rent}</span>
+            <div style="display:flex;justify-content:space-between;padding:.4rem .75rem;border-bottom:1px solid var(--b)">
+              <span style="font-size:.75rem;color:var(--tm)">🏠 First month (prorata ${moveInDay>payDueDay?daysInMonth-moveInDay+1:payDueDay-moveInDay} days)</span>
+              <span style="font-size:.8rem;font-weight:700">€${prorataFirst}</span>
             </div>
+            ${holding>0?`<div style="display:flex;justify-content:space-between;padding:.4rem .75rem;border-bottom:1px solid var(--b)">
+              <span style="font-size:.75rem;color:#4CAF7D">✅ Holding released</span>
+              <span style="font-size:.8rem;font-weight:700;color:#4CAF7D">- €${holding}</span>
+            </div>`:''}
             <div style="display:flex;justify-content:space-between;padding:.5rem .75rem;background:rgba(76,175,125,.08)">
-              <span style="font-size:.82rem;font-weight:700">Total due to landlord</span>
-              <span style="font-size:.9rem;font-weight:800;color:#4CAF7D">€${deposit+rent}</span>
-            </div>
-            <div style="padding:.35rem .75rem;background:rgba(76,175,125,.05);font-size:.68rem;color:#4CAF7D">
-              ✅ Your holding deposit (€${holding} — 50% pre-auth) has been automatically released back to your card.
+              <span style="font-size:.8rem;font-weight:700">Total due</span>
+              <span style="font-size:.88rem;font-weight:800;color:#4CAF7D">€${Math.max(0,totalDue-holding)}</span>
             </div>
           </div>
 
-          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem">
-            <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:.2rem">📋 Entry inventory & key handover</div>
-            <div style="font-size:.78rem;color:var(--tm)">${b.edl_date?new Date(b.edl_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'Your agent will confirm the date'}</div>
-            <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">📄 Lease will be signed on this day with the agent present.</div>
-          </div>
+          ${b.landlord_iban?`<div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.45rem .65rem;font-size:.72rem;margin-bottom:.4rem">🏦 IBAN: <strong>${b.landlord_iban}</strong>${b.landlord_revolut?'<br>💜 Revolut: <strong>'+b.landlord_revolut+'</strong>':''}</div>`:''}
 
-          <div style="font-size:.7rem;color:var(--td);text-align:center">💬 Transfer amount above to landlord before move-in. Check messages for IBAN details.</div>
+          ${!b.first_payment_confirmed?
+            (!b.first_payment_sent
+              ?'<button onclick="confirmTenantPayment(this.dataset.id)" data-id="'+b.id+'" style="width:100%;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:9px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">✅ I have transferred the payment</button>'
+              :'<div style="font-size:.73rem;color:var(--gold);font-weight:600;text-align:center">⏳ Waiting for landlord to confirm receipt...</div>')
+            :'<div style="font-size:.75rem;color:#4CAF7D;font-weight:600;text-align:center">✅ Payment confirmed by landlord!</div>'}
+
         </div>
       </div>`;
       return;
@@ -2576,6 +2605,55 @@ function loadDocuments(){
     if(checkEl)checkEl.style.display='inline';
     if(viewEl)viewEl.style.display='inline';
   });
+}
+
+
+function openSigningDoc(embedSrc, title){
+  if(!embedSrc){toast('⚠️ Document not ready yet');return;}
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  const header=document.createElement('div');
+  header.style.cssText='background:var(--card);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b)';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">\u270d\ufe0f '+(title||'Document')+'</div>';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;color:var(--t);font-size:1.2rem;cursor:pointer';
+  closeBtn.textContent='\u2715';
+  closeBtn.onclick=()=>modal.remove();
+  header.appendChild(closeBtn);
+  const body=document.createElement('div');
+  body.style.cssText='flex:1;overflow:hidden;background:white';
+  const form=document.createElement('docuseal-form');
+  form.setAttribute('data-src',embedSrc);
+  form.style.cssText='width:100%;height:100%;display:block';
+  body.appendChild(form);
+  modal.appendChild(header);
+  modal.appendChild(body);
+  document.body.appendChild(modal);
+  if(!window.docusealLoaded){
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;};
+    document.head.appendChild(s);
+  }
+}
+
+
+async function confirmTenantPayment(bookingId){
+  if(!confirm('Confirm that you have transferred the payment to the landlord?'))return;
+  try{
+    await sb.from('bookings').update({first_payment_sent:true}).eq('id',bookingId);
+    // Notifier le landlord
+    const{data:b}=await sb.from('bookings').select('listing_id,landlord_id').eq('id',bookingId).single();
+    if(b?.landlord_id){
+      await sb.from('messages').insert({
+        listing_id:b.listing_id,sender_id:'system',receiver_id:b.landlord_id,
+        content:'💶 Payment notification!\n\nYour tenant has confirmed transferring the first payment (deposit + first month prorata).\n\nPlease check your bank account and confirm receipt in your visits page.',
+        type:'payment_sent'
+      });
+    }
+    toast('✅ Payment confirmed! Waiting for landlord to verify receipt.');
+    await loadTenantVisits();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 
