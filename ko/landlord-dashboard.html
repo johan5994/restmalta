@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1059,6 +1059,13 @@ async function loadVisitsPage(){
           const lMap={};(ls||[]).forEach(l=>{lMap[l.id]={wants_agent:l.wants_agent,agent_service:l.agent_service};});
           groups=groups.map(g=>({...g,has_agent:lMap[g.listing_id]?.wants_agent&&lMap[g.listing_id]?.agent_service==='full'}));
         }catch(e){}
+
+        // Joindre les bookings accepted pour afficher bail + paiement
+        try{
+          const{data:acBookings}=await sb.from('bookings').select('*').in('listing_id',lIds).in('status',['accepted','edl_scheduled','signing_day','move_in_ready']);
+          const bMap={};(acBookings||[]).forEach(b=>{bMap[b.listing_id]=b;});
+          groups=groups.map(g=>({...g,booking:bMap[g.listing_id]||null}));
+        }catch(e){}
       }
     }
   }catch(e){}
@@ -1193,12 +1200,16 @@ function renderVisitCard(g, isPast=false){
     'agents_applying':   {label:'🏆 Searching for agent...', cls:'b-sea'},
     'agent_assigned':    {label:'✅ Agent assigned', cls:'b-green'},
     'confirmed':         {label:'✅ Visit confirmed', cls:'b-green'},
-    'done':              {label:'🏁 Done', cls:'b-dim'},
+    'done':              {label:'🏁 Visit done', cls:'b-dim'},
+    'completed':         {label:'🏁 Visit done', cls:'b-dim'},
     'cancelled':         {label:'❌ Cancelled', cls:'b-dim'},
     'no_show':           {label:'🚫 No-show', cls:'b-dim'},
     'tenant_declined':   {label:'👎 Not interested', cls:'b-dim'},
     'date_rejected':     {label:'📅 Date rejected', cls:'b-dim'},
-    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-green'},
+    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-sea'},
+    'edl_scheduled':     {label:'📋 Lease in progress', cls:'b-green'},
+    'signing_day':       {label:'📋 Signing Day', cls:'b-green'},
+    'move_in_ready':     {label:'🏠 Moved in', cls:'b-green'},
   };
   const sc=statusConfig[g.status]||{label:g.status, cls:'b-dim'};
 
@@ -1244,6 +1255,7 @@ function renderVisitCard(g, isPast=false){
         <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
       </div>`:''}
     ${!isPast&&g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
+    \${!isPast&&['edl_scheduled','signing_day','move_in_ready'].includes(g.status)&&g.booking?\`<div style="margin-top:.5rem;border-top:1px solid var(--b);padding-top:.5rem">\${g.booking.lease_landlord_embed?(!g.booking.lease_signed_landlord?'<button onclick="openSigningDocLL(this.dataset.src,\'Lease\')" data-src="'+g.booking.lease_landlord_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.75rem;font-weight:700;cursor:pointer">📄 Sign Lease →</button>':'<div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Lease signed'+(g.booking.lease_signed_tenant?' & tenant ✅':' — waiting tenant ⏳')+'</div>'):''}\${g.booking.first_payment_sent&&!g.booking.first_payment_confirmed?'<div style="font-size:.72rem;color:var(--gold);margin:.3rem 0 .2rem">💶 Tenant says paid:</div><div style="display:flex;gap:.3rem"><button onclick="confirmFirstPaymentReceived(this.dataset.id,true)" data-id="'+g.booking.id+'" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">✅ Received</button><button onclick="confirmFirstPaymentReceived(this.dataset.id,false)" data-id="'+g.booking.id+'" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">❌ Not yet</button></div>':''}\${g.booking.first_payment_confirmed?'<div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Payment confirmed</div>':''}</div>\`:''}
   </div>`;
 }
 
