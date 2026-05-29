@@ -1385,7 +1385,7 @@ async function loadBookingDossier(booking){
         <div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Home address (country of origin)</div><div style="font-weight:600">${profile.home_address||'—'}</div></div>
         ${profile.malta_address?`<div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Current address in Malta</div><div style="font-weight:600">${profile.malta_address}</div></div>`:''}
       </div>
-      <div style="margin-top:.5rem;font-size:.63rem;color:var(--td);background:rgba(58,143,181,.06);border-radius:6px;padding:.3rem .5rem">🔒 Contact details shared only after lease signature via RestMalta messaging</div>
+      <div style="margin-top:.5rem;font-size:.63rem;color:var(--td);background:rgba(58,143,181,.06);border-radius:6px;padding:.3rem .5rem">🔒 Contact details shared only after lease signature via platform messaging</div>
     </div>
 
     <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
@@ -1872,7 +1872,7 @@ function filterContactData(text){
   text=text.replace(/(?:\+356|00356)?\s?[279]\d{3}\s?\d{4}/g,'[📵 Number hidden by RestMalta]');
   text=text.replace(/(\+\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g,'[📵 Number hidden by RestMalta]');
   text=text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[📧 Email hidden by RestMalta]');
-  text=text.replace(/whatsapp|telegram|signal|viber/gi,'[RestMalta chat only]');
+  text=text.replace(/whatsapp|telegram|signal|viber/gi,'[[Platform chat only]]');
   return text;
 }
 
