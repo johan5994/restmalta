@@ -1197,28 +1197,37 @@ async function loadVisitsPage(){
 
 function renderLeasePayStatus(booking){
   if(!booking) return '';
-  let html='<div style="margin-top:.5rem;border-top:1px solid var(--b);padding-top:.5rem">';
+  let html='<div style="margin-top:.5rem;border-top:1px solid var(--b);padding-top:.5rem;display:flex;flex-direction:column;gap:.3rem">';
 
-  // Statut bail
+  // 1 — Bail
   if(booking.lease_landlord_embed){
-    if(booking.lease_signed_landlord){
-      html+='<div style="font-size:.72rem;color:#4CAF7D;font-weight:600;margin-bottom:.25rem">✅ Lease signed by you'+(booking.lease_signed_tenant?' & tenant':'— waiting tenant ⏳')+'</div>';
+    if(booking.lease_signed_landlord && booking.lease_signed_tenant){
+      html+='<div style="display:flex;align-items:center;gap:.4rem;background:rgba(76,175,125,.08);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">✅</span><span style="font-size:.73rem;font-weight:600;color:#4CAF7D">Lease signed by both parties</span></div>';
+    } else if(booking.lease_signed_landlord){
+      html+='<div style="display:flex;align-items:center;gap:.4rem;background:rgba(212,168,71,.06);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">⏳</span><span style="font-size:.73rem;font-weight:600;color:var(--gold)">You signed — waiting for tenant</span></div>';
     } else {
-      html+='<button data-src="'+booking.lease_landlord_embed+'" onclick="openSigningDocLL(this.dataset.src,\"Lease\")" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.75rem;font-weight:700;cursor:pointer;margin-bottom:.3rem">📄 Sign Lease →</button>';
+      html+='<button data-src="'+booking.lease_landlord_embed+'" onclick="openSigningDocLL(this.dataset.src,\'Lease\')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.76rem;font-weight:700;cursor:pointer">📄 Sign Lease Agreement →</button>';
     }
   } else {
-    html+='<div style="font-size:.72rem;color:var(--gold);margin-bottom:.25rem">⏳ Lease being generated...</div>';
+    // Pas de bail — bouton pour générer
+    if(booking.id && booking.listing_id && booking.tenant_id){
+      html+='<button data-bid="'+booking.id+'" data-lid="'+booking.listing_id+'" data-tid="'+booking.tenant_id+'" onclick="regenLease(this.dataset.bid,this.dataset.lid,this.dataset.tid)" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.76rem;font-weight:700;cursor:pointer">🔄 Generate Lease Now →</button>';
+    } else {
+      html+='<div style="font-size:.72rem;color:var(--gold);padding:.35rem .5rem">⏳ Lease being prepared...</div>';
+    }
   }
 
-  // Statut paiement
+  // 2 — Paiement (seulement si lease signé ou en cours)
   if(booking.first_payment_confirmed){
-    html+='<div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Payment confirmed</div>';
+    html+='<div style="display:flex;align-items:center;gap:.4rem;background:rgba(76,175,125,.08);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">✅</span><span style="font-size:.73rem;font-weight:600;color:#4CAF7D">First payment confirmed</span></div>';
   } else if(booking.first_payment_sent){
-    html+='<div style="font-size:.72rem;color:var(--gold);font-weight:600;margin-bottom:.25rem">💶 Tenant says paid — confirm:</div>';
-    html+='<div style="display:flex;gap:.35rem">';
+    html+='<div style="font-size:.72rem;color:var(--gold);font-weight:600;margin-bottom:.2rem">💶 Tenant says payment sent — confirm:</div>';
+    html+='<div style="display:flex;gap:.3rem">';
     html+='<button data-id="'+booking.id+'" onclick="confirmFirstPaymentReceived(this.dataset.id,true)" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">✅ Received</button>';
     html+='<button data-id="'+booking.id+'" onclick="confirmFirstPaymentReceived(this.dataset.id,false)" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">❌ Not yet</button>';
     html+='</div>';
+  } else {
+    html+='<div style="display:flex;align-items:center;gap:.4rem;background:var(--s2);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">⏸</span><span style="font-size:.73rem;color:var(--td)">Waiting for tenant to send first payment</span></div>';
   }
 
   html+='</div>';
@@ -1289,6 +1298,15 @@ function renderVisitCard(g, isPast=false){
         <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
       </div>`:''}
     ${!isPast&&g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
+    ${!isPast&&['edl_scheduled','signing_day','move_in_ready'].includes(g.status)?`
+    <div style="margin-top:.4rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:9px;padding:.55rem .7rem">
+      <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Application accepted!</div>
+      <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
+        👤 Tenant: <strong>${g.tenant_name||'—'}</strong><br>
+        🏆 Agent: <strong>${g.agent_name||'—'}</strong><br>
+        📅 Move-in: <strong>${g.move_in_date?new Date(g.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—'}</strong>
+      </div>
+    </div>`:''} 
     ${!isPast&&['edl_scheduled','signing_day','move_in_ready'].includes(g.status)?renderLeasePayStatus(g.booking):''}
   </div>`;
 }
