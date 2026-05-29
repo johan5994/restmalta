@@ -50,7 +50,7 @@ exports.handler = async (event) => {
 </div>
 
 <h1>HOLDING DEPOSIT AGREEMENT</h1>
-<p class="subtitle">Property Reservation Document — RestMalta Platform<br>
+<p class="subtitle">Property Reservation Document — Platform<br>
 Generated on ${today}</p>
 
 <p>This Holding Deposit Agreement is entered into on <strong>${today}</strong> between:</p>
@@ -76,11 +76,11 @@ Generated on ${today}</p>
 <div class="section-title">FINANCIAL BREAKDOWN</div>
 <table class="info-table">
   <tr><td class="label">Holding Deposit (½ month rent)</td><td class="value">€${holding_amount || '—'}</td></tr>
-  <tr><td class="label">RestMalta Service Fee (40% TTC)</td><td class="value">€${commission_amount || '—'}</td></tr>
+  <tr><td class="label">Platform Service Fee (40% TTC)</td><td class="value">€${commission_amount || '—'}</td></tr>
   <tr class="total-row"><td class="label">TOTAL CHARGED TODAY</td><td class="value">€${total_amount || '—'}</td></tr>
 </table>
 
-<p><strong>Note:</strong> The Holding Deposit of €${holding_amount} will be deducted from the first month's rent at lease signing. If the Landlord accepts this application, the RestMalta Service Fee is earned. If the Landlord declines, <strong>both amounts are fully refunded</strong> to the Tenant within 3-5 business days.</p>
+<p><strong>Note:</strong> The Holding Deposit of €${holding_amount} will be deducted from the first month's rent at lease signing. If the Landlord accepts this application, the Platform Service Fee is earned. If the Landlord declines, <strong>both amounts are fully refunded</strong> to the Tenant within 3-5 business days.</p>
 
 <div class="section-title">TERMS & CONDITIONS</div>
 <p><strong>1. Reservation Effect:</strong> By signing this agreement and completing payment, the Tenant reserves the above property exclusively. The Landlord agrees to remove the listing from the market during the review period (48 hours).</p>
@@ -89,14 +89,14 @@ Generated on ${today}</p>
 
 <p><strong>3. If Landlord Accepts:</strong> The Holding Deposit (€${holding_amount}) is transferred to the Landlord and deducted from the first month's rent. The lease agreement will be generated and sent for e-signature via DocuSeal within 24 hours.</p>
 
-<p><strong>4. If Landlord Declines:</strong> The Tenant receives a full refund of €${total_amount} (Holding Deposit + RestMalta Service Fee) within 3-5 business days. No questions asked.</p>
+<p><strong>4. If Landlord Declines:</strong> The Tenant receives a full refund of €${total_amount} (Holding Deposit + Platform Service Fee) within 3-5 business days. No questions asked.</p>
 
-<p><strong>5. If Tenant Withdraws (after Landlord acceptance):</strong> The Holding Deposit (€${holding_amount}) is <strong>non-refundable</strong> and kept by the Landlord as compensation for removing the property from the market. The RestMalta Service Fee will not be refunded.</p>
+<p><strong>5. If Tenant Withdraws (after Landlord acceptance):</strong> The Holding Deposit (€${holding_amount}) is <strong>non-refundable</strong> and kept by the Landlord as compensation for removing the property from the market. The Platform Service Fee will not be refunded.</p>
 
 <p><strong>6. Governing Law:</strong> This agreement is governed by the laws of Malta (Private Residential Leases Act, Cap. 604).</p>
 
 <div class="warning">
-  ⚠️ <strong>IMPORTANT:</strong> This is a legally binding document. By signing, the Tenant confirms they have read, understood, and agree to all terms above. RestMalta acts as an independent platform and is not a party to the lease agreement.
+  ⚠️ <strong>IMPORTANT:</strong> This is a legally binding document. By signing, the Tenant confirms they have read, understood, and agree to all terms above. The platform acts as an independent intermediary and is not a party to the lease agreement.
 </div>
 
 <div class="sig-section">
@@ -107,7 +107,7 @@ Generated on ${today}</p>
       <div class="sig-label">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: _______________</div>
     </div>
     <div class="sig-block">
-      <div class="sig-name">RestMalta Platform</div>
+      <div class="sig-name">Platform</div>
       <div class="sig-line"></div>
       <div class="sig-label">Platform Representative &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: ${today}</div>
     </div>
@@ -115,7 +115,7 @@ Generated on ${today}</p>
 </div>
 
 <div class="footer">
-  RestMalta — Malta's Digital Rental Platform — restmalta.com<br>
+  Facilitated via digital rental platform<br>
   Booking Reference: ${booking_id || '—'} | Generated: ${today}
 </div>
 
@@ -133,7 +133,7 @@ Generated on ${today}</p>
           { role: 'Tenant', email: tenant.email, name: tenant.name || 'Tenant' }
         ],
         message: {
-          subject: `RestMalta — Please sign your Holding Deposit Agreement`,
+          subject: `Holding Deposit Agreement — Please sign`,
           body: `You have reserved ${listing.title || 'a property'} in Malta. Please sign the Holding Deposit Agreement to confirm your reservation. Total charged: €${total_amount}.`
         }
       })
