@@ -212,6 +212,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
     </div>
     <div class="page" id="page-messages">
+      <div class="card"><div class="ch"><div class="ct">💬 My conversations</div></div><div class="cb" id="agent-messages-wrap"><div class="empty"><div class="em">💬</div><p>Loading...</p></div></div></div>
       <div class="card">
         <div class="ch">
           <div class="ct">💬 My conversations</div>
@@ -497,6 +498,506 @@ async function loadListings(){
   }catch(e){}
 }
 
+async function startSigningDay(visitId){
+  if(!confirm('Start Signing Day for this visit? This will update the status and open the EDL form.'))return;
+  try{
+    await sb.from('visits').update({status:'signing_day'}).eq('id',visitId);
+    toast('📋 Signing Day started!');
+    await loadVisits();
+    // Ouvrir la fiche signing day
+    setTimeout(()=>openSigningDay(visitId), 500);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function openSigningDay(visitId){
+  // Charger les infos de la visite
+  let visit=null, booking=null, listing=null, tenant=null, landlord=null;
+  try{const{data:v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=v;}catch(e){}
+  if(!visit){toast('❌ Visit not found');return;}
+
+  try{const{data:b}=await sb.from('bookings').select('*').eq('listing_id',visit.listing_id).in('status',['accepted','edl_scheduled','signing_day']).order('created_at',{ascending:false}).limit(1).maybeSingle();booking=b;}catch(e){}
+  try{const{data:l}=await sb.from('listings').select('*').eq('id',visit.listing_id).single();listing=l;}catch(e){}
+  try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',visit.tenant_id).single();tenant=tp;}catch(e){}
+  if(listing?.landlord_id){
+    try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',listing.landlord_id).maybeSingle();landlord=lp;}catch(e){}
+  }
+
+  // Créer la page signing day
+  const page=document.getElementById('page-visits');
+  if(!page)return;
+
+  const rooms=[
+    {name:'Exterior Items',items:['Mailbox','Fences & Gates','Pool/Spa & Equip','Lawn, Trees & Shrubs','Roof','Water tank','Garage']},
+    {name:'Entrance / Common Areas',items:['Main door','Letterbox','Corridor/Hallway','Security system']},
+    {name:'Living Room',items:['Sofa / Armchairs','Coffee table','Dining table & chairs','TV / TV unit','Curtains / Blinds','Air conditioning','Lights','Walls & Ceiling','Floor','Windows & Doors']},
+    {name:'Kitchen',items:['Kitchen cabinets','Worktop','Sink & Taps','Oven / Stove','Microwave','Refrigerator','Dishwasher','Washing machine','Extractor fan','Floor','Walls & Tiles']},
+    {name:'Master Bedroom',items:['Bed frame & Mattress','Wardrobe','Bedside tables','Curtains / Blinds','Lights','Walls & Ceiling','Floor']},
+    {name:'Bedroom 2',items:['Bed frame & Mattress','Wardrobe','Furniture','Curtains','Lights','Walls','Floor']},
+    {name:'Bedroom 3',items:['Bed frame & Mattress','Wardrobe','Furniture','Curtains','Lights','Walls','Floor']},
+    {name:'Bathroom / WC',items:['Bath / Shower','WC / Toilet','Sink & Taps','Tiles / Walls','Floor','Lights']},
+    {name:'Bathroom 2',items:['Bath / Shower','WC / Toilet','Sink & Taps','Tiles / Walls','Floor']},
+    {name:'Balcony / Terrace',items:['Garden furniture','BBQ / Grill','Outdoor lighting','Floor / Tiles','Railings']},
+    {name:'Keys & Access',items:['Main door keys (qty)','Mailbox key','Garage remote / key','Other keys / access cards']}
+  ];
+
+  const roomsHtml=rooms.map((room,ri)=>`
+    <div style="margin-bottom:1rem;border:1px solid var(--b);border-radius:10px;overflow:hidden">
+      <div style="background:rgba(44,82,130,.9);color:white;padding:.5rem .85rem;font-size:.82rem;font-weight:700;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleRoom(${ri})">
+        <span>${room.name}</span>
+        <span id="room-toggle-${ri}">▼</span>
+      </div>
+      <div id="room-body-${ri}" style="padding:.5rem">
+        <table style="width:100%;border-collapse:collapse;font-size:.72rem">
+          <thead>
+            <tr style="background:var(--s2)">
+              <th style="padding:.3rem .5rem;text-align:left;border-bottom:1px solid var(--b);width:35%">Item</th>
+              <th style="padding:.3rem .5rem;text-align:center;border-bottom:1px solid var(--b);width:10%">Qty</th>
+              <th style="padding:.3rem .5rem;text-align:center;border-bottom:1px solid var(--b);width:25%">Condition</th>
+              <th style="padding:.3rem .5rem;text-align:left;border-bottom:1px solid var(--b);width:30%">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${room.items.map((item,ii)=>`
+            <tr id="room-${ri}-item-${ii}">
+              <td style="padding:.3rem .5rem;border-bottom:1px solid var(--b);font-weight:500">${item}</td>
+              <td style="padding:.2rem;border-bottom:1px solid var(--b)"><input type="number" min="0" max="99" style="width:100%;text-align:center;background:transparent;border:1px solid var(--b2);border-radius:4px;color:var(--t);padding:.2rem;font-size:.7rem" data-room="${ri}" data-item="${ii}" data-field="qty"></td>
+              <td style="padding:.2rem;border-bottom:1px solid var(--b)">
+                <select style="width:100%;background:var(--card);border:1px solid var(--b2);border-radius:4px;color:var(--t);padding:.2rem;font-size:.7rem" data-room="${ri}" data-item="${ii}" data-field="condition">
+                  <option value="">—</option>
+                  <option value="Good">✅ Good</option>
+                  <option value="Fair">🟡 Fair</option>
+                  <option value="Poor">🔴 Poor</option>
+                  <option value="N/A">N/A</option>
+                </select>
+              </td>
+              <td style="padding:.2rem;border-bottom:1px solid var(--b)"><input type="text" placeholder="Notes..." style="width:100%;background:transparent;border:1px solid var(--b2);border-radius:4px;color:var(--t);padding:.2rem;font-size:.7rem" data-room="${ri}" data-item="${ii}" data-field="notes"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`).join('');
+
+  // Stocker les données de la visite pour les utiliser dans generateSigningDocs
+  window._signingVisit={visitId, visit, booking, listing, tenant, landlord, rooms};
+
+  page.innerHTML=`
+    <div style="max-width:860px;margin:0 auto">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,var(--terra),var(--gold));border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:1.1rem;font-weight:800;color:white">📋 Signing Day</div>
+          <div style="font-size:.78rem;color:rgba(255,255,255,.8);margin-top:.2rem">${listing?.title||'Property'} · ${listing?.full_address||listing?.zone||'Malta'}</div>
+        </div>
+        <button onclick="loadVisitsPage()" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:.4rem .85rem;font-size:.75rem;cursor:pointer">← Back</button>
+      </div>
+
+      <!-- Infos parties -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+        <div style="background:var(--card);border:1px solid var(--b);border-radius:10px;padding:.85rem">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--td);margin-bottom:.4rem">🏠 Landlord</div>
+          <div style="font-size:.85rem;font-weight:700">${landlord?.full_name||'—'}</div>
+          <div style="font-size:.72rem;color:var(--td)">${landlord?.email||'—'}</div>
+          <div style="font-size:.72rem;color:var(--td)">${landlord?.phone||'—'}</div>
+          <div style="font-size:.72rem;color:var(--td)">🪪 ${landlord?.passport_number||'—'}</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--b);border-radius:10px;padding:.85rem">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--td);margin-bottom:.4rem">👤 Tenant</div>
+          <div style="font-size:.85rem;font-weight:700">${tenant?.full_name||'—'}</div>
+          <div style="font-size:.72rem;color:var(--td)">${tenant?.email||'—'}</div>
+          <div style="font-size:.72rem;color:var(--td)">${tenant?.phone||'—'}</div>
+          <div style="font-size:.72rem;color:var(--td)">🪪 ${tenant?.passport_number||'—'}</div>
+        </div>
+      </div>
+
+      <!-- Étapes -->
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem;overflow-x:auto;padding-bottom:.3rem">
+        ${['📏 EDL','🔌 Utilities','📄 Lease','🏛️ Form H','🔑 Keys','✅ Done'].map((s,i)=>`
+          <div id="step-badge-${i}" onclick="showSigningStep(${i})" style="flex-shrink:0;padding:.45rem .85rem;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;background:${i===0?'var(--terra)':'var(--s2)'};color:${i===0?'white':'var(--td)'};border:1px solid ${i===0?'transparent':'var(--b)'}">${s}</div>
+        `).join('')}
+      </div>
+
+      <!-- Step 0: EDL -->
+      <div id="signing-step-0">
+        <div style="background:var(--card);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.88rem;font-weight:700;margin-bottom:.6rem">📏 Property Inventory & Condition (EDL)</div>
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.75rem">Fill in the condition of each item. This will be included in the official inventory signed by both parties.</div>
+          ${roomsHtml}
+          <div style="margin-top:.75rem">
+            <div style="font-size:.78rem;font-weight:600;margin-bottom:.3rem">📝 General observations</div>
+            <textarea id="edl-notes" rows="3" placeholder="Any general observations about the property condition..." style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem;color:var(--t);font-size:.75rem;resize:vertical"></textarea>
+          </div>
+        </div>
+        <button onclick="showSigningStep(1)" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.85rem;font-weight:700;cursor:pointer">Next → Utility Meters ⚡</button>
+      </div>
+
+      <!-- Step 1: Compteurs -->
+      <div id="signing-step-1" style="display:none">
+        <div style="background:var(--card);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.88rem;font-weight:700;margin-bottom:.6rem">🔌 Utility Meter Readings</div>
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.85rem">Required for the lease agreement and Form H. Both parties must agree on these readings.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div>
+              <div style="font-size:.75rem;font-weight:600;color:var(--sea);margin-bottom:.3rem">💧 Water meter</div>
+              <input type="text" id="meter-water" placeholder="e.g. 00123456" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.55rem .75rem;color:var(--t);font-size:.85rem">
+              <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Located: usually in utility room or outside</div>
+            </div>
+            <div>
+              <div style="font-size:.75rem;font-weight:600;color:var(--gold);margin-bottom:.3rem">⚡ Electricity meter</div>
+              <input type="text" id="meter-electricity" placeholder="e.g. 00789012" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.55rem .75rem;color:var(--t);font-size:.85rem">
+              <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Located: usually near main entrance or fuse box</div>
+            </div>
+          </div>
+          <div style="margin-top:.75rem;background:rgba(212,168,71,.08);border-radius:8px;padding:.6rem;font-size:.72rem;color:var(--gold)">
+            ⚠️ Take a photo of both meters. These readings will appear in the lease agreement and Form H.
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button onclick="showSigningStep(0)" style="flex:1;background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
+          <button onclick="showSigningStep(2)" style="flex:2;background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">Next → Generate Lease 📄</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Bail -->
+      <div id="signing-step-2" style="display:none">
+        <div style="background:var(--card);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.88rem;font-weight:700;margin-bottom:.6rem">📄 Lease Agreement</div>
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.75rem">The lease will be generated with all the information filled in and sent to both parties for e-signature.</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem">
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Move-in date</div>
+              <input type="date" id="lease-start" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem" value="${booking?.move_in_date||''}">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Lease type</div>
+              <select id="lease-type-signing" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem" onchange="updateLeaseEndDate()">
+                <option value="long" ${listing?.type!=='short'?'selected':''}>Long-let (1 year min)</option>
+                <option value="short" ${listing?.type==='short'?'selected':''}>Short-let (6 months)</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Lease end date (auto-calculated)</div>
+              <input type="date" id="lease-end" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Monthly rent (€)</div>
+              <input type="number" id="lease-rent" value="${listing?.price||booking?.monthly_rent||''}" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Security deposit (€)</div>
+              <input type="number" id="lease-deposit" value="${listing?.deposit||listing?.price||''}" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Rent due day</div>
+              <select id="lease-due-day" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+                ${[1,5,10,15,20,25].map(d=>`<option value="${d}">${d}${d===1?'st':d===2?'nd':d===3?'rd':'th'} of each month</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div id="lease-status" style="display:none;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.6rem;font-size:.75rem;color:#4CAF7D;margin-bottom:.5rem"></div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button onclick="showSigningStep(1)" style="flex:1;background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
+          <button onclick="generateSigningDocs()" style="flex:2;background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">📄 Generate & Send Lease + EDL →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Form H -->
+      <div id="signing-step-3" style="display:none">
+        <div style="background:var(--card);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.88rem;font-weight:700;margin-bottom:.3rem">🏛️ Form H — ARMS Declaration</div>
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.75rem">Declaration of number of residents for ARMS (water & electricity utility). This allows the tenant to benefit from the residential tariff.</div>
+
+          <div style="background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.75rem">
+            <div style="font-weight:700;margin-bottom:.4rem">📋 What is Form H?</div>
+            <p style="color:var(--tm);line-height:1.7;margin:0">Form H registers the new tenant's name and number of residents at ARMS. This ensures:<br>
+            • Lower residential tariff for electricity &amp; water<br>
+            • Eco-reduction on electricity bills<br>
+            • Water subsidy based on number of residents<br><br>
+            Must be submitted to ARMS within 30 days of move-in.</p>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem">
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">ARMS Account No.</div>
+              <input type="text" id="arms-account" placeholder="From landlord's ARMS bill" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Number of residents</div>
+              <input type="number" id="arms-residents" value="1" min="1" max="10" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+          </div>
+
+          <div style="background:rgba(212,168,71,.08);border-radius:8px;padding:.6rem;font-size:.72rem;color:var(--gold);margin-bottom:.5rem">
+            ⚠️ The Form H PDF will be generated with all details pre-filled. The landlord and tenant must both sign it and submit to ARMS (online or at their offices in Marsa).
+          </div>
+
+          <button onclick="generateFormH()" style="width:100%;background:rgba(58,143,181,.15);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;font-size:.78rem;font-weight:600;cursor:pointer">🏛️ Generate Form H (PDF pre-filled)</button>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button onclick="showSigningStep(2)" style="flex:1;background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
+          <button onclick="showSigningStep(4)" style="flex:2;background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">Next → Key Handover 🔑</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Remise des clés -->
+      <div id="signing-step-4" style="display:none">
+        <div style="background:var(--card);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.88rem;font-weight:700;margin-bottom:.6rem">🔑 Key Handover</div>
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.75rem">Record all keys and access devices handed over to the tenant.</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem">
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Main door keys (qty)</div>
+              <input type="number" id="keys-main" value="2" min="0" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Mailbox keys (qty)</div>
+              <input type="number" id="keys-mailbox" value="1" min="0" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Garage remote / key</div>
+              <input type="number" id="keys-garage" value="0" min="0" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Other (specify)</div>
+              <input type="text" id="keys-other" placeholder="e.g. Pool, Storage..." style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
+            </div>
+          </div>
+
+          <div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem;font-size:.72rem;margin-bottom:.5rem">
+            ✅ By clicking "Complete Signing Day", you confirm that:<br>
+            • All keys have been handed over<br>
+            • EDL has been completed and signed<br>
+            • Lease agreement has been sent for e-signature<br>
+            • Meter readings have been recorded
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button onclick="showSigningStep(3)" style="flex:1;background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
+          <button onclick="completeSigningDay('${visitId}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">✅ Complete Signing Day →</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Done -->
+      <div id="signing-step-5" style="display:none">
+        <div style="background:rgba(76,175,125,.1);border:2px solid rgba(76,175,125,.3);border-radius:14px;padding:1.5rem;text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:.5rem">🎉</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#4CAF7D;margin-bottom:.4rem">Signing Day Complete!</div>
+          <div style="font-size:.82rem;color:var(--tm);margin-bottom:1rem">Everything is done. The tenant has officially moved in.</div>
+          <div style="font-size:.78rem;color:var(--td);text-align:left;background:var(--card);border-radius:10px;padding:.75rem;margin-bottom:1rem">
+            ✅ EDL completed &amp; signed<br>
+            ✅ Lease agreement sent for e-signature<br>
+            ✅ Meter readings recorded<br>
+            ✅ Keys handed over<br>
+            ✅ Form H generated
+          </div>
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.5rem">📝 Remember to remind the landlord to register the lease at <strong>rentregistration.mt</strong> within 30 days.</div>
+          <button onclick="loadVisitsPage()" style="background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer">← Back to visits</button>
+        </div>
+      </div>
+
+    </div>`;
+
+  // Auto-calculer la date de fin du bail
+  updateLeaseEndDate();
+}
+
+function toggleRoom(ri){
+  const body=document.getElementById('room-body-'+ri);
+  const toggle=document.getElementById('room-toggle-'+ri);
+  if(!body)return;
+  if(body.style.display==='none'){body.style.display='block';if(toggle)toggle.textContent='▼';}
+  else{body.style.display='none';if(toggle)toggle.textContent='▶';}
+}
+
+function showSigningStep(step){
+  for(let i=0;i<6;i++){
+    const el=document.getElementById('signing-step-'+i);
+    if(el)el.style.display=i===step?'block':'none';
+    const badge=document.getElementById('step-badge-'+i);
+    if(badge){
+      badge.style.background=i===step?'var(--terra)':'var(--s2)';
+      badge.style.color=i===step?'white':'var(--td)';
+      badge.style.border=i===step?'1px solid transparent':'1px solid var(--b)';
+    }
+  }
+}
+
+function updateLeaseEndDate(){
+  const start=document.getElementById('lease-start')?.value;
+  const type=document.getElementById('lease-type-signing')?.value;
+  if(!start)return;
+  const d=new Date(start);
+  if(type==='short') d.setMonth(d.getMonth()+6);
+  else d.setFullYear(d.getFullYear()+1);
+  const endInput=document.getElementById('lease-end');
+  if(endInput)endInput.value=d.toISOString().split('T')[0];
+}
+
+function collectEdlRooms(){
+  const v=window._signingVisit;
+  if(!v)return[];
+  return v.rooms.map((room,ri)=>({
+    name:room.name,
+    items:room.items.map((itemName,ii)=>{
+      const qty=document.querySelector(`[data-room="${ri}"][data-item="${ii}"][data-field="qty"]`)?.value||'';
+      const condition=document.querySelector(`[data-room="${ri}"][data-item="${ii}"][data-field="condition"]`)?.value||'';
+      const notes=document.querySelector(`[data-room="${ri}"][data-item="${ii}"][data-field="notes"]`)?.value||'';
+      return{item:itemName,qty,condition_arrival:condition,notes};
+    })
+  }));
+}
+
+async function generateSigningDocs(){
+  const v=window._signingVisit;
+  if(!v){toast('❌ No visit data');return;}
+
+  const meterWater=document.getElementById('meter-water')?.value||'';
+  const meterElec=document.getElementById('meter-electricity')?.value||'';
+  const leaseStart=document.getElementById('lease-start')?.value||'';
+  const leaseEnd=document.getElementById('lease-end')?.value||'';
+  const leaseRent=document.getElementById('lease-rent')?.value||v.listing?.price||0;
+  const leaseDeposit=document.getElementById('lease-deposit')?.value||v.listing?.price||0;
+  const leaseDueDay=document.getElementById('lease-due-day')?.value||'1';
+  const leaseType=document.getElementById('lease-type-signing')?.value||'long';
+  const edlNotes=document.getElementById('edl-notes')?.value||'';
+  const rooms=collectEdlRooms();
+
+  const statusEl=document.getElementById('lease-status');
+  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ Generating documents...';}
+
+  const landlord={
+    name:v.landlord?.full_name||'',
+    email:v.landlord?.email||'',
+    passport:v.landlord?.passport_number||'',
+    address:v.landlord?.home_address||''
+  };
+  const tenant={
+    name:v.tenant?.full_name||'',
+    email:v.tenant?.email||'',
+    passport:v.tenant?.passport_number||'',
+    nationality:v.tenant?.nationality||'',
+    address:v.tenant?.home_address||''
+  };
+  const listing={
+    address:v.listing?.full_address||v.listing?.zone||'',
+    price:parseInt(leaseRent)||0,
+    deposit:parseInt(leaseDeposit)||0,
+    payment_due_day:parseInt(leaseDueDay)||1
+  };
+
+  let leaseOk=false, edlOk=false;
+
+  // Générer le bail
+  try{
+    const res=await fetch('/.netlify/functions/generate-lease',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:leaseType,landlord,tenant,listing,start_date:leaseStart,end_date:leaseEnd,meter_water:meterWater,meter_electricity:meterElec})
+    });
+    const data=await res.json();
+    leaseOk=data.success;
+    if(statusEl)statusEl.textContent='✅ Lease sent! Generating inventory...';
+  }catch(e){console.warn('Lease error:',e);}
+
+  // Générer l'EDL
+  try{
+    const res=await fetch('/.netlify/functions/generate-edl',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({landlord,tenant,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
+    });
+    const data=await res.json();
+    edlOk=data.success;
+  }catch(e){console.warn('EDL error:',e);}
+
+  // Sauvegarder les relevés dans le booking
+  try{
+    await sb.from('bookings').update({
+      meter_water:meterWater,
+      meter_electricity:meterElec,
+      lease_start:leaseStart,
+      lease_end:leaseEnd
+    }).eq('id',v.booking?.id);
+  }catch(e){}
+
+  if(statusEl){
+    statusEl.textContent=`✅ Lease ${leaseOk?'sent ✅':'failed ❌'} · EDL ${edlOk?'sent ✅':'failed ❌'} · Both documents sent for e-signature!`;
+  }
+
+  toast('✅ Lease & EDL sent for signature!');
+  setTimeout(()=>showSigningStep(3), 1500);
+}
+
+async function generateFormH(){
+  const v=window._signingVisit;
+  if(!v)return;
+
+  const armsAccount=document.getElementById('arms-account')?.value||'';
+  const residents=document.getElementById('arms-residents')?.value||'1';
+  const meterWater=document.getElementById('meter-water')?.value||'';
+  const meterElec=document.getElementById('meter-electricity')?.value||'';
+
+  toast('⏳ Generating Form H...');
+
+  try{
+    const res=await fetch('/.netlify/functions/generate-form-h',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        landlord:{name:v.landlord?.full_name||'',email:v.landlord?.email||'',passport:v.landlord?.passport_number||''},
+        tenant:{name:v.tenant?.full_name||'',email:v.tenant?.email||'',passport:v.tenant?.passport_number||'',nationality:v.tenant?.nationality||''},
+        listing:{address:v.listing?.full_address||v.listing?.zone||''},
+        arms_account:armsAccount,
+        residents:parseInt(residents)||1,
+        meter_water:meterWater,
+        meter_electricity:meterElec
+      })
+    });
+    const data=await res.json();
+    if(data.success)toast('✅ Form H sent to both parties!');
+    else toast('❌ Form H failed: '+data.error);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function completeSigningDay(visitId){
+  const keysMain=document.getElementById('keys-main')?.value||'0';
+  const keysMailbox=document.getElementById('keys-mailbox')?.value||'0';
+  const keysGarage=document.getElementById('keys-garage')?.value||'0';
+  const keysOther=document.getElementById('keys-other')?.value||'';
+
+  try{
+    await sb.from('visits').update({
+      status:'move_in_ready',
+      keys_main:parseInt(keysMain),
+      keys_mailbox:parseInt(keysMailbox),
+      keys_garage:parseInt(keysGarage),
+      keys_other:keysOther,
+      signing_completed_at:new Date().toISOString()
+    }).eq('id',visitId);
+
+    const v=window._signingVisit;
+    if(v?.booking?.id){
+      await sb.from('bookings').update({status:'move_in_ready'}).eq('id',v.booking.id).catch(()=>{});
+    }
+
+    // Notifier le tenant et le landlord
+    if(v?.tenant?.clerk_id||v?.visit?.tenant_id){
+      await sb.from('messages').insert({
+        listing_id:v?.visit?.listing_id,
+        sender_id:'system',
+        receiver_id:v?.visit?.tenant_id||v?.tenant?.clerk_id,
+        content:'🎉 Welcome to your new home!\n\nThe signing day is complete:\n✅ Entry inventory done\n✅ Lease agreement sent for signature\n✅ Keys handed over\n\nDon\'t forget to submit Form H to ARMS within 30 days.\nRegister your lease at rentregistration.mt within 30 days.',
+        type:'move_in_complete'
+      }).catch(()=>{});
+    }
+
+    showSigningStep(5);
+    toast('🎉 Signing Day complete!');
+  }catch(e){toast('❌ '+e.message);}
+}
+
+
 async function markVisitDone(visitId){
   if(!confirm('Mark this visit as done?'))return;
   try{
@@ -526,6 +1027,60 @@ Do you want to rent this property? Go to your dashboard → My Visits to decide.
     await loadVisits();
   }catch(e){toast('❌ '+e.message);}
 }
+
+async function loadAgentMessages(){
+  const wrap=document.getElementById('agent-messages-wrap');
+  if(!wrap)return;
+  try{
+    const{data:msgs}=await sb.from('messages')
+      .select('*')
+      .eq('receiver_id',U.id)
+      .not('type','eq','visit_request')
+      .order('created_at',{ascending:false})
+      .limit(50);
+    
+    if(!msgs?.length){
+      wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet</p></div>';
+      return;
+    }
+
+    const typeLabels={
+      'visit_confirmed_noshow':'✅ Visit confirmed',
+      'visit_completed':'🏁 Visit done',
+      'edl_scheduled':'📋 EDL scheduled',
+      'booking_accepted':'🎉 Booking accepted',
+      'visit_info':'ℹ️ Visit info',
+      'commission_payment':'💳 Commission',
+    };
+
+    wrap.innerHTML=msgs.map(m=>{
+      const date=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+      const label=typeLabels[m.type]||m.type||'Message';
+      const lines=m.content.split('\n');
+      const preview=lines[0]||'';
+      return`<div style="padding:.75rem 1rem;background:${m.read?'var(--s2)':'rgba(76,175,125,.06)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="toggleMessage(this)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
+          <span style="font-size:.75rem;font-weight:700;color:${m.read?'var(--td)':'#4CAF7D'}">${label}</span>
+          <span style="font-size:.65rem;color:var(--td)">${date}</span>
+        </div>
+        <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
+        <div class="msg-full" style="display:none;margin-top:.5rem;font-size:.75rem;color:var(--tm);white-space:pre-wrap;line-height:1.7">${m.content}</div>
+      </div>`;
+    }).join('');
+
+    // Marquer comme lus
+    try{await sb.from('messages').update({read:true}).eq('receiver_id',U.id).eq('read',false);}catch(e){}
+  }catch(e){
+    if(wrap)wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>Error loading messages</p></div>';
+    console.error('loadAgentMessages:',e);
+  }
+}
+
+function toggleMessage(el){
+  const full=el.querySelector('.msg-full');
+  if(full)full.style.display=full.style.display==='none'?'block':'none';
+}
+
 
 async function loadNotifications(){
   const wrap=document.getElementById('notifications-list');
@@ -570,7 +1125,7 @@ async function loadVisits(){
         try{
           const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
           (vs||[]).forEach(v=>{
-            if(['agent_assigned','confirmed','cancelled','no_agent','date_rejected','done','completed','booking_pending','tenant_declined','no_show'].includes(v.status)){
+            if(['agent_assigned','confirmed','cancelled','no_agent','date_rejected','done','completed','booking_pending','tenant_declined','no_show','edl_scheduled','signing_day','move_in_ready'].includes(v.status)){
               doneIds.add(v.id);
             }
           });
