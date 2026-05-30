@@ -1,4 +1,4 @@
-const DOCU_KEY = process.env.DOCUSEAL_API_KEY;
+const DOCU_KEY = process.env.DOCUSEAL_KEY || process.env.DOCUSEAL_API_KEY;
 const DOCU_URL = 'https://api.docuseal.eu/submissions/init';
 
 exports.handler = async (event) => {
