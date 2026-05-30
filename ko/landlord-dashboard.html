@@ -1684,7 +1684,7 @@ async function getDocuSealKey(){
 
 
 async function generateLeaseFromBooking(bookingId, listingId, tenantId){
-  toast('⏳ Generating lease...');
+  toast('⏳ Processing acceptance...');
   try{
     let booking=null,listing=null,tenantProfile=null,landlordProfile=null;
     try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
@@ -1695,35 +1695,90 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     const startDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
     const endDate=(()=>{const d=new Date(startDate);if(listing?.type==='short')d.setMonth(d.getMonth()+6);else d.setFullYear(d.getFullYear()+1);return d.toISOString().split('T')[0];})();
 
-    // 1 — Capturer holding deposit
+    // 1 — Capturer Holding Deposit
     try{
-      const r=await fetch('/.netlify/functions/holding-deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})});
-      const d=await r.json();
+      const res=await fetch('/.netlify/functions/holding-deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'landlord_accept',booking_id:bookingId})});
+      const d=await res.json();
       if(!d.success&&!d.error?.includes('already'))console.warn('Holding:',d.error);
     }catch(e){console.warn('Holding:',e.message);}
 
-    // 2 — Générer bail via Netlify function (pas d'appel direct DocuSeal — CORS)
+    // 2 — Générer le bail
     let lessorEmbed=null,lesseeEmbed=null,submissionId=null;
     try{
-      const r=await fetch('/.netlify/functions/generate-lease',{
-        method:'POST',headers:{'Content-Type':'application/json'},
+      const leaseType=listing?.type==='short'?'short':'long';
+      const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+      const startFmt=startDate?new Date(startDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):today;
+      const endFmt=endDate?new Date(endDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
+      const price=listing?.price||0;
+      const deposit=listing?.deposit||price;
+      const dueDay=listing?.payment_due_day||1;
+      const dueSuffix=dueDay===1?'st':dueDay===2?'nd':dueDay===3?'rd':'th';
+
+      const leaseHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>body{font-family:"Times New Roman",serif;font-size:11pt;line-height:1.7;margin:2cm;color:#000}h1{text-align:center;font-size:13pt;text-transform:uppercase;font-weight:bold;margin-bottom:20px}h2{font-size:11pt;font-weight:bold;margin-top:18px;margin-bottom:6px}p{margin:8px 0}ol{margin:8px 0;padding-left:20px}li{margin-bottom:6px}.sig-block{display:flex;justify-content:space-between;margin-top:40px}.sig-box{width:45%}.sig-line{border-top:1px solid #000;margin-top:60px}</style>
+</head><body>
+<h1>${leaseType==='long'?'LONG':'SHORT'} PRIVATE RESIDENTIAL LEASE</h1>
+<p>This, day of <u>${today}</u></p>
+<p>By the present private writing there appear on the one part <u>${landlordProfile?.full_name||'_______________'}</u>, holder of ID <u>${landlordProfile?.passport_number||'_______________'}</u>, residing at <u>${landlordProfile?.home_address||'_______________'}</u>, e-mail <u>${landlordProfile?.email||'_______________'}</u>, hereinafter referred to as the <strong>lessor</strong>.</p>
+<p>And on the other part <u>${tenantProfile?.full_name||'_______________'}</u>, holder of ID <u>${tenantProfile?.passport_number||'_______________'}</u>, nationality <u>${tenantProfile?.nationality||'_______________'}</u>, e-mail <u>${tenantProfile?.email||'_______________'}</u>, hereinafter referred to as the <strong>lessee</strong>.</p>
+<p>And hereby the lessor is granting by title of lease to the lessee the premises at <u>${listing?.full_address||listing?.zone||'_______________'}</u>, subject to the following terms and conditions:</p>
+<h2>Payment &amp; Duration</h2>
+<ol>
+<li>The lease shall run for a period of <strong>${leaseType==='long'?'one (1) year':'six (6) months'}</strong> with effect from <strong>${startFmt}</strong> to <strong>${endFmt}</strong>.</li>
+${leaseType==='long'?'<li>After the first compulsory period of six (6) months, the lessee may terminate with one (1) month written notice.</li><li>If the lessor does not notify the lessee of non-renewal within 3 months of expiry, the lease renews automatically for one (1) year under the same conditions.</li>':'<li>The lessee may be released after the first compulsory month with one (1) week notice. This contract cannot be renewed.</li>'}
+<li>The monthly rent is <strong>€${price}/month</strong>, payable on or before the <strong>${dueDay}${dueSuffix}</strong> of each month.</li>
+${leaseType==='long'?'<li>After year 1, rent may increase in proportion to the yearly PPI adjustment published by NSO, not exceeding 5% per annum.</li>':''}
+</ol>
+<h2>Deposit</h2>
+<ol>
+<li>The lessee pays a security deposit of <strong>€${deposit}</strong>, retained for the duration of the lease and released upon satisfactory inspection of the premises.</li>
+<li>Annex A shall include an inventory of all movables. The deposit may be used to offset unpaid amounts.</li>
+</ol>
+<h2>Obligations of the Lessee</h2>
+<ol>
+<li>The lessee shall use the premises for residential purposes only and shall not sublet without written consent.</li>
+<li>The lessee is responsible for water and electricity bills from the commencement date.</li>
+<li>The lessee shall maintain the premises in good condition and return them in the same state, fair wear and tear excepted.</li>
+<li>The lessee shall not perform any improvements or alterations without written consent of the lessor.</li>
+</ol>
+<h2>Utility Bills &amp; Services</h2>
+<ol>
+<li>The lessor shall ensure all utilities are settled up to the commencement date.</li>
+<li>Annex B shall include ARMS Form H and Form N duly signed by both parties.</li>
+<li>Both parties declare that water and electricity meter readings shall be recorded in <strong>Annex A on move-in day</strong> and form an integral part of this agreement.</li>
+</ol>
+${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may terminate after the compulsory period with one (1) month written notice by registered letter.</li><li>The lessor must notify non-renewal at least 3 months before expiry, otherwise the lease renews automatically.</li></ol>`:''}
+<div class="sig-block"><div class="sig-box"><p><strong>LESSOR (Landlord)</strong></p><p>${landlordProfile?.full_name||'_______________'}</p><div class="sig-line"></div><p style="font-size:9pt;color:#666">Signature &amp; Date</p></div><div class="sig-box"><p><strong>LESSEE (Tenant)</strong></p><p>${tenantProfile?.full_name||'_______________'}</p><div class="sig-line"></div><p style="font-size:9pt;color:#666">Signature &amp; Date</p></div></div>
+<p style="font-size:8pt;color:#888;text-align:center;margin-top:20px">This agreement is drawn up in accordance with the Private Residential Leases Act, Chapter 604 of the Laws of Malta.<br>Must be registered at rentregistration.mt within 30 days.</p>
+</body></html>`;
+
+      // Envoyer à DocuSeal
+      const docuRes=await fetch('https://api.docuseal.eu/submissions/init',{
+        method:'POST',
+        headers:{'X-Auth-Token':await getDocuSealKey(),'Content-Type':'application/json'},
         body:JSON.stringify({
-          type:listing?.type==='short'?'short':'long',
-          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
-          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
-          listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:listing?.payment_due_day||1},
-          start_date:startDate,end_date:endDate
+          html:leaseHtml,
+          send_email:false,
+          submitters:[
+            {role:'Lessor',email:landlordProfile?.email||'',name:landlordProfile?.full_name||'Landlord'},
+            {role:'Lessee',email:tenantProfile?.email||'',name:tenantProfile?.full_name||'Tenant'}
+          ]
         })
       });
-      if(!r.ok){const t=await r.text();console.error('generate-lease HTTP error:',r.status,t.slice(0,300));}
-      else{
-        const d=await r.json();
-        if(d.success){lessorEmbed=d.lessor_embed_src;lesseeEmbed=d.lessee_embed_src;submissionId=d.submission_id;}
-        else console.warn('generate-lease failed:',d.error||d.message);
+      if(docuRes.ok){
+        const docuData=await docuRes.json();
+        const subs=Array.isArray(docuData)?docuData:(docuData.submitters||[]);
+        const lessorSub=subs.find(s=>s.role==='Lessor')||subs[0];
+        const lesseeSub=subs.find(s=>s.role==='Lessee')||subs[1];
+        lessorEmbed=lessorSub?.embed_src||null;
+        lesseeEmbed=lesseeSub?.embed_src||null;
+        submissionId=lessorSub?.submission_id||docuData.id||null;
+      } else {
+        console.warn('DocuSeal error:',docuRes.status,await docuRes.text());
       }
-    }catch(e){console.warn('Lease error:',e.message);}
+    }catch(e){console.warn('Lease generation:',e.message);}
 
-    // 3 — Sauvegarder dans booking
+    // 3 — Mettre à jour booking
     await sb.from('bookings').update({
       status:'accepted',
       accepted_at:new Date().toISOString(),
@@ -1743,22 +1798,32 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     try{await sb.from('listings').update({status:'reserved'}).eq('id',listingId);}catch(e){}
 
     // 5 — Notifier tenant
+    const firstMonth=listing?.price||0;
+    const holdingPaid=booking?.holding_amount||0;
     const deposit=listing?.deposit||listing?.price||0;
-    const ibanInfo=landlordProfile?.iban?'\n🏦 IBAN: '+landlordProfile.iban:'';
-    const revInfo=landlordProfile?.revolut_tag?'\n💜 Revolut: '+landlordProfile.revolut_tag:'';
+    const ibanInfo=landlordProfile?.iban?'\n🏦 IBAN: '+landlordProfile.iban+'\nName: '+(landlordProfile?.full_name||''):'';
+    const revTag=landlordProfile?.revolut_tag||'';
+    const revInfo=revTag?'\n💜 Revolut: https://revolut.me/'+revTag.replace('@',''):'';
     const payDue=listing?.payment_due_day||1;
-    const dueSuffix=payDue===1?'st':payDue===2?'nd':payDue===3?'rd':'th';
+
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:'🎉 Your application has been accepted!\n\n📄 Your lease is ready to sign — check your visits page.\n\n🔐 Security deposit: €'+deposit+ibanInfo+revInfo+'\n📅 Rent due on the '+payDue+dueSuffix+' of each month.\n📋 Entry inventory done on move-in day once lease is signed.',
+      content:'🎉 Your application has been accepted!\n\n'
+        +'📄 Your lease is ready to sign — check your visits page.\n\n'
+        +'━━━━━━━━━━━━━━\n💶 AMOUNT DUE TO LANDLORD\n━━━━━━━━━━━━━━\n'
+        +'🔐 Security deposit: €'+deposit+'\n'
+        +'🏠 First month (prorata): calculated in your visits page\n'
+        +(holdingPaid?'✅ Holding released: €'+holdingPaid+'\n':'')
+        +ibanInfo+revInfo
+        +'\n📋 Entry inventory done on move-in day once lease is signed.',
       type:'booking_accepted'
     });}catch(e){}
 
     // 6 — Notifier landlord
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:U.id,
-      content:'✅ Accepted! '+(lessorEmbed?'Your lease is ready to sign in your visits page.':'Tenant notified.'),
-      type:'lease_ready'
+      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the tenant will transfer the deposit + first month.',
+      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the tenant will transfer the deposit + first month.',
     });}catch(e){}
 
     // 7 — Notifier agent
@@ -1770,12 +1835,13 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
       }
     }catch(e){}
 
-    toast(lessorEmbed?'✅ Accepted! Sign the lease in your visits page.':'✅ Accepted! Tenant notified.');
+
+
+
+    toast(lessorEmbed?'🎉 Accepted! Sign the lease in your visits page.':'🎉 Accepted! Tenant notified.');
     loadVisitsPage();
   }catch(e){toast('❌ '+e.message);console.error(e);}
 }
-
-
 async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
   const newDate=document.getElementById('ll-propose-date')?.value;
   const newTime=document.getElementById('ll-propose-time')?.value||'14:00';
