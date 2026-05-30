@@ -19,6 +19,42 @@ exports.handler = async (event) => {
 
     const eventType = payload.event_type || payload.event;
 
+    // ── Gestion signatures bookings (nouveau flow) ──────────────────────────
+    if (eventType === 'submitter_completed' || eventType === 'submission_completed') {
+      const submission = payload.data || payload;
+      const submissionId = String(submission.id || submission.submission_id || '');
+      if (submissionId) {
+        const sb2 = createClient(SUPABASE_URL, SUPABASE_KEY);
+        const { data: booking } = await sb2.from('bookings').select('*').eq('lease_submission_id', submissionId).maybeSingle().catch(() => ({ data: null }));
+        if (booking) {
+          let updateData = {};
+          const submitter = (submission.submitters || []).find(s => s.status === 'completed');
+          if (eventType === 'submission_completed') {
+            updateData = { lease_signed_landlord: true, lease_signed_tenant: true };
+          } else if (submitter?.role === 'Lessor') {
+            updateData = { lease_signed_landlord: true };
+          } else if (submitter?.role === 'Lessee') {
+            updateData = { lease_signed_tenant: true };
+          }
+          if (Object.keys(updateData).length) {
+            await sb2.from('bookings').update(updateData).eq('id', booking.id);
+            // Notifier selon qui a signé
+            if (updateData.lease_signed_landlord && !booking.lease_signed_landlord) {
+              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '✍️ The landlord signed the lease!\n\nIt\'s your turn — go to your visits page to sign.', type: 'lease_signed_landlord' }).catch(() => {});
+            }
+            if (updateData.lease_signed_tenant && !booking.lease_signed_tenant) {
+              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: '✍️ The tenant signed the lease!\n\nBoth parties signed. Waiting for first payment from tenant.', type: 'lease_signed_tenant' }).catch(() => {});
+            }
+            if ((updateData.lease_signed_landlord || booking.lease_signed_landlord) && (updateData.lease_signed_tenant || booking.lease_signed_tenant)) {
+              const ibanInfo = booking.landlord_iban ? '\n🏦 IBAN: ' + booking.landlord_iban : '';
+              const revInfo = booking.landlord_revolut ? '\n💜 Revolut: ' + booking.landlord_revolut : '';
+              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '🎉 Both parties signed!\n\nPlease transfer deposit + first month to landlord.' + ibanInfo + revInfo + '\n\nClick "I have paid" in your visits page once done.', type: 'lease_fully_signed' }).catch(() => {});
+            }
+          }
+        }
+      }
+    }
+
     if (eventType === 'submission.completed' || eventType === 'form.completed') {
       const submission = payload.data || payload.submission || payload;
       const submissionId = submission.id || payload.id;
