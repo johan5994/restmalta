@@ -189,14 +189,14 @@ ${inventory_notes ? `
   <div class="sig-box">
     <p><strong>LESSOR (Landlord)</strong></p>
     <p>${landlord?.name || '_______________'}</p>
-    <p>Signature: {{Lessor.signature}}</p>
-    <p>Date: {{Lessor.date}}</p>
+    <p>Signature: <text-field name="Lessor Signature" role="Lessor" required="true" type="signature" style="width: 200px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+    <p>Date: <text-field name="Lessor Date" role="Lessor" required="true" type="date" style="width: 120px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
   <div class="sig-box">
     <p><strong>LESSEE (Tenant)</strong></p>
     <p>${tenant?.name || '_______________'}</p>
-    <p>Signature: {{Lessee.signature}}</p>
-    <p>Date: {{Lessee.date}}</p>
+    <p>Signature: <text-field name="Lessee Signature" role="Lessee" required="true" type="signature" style="width: 200px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+    <p>Date: <text-field name="Lessee Date" role="Lessee" required="true" type="date" style="width: 120px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
 </div>
 
@@ -227,8 +227,8 @@ ${inventory_notes ? `
     }
 
     const submitters = [
-      { role: 'Lessor', email: landlord?.email, name: landlord?.name || 'Landlord' },
-      { role: 'Lessee', email: tenant?.email, name: tenant?.name || 'Tenant' }
+      { role: 'Lessor', email: landlord?.email || '', name: landlord?.name || 'Landlord' },
+      { role: 'Lessee', email: tenant?.email || '', name: tenant?.name || 'Tenant' }
     ];
 
     // Étape 1 — Créer le template HTML
@@ -236,8 +236,8 @@ ${inventory_notes ? `
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        html,
-        name: (type === 'long' ? 'Long' : 'Short') + ' Private Residential Lease — ' + (listing?.address || 'Malta')
+        name: (type === 'long' ? 'Long' : 'Short') + ' Private Residential Lease — ' + (listing?.address || 'Malta'),
+        documents: [{ name: 'Lease Agreement', html }]
       })
     });
 
