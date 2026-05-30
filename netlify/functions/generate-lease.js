@@ -189,14 +189,14 @@ ${inventory_notes ? `
   <div class="sig-box">
     <p><strong>LESSOR (Landlord)</strong></p>
     <p>${landlord?.name || '_______________'}</p>
-    <div class="sig-line"></div>
-    <p style="font-size:9pt;color:#666">Signature &amp; Date</p>
+    <p>Signature: {{Lessor.signature}}</p>
+    <p>Date: {{Lessor.date}}</p>
   </div>
   <div class="sig-box">
     <p><strong>LESSEE (Tenant)</strong></p>
     <p>${tenant?.name || '_______________'}</p>
-    <div class="sig-line"></div>
-    <p style="font-size:9pt;color:#666">Signature &amp; Date</p>
+    <p>Signature: {{Lessee.signature}}</p>
+    <p>Date: {{Lessee.date}}</p>
   </div>
 </div>
 
