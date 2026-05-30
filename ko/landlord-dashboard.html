@@ -1824,7 +1824,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:U.id,
       content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the tenant will transfer the deposit + first month.',
-      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the tenant will transfer the deposit + first month.',
+      type:'lease_ready'
     });}catch(e){}
 
     // 7 — Notifier agent
