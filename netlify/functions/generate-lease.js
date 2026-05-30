@@ -1,5 +1,5 @@
 const DOCU_KEY = process.env.DOCUSEAL_KEY || process.env.DOCUSEAL_API_KEY;
-const DOCU_URL = 'https://api.docuseal.eu/submissions/init';
+const DOCU_BASE = 'https://api.docuseal.eu';
 
 exports.handler = async (event) => {
   const headers = {
@@ -231,27 +231,40 @@ ${inventory_notes ? `
       { role: 'Lessee', email: tenant?.email, name: tenant?.name || 'Tenant' }
     ];
 
-    const res = await fetch(DOCU_URL, {
+    // Étape 1 — Créer le template HTML
+    const tplRes = await fetch(DOCU_BASE + '/templates/html', {
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html, send_email: false, submitters })
+      body: JSON.stringify({
+        html,
+        name: (type === 'long' ? 'Long' : 'Short') + ' Private Residential Lease — ' + (listing?.address || 'Malta')
+      })
+    });
+
+    if (!tplRes.ok) {
+      const errText = await tplRes.text();
+      console.error('DocuSeal template error:', errText);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, lease_html: html, message: 'DocuSeal template error: ' + errText.slice(0, 200) }) };
+    }
+
+    const tplData = await tplRes.json();
+    const templateId = tplData.id;
+    if (!templateId) {
+      console.error('No template ID returned:', JSON.stringify(tplData));
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, lease_html: html, message: 'No template ID' }) };
+    }
+
+    // Étape 2 — Créer la submission
+    const res = await fetch(DOCU_BASE + '/submissions', {
+      method: 'POST',
+      headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template_id: templateId, send_email: false, submitters })
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('DocuSeal error:', errText);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          submission_id: null,
-          lessor_embed_src: null,
-          lessee_embed_src: null,
-          lease_html: html,
-          message: 'DocuSeal error: ' + errText.slice(0, 200)
-        })
-      };
+      console.error('DocuSeal submission error:', errText);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, lease_html: html, message: 'DocuSeal submission error: ' + errText.slice(0, 200) }) };
     }
 
     const data = await res.json();
