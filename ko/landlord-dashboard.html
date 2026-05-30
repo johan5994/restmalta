@@ -1752,29 +1752,30 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
 <p style="font-size:8pt;color:#888;text-align:center;margin-top:20px">This agreement is drawn up in accordance with the Private Residential Leases Act, Chapter 604 of the Laws of Malta.<br>Must be registered at rentregistration.mt within 30 days.</p>
 </body></html>`;
 
-      // Envoyer à DocuSeal
-      const docuRes=await fetch('https://api.docuseal.eu/submissions/init',{
+      // Envoyer via Netlify function (pas d'appel direct DocuSeal — CORS bloqué depuis le browser)
+      const docuRes=await fetch('/.netlify/functions/generate-lease',{
         method:'POST',
-        headers:{'X-Auth-Token':await getDocuSealKey(),'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-          html:leaseHtml,
-          send_email:false,
-          submitters:[
-            {role:'Lessor',email:landlordProfile?.email||'',name:landlordProfile?.full_name||'Landlord'},
-            {role:'Lessee',email:tenantProfile?.email||'',name:tenantProfile?.full_name||'Tenant'}
-          ]
+          type:leaseType,
+          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
+          start_date:startDate,end_date:endDate
         })
       });
       if(docuRes.ok){
         const docuData=await docuRes.json();
-        const subs=Array.isArray(docuData)?docuData:(docuData.submitters||[]);
-        const lessorSub=subs.find(s=>s.role==='Lessor')||subs[0];
-        const lesseeSub=subs.find(s=>s.role==='Lessee')||subs[1];
-        lessorEmbed=lessorSub?.embed_src||null;
-        lesseeEmbed=lesseeSub?.embed_src||null;
-        submissionId=lessorSub?.submission_id||docuData.id||null;
+        if(docuData.success){
+          lessorEmbed=docuData.lessor_embed_src||null;
+          lesseeEmbed=docuData.lessee_embed_src||null;
+          submissionId=docuData.submission_id||null;
+        } else {
+          console.warn('generate-lease failed:',docuData.error||docuData.message);
+        }
       } else {
-        console.warn('DocuSeal error:',docuRes.status,await docuRes.text());
+        const t=await docuRes.text();
+        console.error('generate-lease HTTP error:',docuRes.status,t.slice(0,300));
       }
     }catch(e){console.warn('Lease generation:',e.message);}
 
