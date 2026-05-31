@@ -1206,7 +1206,7 @@ function renderLeasePayStatus(booking){
     } else if(booking.lease_signed_landlord){
       html+='<div style="display:flex;align-items:center;gap:.4rem;background:rgba(212,168,71,.06);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">⏳</span><span style="font-size:.73rem;font-weight:600;color:var(--gold)">You signed — waiting for tenant</span></div>';
     } else {
-      html+='<button data-src="'+booking.lease_landlord_embed+'" onclick="openSigningDocLL(this.dataset.src,\'Lease\')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.76rem;font-weight:700;cursor:pointer">📄 Sign Lease Agreement →</button>';
+      html+='<button data-src="'+booking.lease_landlord_embed+'" onclick="openSigningDocLL(this.dataset.src,\'Lease\',this.dataset.bid)" data-bid="'+booking.id+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.76rem;font-weight:700;cursor:pointer">📄 Sign Lease Agreement →</button>';
     }
   } else {
     // Pas de bail — bouton pour générer
@@ -1468,7 +1468,7 @@ async function loadBookingDossier(booking){
       sigDiv.innerHTML='<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4CAF7D;margin-bottom:.4rem">✍️ Lease Agreement</div>'
         +(booking.lease_signed_landlord
           ?'<div style="font-size:.75rem;color:#4CAF7D;font-weight:600">✅ You signed the lease!</div>'
-          :'<button onclick="openSigningDocLL(this.dataset.src,\'Lease Agreement\')" data-src="'+booking.lease_landlord_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:9px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer">📄 Sign Lease Agreement →</button>');
+          :'<button onclick="openSigningDocLL(this.dataset.src,\'Lease Agreement\',this.dataset.bid)" data-bid="'+booking.id+'" data-src="'+booking.lease_landlord_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:9px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer">📄 Sign Lease Agreement →</button>');
       if(booking.first_payment_sent&&!booking.first_payment_confirmed){
         const payDiv=document.createElement('div');
         payDiv.style.cssText='margin-top:.4rem';
@@ -3697,14 +3697,14 @@ async function regenLease(bookingId, listingId, tenantId){
 }
 
 
-function openSigningDocLL(embedSrc,title){
+function openSigningDocLL(embedSrc,title,bookingId){
   if(!embedSrc){toast('⚠️ Document not ready yet');return;}
 
   const doOpen = () => {
     const modal=document.createElement('div');
     modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
     const header=document.createElement('div');
-    header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b)';
+    header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
     header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ '+(title||'Document')+'</div>';
     const closeBtn=document.createElement('button');
     closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
@@ -3712,14 +3712,28 @@ function openSigningDocLL(embedSrc,title){
     closeBtn.onclick=()=>{modal.remove();loadVisitsPage();};
     header.appendChild(closeBtn);
     const body=document.createElement('div');
-    body.style.cssText='flex:1;overflow:auto;background:white;display:flex;flex-direction:column';
+    body.style.cssText='flex:1;overflow:auto;background:white';
     const form=document.createElement('docuseal-form');
     form.setAttribute('data-src',embedSrc);
     form.setAttribute('data-send-copy-email','false');
-    form.style.cssText='width:100%;flex:1;display:block;min-height:600px';
-    // Après signature — recharger la fiche
-    form.addEventListener('completed',()=>{
-      toast('✅ Signed! Updating...');
+    form.style.cssText='width:100%;display:block;min-height:100vh';
+    // Quand signé — mettre à jour Supabase directement
+    form.addEventListener('completed', async () => {
+      toast('✅ Signed! Updating status...');
+      if(bookingId){
+        try{
+          await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId);
+          // Notifier tenant
+          const{data:bk}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single().catch(()=>({data:null}));
+          if(bk?.tenant_id){
+            await sb.from('messages').insert({
+              listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
+              content:'✍️ The landlord has signed the lease!\n\nIt\'s your turn — go to your visits page to sign.',
+              type:'lease_signed_landlord'
+            }).catch(()=>{});
+          }
+        }catch(e){console.warn('Update error:',e);}
+      }
       setTimeout(()=>{modal.remove();loadVisitsPage();},1500);
     });
     body.appendChild(form);
@@ -3728,10 +3742,8 @@ function openSigningDocLL(embedSrc,title){
     document.body.appendChild(modal);
   };
 
-  // Charger le script DocuSeal d'abord, puis ouvrir
-  if(window.docusealLoaded){
-    doOpen();
-  } else {
+  if(window.docusealLoaded){doOpen();}
+  else{
     const s=document.createElement('script');
     s.src='https://cdn.docuseal.com/js/form.js';
     s.onload=()=>{window.docusealLoaded=true;doOpen();};
