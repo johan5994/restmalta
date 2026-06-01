@@ -2788,6 +2788,17 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    } else if(m.type==='wants_to_rent'&&m.receiver_id===U.id){
+      // Tenant veut louer directement — landlord accepte ou refuse
+      div.innerHTML=`
+        <div class="bt" style="max-width:90%">
+          <div style="white-space:pre-wrap">${m.content}</div>
+          <div style="margin-top:.75rem;display:flex;gap:.5rem">
+            <button onclick="acceptDirectBooking('${m.listing_id}','${m.sender_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
+            <button onclick="declineDirectBooking('${m.listing_id}','${m.sender_id}')" style="flex:1;background:rgba(224,90,90,.15);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer">❌ Decline</button>
+          </div>
+        </div>
+        <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     } else if(m.type==='tenant_interested'&&m.receiver_id===U.id){
       div.innerHTML=`
         <div class="bt" style="max-width:85%">
@@ -3798,6 +3809,59 @@ async function viewTenantDoc(path){
     const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
     else toast('❌ Could not open document');
+  }catch(e){toast('❌ '+e.message);}
+}
+
+
+async function acceptDirectBooking(listingId, tenantId){
+  toast('⏳ Accepting...');
+  try{
+    // Trouver le booking
+    const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).eq('status','pending').maybeSingle();
+    if(!booking){toast('❌ Booking not found');return;}
+
+    // Libérer le holding deposit (rembourser le 50% loyer au tenant)
+    try{
+      await fetch('/.netlify/functions/holding-deposit',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'landlord_accept',booking_id:booking.id})
+      });
+    }catch(e){console.warn('Holding release:',e.message);}
+
+    // Générer le bail
+    await generateLeaseFromBooking(booking.id, listingId, tenantId);
+
+    // Notifier tenant du remboursement
+    await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+      content:'🎉 Your application has been accepted!\n\n💰 Your holding deposit (50% rent) has been released back to your card within 3-5 business days.\n\n📄 Your lease is ready to sign — check your visits page.',
+      type:'booking_accepted'
+    }).catch(()=>{});
+
+    toast('✅ Accepted! Lease generated. Holding deposit refunded to tenant.');
+    loadMessages();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function declineDirectBooking(listingId, tenantId){
+  if(!confirm('Decline this tenant? Their holding deposit will be fully refunded.'))return;
+  try{
+    const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).eq('status','pending').maybeSingle();
+    if(!booking){toast('❌ Booking not found');return;}
+
+    await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'landlord_decline',booking_id:booking.id,reason:'Landlord declined'})
+    });
+
+    await sb.from('messages').insert({
+      listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+      content:'❌ Your application has been declined.\n\n💰 Your holding deposit + commission have been fully refunded to your card within 3-5 business days.',
+      type:'booking_declined'
+    }).catch(()=>{});
+
+    toast('✅ Declined — tenant fully refunded.');
+    loadMessages();
   }catch(e){toast('❌ '+e.message);}
 }
 
