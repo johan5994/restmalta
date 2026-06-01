@@ -170,6 +170,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- VISITS -->
     <div class="page" id="page-visits">
+      <!-- Remote Requests -->
+      <div class="card" style="margin-bottom:1rem;border:1px solid rgba(58,143,181,.25)">
+        <div class="ch" style="background:rgba(58,143,181,.06)">
+          <div class="ct" style="color:var(--sea)">🌍 Remote Rental Requests</div>
+          <span style="font-size:.75rem;color:var(--td)">First to accept gets the client</span>
+        </div>
+        <div class="cb" id="remote-requests-list"><div class="ld"><div class="sp"></div></div></div>
+      </div>
       <div id="visit-groups-agent"></div>
       <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
         <div>
@@ -894,6 +902,28 @@ async function loadVisits(){
   visitMsgs=[];
   let confirmedVisits=[];
   let appliedIds=new Set();
+
+  // ── Charger les remote requests ──────────────────────────────────────────
+  try{
+    const{data:remoteReqs}=await sb.from('visits').select('*').eq('visit_type','remote').eq('status','remote_pending').order('created_at',{ascending:false});
+    const remoteWrap=document.getElementById('remote-requests-list');
+    if(remoteWrap){
+      if(!remoteReqs?.length){
+        remoteWrap.innerHTML='<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No remote requests</div>';
+      } else {
+        remoteWrap.innerHTML=remoteReqs.map(rv=>`
+          <div style="background:var(--s2);border:1px solid rgba(58,143,181,.25);border-radius:12px;padding:.85rem;margin-bottom:.6rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+              <div style="font-size:.88rem;font-weight:700">🏠 ${rv.listing_title||'—'}</div>
+              <span style="font-size:.68rem;color:var(--gold);background:rgba(212,168,71,.1);padding:.2rem .5rem;border-radius:100px">⏳ Pending</span>
+            </div>
+            <div style="font-size:.73rem;color:var(--tm);margin-bottom:.5rem">👤 Tenant: <strong>${rv.tenant_name||'—'}</strong></div>
+            <div style="font-size:.73rem;color:var(--tm);margin-bottom:.5rem">💶 €${rv.listing_price||'—'}/mo</div>
+            <button onclick="acceptRemoteRequest('${rv.id}','${rv.listing_id}','${rv.tenant_id}','${(rv.listing_title||'').replace(/'/g,"\\'")}',${rv.listing_price||0})" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Accept & Take Client →</button>
+          </div>`).join('');
+      }
+    }
+  }catch(e){}
   try{
     const{data:vm}=await sb.from('messages')
       .select('*')
@@ -1503,6 +1533,40 @@ function agStep1(){document.getElementById('ag-step2').style.display='none';docu
 async function agShowSelfie(){if(!agIdData){toast('Upload your ID first');return;}document.getElementById('ag-step1').style.display='none';document.getElementById('ag-step2').style.display='block';try{agStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});document.getElementById('ag-video').srcObject=agStream;}catch(e){toast('❌ Camera access denied');agStep1();}}
 function agCapture(){const v=document.getElementById('ag-video');const c=document.getElementById('ag-canvas');c.width=v.videoWidth||640;c.height=v.videoHeight||480;c.getContext('2d').drawImage(v,0,0);agSelfieData=c.toDataURL('image/jpeg',.9);document.getElementById('ag-selfie-thumb').src=agSelfieData;if(agStream){agStream.getTracks().forEach(t=>t.stop());agStream=null;}document.getElementById('ag-step2').style.display='none';document.getElementById('ag-step3').style.display='block';agVerify();}
 async function agVerify(){const res=document.getElementById('ag-result');const load=document.getElementById('ag-loading');load.style.display='block';res.style.display='none';try{await agLoadModels();const opts=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.3});const[idImg,sImg]=await Promise.all([faceapi.fetchImage(agIdData),faceapi.fetchImage(agSelfieData)]);const[idD,sD]=await Promise.all([faceapi.detectSingleFace(idImg,opts).withFaceLandmarks(true).withFaceDescriptor(),faceapi.detectSingleFace(sImg,opts).withFaceLandmarks(true).withFaceDescriptor()]);load.style.display='none';res.style.display='block';if(!idD||!sD){res.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">❌</div><div style="font-size:.82rem;color:var(--terra);margin:.4rem 0">Face not detected. Try again with better lighting.</div><button class="btn bp bsm" onclick="agStep1()">Try again</button></div>`;return;}const dist=faceapi.euclideanDistance(idD.descriptor,sD.descriptor);const sim=Math.round((1-Math.min(dist,1))*100);if(dist<0.55){await sb.from('profiles').update({verified:true}).eq('clerk_id',U.id);document.getElementById('agent-verify-badge').textContent='✅ Verified';document.getElementById('agent-verify-badge').style.cssText='background:rgba(76,175,125,.15);color:#4CAF7D';res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin:.3rem 0">Identity Verified! Match: ${sim}%</div><div style="font-size:.78rem;color:var(--td)">Your verified agent badge is now active.</div></div>`;toast('🎉 Identity verified!');}else{res.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">❌</div><div style="font-size:.82rem;color:var(--terra);margin:.4rem 0">Match: ${sim}% — too low. Try again.</div><button class="btn bp bsm" onclick="agStep1()">Try again</button></div>`;}}catch(e){load.style.display='none';res.style.display='block';res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">⏳</div><div style="font-size:.82rem;color:var(--gold);margin:.4rem 0">Documents saved — manual review within 24h.</div></div>`;}}
+
+async function acceptRemoteRequest(visitId, listingId, tenantId, listingTitle, price){
+  toast('⏳ Accepting client...');
+  try{
+    // Vérifier si quelqu'un a déjà accepté (premier arrivé premier servi)
+    const{data:check}=await sb.from('visits').select('status,remote_accepted_by').eq('id',visitId).single();
+    if(check?.remote_accepted_by){
+      toast('❌ Another agent already accepted this client.');
+      loadVisits();
+      return;
+    }
+    // Accepter
+    await sb.from('visits').update({
+      status:'remote_accepted',
+      remote_accepted_by:U.id,
+      agent_id:U.id,
+      agent_name:P?.full_name||'Agent'
+    }).eq('id',visitId);
+
+    // Notifier le tenant
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      visit_id:visitId,
+      sender_id:'system',
+      receiver_id:tenantId,
+      content:'🎉 An agent accepted your remote request!\n\n🏆 Agent: '+(P?.full_name||'—')+'\n\nYou can now chat with your agent. When you\'re ready, click "I want to rent this" in your visits page.',
+      type:'remote_accepted'
+    });
+
+    toast('✅ Client accepted! You can now chat with the tenant.');
+    loadVisits();
+  }catch(e){toast('❌ '+e.message);}
+}
+
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
