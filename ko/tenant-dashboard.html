@@ -1175,6 +1175,17 @@ async function loadMessages(){
     const convs=[...threadMap.values()];
     if(!convs.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a landlord from any listing!</p></div>';return;}
 
+    // Marquer les conversations qui ont déjà une visite active
+    const listingIdsWithConv=[...new Set(convs.map(c=>c.listing_id).filter(Boolean))];
+    let visitedListings=new Set();
+    if(listingIdsWithConv.length){
+      try{
+        const{data:activeVisits}=await sb.from('visits').select('listing_id').eq('tenant_id',U.id).in('listing_id',listingIdsWithConv).not('status','in','(declined,cancelled,done,tenant_declined)');
+        (activeVisits||[]).forEach(v=>visitedListings.add(v.listing_id));
+      }catch(e){}
+    }
+    convs.forEach(c=>{ c._hasVisit = visitedListings.has(c.listing_id); });
+
     // Récupérer les noms des interlocuteurs
     const otherIds=[...new Set(convs.map(c=>c.otherId).filter(id=>id&&id!=='system'))];
     let profileMap={};
@@ -1202,8 +1213,8 @@ async function loadMessages(){
           ${isUnread?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra);margin:3px 0 0 auto"></div>':''}
         </div>
       </div>
-      <div style="display:flex;gap:.4rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
-        <button data-lid="${m.listing_id||''}" data-tid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}"
+      ${m.sender_id===U.id && !m._hasVisit ? `<div style="display:flex;gap:.4rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
+        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}"
           onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"
           style="flex:1;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.38rem;font-size:.72rem;font-weight:700;cursor:pointer">
           📅 I want to visit
@@ -1213,7 +1224,7 @@ async function loadMessages(){
           style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.25);border-radius:7px;padding:.38rem;font-size:.72rem;font-weight:700;cursor:pointer">
           🌍 Rent Remotely
         </button>
-      </div>`;
+      </div>` : ''}`;
     }).join('');
   }catch(e){console.error('loadMessages:',e);}
 }
