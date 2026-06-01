@@ -864,7 +864,7 @@ footer ul a:hover{color:var(--terra)}
           <!-- Contact card — changes based on agent or direct -->
           <div id="contact-agent-notice" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem">
             <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.3rem">🏆 Agent-managed listing</div>
-            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5">This listing is managed by a RestMalta agent. Direct contact with the landlord is not available. Request a visit below — the agent will handle everything.</div>
+            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5;margin-bottom:.5rem">Send a message to a RestMalta agent — the first agent to respond will be your dedicated contact for this property.</div>
           </div>
           <div id="contact-direct-wrap">
             <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
@@ -1441,9 +1441,22 @@ async function sendMsg(){
     return;
   }
 
-  // Block direct message if agent is selected on this listing
+  // Si annonce gérée par agent → envoyer à tous les agents au lieu de bloquer
   if(AL.wants_agent && AL.agent_service==='full'){
-    toast('⚠️ This listing uses a RestMalta agent. Contact happens through the agent after your visit is confirmed.');
+    const{data:agents}=await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
+    if(!agents?.length){toast('⚠️ No agents available right now.');return;}
+    for(const agent of agents){
+      await sb.from('messages').insert({
+        listing_id:AL.id,
+        sender_id:U.id,
+        receiver_id:agent.clerk_id,
+        content:c,
+        type:'tenant_contact',
+        read:false
+      }).catch(()=>{});
+    }
+    document.getElementById('dmsg').value='';
+    toast('✅ Message sent to available agents!');
     return;
   }
 
