@@ -1430,31 +1430,23 @@ async function sendMsgToAgents(){
   const c=document.getElementById('dmsg-agent')?.value.trim();
   if(!c){toast('Please write a message');return;}
 
-  // Vérification profil minimum
-  const missingFields=[];
-  if(!P?.full_name)missingFields.push('Full name');
-  if(!P?.passport_number)missingFields.push('Passport/ID');
-  if(missingFields.length>0){
-    toast('❌ Complete your profile first');
-    alert('Please complete your profile first.\n\nMissing: '+missingFields.join(', ')+'\n\nGo to your dashboard → Profile.');
-    return;
-  }
-
   try{
-    const{data:agents}=await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
-    if(!agents?.length){toast('⚠️ No agents available right now.');return;}
+    const{data:agents,error}=await sb.from('profiles').select('clerk_id').or('role.eq.agent,role.eq.Agent');
+    if(error||!agents?.length){toast('⚠️ No agents available right now.');return;}
     for(const agent of agents){
-      await sb.from('messages').insert({
-        listing_id:AL.id,
-        sender_id:U.id,
-        receiver_id:agent.clerk_id,
-        content:c,
-        type:'tenant_contact',
-        read:false
-      }).catch(()=>{});
+      try{
+        await sb.from('messages').insert({
+          listing_id:AL.id,
+          sender_id:U.id,
+          receiver_id:agent.clerk_id,
+          content:c,
+          type:'tenant_contact',
+          read:false
+        });
+      }catch(e){}
     }
     document.getElementById('dmsg-agent').value='';
-    toast('✅ Message sent to available agents! Check your dashboard for replies.');
+    toast('✅ Message sent! An agent will contact you shortly.');
   }catch(e){toast('❌ '+e.message);}
 }
 
