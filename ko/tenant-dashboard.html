@@ -1175,17 +1175,6 @@ async function loadMessages(){
     const convs=[...threadMap.values()];
     if(!convs.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a landlord from any listing!</p></div>';return;}
 
-    // Marquer les conversations qui ont déjà une visite active
-    const listingIdsWithConv=[...new Set(convs.map(c=>c.listing_id).filter(Boolean))];
-    let visitedListings=new Set();
-    if(listingIdsWithConv.length){
-      try{
-        const{data:activeVisits}=await sb.from('visits').select('listing_id').eq('tenant_id',U.id).in('listing_id',listingIdsWithConv).not('status','in','(declined,cancelled,done,tenant_declined)');
-        (activeVisits||[]).forEach(v=>visitedListings.add(v.listing_id));
-      }catch(e){}
-    }
-    convs.forEach(c=>{ c._hasVisit = visitedListings.has(c.listing_id); });
-
     // Récupérer les noms des interlocuteurs
     const otherIds=[...new Set(convs.map(c=>c.otherId).filter(id=>id&&id!=='system'))];
     let profileMap={};
@@ -1213,16 +1202,24 @@ async function loadMessages(){
           ${isUnread?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra);margin:3px 0 0 auto"></div>':''}
         </div>
       </div>
-      ${m.sender_id===U.id && !m._hasVisit ? `<div style="display:flex;gap:.4rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
-        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}"
-          onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"
-          style="flex:1;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.38rem;font-size:.72rem;font-weight:700;cursor:pointer">
-          📅 I want to visit
-        </button>
-        <button data-lid="${m.listing_id||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-zone="${(m.listings?.zone||'').replace(/"/g,'&quot;')}" data-oid="${m.otherId||''}"
-          onclick="rentRemotelyFromContact(this.dataset.lid,this.dataset.name,this.dataset.zone,this.dataset.oid)"
-          style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.25);border-radius:7px;padding:.38rem;font-size:.72rem;font-weight:700;cursor:pointer">
-          🌍 Rent Remotely
+      </div>
+      ${m.sender_id===U.id && !m._hasVisit ? `<div style="display:flex;flex-direction:column;gap:.3rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
+        <div style="display:flex;gap:.3rem">
+          <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}"
+            onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"
+            style="flex:1;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.38rem;font-size:.7rem;font-weight:700;cursor:pointer">
+            📅 Visit
+          </button>
+          <button data-lid="${m.listing_id||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-zone="${(m.listings?.zone||'').replace(/"/g,'&quot;')}" data-oid="${m.otherId||''}"
+            onclick="rentRemotelyFromContact(this.dataset.lid,this.dataset.name,this.dataset.zone,this.dataset.oid)"
+            style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.25);border-radius:7px;padding:.38rem;font-size:.7rem;font-weight:700;cursor:pointer">
+            🌍 Remote
+          </button>
+        </div>
+        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-price="${m.listings?.price||0}"
+          onclick="wantToRentDirect(this.dataset.lid,this.dataset.name,this.dataset.oid,parseFloat(this.dataset.price))"
+          style="width:100%;background:var(--terra);color:white;border:none;border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer">
+          🏠 I want to rent this property →
         </button>
       </div>` : ''}`;
     }).join('');
@@ -1976,6 +1973,16 @@ async function loadTenantVisits(){
 
           ${b.landlord_iban?`<div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.45rem .65rem;font-size:.72rem;margin-bottom:.4rem">🏦 IBAN: <strong>${b.landlord_iban}</strong>${b.landlord_revolut?'<br>💜 Revolut: <strong>'+b.landlord_revolut+'</strong>':''}</div>`:''}
 
+          ${b.lease_signed_landlord&&b.lease_signed_tenant&&!b.deposit_choice?`
+          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.65rem .85rem;margin-bottom:.4rem">
+            <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:.4rem">🔐 Secure your deposit</div>
+            <div style="font-size:.7rem;color:var(--td);margin-bottom:.5rem">Both parties signed the lease. Choose how to handle your security deposit:</div>
+            <div style="display:flex;gap:.3rem">
+              <button data-id="${b.id}" onclick="chooseDepositMethod(this.dataset.id,\'escrow\')" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:8px;padding:.45rem;font-size:.7rem;font-weight:700;cursor:pointer">🔒 Secure via RestMalta</button>
+              <button data-id="${b.id}" onclick="chooseDepositMethod(this.dataset.id,\'direct\')" style="flex:1;background:rgba(58,143,181,.1);color:var(--sea);border:1px solid rgba(58,143,181,.25);border-radius:8px;padding:.45rem;font-size:.7rem;font-weight:700;cursor:pointer">➡️ Send direct to landlord</button>
+            </div>
+          </div>`:''}
+
           ${!b.first_payment_confirmed?
             (!b.first_payment_sent
               ?'<button onclick="confirmTenantPayment(this.dataset.id)" data-id="'+b.id+'" style="width:100%;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:9px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">✅ I have transferred the payment</button>'
@@ -2674,19 +2681,6 @@ async function viewDocument(docType){
   }catch(e){toast('❌ Could not open document');}
 }
 
-function loadDocuments(){
-  const raw=P?.documents||{};
-  const docs=typeof raw==='string'?JSON.parse(raw):raw;
-  Object.entries(docs).forEach(([docType,doc])=>{
-    if(!doc?.path)return;
-    const statusEl=document.getElementById('doc-status-'+docType);
-    const checkEl=document.getElementById('doc-check-'+docType);
-    const viewEl=document.getElementById('doc-view-'+docType);
-    if(statusEl)statusEl.textContent=doc.name||'Uploaded';
-    if(checkEl)checkEl.style.display='inline';
-    if(viewEl)viewEl.style.display='inline';
-  });
-}
 
 
 function openSigningDoc(embedSrc, title, bookingId){
@@ -3324,6 +3318,75 @@ async function rentRemotelyFromContact(listingId, listingTitle, zone, contactId)
     price = l?.price || 0;
   }catch(e){}
   rentRemotely(listingId, listingTitle, zone, price);
+}
+
+
+async function wantToRentDirect(listingId, listingTitle, contactId, price){
+  // Créer un booking direct (sans agent) et afficher le paiement
+  toast('⏳ Loading...');
+  try{
+    // Vérifier si booking existe déjà
+    const{data:existing}=await sb.from('bookings').select('id,status').eq('tenant_id',U.id).eq('listing_id',listingId).maybeSingle();
+    if(existing){
+      toast('⚠️ You already have a request for this listing.');
+      sp('visits',document.querySelector('.ni[onclick*="visits"]'));
+      return;
+    }
+
+    // Créer le booking
+    const{data:booking,error}=await sb.from('bookings').insert({
+      tenant_id:U.id,
+      tenant_name:P?.full_name||'Tenant',
+      listing_id:listingId,
+      landlord_id:contactId,
+      monthly_rent:price,
+      listing_price:price,
+      status:'pending',
+      has_agent:false
+    }).select().single();
+    if(error)throw new Error(error.message);
+
+    // Notifier landlord
+    await sb.from('messages').insert({
+      listing_id:listingId,
+      sender_id:'system',
+      receiver_id:contactId,
+      content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have paid the holding deposit + commission. Check your visits page to review their dossier and accept or decline.',
+      type:'wants_to_rent'
+    }).catch(()=>{});
+
+    toast('✅ Request created! Now pay to confirm.');
+    // Ouvrir le paiement
+    sp('visits',document.querySelector('.ni[onclick*="visits"]'));
+    setTimeout(()=>showHoldingDeposit(booking.id, listingId, price), 600);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+
+async function chooseDepositMethod(bookingId, method){
+  try{
+    await sb.from('bookings').update({deposit_choice:method}).eq('id',bookingId);
+    const{data:b}=await sb.from('bookings').select('landlord_id,listing_id,deposit').eq('id',bookingId).single().catch(()=>({data:null}));
+
+    if(method==='escrow'){
+      // Payer le dépôt via Stripe — sera libéré après EDL
+      toast('🔒 Deposit secured via RestMalta — will be released after move-in inventory.');
+      await sb.from('messages').insert({
+        listing_id:b?.listing_id,sender_id:'system',receiver_id:b?.landlord_id,
+        content:'🔐 Tenant chose to secure the deposit via RestMalta escrow.\n\nThe deposit will be released to you after the entry inventory is signed by both parties.',
+        type:'deposit_escrow'
+      }).catch(()=>{});
+    } else {
+      // Envoyer direct — afficher l'IBAN
+      toast('➡️ Please transfer the deposit directly to the landlord IBAN.');
+      await sb.from('messages').insert({
+        listing_id:b?.listing_id,sender_id:'system',receiver_id:b?.landlord_id,
+        content:'💶 Tenant will transfer the deposit directly to your IBAN.\n\nAmount: €'+(b?.deposit||0),
+        type:'deposit_direct'
+      }).catch(()=>{});
+    }
+    loadTenantVisits();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 
