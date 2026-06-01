@@ -1201,6 +1201,18 @@ async function loadMessages(){
           <span style="font-size:.68rem;color:var(--td)">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
           ${isUnread?'<div style="width:7px;height:7px;border-radius:50%;background:var(--terra);margin:3px 0 0 auto"></div>':''}
         </div>
+      </div>
+      <div style="display:flex;gap:.4rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
+        <button data-lid="${m.listing_id||''}" data-tid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}"
+          onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"
+          style="flex:1;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.38rem;font-size:.72rem;font-weight:700;cursor:pointer">
+          📅 I want to visit
+        </button>
+        <button data-lid="${m.listing_id||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-zone="${(m.listings?.zone||'').replace(/"/g,'&quot;')}" data-oid="${m.otherId||''}"
+          onclick="rentRemotelyFromContact(this.dataset.lid,this.dataset.name,this.dataset.zone,this.dataset.oid)"
+          style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.25);border-radius:7px;padding:.38rem;font-size:.72rem;font-weight:700;cursor:pointer">
+          🌍 Rent Remotely
+        </button>
       </div>`;
     }).join('');
   }catch(e){console.error('loadMessages:',e);}
@@ -1832,7 +1844,14 @@ async function loadTenantVisits(){
   const badge=document.getElementById('nb-visits-t');
   if(badge){badge.textContent=actionCount||'';badge.style.display=actionCount>0?'inline':'none';}
 
-  if(!visits.length&&!bookings.length){
+  // Charger les visites remote
+  let remoteVisits=[];
+  try{
+    const{data:rv}=await sb.from('visits').select('*').eq('tenant_id',U.id).eq('visit_type','remote').order('created_at',{ascending:false});
+    remoteVisits=rv||[];
+  }catch(e){}
+
+  if(!visits.length&&!bookings.length&&!remoteVisits.length){
     wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>';
     return;
   }
@@ -1847,6 +1866,33 @@ async function loadTenantVisits(){
   const doneBookings=bookings.filter(b=>['declined','cancelled_by_tenant'].includes(b.status));
 
   let html='';
+
+  // ── Section Remote Visits ────────────────────────────────────────────────
+  if(remoteVisits.length){
+    html+='<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--sea);margin-bottom:.6rem;letter-spacing:.5px">🌍 Remote Rental Requests</div>';
+    html+=remoteVisits.map(rv=>{
+      const statusConfig={
+        'remote_pending':      {label:'⏳ Waiting for agent',  color:'var(--gold)'},
+        'remote_accepted':     {label:'✅ Agent assigned',     color:'#4CAF7D'},
+        'remote_wants_to_rent':{label:'🔒 Awaiting landlord',  color:'var(--sea)'},
+        'accepted':            {label:'🎉 Accepted!',          color:'#4CAF7D'},
+        'declined':            {label:'❌ Declined',           color:'var(--red)'},
+      };
+      const sc=statusConfig[rv.status]||{label:rv.status,color:'var(--td)'};
+      return `<div style="background:var(--s2);border:1px solid rgba(58,143,181,.2);border-radius:12px;padding:.85rem;margin-bottom:.6rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+          <div style="font-size:.88rem;font-weight:700">🏠 ${rv.listing_title||'—'}</div>
+          <span style="font-size:.68rem;font-weight:700;color:${sc.color};background:rgba(255,255,255,.06);padding:.2rem .5rem;border-radius:100px">${sc.label}</span>
+        </div>
+        ${rv.remote_accepted_by?`<div style="font-size:.73rem;color:var(--tm);margin-bottom:.35rem">🏆 Agent: <strong>${rv.agent_name||'Assigned'}</strong></div>`:''}
+        <div style="display:flex;gap:.4rem;margin-top:.5rem">
+          <button onclick="openRemoteChat('${rv.id}','${(rv.listing_title||'').replace(/'/g,"\\'")}','${rv.listing_id}')" style="flex:1;background:rgba(58,143,181,.15);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.45rem;font-size:.75rem;font-weight:600;cursor:pointer">💬 Chat</button>
+          ${rv.status==='remote_accepted'?`<button onclick="wantToRentRemote('${rv.id}','${rv.listing_id}','${(rv.listing_title||'').replace(/'/g,"\\'")}',${rv.listing_price||0})" style="flex:2;background:var(--terra);color:white;border:none;border-radius:8px;padding:.45rem;font-size:.75rem;font-weight:700;cursor:pointer">🏠 I want to rent this →</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    if(visits.length||bookings.length) html+='<div style="height:1px;background:var(--b);margin:.75rem 0"></div>';
+  }
 
   // Bookings actifs
   activeBookings.forEach(b=>{
@@ -2526,6 +2572,7 @@ async function loadMatchListings(){
         <div style="font-size:.65rem;color:var(--td)">match</div>
       </div>
       <button class="btn bp bsm" onclick="window.location.href='/'">View</button>
+      <button class="btn bg bsm" data-lid="${l.id}" data-title="${(l.title||'').replace(/"/g,'&quot;')}" data-zone="${l.zone||''}" data-price="${l.price||0}" onclick="rentRemotely(this.dataset.lid,this.dataset.title,this.dataset.zone,this.dataset.price)" style="background:rgba(58,143,181,.15);color:var(--sea);border:1px solid rgba(58,143,181,.3)">🌍 Rent Remotely</button>
     </div>`;
   }).join('');
 }
@@ -3004,6 +3051,270 @@ async function uploadIDToStorage(){
     await sb.storage.from('listings').upload(`docs/${U.id}/id.jpg`,blob,{upsert:true});
   }catch(e){}
 }
+
+// ── REMOTE FLOW ─────────────────────────────────────────────────────────────
+let activeRemoteVisitId = null;
+
+async function rentRemotely(listingId, listingTitle, zone, price){
+  // Créer une visite remote dans Supabase
+  toast('⏳ Sending request to agents...');
+  try{
+    // Vérifier si une demande remote existe déjà pour ce listing
+    const{data:existing}=await sb.from('visits').select('id,status').eq('tenant_id',U.id).eq('listing_id',listingId).eq('visit_type','remote').maybeSingle();
+    if(existing){toast('⚠️ You already have a remote request for this listing.');openRemoteChat(existing.id,listingTitle,listingId);return;}
+    
+    // Créer la visite remote
+    const{data:visit,error}=await sb.from('visits').insert({
+      tenant_id:U.id,
+      tenant_name:P?.full_name||'Tenant',
+      listing_id:listingId,
+      listing_title:listingTitle,
+      status:'remote_pending',
+      visit_type:'remote',
+      listing_price:price
+    }).select().single();
+    if(error)throw new Error(error.message);
+
+    // Notifier tous les agents
+    const{data:agents}=await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
+    for(const agent of (agents||[])){
+      await sb.from('messages').insert({
+        listing_id:listingId,
+        sender_id:'system',
+        receiver_id:agent.clerk_id,
+        visit_id:visit.id,
+        content:'🌍 NEW REMOTE REQUEST\n\n🏠 '+listingTitle+' · '+zone+'\n💶 €'+price+'/mo\n👤 Tenant: '+(P?.full_name||'—')+'\n\nFirst agent to accept gets the client!',
+        type:'remote_request'
+      }).catch(()=>{});
+    }
+
+    toast('✅ Request sent! Waiting for an agent to accept...');
+    sp('visits', document.querySelector('.ni[onclick*="visits"]'));
+    setTimeout(loadTenantVisits, 500);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function openRemoteChat(visitId, listingTitle, listingId){
+  activeRemoteVisitId = visitId;
+  // Ouvrir modal chat
+  const modal = document.createElement('div');
+  modal.id = 'remote-chat-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;width:100%;max-width:480px;height:70vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:.85rem 1.1rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="font-size:.9rem;font-weight:700">💬 ${listingTitle}</div>
+          <div id="remote-chat-agent" style="font-size:.72rem;color:var(--td)">Waiting for agent...</div>
+        </div>
+        <button onclick="document.getElementById('remote-chat-modal').remove()" style="background:none;border:none;color:var(--tm);font-size:1.2rem;cursor:pointer">✕</button>
+      </div>
+      <div id="remote-chat-body" style="flex:1;overflow-y:auto;padding:.85rem;display:flex;flex-direction:column;gap:.5rem"></div>
+      <div style="padding:.6rem;border-top:1px solid var(--b);display:flex;gap:.4rem;flex-shrink:0">
+        <textarea id="remote-chat-input" rows="2" placeholder="Write a message..." style="flex:1;padding:.5rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--txt);font-family:inherit;font-size:.83rem;resize:none"></textarea>
+        <button onclick="sendRemoteMessage('${visitId}','${listingId}')" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem .85rem;font-weight:700;cursor:pointer">➤</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  loadRemoteMessages(visitId, listingId);
+}
+
+async function loadRemoteMessages(visitId, listingId){
+  const body = document.getElementById('remote-chat-body');
+  if(!body) return;
+  const{data:msgs} = await sb.from('messages').select('*').eq('visit_id',visitId).order('created_at',{ascending:true}).catch(()=>({data:[]}));
+  body.innerHTML = '';
+  for(const m of (msgs||[])){
+    const isMe = m.sender_id === U.id;
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}`;
+    div.innerHTML = `<div style="background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--tm)'};padding:.5rem .75rem;border-radius:${isMe?'12px 4px 12px 12px':'4px 12px 12px 12px'};font-size:.82rem;max-width:80%;word-wrap:break-word">${m.content}</div>
+    <div style="font-size:.6rem;color:var(--td);margin-top:.15rem">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    body.appendChild(div);
+  }
+  body.scrollTop = body.scrollHeight;
+}
+
+async function sendRemoteMessage(visitId, listingId){
+  const input = document.getElementById('remote-chat-input');
+  const content = input?.value.trim();
+  if(!content) return;
+  input.value = '';
+  // Trouver le receiver (agent assigné ou landlord)
+  const{data:visit} = await sb.from('visits').select('remote_accepted_by,landlord_id').eq('id',visitId).single().catch(()=>({data:null}));
+  const receiverId = visit?.remote_accepted_by || visit?.landlord_id || null;
+  await sb.from('messages').insert({
+    listing_id:listingId,
+    visit_id:visitId,
+    sender_id:U.id,
+    receiver_id:receiverId,
+    content,
+    type:'remote_chat'
+  }).catch(()=>{});
+  loadRemoteMessages(visitId, listingId);
+}
+
+async function wantToRentRemote(visitId, listingId, listingTitle, price){
+  // Tenant clique "Je veux louer" dans le flow remote
+  // Ouvrir modal paiement commission + holding
+  const modal = document.createElement('div');
+  modal.id = 'want-rent-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:1.5rem;width:100%;max-width:420px">
+      <div style="font-size:1.1rem;font-weight:800;font-family:'Playfair Display',serif;margin-bottom:.4rem">🏠 I want to rent this property</div>
+      <div style="font-size:.82rem;color:var(--tm);margin-bottom:1.2rem">${listingTitle}</div>
+      <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:.4rem"><span>Holding deposit (50% rent)</span><strong style="color:var(--gold)">€${Math.round(price*0.5)}</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:.4rem"><span>RestMalta commission</span><strong style="color:var(--gold)">€${Math.round(price*0.5)}</strong></div>
+        <div style="border-top:1px solid var(--b);padding-top:.5rem;display:flex;justify-content:space-between;font-size:.9rem;font-weight:700"><span>Total</span><span style="color:var(--terra)">€${Math.round(price)}</span></div>
+      </div>
+      <div id="want-rent-card" style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.85rem"></div>
+      <button onclick="confirmWantToRent('${visitId}','${listingId}',${price})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">💳 Pay & Confirm →</button>
+      <button onclick="document.getElementById('want-rent-modal').remove()" style="width:100%;background:none;color:var(--td);border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+  // Monter Stripe
+  if(!window.stripe) window.stripe = Stripe('pk_live_51REGsRFMCFDGaDhJdVNDOON4D9G2XDJ0UilPtR5SBSqG34s5f3HjpVJFMwXBrqb0WJ7l9JC3MMmGEJv47pAhLKWP00fv04VHp7');
+  const elements = window.stripe.elements();
+  const card = elements.create('card',{style:{base:{color:'#fff',fontSize:'14px'}}});
+  card.mount('#want-rent-card');
+  window._remoteCard = card;
+}
+
+async function confirmWantToRent(visitId, listingId, price){
+  toast('⏳ Processing payment...');
+  try{
+    const amount = Math.round(price * 100); // holding + commission
+    const res = await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'create_intent',listing_id:listingId,tenant_id:U.id,amount_cents:amount,visit_id:visitId})
+    });
+    const data = await res.json();
+    if(!data.client_secret) throw new Error(data.error||'Payment init failed');
+    const{error,paymentIntent} = await window.stripe.confirmCardPayment(data.client_secret,{payment_method:{card:window._remoteCard}});
+    if(error) throw new Error(error.message);
+    // Mettre à jour la visite
+    await sb.from('visits').update({status:'remote_wants_to_rent',holding_paid:true}).eq('id',visitId);
+    // Notifier landlord
+    const{data:visit} = await sb.from('visits').select('landlord_id,listing_title,remote_accepted_by').eq('id',visitId).single().catch(()=>({data:null}));
+    if(visit?.landlord_id){
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:visit.landlord_id,
+        content:'🏠 A remote tenant wants to rent your property!\n\n'+listingTitle+'\n\nHolding deposit + commission paid. Check your visits page.',
+        type:'remote_wants_rent'
+      }).catch(()=>{});
+    }
+    document.getElementById('want-rent-modal')?.remove();
+    toast('✅ Payment confirmed! Waiting for landlord approval.');
+    loadTenantVisits();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function requestVisitFromContact(listingId, agentOrLandlordId, listingTitle){
+  // Ouvrir modal pour choisir date + heure
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:1.5rem;width:100%;max-width:380px">
+      <div style="font-size:1.1rem;font-weight:800;font-family:'Playfair Display',serif;margin-bottom:.3rem">📅 Request a visit</div>
+      <div style="font-size:.82rem;color:var(--tm);margin-bottom:1rem">${listingTitle}</div>
+      <div style="margin-bottom:.75rem">
+        <label style="font-size:.75rem;font-weight:600;color:var(--tm);display:block;margin-bottom:.3rem">Preferred date *</label>
+        <input type="date" id="visit-req-date" class="fi" style="width:100%" min="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.75rem;font-weight:600;color:var(--tm);display:block;margin-bottom:.3rem">Preferred time</label>
+        <select id="visit-req-time" class="fsel" style="width:100%">
+          <option value="09:00">09:00 AM</option>
+          <option value="10:00">10:00 AM</option>
+          <option value="11:00">11:00 AM</option>
+          <option value="14:00" selected>02:00 PM</option>
+          <option value="15:00">03:00 PM</option>
+          <option value="16:00">04:00 PM</option>
+          <option value="17:00">05:00 PM</option>
+        </select>
+      </div>
+      <button onclick="confirmVisitRequest('${listingId}','${agentOrLandlordId}','${(listingTitle||'').replace(/'/g,"\\'")}',this)" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">📅 Send visit request →</button>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:none;color:var(--td);border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function confirmVisitRequest(listingId, contactId, listingTitle, btn){
+  const date = document.getElementById('visit-req-date')?.value;
+  const time = document.getElementById('visit-req-time')?.value || '14:00';
+  if(!date){toast('⚠️ Please select a date');return;}
+  btn.disabled = true;
+  btn.textContent = '⏳ Sending...';
+  try{
+    // Vérifier si cet interlocuteur est un agent
+    const{data:contactProfile} = await sb.from('profiles').select('role,clerk_id,full_name').eq('clerk_id',contactId).maybeSingle();
+    const isAgent = contactProfile?.role === 'agent' || contactProfile?.role === 'Agent';
+
+    // Créer la visite
+    const{data:visit,error} = await sb.from('visits').insert({
+      tenant_id: U.id,
+      tenant_name: P?.full_name||'Tenant',
+      listing_id: listingId,
+      listing_title: listingTitle,
+      visit_date: date,
+      visit_time: time,
+      status: isAgent ? 'agent_assigned' : 'awaiting_landlord',
+      visit_type: 'physical',
+      agent_id: isAgent ? contactId : null,
+      agent_name: isAgent ? (contactProfile?.full_name||'Agent') : null,
+      landlord_id: isAgent ? null : contactId
+    }).select().single();
+
+    if(error) throw new Error(error.message);
+
+    // Notifier l'interlocuteur
+    await sb.from('messages').insert({
+      listing_id: listingId,
+      sender_id: 'system',
+      receiver_id: contactId,
+      visit_id: visit.id,
+      content: '📅 Visit request from '+( P?.full_name||'a tenant')+'\n\n🏠 '+listingTitle+'\n📅 '+new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+time+'\n\nPlease confirm in your dashboard.',
+      type: isAgent ? 'visit_request' : 'visit_request'
+    });
+
+    // Si pas d'agent assigné — envoyer aussi à tous les agents
+    if(!isAgent){
+      const{data:agents} = await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
+      for(const agent of (agents||[])){
+        await sb.from('messages').insert({
+          listing_id: listingId,
+          sender_id: 'system',
+          receiver_id: agent.clerk_id,
+          visit_id: visit.id,
+          content: '📅 NEW VISIT REQUEST\n\n🏠 '+listingTitle+'\n👤 Tenant: '+(P?.full_name||'—')+'\n📅 '+new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+time+'\n\nApply in your dashboard!',
+          type: 'visit_request'
+        }).catch(()=>{});
+      }
+    }
+
+    document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]')?.remove();
+    toast('✅ Visit request sent!');
+    sp('visits', document.querySelector('.ni[onclick*="visits"]'));
+    setTimeout(loadTenantVisits, 500);
+  }catch(e){
+    btn.disabled = false;
+    btn.textContent = '📅 Send visit request →';
+    toast('❌ '+e.message);
+  }
+}
+
+async function rentRemotelyFromContact(listingId, listingTitle, zone, contactId){
+  // Récupérer le prix du listing
+  let price = 0;
+  try{
+    const{data:l} = await sb.from('listings').select('price').eq('id',listingId).single();
+    price = l?.price || 0;
+  }catch(e){}
+  rentRemotely(listingId, listingTitle, zone, price);
+}
+
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
