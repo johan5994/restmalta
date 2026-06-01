@@ -368,7 +368,6 @@ footer ul a:hover{color:var(--terra)}
         <option value="">All types</option>
         <option value="short">🏠 Short-let only</option>
         <option value="long">📅 Long-let only</option>
-        <option value="both">🔄 Short or Long</option>
         <option value="sublet">🔑 Subletting</option>
       </select></div>
       <div class="sf"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
@@ -514,7 +513,6 @@ footer ul a:hover{color:var(--terra)}
         <div class="ttog">
           <button class="tbtn active" onclick="setT(this,'short')">🏠 Short-let only</button>
           <button class="tbtn" onclick="setT(this,'long')">📅 Long-let only</button>
-          <button class="tbtn" onclick="setT(this,'both')">🔄 Short & Long</button>
           <button class="tbtn" onclick="setT(this,'sublet')">🔑 Subletting</button>
         </div>
         <input type="hidden" id="pt" value="short">
@@ -1232,8 +1230,7 @@ async function loadL(){
   let q=sb.from('listings').select('*').eq('active',true).not('status','in','("reserved","rented")').order('created_at',{ascending:false});
   if(z)q=q.eq('zone',z);
   // For type filter: 'both' listings appear when filtering short OR long
-  if(t&&t!=='both')q=q.or(`type.eq.${t},type.eq.both`);
-  else if(t==='both')q=q.eq('type','both');
+  if(t)q=q.eq('type',t);
   if(p)q=q.lte('price',parseInt(p));
   if(att==='yes')q=q.eq('accepts_attestation',true);
   const{data}=await q;
@@ -1247,10 +1244,10 @@ async function loadL(){
 async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true);document.getElementById('sc').textContent=count??'0';}
 
 function rCard(l){
-  const ic={short:'🏠',sublet:'🔑',long:'📅',both:'🔄'};
-  const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',sublet:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)',both:'linear-gradient(135deg,#F0EBF8,#E0D4F0)'};
-  const lb={short:'🏠 Short-let',sublet:'🔑 Subletting',long:'📅 Long-let',both:'🔄 Short & Long'};
-  const lbColor={short:'#C9553A',sublet:'#D4A847',long:'#2E6B8A',both:'#8B5CF6'};
+  const ic={short:'🏠',sublet:'🔑',long:'📅'};
+  const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',sublet:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
+  const lb={short:'🏠 Short-let',sublet:'🔑 Subletting',long:'📅 Long-let'};
+  const lbColor={short:'#C9553A',sublet:'#D4A847',long:'#2E6B8A'};
   const tags=[l.furnished?'Furnished':null,l.wifi?'WiFi':null,l.bills_included?'Bills incl.':null,l.ac?'A/C':null,l.parking?'Parking':null,l.pool?'Pool':null,l.balcony?'Balcony':null,l.spots>1?`${l.spots} spots`:null].filter(Boolean).slice(0,3);
   const fr=l.available_indefinitely?'Available indefinitely':l.available_from?'From '+new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Available now';
   // Agent service badge
@@ -1313,7 +1310,7 @@ async function openDet(id){
   if(l.wants_agent&&l.agent_service!=='none')fe.unshift('🏆 Agent visits available');
   if(l.video_url)fe.unshift('🎥 Virtual tour available');
   document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
-  const tl={short:'Short-let',sublet:'Subletting',long:'Long-let (1 year+)',both:'Short-let or Long-let'};
+  const tl={short:'Short-let',sublet:'Subletting',long:'Long-let (1 year+)'};
   const difermoLabels={'6_months':'6 months','9_months':'9 months','1_year':'1 year','none':'None'};
   const durationLabels={'1_year':'1 year (minimum)','2_years':'2 years','3_years':'3 years','flexible':'Flexible'};
   const badge=await getLandlordResponseBadge(l.landlord_id);
@@ -1759,14 +1756,14 @@ function setT(el,t){
   const subletNotice=document.getElementById('sublet-notice');
   const subletOpts=document.getElementById('sublet-opts');
   const typeInfo=document.getElementById('type-info');
-  if(shortOpts)shortOpts.style.display=(t==='short'||t==='both')?'block':'none';
-  if(longOpts)longOpts.style.display=(t==='long'||t==='both')?'block':'none';
+  if(shortOpts)shortOpts.style.display=t==='short'?'block':'none';
+  if(longOpts)longOpts.style.display=t==='long'?'block':'none';
   if(subletNotice)subletNotice.style.display=t==='sublet'?'block':'none';
   if(subletOpts)subletOpts.style.display=t==='sublet'?'block':'none';
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltase law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
-    both:'🔄 Short & Long: you accept both. Tenant chooses duration at lease signing.',
+
     sublet:'🔑 Subletting: written owner consent required. Housing Authority registration is your responsibility.'
   };
   if(typeInfo)typeInfo.textContent=infos[t]||'';
@@ -1816,7 +1813,7 @@ function onAvailableFromChange(val){
     punInput.value=start.toISOString().split('T')[0];
     punInput.style.background='rgba(201,85,58,.05)';
     setTimeout(()=>punInput.style.background='',1000);
-  } else if(type==='long'||type==='both'){
+  } else if(type==='long'){
     start.setFullYear(start.getFullYear()+1);
     punInput.value=start.toISOString().split('T')[0];
     punInput.style.background='rgba(46,107,138,.05)';
