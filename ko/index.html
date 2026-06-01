@@ -864,7 +864,9 @@ footer ul a:hover{color:var(--terra)}
           <!-- Contact card — changes based on agent or direct -->
           <div id="contact-agent-notice" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem">
             <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.3rem">🏆 Agent-managed listing</div>
-            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5;margin-bottom:.5rem">Send a message to a RestMalta agent — the first agent to respond will be your dedicated contact for this property.</div>
+            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5;margin-bottom:.5rem">The first agent to respond will be your dedicated contact for this property.</div>
+            <div class="fg2" style="margin-bottom:.5rem"><label style="font-size:.73rem;font-weight:600">Your message to the agent</label><textarea class="fta" id="dmsg-agent" rows="3" placeholder="Hi! I'm interested in this property. I'm looking for…"></textarea></div>
+            <button class="btn btn-p" style="width:100%;justify-content:center;background:#8B5CF6" onclick="sendMsgToAgents()">💬 Contact an agent →</button>
           </div>
           <div id="contact-direct-wrap">
             <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
@@ -1420,6 +1422,40 @@ function selectEscrow(val){
   if(yesWrap)yesWrap.style.borderColor=val==='yes'?'rgba(76,175,125,.4)':'rgba(76,175,125,.2)';
   if(noWrap)noWrap.style.background=val==='no'?'rgba(107,95,82,.06)':'';
   if(noWrap)noWrap.style.borderColor=val==='no'?'rgba(107,95,82,.3)':'rgba(107,95,82,.1)';
+}
+
+async function sendMsgToAgents(){
+  if(!U){toast('Please sign in first');go('auth');return;}
+  if(!AL)return;
+  const c=document.getElementById('dmsg-agent')?.value.trim();
+  if(!c){toast('Please write a message');return;}
+
+  // Vérification profil minimum
+  const missingFields=[];
+  if(!P?.full_name)missingFields.push('Full name');
+  if(!P?.passport_number)missingFields.push('Passport/ID');
+  if(missingFields.length>0){
+    toast('❌ Complete your profile first');
+    alert('Please complete your profile first.\n\nMissing: '+missingFields.join(', ')+'\n\nGo to your dashboard → Profile.');
+    return;
+  }
+
+  try{
+    const{data:agents}=await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
+    if(!agents?.length){toast('⚠️ No agents available right now.');return;}
+    for(const agent of agents){
+      await sb.from('messages').insert({
+        listing_id:AL.id,
+        sender_id:U.id,
+        receiver_id:agent.clerk_id,
+        content:c,
+        type:'tenant_contact',
+        read:false
+      }).catch(()=>{});
+    }
+    document.getElementById('dmsg-agent').value='';
+    toast('✅ Message sent to available agents! Check your dashboard for replies.');
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function sendMsg(){
