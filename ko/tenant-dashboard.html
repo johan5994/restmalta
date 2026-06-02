@@ -3160,13 +3160,21 @@ async function wantToRentRemote(visitId, listingId, listingTitle, price){
   modal.id = 'want-rent-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
   modal.innerHTML = `
-    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:1.5rem;width:100%;max-width:420px">
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
       <div style="font-size:1.1rem;font-weight:800;font-family:'Playfair Display',serif;margin-bottom:.4rem">🏠 I want to rent this property</div>
       <div style="font-size:.82rem;color:var(--tm);margin-bottom:1.2rem">${listingTitle}</div>
+      
+      <!-- Co-tenants section -->
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--tm);margin-bottom:.5rem">👥 Co-tenants (optional)</div>
+        <div id="cotenants-list" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.4rem"></div>
+        <button onclick="addCoTenantField()" style="width:100%;background:rgba(255,255,255,.06);color:var(--tm);border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:.45rem;font-size:.78rem;cursor:pointer">+ Add a co-tenant</button>
+      </div>
+
       <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem">
         <div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:.4rem"><span>Holding deposit (50% rent)</span><strong style="color:var(--gold)">€${Math.round(price*0.5)}</strong></div>
-        <div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:.4rem"><span>RestMalta commission</span><strong style="color:var(--gold)">€${Math.round(price*0.5)}</strong></div>
-        <div style="border-top:1px solid var(--b);padding-top:.5rem;display:flex;justify-content:space-between;font-size:.9rem;font-weight:700"><span>Total</span><span style="color:var(--terra)">€${Math.round(price)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:.4rem"><span>RestMalta commission (15%)</span><strong style="color:var(--gold)">€${Math.round(price*0.15)}</strong></div>
+        <div style="border-top:1px solid var(--b);padding-top:.5rem;display:flex;justify-content:space-between;font-size:.9rem;font-weight:700"><span>Total</span><span style="color:var(--terra)">€${Math.round(price*0.65)}</span></div>
       </div>
       <div id="want-rent-card" style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.85rem"></div>
       <button onclick="confirmWantToRent('${visitId}','${listingId}',${price})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">💳 Pay & Confirm →</button>
@@ -3182,6 +3190,14 @@ async function wantToRentRemote(visitId, listingId, listingTitle, price){
 }
 
 async function confirmWantToRent(visitId, listingId, price){
+  // Vérifier que tous les co-tenants sont validés
+  const validCoTenants = coTenantsData.filter(Boolean);
+  const invalidCoTenants = coTenantsData.filter(ct => ct === null);
+  if(invalidCoTenants.length > 0){
+    toast('❌ Fix co-tenant issues before paying');
+    return;
+  }
+
   toast('⏳ Processing payment...');
   try{
     const amount = Math.round(price * 100); // holding + commission
@@ -3193,6 +3209,17 @@ async function confirmWantToRent(visitId, listingId, price){
     if(!data.client_secret) throw new Error(data.error||'Payment init failed');
     const{error,paymentIntent} = await window.stripe.confirmCardPayment(data.client_secret,{payment_method:{card:window._remoteCard}});
     if(error) throw new Error(error.message);
+    // Sauvegarder les co-tenants dans le booking
+    const coTenantIds = coTenantsData.filter(ct=>ct?.profile).map(ct=>ct.profile.clerk_id);
+    const coTenantEmails = coTenantsData.filter(ct=>ct?.invited).map(ct=>ct.email);
+    if(coTenantIds.length || coTenantEmails.length){
+      await sb.from('bookings').update({
+        co_tenant_ids: coTenantIds.length ? JSON.stringify(coTenantIds) : null,
+        co_tenant_emails_invited: coTenantEmails.length ? JSON.stringify(coTenantEmails) : null
+      }).eq('listing_id',listingId).eq('tenant_id',U.id).order('created_at',{ascending:false}).limit(1);
+    }
+    coTenantsData = []; // Reset
+
     // Mettre à jour la visite
     await sb.from('visits').update({status:'remote_wants_to_rent',holding_paid:true}).eq('id',visitId);
     // Notifier landlord
@@ -3402,6 +3429,61 @@ function initPhonePickerTenant(){
     });
   };
   document.head.appendChild(script);
+}
+
+
+// ── Co-tenant flow ────────────────────────────────────────────
+let coTenantsData = []; // [{email, profile}]
+
+function addCoTenantField(){
+  const list = document.getElementById('cotenants-list');
+  if(!list) return;
+  if(list.children.length >= 3){ toast('Maximum 3 co-tenants'); return; }
+  const idx = list.children.length;
+  const div = document.createElement('div');
+  div.id = 'cotenant-row-' + idx;
+  div.style.cssText = 'display:flex;flex-direction:column;gap:.3rem;background:var(--s2);border-radius:8px;padding:.55rem';
+  div.innerHTML = `
+    <div style="display:flex;gap:.3rem;align-items:center">
+      <input id="cotenant-email-${idx}" type="email" placeholder="co-tenant@email.com" style="flex:1;padding:.45rem .6rem;background:var(--s);border:1px solid var(--b2);border-radius:6px;color:var(--txt);font-size:.8rem;font-family:inherit">
+      <button onclick="checkCoTenant(${idx})" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.45rem .6rem;font-size:.75rem;font-weight:700;cursor:pointer">Check</button>
+      <button onclick="document.getElementById('cotenant-row-${idx}').remove()" style="background:none;color:var(--td);border:none;font-size:1rem;cursor:pointer">✕</button>
+    </div>
+    <div id="cotenant-status-${idx}" style="font-size:.72rem"></div>`;
+  list.appendChild(div);
+}
+
+async function checkCoTenant(idx){
+  const email = document.getElementById('cotenant-email-'+idx)?.value.trim();
+  const status = document.getElementById('cotenant-status-'+idx);
+  if(!email || !status){ toast('Please enter an email'); return; }
+  status.innerHTML = '<span style="color:var(--td)">⏳ Checking...</span>';
+
+  try{
+    // Vérifier si un profil existe avec cet email
+    const{data:profile} = await sb.from('profiles').select('clerk_id,full_name,passport_number,date_of_birth,nationality,home_address,father_name,mother_name').eq('email',email).maybeSingle();
+
+    if(!profile){
+      status.innerHTML = '<span style="color:var(--gold)">⚠️ No RestMalta account found. An invitation will be sent.</span>';
+      coTenantsData[idx] = { email, profile: null, invited: true };
+      return;
+    }
+
+    // Vérifier que le profil est complet
+    const required = [profile.full_name, profile.passport_number, profile.date_of_birth, profile.nationality, profile.home_address, profile.father_name, profile.mother_name];
+    const missing = required.filter(f=>!f).length;
+
+    if(missing > 0){
+      status.innerHTML = '<span style="color:var(--red)">❌ Profile incomplete ('+missing+' field'+( missing>1?'s':'')+' missing). Ask them to complete their profile first.</span>';
+      coTenantsData[idx] = null;
+      return;
+    }
+
+    coTenantsData[idx] = { email, profile };
+    status.innerHTML = '<span style="color:#4CAF7D">✅ '+profile.full_name+' — Profile complete, ready to co-sign.</span>';
+  }catch(e){
+    status.innerHTML = '<span style="color:var(--red)">❌ Error: '+e.message+'</span>';
+  }
 }
 
 
