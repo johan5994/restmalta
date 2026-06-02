@@ -507,18 +507,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="p-nat" placeholder="French"></div>
             <div class="fg"><label class="fl">Passport / ID number *</label><input class="fi" id="p-passport" placeholder="e.g. 12345678A"></div>
             <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="p-dob"></div>
-            <div class="fg"><label class="fl">Place of birth *</label><input class="fi" id="p-pob" placeholder="Paris, France"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Place of birth *</label><input class="fi" id="p-pob" placeholder="Paris, France"></div>
+          </div>
+
+          <!-- Required for lease -->
+          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">📄 Required for lease</div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">This information is required by Maltese law (PRL Act Cap. 604) and will be included in your lease agreement.</div>
+          <div class="fgrid2">
             <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="p-father" placeholder="Jean"></div>
             <div class="fg"><label class="fl">Father's last name *</label><input class="fi" id="p-father-last" placeholder="Dupont"></div>
             <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="p-mother" placeholder="Sophie"></div>
             <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="p-mother-maiden" placeholder="Martin"></div>
-          </div>
-
-          <!-- Address -->
-          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">🏠 Address</div>
-          <div class="fgrid2">
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Current address (home country) * <span style="font-size:.68rem;color:var(--td)">(full address)</span></label><input class="fi" id="p-address" placeholder="123 Rue de Paris, 75001 Paris, France"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address <span style="font-size:.68rem;color:var(--td)">(if already in Malta)</span></label><input class="fi" id="p-malta-address" placeholder="e.g. 12 Triq il-Kbira, St. Julian's STJ 1234"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Home address * <span style="font-size:.68rem;color:var(--td)">(full address — country of origin)</span></label><input class="fi" id="p-address" placeholder="123 Rue de Paris, 75001 Paris, France"></div>
           </div>
 
           <!-- Stay in Malta -->
