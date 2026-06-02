@@ -3286,17 +3286,21 @@ async function confirmVisitRequest(listingId, contactId, listingTitle, btn){
 
     // Si pas d'agent assigné — envoyer aussi à tous les agents
     if(!isAgent){
-      const{data:agents} = await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
-      for(const agent of (agents||[])){
-        await sb.from('messages').insert({
-          listing_id: listingId,
-          sender_id: 'system',
-          receiver_id: agent.clerk_id,
-          visit_id: visit.id,
-          content: '📅 NEW VISIT REQUEST\n\n🏠 '+listingTitle+'\n👤 Tenant: '+(P?.full_name||'—')+'\n📅 '+new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+time+'\n\nApply in your dashboard!',
-          type: 'visit_request'
-        }).catch(()=>{});
-      }
+      try{
+        const{data:agents} = await sb.from('profiles').select('clerk_id').or('role.eq.agent,role.eq.Agent');
+        for(const agent of (agents||[])){
+          try{
+            await sb.from('messages').insert({
+              listing_id: listingId,
+              sender_id: 'system',
+              receiver_id: agent.clerk_id,
+              visit_id: visit.id,
+              content: '📅 NEW VISIT REQUEST\n\n🏠 '+listingTitle+'\n👤 Tenant: '+(P?.full_name||'—')+'\n📅 '+new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+time+'\n\nApply in your dashboard!',
+              type: 'visit_request'
+            });
+          }catch(e){}
+        }
+      }catch(e){}
     }
 
     document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]')?.remove();
@@ -3340,7 +3344,6 @@ async function wantToRentDirect(listingId, listingTitle, contactId, price){
       listing_id:listingId,
       landlord_id:contactId,
       monthly_rent:price,
-      listing_price:price,
       status:'pending',
       has_agent:false
     }).select().single();
