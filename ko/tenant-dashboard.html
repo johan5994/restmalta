@@ -104,6 +104,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .vtab:hover{background:var(--s2);color:var(--tf)}
 .vtab-active{background:var(--terra);color:white;border-color:var(--terra)}
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/css/intlTelInput.css">
+<style>.iti{width:100%}.iti input{padding-left:52px!important}</style>
 </head>
 <body>
 <aside class="sb">
@@ -494,13 +496,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="fgrid2">
             <div class="fg"><label class="fl">Full legal name * <span style="font-size:.68rem;color:var(--td)">(as on passport)</span></label><input class="fi" id="p-name" placeholder="Marie Dupont"></div>
             <div class="fg"><label class="fl">Email</label><input class="fi" id="p-email" readonly style="opacity:.6"></div>
-            <div class="fg"><label class="fl">Phone *</label><input class="fi" id="p-phone" placeholder="+356 9999 0000"></div>
+            <div class="fg"><label class="fl">Phone *</label><input class="fi" id="p-phone" placeholder="+356 9999 0000" autocomplete="tel"></div>
             <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="p-nat" placeholder="French"></div>
             <div class="fg"><label class="fl">Passport / ID number *</label><input class="fi" id="p-passport" placeholder="e.g. 12345678A"></div>
             <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="p-dob"></div>
             <div class="fg"><label class="fl">Place of birth *</label><input class="fi" id="p-pob" placeholder="Paris, France"></div>
             <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="p-father" placeholder="Jean"></div>
-            <div class="fg"><label class="fl">Mother's first name * <span style="font-size:.68rem;color:var(--td)">(maiden name)</span></label><input class="fi" id="p-mother" placeholder="Sophie"></div>
+            <div class="fg"><label class="fl">Father's last name *</label><input class="fi" id="p-father-last" placeholder="Dupont"></div>
+            <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="p-mother" placeholder="Sophie"></div>
             <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="p-mother-maiden" placeholder="Martin"></div>
           </div>
 
@@ -1107,7 +1110,7 @@ function sp(id,btn){
   if(id==='documents')loadDocuments();
   if(id==='deposit')loadDeposit();
   if(id==='visits'){loadTenantVisits();initStripeCard();}
-  if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();}
+  if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
 }
 
 async function loadOverview(){
@@ -2473,6 +2476,7 @@ async function loadProfilee(){
   document.getElementById('p-dob').value=P.date_of_birth||'';
   document.getElementById('p-pob').value=P.place_of_birth||'';
   document.getElementById('p-father').value=P.father_name||'';
+  if(document.getElementById('p-father-last'))document.getElementById('p-father-last').value=P.father_last_name||'';
   document.getElementById('p-mother').value=P.mother_name||'';
   document.getElementById('p-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('p-address').value=P.home_address||'';
@@ -2518,12 +2522,13 @@ function updateProfileeCompleteness(){
 async function saveProfilee(){
   const updates={
     full_name:document.getElementById('p-name').value.trim(),
-    phone:document.getElementById('p-phone').value.trim(),
+    phone:itiTenant?itiTenant.getNumber():document.getElementById('p-phone').value.trim(),
     nationality:document.getElementById('p-nat').value.trim(),
     passport_number:document.getElementById('p-passport').value.trim(),
     date_of_birth:document.getElementById('p-dob').value||null,
     place_of_birth:document.getElementById('p-pob').value.trim(),
     father_name:document.getElementById('p-father').value.trim(),
+    father_last_name:document.getElementById('p-father-last')?.value.trim(),
     mother_name:document.getElementById('p-mother').value.trim(),
     mother_maiden:document.getElementById('p-mother-maiden').value.trim(),
     home_address:document.getElementById('p-address').value.trim(),
@@ -3372,6 +3377,24 @@ async function chooseDepositMethod(bookingId, method){
     }
     loadTenantVisits();
   }catch(e){toast('❌ '+e.message);}
+}
+
+
+let itiTenant = null;
+function initPhonePickerTenant(){
+  const input = document.getElementById('p-phone');
+  if(!input || itiTenant) return;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/intlTelInput.min.js';
+  script.onload = () => {
+    itiTenant = window.intlTelInput(input, {
+      initialCountry: 'mt',
+      preferredCountries: ['mt','fr','gb','de','it','es'],
+      separateDialCode: true,
+      utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/utils.js'
+    });
+  };
+  document.head.appendChild(script);
 }
 
 
