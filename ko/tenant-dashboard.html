@@ -2590,7 +2590,6 @@ async function loadMatchListings(){
         <div style="font-size:.65rem;color:var(--td)">match</div>
       </div>
       <button class="btn bp bsm" onclick="window.location.href='/'">View</button>
-      <button class="btn bg bsm" data-lid="${l.id}" data-title="${(l.title||'').replace(/"/g,'&quot;')}" data-zone="${l.zone||''}" data-price="${l.price||0}" onclick="rentRemotely(this.dataset.lid,this.dataset.title,this.dataset.zone,this.dataset.price)" style="background:rgba(58,143,181,.15);color:var(--sea);border:1px solid rgba(58,143,181,.3)">🌍 Rent Remotely</button>
     </div>`;
   }).join('');
 }
