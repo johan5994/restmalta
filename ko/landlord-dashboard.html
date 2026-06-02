@@ -3831,11 +3831,18 @@ async function viewTenantDoc(path){
 async function acceptDirectBooking(listingId, tenantId){
   toast('⏳ Accepting...');
   try{
-    // Trouver le booking
+    // Trouver le booking avec co-tenants
     const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).eq('status','pending').maybeSingle();
     if(!booking){toast('❌ Booking not found');return;}
 
-    // Libérer le holding deposit (rembourser le 50% loyer au tenant)
+    // Nombre total de locataires (principal + co-tenants)
+    const coTenantIds = booking.co_tenant_ids ? JSON.parse(booking.co_tenant_ids) : [];
+    const totalTenants = 1 + coTenantIds.length;
+    const monthlyRent = booking.monthly_rent || 0;
+    const commissionPerTenant = Math.round((monthlyRent * 0.15) / totalTenants);
+    const holdingPerTenant = Math.round((monthlyRent * 0.5) / totalTenants);
+
+    // Libérer le holding deposit (rembourser le 50% loyer)
     try{
       await fetch('/.netlify/functions/holding-deposit',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -3843,19 +3850,71 @@ async function acceptDirectBooking(listingId, tenantId){
       });
     }catch(e){console.warn('Holding release:',e.message);}
 
-    // Générer le bail
+    // Mettre à jour le booking
+    await sb.from('bookings').update({
+      status:'accepted',
+      accepted_at:new Date().toISOString(),
+      landlord_id:U.id,
+      total_tenants:totalTenants
+    }).eq('id',booking.id);
+
+    // Créer une fiche visite pour que ca apparaisse dans le tenant dashboard
+    const{data:visit}=await sb.from('visits').insert({
+      tenant_id:tenantId,
+      tenant_name:booking.tenant_name||'Tenant',
+      listing_id:listingId,
+      landlord_id:U.id,
+      status:'edl_scheduled',
+      visit_type:'direct',
+      move_in_date:booking.move_in_date||null,
+      listing_price:monthlyRent
+    }).select().single().catch(()=>({data:null}));
+
+    // Générer le bail avec co-tenants
     await generateLeaseFromBooking(booking.id, listingId, tenantId);
 
-    // Notifier tenant du remboursement
+    // Notifier le tenant principal
+    const refundMsg = totalTenants > 1
+      ? `💰 Your holding deposit has been split: each co-tenant paid €${holdingPerTenant} (refunded within 3-5 days).`
+      : `💰 Your holding deposit (€${holdingPerTenant}) has been refunded within 3-5 business days.`;
+
     await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:'🎉 Your application has been accepted!\n\n💰 Your holding deposit (50% rent) has been released back to your card within 3-5 business days.\n\n📄 Your lease is ready to sign — check your visits page.',
+      content:'🎉 Your application has been accepted!\n\n'+refundMsg+'\n\n📄 Your lease is ready to sign — check your visits page.',
       type:'booking_accepted'
     }).catch(()=>{});
 
-    toast('✅ Accepted! Lease generated. Holding deposit refunded to tenant.');
+    // Notifier les co-tenants
+    for(const coTenantId of coTenantIds){
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:coTenantId,
+        content:'🎉 The rental application has been accepted!\n\nYou are a co-tenant on this lease.\n\n'+refundMsg+'\n\n📄 Your lease is ready to sign — check your visits page.',
+        type:'booking_accepted'
+      }).catch(()=>{});
+
+      // Créer une fiche visite pour chaque co-tenant aussi
+      await sb.from('visits').insert({
+        tenant_id:coTenantId,
+        listing_id:listingId,
+        landlord_id:U.id,
+        status:'edl_scheduled',
+        visit_type:'direct',
+        move_in_date:booking.move_in_date||null,
+        listing_price:monthlyRent,
+        parent_booking_id:booking.id
+      }).catch(()=>{});
+    }
+
+    // Notifier les invités (emails sans compte)
+    const invitedEmails = booking.co_tenant_emails_invited ? JSON.parse(booking.co_tenant_emails_invited) : [];
+    for(const email of invitedEmails){
+      // TODO: envoyer email d'invitation via send-email function
+      console.log('Invited co-tenant:', email);
+    }
+
+    toast(`✅ Accepted! Lease generated${totalTenants>1?' for '+totalTenants+' tenants':''}.`);
     loadMessages();
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){toast('❌ '+e.message);console.error(e);}
 }
 
 async function declineDirectBooking(listingId, tenantId){
