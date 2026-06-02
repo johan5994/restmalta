@@ -514,37 +514,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <!-- Stay in Malta -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">🇲🇹 Stay in Malta</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">Emprent / University</label><input class="fi" id="p-emprent" placeholder="Company or university name"></div>
+            <div class="fg"><label class="fl">Employer / University</label><input class="fi" id="p-emprent" placeholder="Company or university name"></div>
             <div class="fg"><label class="fl">Reason for stay *</label>
               <select class="fsel" id="p-reason">
                 <option value="">Select...</option>
-                <option value="work_short">Non-resident worker (less than 6 months)</option>
-                <option value="study_short">Non-resident student (less than 6 months)</option>
-                <option value="work_long">Worker / Long-term employment</option>
-                <option value="study_long">Student / Long-term studies</option>
+                <option value="work">Work</option>
+                <option value="study">Study</option>
                 <option value="nomad">Remote work / Digital nomad</option>
-                <option value="relocation">Relocation / Long-term residence</option>
-                <option value="temp_resident">Resident needing temporary alternative residence</option>
-                <option value="non_resident_short">Non-resident (less than 6 months, not establishing residence)</option>
+                <option value="relocation">Relocation</option>
                 <option value="retirement">Retirement</option>
                 <option value="other">Other</option>
               </select>
             </div>
-            <div class="fg"><label class="fl">How long do you plan to stay? *</label>
-              <select class="fsel" id="p-stay-duration">
-                <option value="">Select...</option>
-                <option value="1_3_months">1 to 3 months</option>
-                <option value="3_6_months">3 to 6 months</option>
-                <option value="6_12_months">6 months to 1 year</option>
-                <option value="1_2_years">1 to 2 years</option>
-                <option value="2_years_plus">2 years or more</option>
-                <option value="indefinite">Indefinitely</option>
-              </select>
-            </div>
-            <div class="fg"><label class="fl">Needs Lease Agreement Attestation?</label>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Needs Lease Agreement Attestation? <span style="font-size:.68rem;color:var(--td)">(non-EU residence permit)</span></label>
               <select class="fsel" id="p-attestation">
                 <option value="no">No — standard lease is fine</option>
-                <option value="yes">Yes — I need notary attestation (non-EU residence permit)</option>
+                <option value="yes">Yes — I need notary attestation</option>
               </select>
             </div>
           </div>
@@ -2494,7 +2479,6 @@ async function loadProfilee(){
   document.getElementById('p-malta-address').value=P.malta_address||'';
   document.getElementById('p-emprent').value=P.emprent||'';
   if(P.reason_for_stay)document.getElementById('p-reason').value=P.reason_for_stay;
-  if(P.stay_duration)document.getElementById('p-stay-duration').value=P.stay_duration;
   if(P.needs_attestation)document.getElementById('p-attestation').value='yes';
   updateProfileeCompleteness();
   if(P.verified){document.getElementById('verify-badge').className='badge b-green';document.getElementById('verify-badge').textContent='✅ Verified';}
@@ -2546,7 +2530,6 @@ async function saveProfilee(){
     malta_address:document.getElementById('p-malta-address').value.trim(),
     emprent:document.getElementById('p-emprent').value.trim(),
     reason_for_stay:document.getElementById('p-reason').value,
-    stay_duration:document.getElementById('p-stay-duration').value,
     needs_attestation:document.getElementById('p-attestation').value==='yes'
   };
   const{error}=await sb.from('profiles').update(updates).eq('clerk_id',U.id);
