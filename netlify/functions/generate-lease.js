@@ -92,8 +92,20 @@ exports.handler = async (event) => {
   born in <span class="field">${tenant?.place_of_birth || '_______________'}</span> 
   and residing at <span class="field-long">${tenant?.address || '_______________'}</span>, 
   holder of a legally valid identification document number <span class="field">${tenant?.passport || '_______________'}</span> 
-  and user of e-mail address <span class="field-long">${tenant?.email || '_______________'}</span>, 
-  hereinafter referred to as the <strong>lessee</strong>.</p>
+  and user of e-mail address <span class="field-long">${tenant?.email || '_______________'}</span>${coTenants?.length ? ', hereinafter referred to as <strong>Lessee 1</strong>' : ', hereinafter referred to as the <strong>lessee</strong>'}.</p>
+
+  ${(coTenants || []).map((ct, i) => `
+  <p>And on the other part <span class="field-long">${ct?.name || '_______________'}</span>, 
+  son/daughter of <span class="field">${ct?.father_name || '_______________'}</span> 
+  and <span class="field">${ct?.mother_name || '_______________'}</span> 
+  neè <span class="field">${ct?.mother_maiden || '_______________'}</span>, 
+  born in <span class="field">${ct?.place_of_birth || '_______________'}</span> 
+  and residing at <span class="field-long">${ct?.address || '_______________'}</span>, 
+  holder of a legally valid identification document number <span class="field">${ct?.passport || '_______________'}</span> 
+  and user of e-mail address <span class="field-long">${ct?.email || '_______________'}</span>, 
+  hereinafter referred to as <strong>Lessee ${i + 2}</strong>.</p>`).join('')}
+
+  ${coTenants?.length ? '<p>All lessees are jointly and severally liable for all obligations under this agreement.</p>' : ''}
 
   <p>And hereby the lessor is granting by title of lease to the lessee who under the same title of lease accepts 
   <span class="field-long">${listing?.address || '_______________'}</span> 
@@ -193,12 +205,22 @@ ${inventory_notes ? `
     <p>Date: <text-field name="Lessor Date" role="Lessor" required="true" type="date" style="width: 120px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
   <div class="sig-box">
-    <p><strong>LESSEE (Tenant)</strong></p>
+    <p><strong>LESSEE${coTenants?.length ? ' 1' : ''} (Tenant)</strong></p>
     <p>${tenant?.name || '_______________'}</p>
     <p>Signature: <text-field name="Lessee Signature" role="Lessee" required="true" type="signature" style="width: 200px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
     <p>Date: <text-field name="Lessee Date" role="Lessee" required="true" type="date" style="width: 120px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
 </div>
+
+${(coTenants || []).map((ct, i) => `
+<div class="section sig-block" style="margin-top:20px">
+  <div class="sig-box">
+    <p><strong>LESSEE ${i + 2}</strong></p>
+    <p>${ct?.name || '_______________'}</p>
+    <p>Signature: <text-field name="Lessee ${i + 2} Signature" role="Lessee ${i + 2}" required="true" type="signature" style="width: 200px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+    <p>Date: <text-field name="Lessee ${i + 2} Date" role="Lessee ${i + 2}" required="true" type="date" style="width: 120px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+  </div>
+</div>`).join('')}
 
 <p style="font-size:8pt;color:#888;margin-top:20px;text-align:center">
   This agreement is drawn up in accordance with the Private Residential Leases Act, Chapter 604 of the Laws of Malta.<br>
@@ -228,7 +250,12 @@ ${inventory_notes ? `
 
     const submitters = [
       { role: 'Lessor', email: landlord?.email || '', name: landlord?.name || 'Landlord' },
-      { role: 'Lessee', email: tenant?.email || '', name: tenant?.name || 'Tenant' }
+      { role: 'Lessee', email: tenant?.email || '', name: tenant?.name || 'Tenant' },
+      ...(coTenants || []).map((ct, i) => ({
+        role: `Lessee ${i + 2}`,
+        email: ct?.email || '',
+        name: ct?.name || `Co-Tenant ${i + 2}`
+      }))
     ];
 
     // Étape 1 — Créer le template HTML
@@ -272,6 +299,7 @@ ${inventory_notes ? `
     const submissionId = submitters_data[0]?.submission_id || data.id;
     const lessorData = submitters_data.find(s => s.role === 'Lessor') || submitters_data[0];
     const lesseeData = submitters_data.find(s => s.role === 'Lessee') || submitters_data[1];
+    const coLesseeData = submitters_data.filter(s => s.role?.startsWith('Lessee ') && s.role !== 'Lessee');
 
     return {
       statusCode: 200,
@@ -281,7 +309,8 @@ ${inventory_notes ? `
         submission_id: submissionId,
         type,
         lessor_embed_src: lessorData?.embed_src || null,
-        lessee_embed_src: lesseeData?.embed_src || null
+        lessee_embed_src: lesseeData?.embed_src || null,
+        co_lessees_embed_src: coLesseeData.map(s => ({ role: s.role, embed_src: s.embed_src, email: s.email }))
       })
     };
 
