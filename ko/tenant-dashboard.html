@@ -105,7 +105,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .vtab-active{background:var(--terra);color:white;border-color:var(--terra)}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/css/intlTelInput.css">
-<style>.iti{width:100%}.iti input{padding-left:52px!important}</style>
+<style>
+.iti{width:100%;display:block}
+#p-phone{padding-left:115px!important}
+.iti--separate-dial-code .iti__selected-flag{height:100%}
+.iti__country-list{background:#1A1D27;border:1px solid rgba(255,255,255,.12);color:#F0EDE8;border-radius:10px;z-index:1000}
+.iti__country:hover,.iti__highlight{background:rgba(255,255,255,.07)!important}
+.iti__dial-code{color:rgba(240,237,232,.5)}
+</style>
 </head>
 <body>
 <aside class="sb">
