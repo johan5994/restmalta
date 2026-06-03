@@ -719,9 +719,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Email</label><input class="fi" id="prof-email" readonly style="opacity:.6"></div>
             <div class="fg">
               <label class="fl">Phone *</label>
-              <div style="display:grid;grid-template-columns:130px 1fr;gap:.5rem">
-                <select id="prof-phone-country" class="fsel" oninput="updateLLCompleteness()">
-                  <option value="+356">🇲🇹 +356</option>
+              <div style="display:flex;gap:.5rem;align-items:center">
+                <select id="prof-phone-country" style="width:95px;flex-shrink:0;padding:.65rem .4rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--txt);font-size:.8rem;outline:none;cursor:pointer" oninput="updateLLCompleteness()">
+                  <option value="+356">🇲🇹+356</option>
                   <option value="+33">🇫🇷 +33</option>
                   <option value="+44">🇬🇧 +44</option>
                   <option value="+49">🇩🇪 +49</option>
@@ -729,7 +729,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
                   <option value="+34">🇪🇸 +34</option>
                   <option value="+32">🇧🇪 +32</option>
                   <option value="+31">🇳🇱 +31</option>
-                  <option value="+351">🇵🇹 +351</option>
+                  <option value="+351">🇵🇹+351</option>
                   <option value="+41">🇨🇭 +41</option>
                   <option value="+43">🇦🇹 +43</option>
                   <option value="+48">🇵🇱 +48</option>
@@ -737,10 +737,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
                   <option value="+1">🇺🇸 +1</option>
                   <option value="+61">🇦🇺 +61</option>
                   <option value="+91">🇮🇳 +91</option>
-                  <option value="+971">🇦🇪 +971</option>
-                  <option value="+">🌍 Other</option>
+                  <option value="+971">🇦🇪+971</option>
+                  <option value="+">🌍 +</option>
                 </select>
-                <input class="fi" id="prof-phone" placeholder="9999 1234" autocomplete="tel" oninput="updateLLCompleteness()">
+                <input class="fi" id="prof-phone" placeholder="9999 1234" autocomplete="tel" style="flex:1;min-width:0" oninput="updateLLCompleteness()">
               </div>
             </div>
             <div class="fg"><label class="fl">Nationality *</label>
