@@ -78,9 +78,10 @@ img.doc-thumb:hover{border-color:var(--terra)}
   </div>
 
   <!-- KPIs -->
-  <div class="grid" style="grid-template-columns:repeat(6,1fr)">
+  <div class="grid" style="grid-template-columns:repeat(7,1fr)">
     <div class="kcard"><div class="klabel">Tenants</div><div class="kval" id="k-total" style="color:var(--txt)">—</div></div>
     <div class="kcard"><div class="klabel">Landlords</div><div class="kval" id="k-landlords" style="color:var(--txt)">—</div></div>
+    <div class="kcard"><div class="klabel">Agents</div><div class="kval" id="k-agents" style="color:var(--txt)">—</div></div>
     <div class="kcard"><div class="klabel">Pending</div><div class="kval" id="k-pending" style="color:var(--gold)">—</div></div>
     <div class="kcard"><div class="klabel">Verified</div><div class="kval" id="k-verified" style="color:var(--green)">—</div></div>
     <div class="kcard"><div class="klabel">T. Verified</div><div class="kval" id="k-t-verified" style="color:var(--green)">—</div></div>
@@ -93,6 +94,7 @@ img.doc-thumb:hover{border-color:var(--terra)}
     <button class="tab" onclick="setTab('verified',this)">✅ Verified</button>
     <button class="tab" onclick="setTab('tenants',this)">🧳 Tenants</button>
     <button class="tab" onclick="setTab('landlords',this)">🏠 Landlords</button>
+    <button class="tab" onclick="setTab('agents',this)">🏆 Agents</button>
     <button class="tab" onclick="setTab('all',this)">👥 All</button>
   </div>
 
@@ -125,15 +127,17 @@ async function loadAll(){
   const wrap = document.getElementById('tenants-list');
   wrap.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--td)"><div class="sp"></div></div>';
 
-  const{data:profiles} = await sb.from('profiles').select('*').in('role',['tenant','Tenant','landlord','Landlord']).order('created_at',{ascending:false});
+  const{data:profiles} = await sb.from('profiles').select('*').in('role',['tenant','Tenant','landlord','Landlord','agent','Agent']).order('created_at',{ascending:false});
   allTenants = profiles || [];
 
   const tenants = allTenants.filter(p=>p.role?.toLowerCase()==='tenant');
   const landlords = allTenants.filter(p=>p.role?.toLowerCase()==='landlord');
+  const agents = allTenants.filter(p=>p.role?.toLowerCase()==='agent');
 
   // KPIs
   document.getElementById('k-total').textContent = tenants.length;
   document.getElementById('k-landlords').textContent = landlords.length;
+  document.getElementById('k-agents').textContent = agents.length;
   document.getElementById('k-pending').textContent = allTenants.filter(p=>p.id_submitted&&!p.verified).length;
   document.getElementById('k-verified').textContent = allTenants.filter(p=>p.verified).length;
   document.getElementById('k-t-verified').textContent = tenants.filter(p=>p.verified).length;
@@ -161,6 +165,7 @@ function renderTenants(q=''){
   if(currentTab === 'verified') tenants = tenants.filter(p=>p.verified);
   if(currentTab === 'tenants') tenants = tenants.filter(p=>p.role?.toLowerCase()==='tenant');
   if(currentTab === 'landlords') tenants = tenants.filter(p=>p.role?.toLowerCase()==='landlord');
+  if(currentTab === 'agents') tenants = tenants.filter(p=>p.role?.toLowerCase()==='agent');
   if(q) tenants = tenants.filter(p=>(p.full_name||'').toLowerCase().includes(q.toLowerCase())||(p.email||'').toLowerCase().includes(q.toLowerCase()));
 
   if(!tenants.length){
@@ -175,7 +180,7 @@ function renderTenants(q=''){
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
           <div style="font-size:.9rem;font-weight:700">${p.full_name||'—'}</div>
-          <span class="badge ${p.role?.toLowerCase()==='landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${p.role?.toLowerCase()==='landlord'?'🏠 Landlord':'🧳 Tenant'}</span>
+          <span class="badge ${p.role?.toLowerCase()==='landlord'?'b-gold':p.role?.toLowerCase()==='agent'?'b-green':'b-dim'}" style="font-size:.62rem">${p.role?.toLowerCase()==='landlord'?'🏠 Landlord':p.role?.toLowerCase()==='agent'?'🏆 Agent':'🧳 Tenant'}</span>
           ${p.verified?'<span class="badge b-green">✅ Verified</span>':p.id_submitted?'<span class="badge b-gold">⏳ Pending</span>':'<span class="badge b-dim">Not submitted</span>'}
         </div>
         <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">${p.email||'—'} · ${p.nationality||'—'} · ${p.phone||'—'}</div>
