@@ -719,8 +719,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Email</label><input class="fi" id="prof-email" readonly style="opacity:.6"></div>
             <div class="fg">
               <label class="fl">Phone *</label>
-              <div style="display:flex;gap:0;align-items:stretch">
-                <select id="prof-phone-country" style="width:120px;flex-shrink:0;padding:.65rem .5rem;background:var(--s2);border:1px solid rgba(255,255,255,.12);border-right:none;border-radius:8px 0 0 8px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;outline:none;height:auto" onchange="updateLLPhonePrefix()">
+              <div style="display:grid;grid-template-columns:130px 1fr;gap:.5rem">
+                <select id="prof-phone-country" class="fsel" oninput="updateLLCompleteness()">
                   <option value="+356">🇲🇹 +356</option>
                   <option value="+33">🇫🇷 +33</option>
                   <option value="+44">🇬🇧 +44</option>
@@ -740,7 +740,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
                   <option value="+971">🇦🇪 +971</option>
                   <option value="+">🌍 Other</option>
                 </select>
-                <input class="fi" id="prof-phone" placeholder="9999 1234" autocomplete="tel" style="border-radius:0 8px 8px 0;flex:1;padding-left:.7rem!important" oninput="updateLLCompleteness()">
+                <input class="fi" id="prof-phone" placeholder="9999 1234" autocomplete="tel" oninput="updateLLCompleteness()">
               </div>
             </div>
             <div class="fg"><label class="fl">Nationality *</label>
