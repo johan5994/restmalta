@@ -2926,16 +2926,27 @@ const DOCS_OPTIONAL=['bank_statement','reference_letter'];
 let uploadedDocs={};
 
 async function loadDossierStatus(){
-  // Check which docs are already uploaded in Supabase storage
   try{
     const{data}=await sb.storage.from('tenant-documents').list(`docs/${U.id}/`);
     if(data){
-      data.forEach(f=>{
+      for(const f of data){
         const key=f.name.split('.')[0];
+        const ext=f.name.split('.').pop();
         uploadedDocs[key]=true;
-        const statusEl=document.getElementById(`doc-${key.replace('_','-')}-status`)||document.getElementById(`doc-${key}-status`);
-        if(statusEl){statusEl.textContent='✅ Uploaded';statusEl.style.color='var(--green)';}
-      });
+        const statusEl=document.getElementById(`doc-${key.replace(/_/g,'-')}-status`)||document.getElementById(`doc-${key}-status`);
+        if(!statusEl) continue;
+        // Générer URL signée pour aperçu
+        const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(`docs/${U.id}/${f.name}`,3600);
+        if(urlData?.signedUrl){
+          const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
+          statusEl.innerHTML = isImg
+            ? `<a href="${urlData.signedUrl}" target="_blank"><img src="${urlData.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem"></a>`
+            : `<a href="${urlData.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none">✅ View →</a>`;
+        } else {
+          statusEl.textContent='✅ Uploaded';
+          statusEl.style.color='var(--green)';
+        }
+      }
     }
     updateDossierBadge();
   }catch(e){}
