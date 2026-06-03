@@ -200,34 +200,26 @@ async function loadTenantDocs(clerkId){
   const wrap = document.getElementById('docs-'+clerkId);
   if(!wrap) return;
   try{
-    // Lister les fichiers dans id-docs/{clerkId}/
-    const{data:files} = await sb.storage.from('tenant-documents').list('id-docs/'+clerkId, {limit:10});
-    // Lister aussi les docs dans la table profiles
-    const{data:profile} = await sb.from('profiles').select('documents').eq('clerk_id',clerkId).single();
+    // Chercher dans les 2 chemins
+    const[{data:files1},{data:files2}] = await Promise.all([
+      sb.storage.from('tenant-documents').list('id-docs/'+clerkId, {limit:10}),
+      sb.storage.from('tenant-documents').list('docs/'+clerkId, {limit:20})
+    ]);
+    const allFiles = [
+      ...(files1||[]).map(f=>({...f, path:'id-docs/'+clerkId+'/'+f.name})),
+      ...(files2||[]).map(f=>({...f, path:'docs/'+clerkId+'/'+f.name}))
+    ];
 
     let html = '';
-
-    // ID et selfie
-    if(files&&files.length){
-      for(const f of files){
-        const{data:url} = await sb.storage.from('tenant-documents').createSignedUrl('id-docs/'+clerkId+'/'+f.name, 300);
-        const isID = f.name.startsWith('id.');
-        const isSelfie = f.name.startsWith('selfie.');
-        html += `<a href="${url.signedUrl}" target="_blank" title="${f.name}">
-          <img class="doc-thumb" src="${url.signedUrl}" alt="${f.name}">
-        </a>`;
-      }
-    }
-
-    // Autres documents
-    const docs = profile?.documents ? (typeof profile.documents==='string'?JSON.parse(profile.documents):profile.documents) : {};
-    const docLabels = {id:'🪪 ID',bank_statement:'🏦 Bank',emprent_letter:'💼 Employment',reference_letter:'⭐ Reference',rent1:'🏠 Rent 1',rent2:'🏠 Rent 2',rent3:'🏠 Rent 3'};
-    for(const [key, doc] of Object.entries(docs)){
-      if(!doc?.path) continue;
-      const{data:url} = await sb.storage.from('tenant-documents').createSignedUrl(doc.path, 300);
-      if(url?.signedUrl){
-        html += `<a href="${url.signedUrl}" target="_blank" class="doc-chip doc-ok">${docLabels[key]||key}</a>`;
-      }
+    for(const f of allFiles){
+      const{data:url} = await sb.storage.from('tenant-documents').createSignedUrl(f.path, 3600);
+      if(!url?.signedUrl) continue;
+      const ext = f.name.split('.').pop().toLowerCase();
+      const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+      const label = f.name.replace(/\.[^.]+$/,'');
+      html += isImg
+        ? `<a href="${url.signedUrl}" target="_blank" title="${f.name}"><img class="doc-thumb" src="${url.signedUrl}" alt="${f.name}"></a>`
+        : `<a href="${url.signedUrl}" target="_blank" class="doc-chip doc-ok">📄 ${label}</a>`;
     }
 
     if(!html) html = '<span style="font-size:.7rem;color:var(--td)">No documents uploaded</span>';
