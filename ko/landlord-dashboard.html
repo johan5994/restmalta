@@ -712,15 +712,294 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <span id="ll-profile-pct" style="font-size:.75rem;color:var(--td)">Used to auto-generate leases</span>
         </div>
         <div class="cb">
+          <!-- 🪪 Identity -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">🪪 Identity</div>
           <div class="fgrid2">
             <div class="fg"><label class="fl">Full legal name * <span style="font-size:.68rem;color:var(--td)">(as on passport)</span></label><input class="fi" id="prof-name" placeholder="Jean Dupont" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Email</label><input class="fi" id="prof-email" readonly style="opacity:.6"></div>
-            <div class="fg"><label class="fl">Phone *</label><input class="fi" id="prof-phone" placeholder="+356 9999 1234" oninput="updateLLCompleteness()"></div>
-            <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="prof-nat" placeholder="French" oninput="updateLLCompleteness()"></div>
+            <div class="fg">
+              <label class="fl">Phone *</label>
+              <div style="display:flex;gap:0">
+                <select id="prof-phone-country" style="width:120px;flex-shrink:0;padding:.65rem .5rem;background:var(--s2);border:1px solid rgba(255,255,255,.12);border-right:none;border-radius:8px 0 0 8px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;outline:none" onchange="updateLLPhonePrefix()">
+                  <option value="+356">🇲🇹 +356</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+39">🇮🇹 +39</option>
+                  <option value="+34">🇪🇸 +34</option>
+                  <option value="+32">🇧🇪 +32</option>
+                  <option value="+31">🇳🇱 +31</option>
+                  <option value="+351">🇵🇹 +351</option>
+                  <option value="+41">🇨🇭 +41</option>
+                  <option value="+43">🇦🇹 +43</option>
+                  <option value="+48">🇵🇱 +48</option>
+                  <option value="+30">🇬🇷 +30</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+61">🇦🇺 +61</option>
+                  <option value="+91">🇮🇳 +91</option>
+                  <option value="+971">🇦🇪 +971</option>
+                  <option value="+">🌍 Other</option>
+                </select>
+                <input class="fi" id="prof-phone" placeholder="9999 1234" autocomplete="tel" style="border-radius:0 8px 8px 0;flex:1" oninput="updateLLCompleteness()">
+              </div>
+            </div>
+            <div class="fg"><label class="fl">Nationality *</label>
+              <select class="fsel" id="prof-nat" oninput="updateLLCompleteness()">
+                <option value="">Select...</option>
+                <option value="Afghan">Afghan</option>
+<option value="Albanian">Albanian</option>
+<option value="Algerian">Algerian</option>
+<option value="American">American</option>
+<option value="Andorran">Andorran</option>
+<option value="Angolan">Angolan</option>
+<option value="Argentine">Argentine</option>
+<option value="Armenian">Armenian</option>
+<option value="Australian">Australian</option>
+<option value="Austrian">Austrian</option>
+<option value="Azerbaijani">Azerbaijani</option>
+<option value="Bahraini">Bahraini</option>
+<option value="Bangladeshi">Bangladeshi</option>
+<option value="Belgian">Belgian</option>
+<option value="Bolivian">Bolivian</option>
+<option value="Bosnian">Bosnian</option>
+<option value="Brazilian">Brazilian</option>
+<option value="British">British</option>
+<option value="Bulgarian">Bulgarian</option>
+<option value="Cambodian">Cambodian</option>
+<option value="Cameroonian">Cameroonian</option>
+<option value="Canadian">Canadian</option>
+<option value="Chilean">Chilean</option>
+<option value="Chinese">Chinese</option>
+<option value="Colombian">Colombian</option>
+<option value="Croatian">Croatian</option>
+<option value="Cuban">Cuban</option>
+<option value="Cypriot">Cypriot</option>
+<option value="Czech">Czech</option>
+<option value="Danish">Danish</option>
+<option value="Dominican">Dominican</option>
+<option value="Dutch">Dutch</option>
+<option value="Ecuadorian">Ecuadorian</option>
+<option value="Egyptian">Egyptian</option>
+<option value="Emirati">Emirati</option>
+<option value="Estonian">Estonian</option>
+<option value="Ethiopian">Ethiopian</option>
+<option value="Filipino">Filipino</option>
+<option value="Finnish">Finnish</option>
+<option value="French">French</option>
+<option value="Georgian">Georgian</option>
+<option value="German">German</option>
+<option value="Ghanaian">Ghanaian</option>
+<option value="Greek">Greek</option>
+<option value="Guatemalan">Guatemalan</option>
+<option value="Honduran">Honduran</option>
+<option value="Hungarian">Hungarian</option>
+<option value="Icelandic">Icelandic</option>
+<option value="Indian">Indian</option>
+<option value="Indonesian">Indonesian</option>
+<option value="Iranian">Iranian</option>
+<option value="Iraqi">Iraqi</option>
+<option value="Irish">Irish</option>
+<option value="Israeli">Israeli</option>
+<option value="Italian">Italian</option>
+<option value="Ivorian">Ivorian</option>
+<option value="Jamaican">Jamaican</option>
+<option value="Japanese">Japanese</option>
+<option value="Jordanian">Jordanian</option>
+<option value="Kazakh">Kazakh</option>
+<option value="Kenyan">Kenyan</option>
+<option value="Korean">Korean</option>
+<option value="Kuwaiti">Kuwaiti</option>
+<option value="Latvian">Latvian</option>
+<option value="Lebanese">Lebanese</option>
+<option value="Libyan">Libyan</option>
+<option value="Lithuanian">Lithuanian</option>
+<option value="Luxembourgish">Luxembourgish</option>
+<option value="Macedonian">Macedonian</option>
+<option value="Malaysian">Malaysian</option>
+<option value="Maltese">Maltese</option>
+<option value="Mexican">Mexican</option>
+<option value="Moldovan">Moldovan</option>
+<option value="Mongolian">Mongolian</option>
+<option value="Montenegrin">Montenegrin</option>
+<option value="Moroccan">Moroccan</option>
+<option value="Namibian">Namibian</option>
+<option value="Nepali">Nepali</option>
+<option value="New Zealander">New Zealander</option>
+<option value="Nicaraguan">Nicaraguan</option>
+<option value="Nigerian">Nigerian</option>
+<option value="Norwegian">Norwegian</option>
+<option value="Omani">Omani</option>
+<option value="Pakistani">Pakistani</option>
+<option value="Panamanian">Panamanian</option>
+<option value="Paraguayan">Paraguayan</option>
+<option value="Peruvian">Peruvian</option>
+<option value="Polish">Polish</option>
+<option value="Portuguese">Portuguese</option>
+<option value="Qatari">Qatari</option>
+<option value="Romanian">Romanian</option>
+<option value="Russian">Russian</option>
+<option value="Saudi">Saudi</option>
+<option value="Senegalese">Senegalese</option>
+<option value="Serbian">Serbian</option>
+<option value="Singaporean">Singaporean</option>
+<option value="Slovak">Slovak</option>
+<option value="Slovenian">Slovenian</option>
+<option value="South African">South African</option>
+<option value="Spanish">Spanish</option>
+<option value="Sri Lankan">Sri Lankan</option>
+<option value="Sudanese">Sudanese</option>
+<option value="Swedish">Swedish</option>
+<option value="Swiss">Swiss</option>
+<option value="Syrian">Syrian</option>
+<option value="Taiwanese">Taiwanese</option>
+<option value="Tanzanian">Tanzanian</option>
+<option value="Thai">Thai</option>
+<option value="Tunisian">Tunisian</option>
+<option value="Turkish">Turkish</option>
+<option value="Ugandan">Ugandan</option>
+<option value="Ukrainian">Ukrainian</option>
+<option value="Uruguayan">Uruguayan</option>
+<option value="Uzbek">Uzbek</option>
+<option value="Venezuelan">Venezuelan</option>
+<option value="Vietnamese">Vietnamese</option>
+<option value="Yemeni">Yemeni</option>
+<option value="Zambian">Zambian</option>
+<option value="Zimbabwean">Zimbabwean</option>
+              </select>
+            </div>
             <div class="fg"><label class="fl">ID / Passport number *</label><input class="fi" id="prof-id" placeholder="e.g. 12345678A" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="prof-dob" oninput="updateLLCompleteness()"></div>
-            <div class="fg"><label class="fl">Place of birth *</label><input class="fi" id="prof-pob" placeholder="Paris, France" oninput="updateLLCompleteness()"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Place of birth *</label>
+              <div style="display:flex;gap:.5rem">
+                <input class="fi" id="prof-pob-city" placeholder="City" style="flex:1" oninput="updateLLCompleteness()">
+                <select class="fsel" id="prof-pob-country" style="flex:1" oninput="updateLLCompleteness()">
+                  <option value="">Country...</option>
+                  <option value="Afghanistan">Afghanistan</option>
+<option value="Albania">Albania</option>
+<option value="Algeria">Algeria</option>
+<option value="Andorra">Andorra</option>
+<option value="Angola">Angola</option>
+<option value="Argentina">Argentina</option>
+<option value="Armenia">Armenia</option>
+<option value="Australia">Australia</option>
+<option value="Austria">Austria</option>
+<option value="Azerbaijan">Azerbaijan</option>
+<option value="Bahrain">Bahrain</option>
+<option value="Bangladesh">Bangladesh</option>
+<option value="Belgium">Belgium</option>
+<option value="Bolivia">Bolivia</option>
+<option value="Bosnia">Bosnia</option>
+<option value="Brazil">Brazil</option>
+<option value="Bulgaria">Bulgaria</option>
+<option value="Cambodia">Cambodia</option>
+<option value="Cameroon">Cameroon</option>
+<option value="Canada">Canada</option>
+<option value="Chile">Chile</option>
+<option value="China">China</option>
+<option value="Colombia">Colombia</option>
+<option value="Croatia">Croatia</option>
+<option value="Cuba">Cuba</option>
+<option value="Cyprus">Cyprus</option>
+<option value="Czech Republic">Czech Republic</option>
+<option value="Denmark">Denmark</option>
+<option value="Dominican Republic">Dominican Republic</option>
+<option value="Ecuador">Ecuador</option>
+<option value="Egypt">Egypt</option>
+<option value="El Salvador">El Salvador</option>
+<option value="Estonia">Estonia</option>
+<option value="Ethiopia">Ethiopia</option>
+<option value="Finland">Finland</option>
+<option value="France">France</option>
+<option value="Georgia">Georgia</option>
+<option value="Germany">Germany</option>
+<option value="Ghana">Ghana</option>
+<option value="Greece">Greece</option>
+<option value="Guatemala">Guatemala</option>
+<option value="Honduras">Honduras</option>
+<option value="Hungary">Hungary</option>
+<option value="Iceland">Iceland</option>
+<option value="India">India</option>
+<option value="Indonesia">Indonesia</option>
+<option value="Iran">Iran</option>
+<option value="Iraq">Iraq</option>
+<option value="Ireland">Ireland</option>
+<option value="Israel">Israel</option>
+<option value="Italy">Italy</option>
+<option value="Jamaica">Jamaica</option>
+<option value="Japan">Japan</option>
+<option value="Jordan">Jordan</option>
+<option value="Kazakhstan">Kazakhstan</option>
+<option value="Kenya">Kenya</option>
+<option value="Kuwait">Kuwait</option>
+<option value="Latvia">Latvia</option>
+<option value="Lebanon">Lebanon</option>
+<option value="Libya">Libya</option>
+<option value="Lithuania">Lithuania</option>
+<option value="Luxembourg">Luxembourg</option>
+<option value="Malaysia">Malaysia</option>
+<option value="Malta">Malta</option>
+<option value="Mexico">Mexico</option>
+<option value="Moldova">Moldova</option>
+<option value="Mongolia">Mongolia</option>
+<option value="Montenegro">Montenegro</option>
+<option value="Morocco">Morocco</option>
+<option value="Namibia">Namibia</option>
+<option value="Nepal">Nepal</option>
+<option value="Netherlands">Netherlands</option>
+<option value="New Zealand">New Zealand</option>
+<option value="Nicaragua">Nicaragua</option>
+<option value="Nigeria">Nigeria</option>
+<option value="Norway">Norway</option>
+<option value="Oman">Oman</option>
+<option value="Pakistan">Pakistan</option>
+<option value="Panama">Panama</option>
+<option value="Paraguay">Paraguay</option>
+<option value="Peru">Peru</option>
+<option value="Philippines">Philippines</option>
+<option value="Poland">Poland</option>
+<option value="Portugal">Portugal</option>
+<option value="Qatar">Qatar</option>
+<option value="Romania">Romania</option>
+<option value="Russia">Russia</option>
+<option value="Saudi Arabia">Saudi Arabia</option>
+<option value="Senegal">Senegal</option>
+<option value="Serbia">Serbia</option>
+<option value="Singapore">Singapore</option>
+<option value="Slovakia">Slovakia</option>
+<option value="Slovenia">Slovenia</option>
+<option value="South Africa">South Africa</option>
+<option value="South Korea">South Korea</option>
+<option value="Spain">Spain</option>
+<option value="Sri Lanka">Sri Lanka</option>
+<option value="Sudan">Sudan</option>
+<option value="Sweden">Sweden</option>
+<option value="Switzerland">Switzerland</option>
+<option value="Syria">Syria</option>
+<option value="Taiwan">Taiwan</option>
+<option value="Tanzania">Tanzania</option>
+<option value="Thailand">Thailand</option>
+<option value="Tunisia">Tunisia</option>
+<option value="Turkey">Turkey</option>
+<option value="Uganda">Uganda</option>
+<option value="Ukraine">Ukraine</option>
+<option value="United Kingdom">United Kingdom</option>
+<option value="United States">United States</option>
+<option value="Uruguay">Uruguay</option>
+<option value="Uzbekistan">Uzbekistan</option>
+<option value="Venezuela">Venezuela</option>
+<option value="Vietnam">Vietnam</option>
+<option value="Yemen">Yemen</option>
+<option value="Zambia">Zambia</option>
+<option value="Zimbabwe">Zimbabwe</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 📄 Required for lease -->
+          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">📄 Required for lease</div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">Required by Maltese law (PRL Act Cap. 604) — included in lease agreements.</div>
+          <div class="fgrid2">
             <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="prof-father" placeholder="Pierre" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Father's last name *</label><input class="fi" id="prof-father-last" placeholder="Dupont" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="prof-mother" placeholder="Marie" oninput="updateLLCompleteness()"></div>
@@ -748,44 +1027,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card">
         <div class="ch"><div class="ct">🪪 Identity verification</div><span id="verify-badge-ll" class="badge b-dim">Not verified</span></div>
         <div class="cb">
-          <p style="font-size:.85rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Verified landlords get a ✅ badge on all their listings, appear higher in search results, and are trusted by tenants arriving from abroad. Takes 30 seconds — free.</p>
+          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified landlords get a ✅ badge on all their listings and are trusted by tenants. A RestMalta team member will verify your ID within 24 hours.</p>
 
-          <div id="ll-verify-step1">
-            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 1 — Upload your ID or passport</div>
-            <div style="border:2px dashed var(--b);border-radius:10px;padding:1.2rem;text-align:center;cursor:pointer" onclick="document.getElementById('ll-id-up').click()">
-              <div style="font-size:2rem;margin-bottom:.4rem">🪪</div>
-              <div style="font-size:.83rem;color:var(--tm);font-weight:500">Click to upload your ID / passport</div>
-              <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">JPG, PNG · Max 5MB · Front side</div>
-              <input type="file" id="ll-id-up" accept="image/*" style="display:none" onchange="llHandleID(this)">
+          <div id="ll-verify-upload-section">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
+              <!-- ID -->
+              <div>
+                <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;color:var(--txt)">🪪 ID or passport</div>
+                <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('ll-id-up').click()">
+                  <div style="font-size:1.5rem;margin-bottom:.3rem">🪪</div>
+                  <div id="ll-id-upload-label" style="font-size:.75rem;color:var(--tm)">Click to upload</div>
+                  <div style="font-size:.65rem;color:var(--td);margin-top:.15rem">JPG, PNG, PDF · Max 5MB</div>
+                  <input type="file" id="ll-id-up" accept="image/*,.pdf" style="display:none" onchange="llOnIDSelected(this)">
+                </div>
+                <div id="ll-id-preview-small" style="display:none;margin-top:.4rem;text-align:center">
+                  <img id="ll-id-preview-img" style="max-width:100%;border-radius:8px;max-height:80px;object-fit:cover;border:2px solid var(--green)">
+                  <div style="font-size:.68rem;color:var(--green);margin-top:.2rem">✅ Ready</div>
+                </div>
+              </div>
+              <!-- Selfie -->
+              <div>
+                <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;color:var(--txt)">🤳 Selfie</div>
+                <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('ll-selfie-up').click()">
+                  <div style="font-size:1.5rem;margin-bottom:.3rem">🤳</div>
+                  <div id="ll-selfie-upload-label" style="font-size:.75rem;color:var(--tm)">Click to upload</div>
+                  <div style="font-size:.65rem;color:var(--td);margin-top:.15rem">JPG, PNG · Clear face photo</div>
+                  <input type="file" id="ll-selfie-up" accept="image/*" style="display:none" onchange="llOnSelfieSelected(this)">
+                </div>
+                <div id="ll-selfie-preview-small" style="display:none;margin-top:.4rem;text-align:center">
+                  <img id="ll-selfie-preview-img" style="max-width:100%;border-radius:8px;max-height:80px;object-fit:cover;border:2px solid var(--green)">
+                  <div style="font-size:.68rem;color:var(--green);margin-top:.2rem">✅ Ready</div>
+                </div>
+              </div>
             </div>
-            <div id="ll-id-preview" style="margin-top:.75rem;display:none">
-              <img id="ll-id-img" style="max-width:100%;border-radius:10px;max-height:160px;object-fit:cover;border:2px solid var(--green)">
-              <div style="font-size:.75rem;color:var(--green);margin-top:.4rem">✅ ID uploaded — now take a selfie</div>
-              <button class="btn bp" style="margin-top:.75rem;width:100%;justify-content:center" onclick="llShowSelfie()">Continue → Take selfie</button>
-            </div>
-          </div>
-
-          <div id="ll-verify-step2" style="display:none">
-            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 2 — Take a selfie</div>
-            <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;text-align:center">
-              <video id="ll-selfie-video" autoplay playsinline style="width:100%;max-height:220px;object-fit:cover;border-radius:12px"></video>
-              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:130px;height:180px;border:2px dashed rgba(255,255,255,.4);border-radius:50%;pointer-events:none"></div>
-            </div>
-            <canvas id="ll-selfie-canvas" style="display:none"></canvas>
-            <div style="display:flex;gap:.75rem;margin-top:.75rem">
-              <button class="btn bg" style="flex:1;justify-content:center" onclick="llShowStep1()">← Back</button>
-              <button class="btn bp" style="flex:2;justify-content:center" onclick="llCaptureSelfie()">📸 Capture selfie</button>
-            </div>
-          </div>
-
-          <div id="ll-verify-step3" style="display:none">
-            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 3 — Verification</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
-              <div style="text-align:center"><div style="font-size:.72rem;color:var(--td);margin-bottom:.3rem">Your ID</div><img id="ll-id-thumb" style="width:100%;border-radius:8px;max-height:110px;object-fit:cover"></div>
-              <div style="text-align:center"><div style="font-size:.72rem;color:var(--td);margin-bottom:.3rem">Your selfie</div><img id="ll-selfie-thumb" style="width:100%;border-radius:8px;max-height:110px;object-fit:cover"></div>
-            </div>
-            <div id="ll-verify-loading" style="text-align:center;padding:1rem"><div class="sp" style="margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--tm)">Analysing your documents...</div></div>
-            <div id="ll-verify-result" style="display:none"></div>
+            <button id="ll-submit-verify-btn" onclick="llSubmitIDForVerification()" disabled style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer;opacity:.5">Submit for verification →</button>
+            <div id="ll-upload-status" style="margin-top:.75rem;display:none"></div>
           </div>
         </div>
       </div>
@@ -3415,14 +3691,39 @@ async function loadProfilee(){
   document.getElementById('prof-nat').value=P.nationality||'';
   document.getElementById('prof-id').value=P.passport_number||'';
   document.getElementById('prof-dob').value=P.date_of_birth||'';
-  document.getElementById('prof-pob').value=P.place_of_birth||'';
+  if(document.getElementById('prof-pob-city')){const pob=(P.place_of_birth||'').split(',');document.getElementById('prof-pob-city').value=pob[0]?.trim()||'';if(document.getElementById('prof-pob-country')&&pob[1])document.getElementById('prof-pob-country').value=pob[1]?.trim()||'';}
   document.getElementById('prof-father').value=P.father_name||'';
   document.getElementById('prof-mother').value=P.mother_name||'';
   document.getElementById('prof-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('prof-malta-address').value=P.malta_address||'';
   document.getElementById('prof-iban').value=P.iban||'';
   document.getElementById('prof-revolut').value=P.revolut_tag||P.bank_details||'';
-  if(P.verified){document.getElementById('verify-badge-ll').textContent='✅ Verified';document.getElementById('verify-badge-ll').className='badge b-green';}
+  // Gestion section vérification landlord
+  const llUploadSection = document.getElementById('ll-verify-upload-section');
+  const llBadge = document.getElementById('verify-badge-ll');
+  if(P.verified){
+    if(llBadge){llBadge.className='badge b-green';llBadge.textContent='✅ Verified';}
+    if(llUploadSection) llUploadSection.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.3rem">Identity Verified</div><div style="font-size:.78rem;color:var(--tm)">Your ✅ badge is visible on all your listings.</div></div>`;
+  } else if(P.id_submitted){
+    if(llBadge){llBadge.className='badge b-gold';llBadge.textContent='⏳ Pending';}
+    if(llUploadSection) llUploadSection.innerHTML=`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">⏳</div><div style="font-weight:700;color:var(--gold);margin-bottom:.3rem">Under review</div><div style="font-size:.78rem;color:var(--tm)">Verification within 24 hours.</div></div>`;
+  }
+  // Phone prefix
+  const ph = P.phone||'';
+  const phoneCountry = document.getElementById('prof-phone-country');
+  const phoneInput = document.getElementById('prof-phone');
+  if(phoneCountry && phoneInput && ph){
+    const prefixes=['+356','+33','+44','+49','+39','+34','+32','+31','+351','+41','+43','+48','+30','+1','+61','+91','+971'];
+    const prefix = prefixes.find(p=>ph.startsWith(p))||'';
+    if(prefix){phoneCountry.value=prefix;phoneInput.value=ph.slice(prefix.length);}
+    else{phoneInput.value=ph;}
+  }
+  // Place of birth
+  if(document.getElementById('prof-pob-city')){
+    const pob=(P.place_of_birth||'').split(',');
+    document.getElementById('prof-pob-city').value=pob[0]?.trim()||'';
+    if(document.getElementById('prof-pob-country')&&pob[1])document.getElementById('prof-pob-country').value=pob[1]?.trim()||'';
+  }
   updateLLCompleteness();
 }
 
@@ -3433,7 +3734,7 @@ async function saveProfilee(){
     nationality:document.getElementById('prof-nat').value.trim(),
     passport_number:document.getElementById('prof-id').value.trim(),
     date_of_birth:document.getElementById('prof-dob').value||null,
-    place_of_birth:document.getElementById('prof-pob').value.trim(),
+    place_of_birth:((document.getElementById('prof-pob-city')?.value.trim()||'')+(document.getElementById('prof-pob-country')?.value?', '+document.getElementById('prof-pob-country').value:'')).trim(),
     father_name:document.getElementById('prof-father').value.trim(),
     father_last_name:document.getElementById('prof-father-last')?.value.trim(),
     mother_name:document.getElementById('prof-mother').value.trim(),
@@ -3957,6 +4258,69 @@ function initPhonePickerLandlord(){
   };
   document.head.appendChild(script);
 }
+
+// ── Phone prefix landlord ────────────────────────────────────
+function updateLLPhonePrefix(){}
+
+// ── Landlord ID verification ─────────────────────────────────
+let _llIdFile = null;
+let _llSelfieFile = null;
+
+function llOnIDSelected(input){
+  _llIdFile = input.files?.[0];
+  if(!_llIdFile) return;
+  const label = document.getElementById('ll-id-upload-label');
+  const preview = document.getElementById('ll-id-preview-small');
+  const img = document.getElementById('ll-id-preview-img');
+  if(label) label.textContent = _llIdFile.name.substring(0,20);
+  if(preview && img){img.src=URL.createObjectURL(_llIdFile);preview.style.display='block';}
+  llCheckBothReady();
+}
+
+function llOnSelfieSelected(input){
+  _llSelfieFile = input.files?.[0];
+  if(!_llSelfieFile) return;
+  const label = document.getElementById('ll-selfie-upload-label');
+  const preview = document.getElementById('ll-selfie-preview-small');
+  const img = document.getElementById('ll-selfie-preview-img');
+  if(label) label.textContent = _llSelfieFile.name.substring(0,20);
+  if(preview && img){img.src=URL.createObjectURL(_llSelfieFile);preview.style.display='block';}
+  llCheckBothReady();
+}
+
+function llCheckBothReady(){
+  const btn = document.getElementById('ll-submit-verify-btn');
+  if(btn){
+    const ready = _llIdFile && _llSelfieFile;
+    btn.disabled = !ready;
+    btn.style.opacity = ready ? '1' : '.5';
+    btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+  }
+}
+
+async function llSubmitIDForVerification(){
+  if(!_llIdFile || !_llSelfieFile){toast('Please upload both your ID and a selfie');return;}
+  const status = document.getElementById('ll-upload-status');
+  const btn = document.getElementById('ll-submit-verify-btn');
+  if(status){status.style.display='block';status.innerHTML='<div style="color:var(--gold)">⏳ Uploading...</div>';}
+  if(btn){btn.disabled=true;btn.style.opacity='.5';}
+  try{
+    const idExt = _llIdFile.name.split('.').pop();
+    const selfieExt = _llSelfieFile.name.split('.').pop();
+    const{error:e1}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`,_llIdFile,{upsert:true});
+    if(e1) throw new Error(e1.message);
+    const{error:e2}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`,_llSelfieFile,{upsert:true});
+    if(e2) throw new Error(e2.message);
+    await sb.from('profiles').update({id_submitted:true,id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
+    if(status) status.innerHTML='<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
+    toast('✅ ID + selfie submitted for verification!');
+  }catch(e){
+    if(status) status.innerHTML='<div style="color:var(--red)">❌ '+e.message+'</div>';
+    if(btn){btn.disabled=false;btn.style.opacity='1';}
+    toast('❌ '+e.message);
+  }
+}
+
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 
