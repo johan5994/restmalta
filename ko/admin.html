@@ -229,13 +229,15 @@ async function verifyTenant(clerkId, name){
   if(error){toast('❌ Error: '+error.message);return;}
   toast('✅ '+name+' verified!');
   // Notifier le tenant
-  await sb.from('messages').insert({
-    listing_id:'00000000-0000-0000-0000-000000000000',
-    sender_id:'system',
-    receiver_id:clerkId,
-    content:'🎉 Your identity has been verified by RestMalta!\n\nYour ✅ Verified badge is now visible to all landlords. This increases your chances of being selected.',
-    type:'verified'
-  }).catch(()=>{});
+  try{
+    await sb.from('messages').insert({
+      listing_id:'00000000-0000-0000-0000-000000000000',
+      sender_id:'system',
+      receiver_id:clerkId,
+      content:'🎉 Your identity has been verified by RestMalta!\n\nYour ✅ Verified badge is now visible to all landlords. This increases your chances of being selected.',
+      type:'verified'
+    });
+  }catch(e){console.warn('Notify error:',e);}
   loadAll();
 }
 
