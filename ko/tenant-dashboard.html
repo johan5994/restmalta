@@ -2934,8 +2934,8 @@ async function loadDossierStatus(){
     for(const [docType, doc] of Object.entries(savedDocs)){
       if(!doc?.path) continue;
       uploadedDocs[docType]=true;
-      const statusEl=document.getElementById(`doc-${docType.replace(/_/g,'-')}-status`)
-        ||document.getElementById(`doc-${docType}-status`);
+      const docIdMap={'bank_statement':'doc-bank-status','emprent_letter':'doc-emprent-status','reference_letter':'doc-ref-status','rent1':'doc-rent1-status','rent2':'doc-rent2-status','rent3':'doc-rent3-status','id':'doc-id-status'};
+      const statusEl=document.getElementById(docIdMap[docType]||`doc-${docType.replace(/_/g,'-')}-status`);
       if(!statusEl) continue;
       const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(doc.path,604800);
       if(urlData?.signedUrl){
@@ -2960,8 +2960,8 @@ async function loadDossierStatus(){
       if(uploadedDocs[key]) continue; // déjà traité
       const ext=f.name.split('.').pop();
       uploadedDocs[key]=true;
-      const statusEl=document.getElementById(`doc-${key.replace(/_/g,'-')}-status`)
-        ||document.getElementById(`doc-${key}-status`);
+      const docIdMap2={'bank_statement':'doc-bank-status','emprent_letter':'doc-emprent-status','reference_letter':'doc-ref-status','rent1':'doc-rent1-status','rent2':'doc-rent2-status','rent3':'doc-rent3-status','id':'doc-id-status'};
+      const statusEl=document.getElementById(docIdMap2[key]||`doc-${key.replace(/_/g,'-')}-status`);
       if(!statusEl) continue;
       const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(f.path,604800);
       if(urlData?.signedUrl){
