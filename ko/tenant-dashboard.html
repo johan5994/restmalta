@@ -656,8 +656,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <!-- Stay in Malta -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">🇲🇹 Stay in Malta</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">Employer / University</label><input class="fi" id="p-emprent" placeholder="Company or university name"></div>
-            <div class="fg"><label class="fl">Reason for stay *</label>
+            <div class="fg"><label class="fl">Employer / University <span style="font-size:.68rem;color:var(--td)">(optional)</span></label><input class="fi" id="p-emprent" placeholder="Company or university name"></div>
+            <div class="fg"><label class="fl">Reason for stay <span style="font-size:.68rem;color:var(--td)">(optional)</span></label>
               <select class="fsel" id="p-reason">
                 <option value="">Select...</option>
                 <option value="work">Work</option>
@@ -668,7 +668,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
                 <option value="other">Other</option>
               </select>
             </div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Needs Lease Agreement Attestation? <span style="font-size:.68rem;color:var(--td)">(non-EU residence permit)</span></label>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Needs Lease Agreement Attestation? <span style="font-size:.68rem;color:var(--td)">(optional — non-EU residence permit)</span></label>
               <select class="fsel" id="p-attestation">
                 <option value="no">No — standard lease is fine</option>
                 <option value="yes">Yes — I need notary attestation</option>
@@ -2642,8 +2642,6 @@ function updateProfileeCompleteness(){
     document.getElementById('p-mother')?.value,
     document.getElementById('p-mother-maiden')?.value,
     document.getElementById('p-address')?.value,
-    document.getElementById('p-reason')?.value,
-    document.getElementById('p-stay-duration')?.value,
   ];
   const filled=required.filter(v=>v&&v.trim()!=='').length;
   const pct=Math.round(filled/required.length*100);
