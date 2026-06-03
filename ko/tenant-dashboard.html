@@ -2487,7 +2487,6 @@ async function loadProfilee(){
   document.getElementById('p-mother').value=P.mother_name||'';
   document.getElementById('p-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('p-address').value=P.home_address||'';
-  document.getElementById('p-malta-address').value=P.malta_address||'';
   document.getElementById('p-emprent').value=P.emprent||'';
   if(P.reason_for_stay)document.getElementById('p-reason').value=P.reason_for_stay;
   if(P.needs_attestation)document.getElementById('p-attestation').value='yes';
@@ -2539,7 +2538,6 @@ async function saveProfilee(){
     mother_name:document.getElementById('p-mother').value.trim(),
     mother_maiden:document.getElementById('p-mother-maiden').value.trim(),
     home_address:document.getElementById('p-address').value.trim(),
-    malta_address:document.getElementById('p-malta-address').value.trim(),
     emprent:document.getElementById('p-emprent').value.trim(),
     reason_for_stay:document.getElementById('p-reason').value,
     needs_attestation:document.getElementById('p-attestation').value==='yes'
