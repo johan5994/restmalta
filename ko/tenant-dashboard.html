@@ -2933,15 +2933,17 @@ async function loadDossierStatus(){
         const key=f.name.split('.')[0];
         const ext=f.name.split('.').pop();
         uploadedDocs[key]=true;
-        const statusEl=document.getElementById(`doc-${key.replace(/_/g,'-')}-status`)||document.getElementById(`doc-${key}-status`);
+        // Trouver l'élément status correspondant
+        const statusEl=document.getElementById(`doc-${key.replace(/_/g,'-')}-status`)
+          ||document.getElementById(`doc-${key}-status`);
         if(!statusEl) continue;
-        // Générer URL signée pour aperçu
+        // URL signée
         const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(`docs/${U.id}/${f.name}`,3600);
         if(urlData?.signedUrl){
           const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
           statusEl.innerHTML = isImg
-            ? `<a href="${urlData.signedUrl}" target="_blank"><img src="${urlData.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem"></a>`
-            : `<a href="${urlData.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none">✅ View →</a>`;
+            ? `<a href="${urlData.signedUrl}" target="_blank" title="View document"><img src="${urlData.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem"></a><div style="font-size:.65rem;color:var(--green);margin-top:.1rem">✅ Uploaded</div>`
+            : `<a href="${urlData.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none;font-weight:600">✅ View document →</a>`;
         } else {
           statusEl.textContent='✅ Uploaded';
           statusEl.style.color='var(--green)';
@@ -2949,7 +2951,7 @@ async function loadDossierStatus(){
       }
     }
     updateDossierBadge();
-  }catch(e){}
+  }catch(e){console.warn('loadDossierStatus:',e);}
 }
 
 async function uploadDossierDoc(input, docType, statusId){
@@ -3101,9 +3103,9 @@ async function submitIDForVerification(){
   try{
     const idExt = _idFile.name.split('.').pop();
     const selfieExt = _selfieFile.name.split('.').pop();
-    const{error:e1} = await sb.storage.from('tenant-documents').upload('id-docs/'+U.id+'/id.'+idExt, _idFile, {upsert:true});
+    const{error:e1} = await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`, _idFile, {upsert:true});
     if(e1) throw new Error(e1.message);
-    const{error:e2} = await sb.storage.from('tenant-documents').upload('id-docs/'+U.id+'/selfie.'+selfieExt, _selfieFile, {upsert:true});
+    const{error:e2} = await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`, _selfieFile, {upsert:true});
     if(e2) throw new Error(e2.message);
     await sb.from('profiles').update({id_submitted:true, id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
     if(status) status.innerHTML = '<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
@@ -3258,7 +3260,7 @@ async function uploadIDToStorage(){
   if(!idImageData||!U)return;
   try{
     const blob=await(await fetch(idImageData)).blob();
-    await sb.storage.from('listings').upload(`docs/${U.id}/id.jpg`,blob,{upsert:true});
+    await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.jpg`,blob,{upsert:true});
   }catch(e){}
 }
 
