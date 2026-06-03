@@ -2928,7 +2928,7 @@ let uploadedDocs={};
 async function loadDossierStatus(){
   // Check which docs are already uploaded in Supabase storage
   try{
-    const{data}=await sb.storage.from('listings').list(`docs/${U.id}/`);
+    const{data}=await sb.storage.from('tenant-documents').list(`docs/${U.id}/`);
     if(data){
       data.forEach(f=>{
         const key=f.name.split('.')[0];
@@ -2949,15 +2949,23 @@ async function uploadDossierDoc(input, docType, statusId){
   if(statusEl){statusEl.textContent='⏳ Upload...';statusEl.style.color='var(--gold)';}
   const ext=file.name.split('.').pop();
   const path=`docs/${U.id}/${docType}.${ext}`;
-  const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true});
+  const{error}=await sb.storage.from('tenant-documents').upload(path,file,{upsert:true});
   if(error){
     if(statusEl){statusEl.textContent='❌ Error';statusEl.style.color='var(--red)';}
     toast('❌ Upload failed: '+error.message);
     return;
   }
   uploadedDocs[docType]=true;
-  if(statusEl){statusEl.textContent='✅ Uploadé';statusEl.style.color='var(--green)';}
-  toast(`✅ Document uploadé avec succès !`);
+  // Afficher aperçu
+  const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(path,3600);
+  if(statusEl){
+    const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
+    statusEl.innerHTML = isImg
+      ? `<a href="${urlData?.signedUrl}" target="_blank"><img src="${urlData?.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem" title="View document"></a>`
+      : `<a href="${urlData?.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none">✅ View document →</a>`;
+    statusEl.style.color='var(--green)';
+  }
+  toast('✅ Document uploaded!');
   updateDossierBadge();
   checkDossierComplete();
 }
