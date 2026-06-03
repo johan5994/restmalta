@@ -2809,7 +2809,7 @@ async function viewDocument(docType){
   const d=doc[docType];
   if(!d?.path){toast('⚠️ No document uploaded');return;}
   try{
-    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(d.path,300);
+    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(d.path,604800);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
   }catch(e){toast('❌ Could not open document');}
 }
@@ -2927,21 +2927,43 @@ let uploadedDocs={};
 
 async function loadDossierStatus(){
   try{
-    // Chercher dans les 2 chemins possibles
+    // D'abord charger depuis profiles.documents (plus fiable)
+    const savedDocs = P?.documents ? (typeof P.documents==='string'?JSON.parse(P.documents):P.documents) : {};
+    
+    // Générer URLs signées pour chaque doc sauvegardé
+    for(const [docType, doc] of Object.entries(savedDocs)){
+      if(!doc?.path) continue;
+      uploadedDocs[docType]=true;
+      const statusEl=document.getElementById(`doc-${docType.replace(/_/g,'-')}-status`)
+        ||document.getElementById(`doc-${docType}-status`);
+      if(!statusEl) continue;
+      const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(doc.path,604800);
+      if(urlData?.signedUrl){
+        const isImg=['jpg','jpeg','png','gif','webp'].includes((doc.ext||'').toLowerCase());
+        statusEl.innerHTML = isImg
+          ? `<a href="${urlData.signedUrl}" target="_blank"><img src="${urlData.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem"></a><div style="font-size:.65rem;color:var(--green);margin-top:.1rem">✅ Uploaded</div>`
+          : `<a href="${urlData.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none;font-weight:600">✅ View document →</a>`;
+      } else {
+        statusEl.textContent='✅ Uploaded';
+        statusEl.style.color='var(--green)';
+      }
+    }
+
+    // Compléter avec le storage (pour les anciens fichiers sans metadata)
     const[{data:data1},{data:data2}]=await Promise.all([
       sb.storage.from('tenant-documents').list(`docs/${U.id}/`),
       sb.storage.from('tenant-documents').list(`id-docs/${U.id}/`)
     ]);
     const allFiles=[...(data1||[]).map(f=>({...f,path:`docs/${U.id}/${f.name}`})),...(data2||[]).map(f=>({...f,path:`id-docs/${U.id}/${f.name}`}))];
-
     for(const f of allFiles){
       const key=f.name.split('.')[0];
+      if(uploadedDocs[key]) continue; // déjà traité
       const ext=f.name.split('.').pop();
       uploadedDocs[key]=true;
       const statusEl=document.getElementById(`doc-${key.replace(/_/g,'-')}-status`)
         ||document.getElementById(`doc-${key}-status`);
       if(!statusEl) continue;
-      const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(f.path,3600);
+      const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(f.path,604800);
       if(urlData?.signedUrl){
         const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
         statusEl.innerHTML = isImg
@@ -2971,8 +2993,15 @@ async function uploadDossierDoc(input, docType, statusId){
     return;
   }
   uploadedDocs[docType]=true;
+  // Sauvegarder le chemin dans profiles pour persistance
+  try{
+    const docs = P?.documents ? (typeof P.documents==='string'?JSON.parse(P.documents):P.documents) : {};
+    docs[docType] = {path, ext, uploaded_at: new Date().toISOString()};
+    await sb.from('profiles').update({documents: JSON.stringify(docs)}).eq('clerk_id',U.id);
+    if(P) P.documents = JSON.stringify(docs);
+  }catch(e){console.warn('Save doc path:',e);}
   // Afficher aperçu
-  const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(path,3600);
+  const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(path,604800);
   if(statusEl){
     const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
     statusEl.innerHTML = isImg
