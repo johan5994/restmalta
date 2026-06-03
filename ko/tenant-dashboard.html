@@ -2668,7 +2668,7 @@ async function saveProfilee(){
     nationality:document.getElementById('p-nat').value.trim(),
     passport_number:document.getElementById('p-passport').value.trim(),
     date_of_birth:document.getElementById('p-dob').value||null,
-    place_of_birth:document.getElementById('p-pob').value.trim(),
+    place_of_birth:((document.getElementById('p-pob-city')?.value.trim()||'')+(document.getElementById('p-pob-country')?.value?', '+document.getElementById('p-pob-country').value:'')).trim(),
     father_name:document.getElementById('p-father').value.trim(),
     father_last_name:document.getElementById('p-father-last')?.value.trim(),
     mother_name:document.getElementById('p-mother').value.trim(),
