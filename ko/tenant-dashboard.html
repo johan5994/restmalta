@@ -2612,7 +2612,29 @@ async function loadProfilee(){
   if(P.reason_for_stay)document.getElementById('p-reason').value=P.reason_for_stay;
   if(P.needs_attestation)document.getElementById('p-attestation').value='yes';
   updateProfileeCompleteness();
-  if(P.verified){document.getElementById('verify-badge').className='badge b-green';document.getElementById('verify-badge').textContent='✅ Verified';}
+
+  // Gestion section vérification
+  const uploadSection = document.getElementById('verify-upload-section');
+  const badge = document.getElementById('verify-badge');
+  if(P.verified){
+    badge.className='badge b-green';
+    badge.textContent='✅ Verified';
+    if(uploadSection) uploadSection.innerHTML=`
+      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center">
+        <div style="font-size:2rem;margin-bottom:.4rem">✅</div>
+        <div style="font-weight:700;color:#4CAF7D;margin-bottom:.3rem">Identity Verified</div>
+        <div style="font-size:.78rem;color:var(--tm)">Your identity has been verified by RestMalta. Your ✅ badge is visible to all landlords.</div>
+      </div>`;
+  } else if(P.id_submitted){
+    badge.className='badge b-gold';
+    badge.textContent='⏳ Pending';
+    if(uploadSection) uploadSection.innerHTML=`
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:12px;padding:1.2rem;text-align:center">
+        <div style="font-size:2rem;margin-bottom:.4rem">⏳</div>
+        <div style="font-weight:700;color:var(--gold);margin-bottom:.3rem">Under review</div>
+        <div style="font-size:.78rem;color:var(--tm)">Your ID and selfie have been submitted. A RestMalta team member will verify your identity within 24 hours.</div>
+      </div>`;
+  }
 }
 
 function updateProfileeCompleteness(){
