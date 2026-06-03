@@ -503,21 +503,11 @@ function initUI(){
   document.getElementById('prof-name').value=P.full_name||'';
   document.getElementById('prof-email').value=P.email||'';
   document.getElementById('prof-phone').value=P.phone||'';
+  if(document.getElementById('prof-lang'))document.getElementById('prof-lang').value=P.languages||'';
+  if(document.getElementById('prof-bio'))document.getElementById('prof-bio').value=P.bio||'';
   if(document.getElementById('ag-iban'))document.getElementById('ag-iban').value=P.iban||'';
   if(document.getElementById('ag-revolut'))document.getElementById('ag-revolut').value=P.revolut_tag||'';
   document.getElementById('tbs').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  // Vérification identité — même logique que tenant/landlord
-  const agBadge=document.getElementById('agent-verify-badge');
-  const agSection=document.getElementById('ag-verify-upload-section');
-  if(P.verified){
-    if(agBadge){agBadge.textContent='✅ Verified';agBadge.style.cssText='background:rgba(76,175,125,.15);color:#4CAF7D';}
-    if(agSection)agSection.innerHTML='<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.3rem">Identity Verified</div><div style="font-size:.78rem;color:var(--td)">Your ✅ badge is visible on all your visits.</div></div>';
-  } else if(P.id_submitted){
-    if(agBadge){agBadge.textContent='⏳ Pending';agBadge.style.cssText='background:rgba(212,168,71,.15);color:var(--gold)';}
-    if(agSection)agSection.innerHTML='<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">⏳</div><div style="font-weight:700;color:var(--gold);margin-bottom:.3rem">Under review</div><div style="font-size:.78rem;color:var(--td)">Verification within 24 hours.</div></div>';
-  }
-
   setTimeout(updateAgentProfileCompleteness, 100);
 }
 
@@ -1488,6 +1478,8 @@ async function saveProfile(){
   const updates={
     full_name:n,
     phone:document.getElementById('prof-phone').value.trim(),
+    languages:document.getElementById('prof-lang')?.value.trim()||null,
+    bio:document.getElementById('prof-bio')?.value.trim()||null,
     iban:document.getElementById('ag-iban')?.value.trim()||null,
     revolut_tag:document.getElementById('ag-revolut')?.value.trim()||null,
   };
