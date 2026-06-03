@@ -183,7 +183,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}}
 </style>
   <script src="https://js.stripe.com/v3/"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/css/intlTelInput.css">
 <style>
 .iti{width:100%}
 .iti__flag-container{z-index:10}
@@ -1170,7 +1169,6 @@ function sp(id,btn){
   }
   if(id==='report')loadReport();
   if(id==='tenantmatch')loadTenantMatch();
-  if(id==='profile')setTimeout(initPhonePickerLandlord,200);
 }
 
 /* DASHBOARD */
@@ -2001,7 +1999,6 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
 
       const leaseHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>body{font-family:"Times New Roman",serif;font-size:11pt;line-height:1.7;margin:2cm;color:#000}h1{text-align:center;font-size:13pt;text-transform:uppercase;font-weight:bold;margin-bottom:20px}h2{font-size:11pt;font-weight:bold;margin-top:18px;margin-bottom:6px}p{margin:8px 0}ol{margin:8px 0;padding-left:20px}li{margin-bottom:6px}.sig-block{display:flex;justify-content:space-between;margin-top:40px}.sig-box{width:45%}.sig-line{border-top:1px solid #000;margin-top:60px}</style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/css/intlTelInput.css">
 <style>
 .iti{width:100%}
 .iti__flag-container{z-index:10}
@@ -3732,7 +3729,7 @@ async function loadProfilee(){
 async function saveProfilee(){
   const updates={
     full_name:document.getElementById('prof-name').value.trim(),
-    phone:itiLandlord?itiLandlord.getNumber():document.getElementById('prof-phone').value.trim(),
+    phone:(document.getElementById('prof-phone-country')?.value||'')+document.getElementById('prof-phone').value.trim(),
     nationality:document.getElementById('prof-nat').value.trim(),
     passport_number:document.getElementById('prof-id').value.trim(),
     date_of_birth:document.getElementById('prof-dob').value||null,
@@ -4244,22 +4241,6 @@ async function declineDirectBooking(listingId, tenantId){
 
 
 // ── Phone country picker ─────────────────────────────────────
-let itiLandlord = null;
-function initPhonePickerLandlord(){
-  const input = document.getElementById('prof-phone');
-  if(!input || itiLandlord) return;
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/intlTelInput.min.js';
-  script.onload = () => {
-    itiLandlord = window.intlTelInput(input, {
-      initialCountry: 'mt',
-      preferredCountries: ['mt','fr','gb','de','it','es'],
-      separateDialCode: true,
-      utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/utils.js'
-    });
-  };
-  document.head.appendChild(script);
-}
 
 // ── Phone prefix landlord ────────────────────────────────────
 function updateLLPhonePrefix(){}
