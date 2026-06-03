@@ -734,6 +734,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem">
+          <div id="dossier-check-result" style="margin-top:.75rem"></div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="ch"><div class="ct">📁 Required documents before visit</div><span id="dossier-badge" class="badge b-dim">Incomplete</span></div>
         <div class="cb">
           <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Your ID is required before any visit request. Other documents are highly recommended and may be required by the landlord.</p>
@@ -750,7 +755,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <input type="file" id="doc-id-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'id','doc-id-status')">
           </div>
 
-          <!-- Bank statement — Recommended -->
+          <!-- Bank statement -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏦</div>
             <div style="flex:1">
@@ -762,7 +767,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <input type="file" id="doc-bank-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'bank_statement','doc-bank-status')">
           </div>
 
-          <!-- Employment letter — Recommended -->
+          <!-- Employment letter -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">💼</div>
             <div style="flex:1">
@@ -774,7 +779,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <input type="file" id="doc-emprent-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'emprent_letter','doc-emprent-status')">
           </div>
 
-          <!-- Reference letter — Optional -->
+          <!-- Reference letter -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">⭐</div>
             <div style="flex:1">
@@ -786,7 +791,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <input type="file" id="doc-ref-input" accept="image/*,.pdf" style="display:none" onchange="uploadDossierDoc(this,'reference_letter','doc-ref-status')">
           </div>
 
-          <!-- Rent receipts x3 — Optional -->
+          <!-- Rent receipts -->
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏠</div>
             <div style="flex:1">
