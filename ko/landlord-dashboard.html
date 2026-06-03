@@ -3640,14 +3640,28 @@ function updateLLCompleteness(){
     {id:'prof-nat',label:'Nationality'},
     {id:'prof-id',label:'ID/Passport'},
     {id:'prof-dob',label:'Date of birth'},
-    {id:'prof-pob',label:'Place of birth'},
+    {id:'prof-pob-city',label:'Place of birth'},
     {id:'prof-father',label:"Father's first name"},
     {id:'prof-mother',label:"Mother's first name"},
     {id:'prof-mother-maiden',label:"Mother's maiden name"},
     {id:'prof-malta-address',label:'Malta address'},
     {id:'prof-iban',label:'IBAN'},
   ];
-  const missing=required.filter(f=>!document.getElementById(f.id)?.value?.trim());
+  // Vérifier depuis le DOM si disponible, sinon depuis P
+  const profileData = {
+    'prof-name': document.getElementById('prof-name')?.value?.trim() || P?.full_name,
+    'prof-phone': document.getElementById('prof-phone')?.value?.trim() || P?.phone,
+    'prof-nat': document.getElementById('prof-nat')?.value?.trim() || P?.nationality,
+    'prof-id': document.getElementById('prof-id')?.value?.trim() || P?.passport_number,
+    'prof-dob': document.getElementById('prof-dob')?.value?.trim() || P?.date_of_birth,
+    'prof-pob-city': document.getElementById('prof-pob-city')?.value?.trim() || (P?.place_of_birth||'').split(',')[0]?.trim(),
+    'prof-father': document.getElementById('prof-father')?.value?.trim() || P?.father_name,
+    'prof-mother': document.getElementById('prof-mother')?.value?.trim() || P?.mother_name,
+    'prof-mother-maiden': document.getElementById('prof-mother-maiden')?.value?.trim() || P?.mother_maiden,
+    'prof-malta-address': document.getElementById('prof-malta-address')?.value?.trim() || P?.malta_address,
+    'prof-iban': document.getElementById('prof-iban')?.value?.trim() || P?.iban,
+  };
+  const missing=required.filter(f=>!profileData[f.id]);
   const filled=required.length-missing.length;
   const pct=Math.round(filled/required.length*100);
   const bar=document.getElementById('ll-completeness-bar');
@@ -3686,7 +3700,16 @@ async function loadProfilee(){
   document.getElementById('prof-name').value=P.full_name||'';
   document.getElementById('prof-email').value=P.email||U.email||'';
   document.getElementById('prof-phone').value=P.phone||'';
-  document.getElementById('prof-nat').value=P.nationality||'';
+  const _nat = P.nationality||'';
+  const _natEl = document.getElementById('prof-nat');
+  if(_natEl){
+    // Essayer exact d'abord, puis insensible à la casse
+    _natEl.value = _nat;
+    if(!_natEl.value && _nat){
+      const opt = Array.from(_natEl.options).find(o=>o.value.toLowerCase()===_nat.toLowerCase()||o.text.toLowerCase()===_nat.toLowerCase());
+      if(opt) _natEl.value = opt.value;
+    }
+  }
   document.getElementById('prof-id').value=P.passport_number||'';
   document.getElementById('prof-dob').value=P.date_of_birth||'';
   if(document.getElementById('prof-pob-city')){const pob=(P.place_of_birth||'').split(',');document.getElementById('prof-pob-city').value=pob[0]?.trim()||'';if(document.getElementById('prof-pob-country')&&pob[1])document.getElementById('prof-pob-country').value=pob[1]?.trim()||'';}
