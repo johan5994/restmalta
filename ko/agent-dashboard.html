@@ -6,7 +6,6 @@
 <title>RestMalta — Agent Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>window.__clerk_publishable_key='pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';</script>
 <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
 <style>
@@ -336,6 +335,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- PROFILE -->
     <div class="page" id="page-profile">
+
+      <!-- Bannière profil incomplet -->
+      <div id="ag-profile-banner" style="display:none;background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1rem;max-width:580px">
+        <div style="font-weight:700;font-size:.9rem;color:var(--gold);margin-bottom:.3rem">⚠️ Complete your profile to get paid and start working</div>
+        <div style="font-size:.78rem;color:var(--tm);margin-bottom:.75rem">You need your IBAN and a verified identity to receive commissions and be assigned to visits.</div>
+        <div style="background:rgba(255,255,255,.07);border-radius:100px;height:8px;margin-bottom:.3rem">
+          <div id="ag-profile-bar" style="background:var(--terra);height:8px;border-radius:100px;width:0%;transition:width .4s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--td)">
+          <span id="ag-profile-pct">0% complete</span>
+          <span id="ag-profile-missing"></span>
+        </div>
+      </div>
+
       <div class="card" style="max-width:580px;margin-bottom:1rem">
         <div class="ch"><span class="ct">👤 My profile</span></div>
         <div class="cb">
@@ -348,6 +361,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="fg"><label class="fl">Phone</label><input class="fi" id="prof-phone" type="tel" placeholder="+356 9999 0000"></div>
           <div class="fg"><label class="fl">Languages</label><input class="fi" id="prof-lang" placeholder="English, French, Italian..."></div>
           <div class="fg"><label class="fl">Bio</label><textarea class="fta" id="prof-bio" rows="3" placeholder="Tell landlords and tenants about yourself..."></textarea></div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0 .5rem">💶 Payment info</div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">Required to receive your commissions from RestMalta.</div>
+          <div class="fg"><label class="fl">IBAN * <span style="font-size:.68rem;color:var(--td)">(for receiving commissions)</span></label><input class="fi" id="ag-iban" placeholder="MT84 MALT 0110 0001 2345 MTLC AST0 01"></div>
+          <div class="fg"><label class="fl">💜 Revolut tag <span style="font-size:.68rem;color:var(--td)">(optional)</span></label><input class="fi" id="ag-revolut" placeholder="@yourname"></div>
           <button class="btn bp" style="width:100%;justify-content:center" onclick="saveProfile()">Save profile →</button>
         </div>
       </div>
@@ -358,36 +375,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="cb">
           <p style="font-size:.85rem;color:var(--td);margin-bottom:1rem;line-height:1.6">Verified agents are trusted by landlords and tenants. Your badge appears on every visit you book. Takes 30 seconds — free.</p>
 
-          <div id="ag-step1">
-            <div style="font-size:.82rem;font-weight:600;margin-bottom:.6rem;color:var(--txt)">Step 1 — Upload your ID</div>
-            <div style="border:2px dashed rgba(108,99,255,.25);border-radius:10px;padding:1.2rem;text-align:center;cursor:pointer" onclick="document.getElementById('ag-id-up').click()">
-              <div style="font-size:2rem;margin-bottom:.4rem">🪪</div>
-              <div style="font-size:.83rem;color:var(--td)">Click to upload your ID / passport</div>
-              <input type="file" id="ag-id-up" accept="image/*" style="display:none" onchange="agHandleID(this)">
+          <div id="ag-verify-upload-section">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
+              <div>
+                <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;color:var(--txt)">🪪 ID or passport</div>
+                <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('ag-id-up').click()">
+                  <div style="font-size:1.5rem;margin-bottom:.3rem">🪪</div>
+                  <div id="ag-id-upload-label" style="font-size:.75rem;color:var(--td)">Click to upload</div>
+                  <input type="file" id="ag-id-up" accept="image/*,.pdf" style="display:none" onchange="agOnIDSelected(this)">
+                </div>
+                <div id="ag-id-preview-small" style="display:none;margin-top:.4rem;text-align:center">
+                  <img id="ag-id-preview-img" style="max-width:100%;border-radius:8px;max-height:80px;object-fit:cover;border:2px solid var(--green)">
+                  <div style="font-size:.68rem;color:var(--green);margin-top:.2rem">✅ Ready</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;color:var(--txt)">🤳 Selfie</div>
+                <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('ag-selfie-up').click()">
+                  <div style="font-size:1.5rem;margin-bottom:.3rem">🤳</div>
+                  <div id="ag-selfie-upload-label" style="font-size:.75rem;color:var(--td)">Click to upload</div>
+                  <input type="file" id="ag-selfie-up" accept="image/*" style="display:none" onchange="agOnSelfieSelected(this)">
+                </div>
+                <div id="ag-selfie-preview-small" style="display:none;margin-top:.4rem;text-align:center">
+                  <img id="ag-selfie-preview-img" style="max-width:100%;border-radius:8px;max-height:80px;object-fit:cover;border:2px solid var(--green)">
+                  <div style="font-size:.68rem;color:var(--green);margin-top:.2rem">✅ Ready</div>
+                </div>
+              </div>
             </div>
-            <div id="ag-id-preview" style="margin-top:.75rem;display:none">
-              <img id="ag-id-img" style="max-width:100%;border-radius:8px;max-height:140px;object-fit:cover">
-              <button class="btn bp" style="margin-top:.75rem;width:100%;justify-content:center" onclick="agShowSelfie()">Continue → Take selfie</button>
-            </div>
-          </div>
-
-          <div id="ag-step2" style="display:none">
-            <div style="font-size:.82rem;font-weight:600;margin-bottom:.6rem;color:var(--txt)">Step 2 — Take a selfie</div>
-            <video id="ag-video" autoplay playsinline style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;background:#000"></video>
-            <canvas id="ag-canvas" style="display:none"></canvas>
-            <div style="display:flex;gap:.75rem;margin-top:.75rem">
-              <button class="btn" style="flex:1;justify-content:center;background:var(--s2);color:var(--td)" onclick="agStep1()">← Back</button>
-              <button class="btn bp" style="flex:2;justify-content:center" onclick="agCapture()">📸 Capture</button>
-            </div>
-          </div>
-
-          <div id="ag-step3" style="display:none">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
-              <div style="text-align:center"><div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">ID</div><img id="ag-id-thumb" style="width:100%;border-radius:8px;max-height:100px;object-fit:cover"></div>
-              <div style="text-align:center"><div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">Selfie</div><img id="ag-selfie-thumb" style="width:100%;border-radius:8px;max-height:100px;object-fit:cover"></div>
-            </div>
-            <div id="ag-loading" style="text-align:center;padding:1rem"><div style="width:24px;height:24px;border:2px solid rgba(108,99,255,.3);border-top-color:#8B85FF;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto .5rem"></div><div style="font-size:.82rem;color:var(--td)">Analysing...</div></div>
-            <div id="ag-result" style="display:none"></div>
+            <button id="ag-submit-verify-btn" onclick="agSubmitIDForVerification()" disabled style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer;opacity:.5">Submit for verification →</button>
+            <div id="ag-upload-status" style="margin-top:.75rem;display:none"></div>
           </div>
         </div>
       </div>
@@ -487,7 +503,10 @@ function initUI(){
   document.getElementById('prof-name').value=P.full_name||'';
   document.getElementById('prof-email').value=P.email||'';
   document.getElementById('prof-phone').value=P.phone||'';
+  if(document.getElementById('ag-iban'))document.getElementById('ag-iban').value=P.iban||'';
+  if(document.getElementById('ag-revolut'))document.getElementById('ag-revolut').value=P.revolut_tag||'';
   document.getElementById('tbs').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  setTimeout(updateAgentProfileCompleteness, 100);
 }
 
 async function loadAll(){
@@ -1454,9 +1473,47 @@ function scheduleVisit(){
 async function saveProfile(){
   const n=document.getElementById('prof-name').value.trim();
   if(!P)return;
-  await sb.from('profiles').update({full_name:n,phone:document.getElementById('prof-phone').value.trim()}).eq('clerk_id',U.id);
+  const updates={
+    full_name:n,
+    phone:document.getElementById('prof-phone').value.trim(),
+    iban:document.getElementById('ag-iban')?.value.trim()||null,
+    revolut_tag:document.getElementById('ag-revolut')?.value.trim()||null,
+  };
+  await sb.from('profiles').update(updates).eq('clerk_id',U.id);
+  Object.assign(P,updates);
   if(n){document.getElementById('uname').textContent=n;document.getElementById('prof-name-display').textContent=n;}
+  updateAgentProfileCompleteness();
   toast('✅ Profile saved!');
+}
+
+function updateAgentProfileCompleteness(){
+  const required=[
+    {id:'prof-name',label:'Full name',val:P?.full_name},
+    {id:'prof-phone',label:'Phone',val:P?.phone},
+    {id:'ag-iban',label:'IBAN',val:P?.iban},
+    {id:'verified',label:'Identity verified',val:P?.verified||P?.id_submitted},
+  ];
+  const missing=required.filter(f=>!f.val);
+  const pct=Math.round((required.length-missing.length)/required.length*100);
+  const bar=document.getElementById('ag-profile-bar');
+  const pctEl=document.getElementById('ag-profile-pct');
+  const banner=document.getElementById('ag-profile-banner');
+  const missingEl=document.getElementById('ag-profile-missing');
+  if(bar){bar.style.width=pct+'%';bar.style.background=pct===100?'var(--green)':pct>60?'var(--sea)':'var(--terra)';}
+  if(pctEl)pctEl.textContent=pct===100?'✅ Profile complete!':pct+'% complete';
+  if(banner){
+    banner.style.display='block';
+    banner.style.background=pct===100?'rgba(76,175,125,.08)':'rgba(212,168,71,.1)';
+    banner.style.borderColor=pct===100?'rgba(76,175,125,.25)':'rgba(212,168,71,.25)';
+    const t=banner.querySelector('div[style*="font-weight:700"]');
+    if(t)t.innerHTML=pct===100?'<span style="color:var(--green)">✅ Profile complete — you can now receive commissions!</span>':'<span style="color:var(--gold)">⚠️ Complete your profile to get paid and start working</span>';
+  }
+  if(missingEl)missingEl.textContent=missing.length?missing.map(f=>f.label).join(', '):'';
+  // Mettre à jour la barre de score dans le sidebar
+  const sbar=document.getElementById('sbar-profile');
+  const sval=document.getElementById('sval-profile');
+  if(sbar)sbar.style.width=pct+'%';
+  if(sval)sval.textContent=pct+'%';
 }
 
 // Agent group chat — real-time
@@ -1528,11 +1585,11 @@ async function sendAgentGroupMessage(groupId){
   });
 }
 
-function agHandleID(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{agIdData=e.target.result;document.getElementById('ag-id-img').src=agIdData;document.getElementById('ag-id-thumb').src=agIdData;document.getElementById('ag-id-preview').style.display='block';};r.readAsDataURL(file);}
-function agStep1(){document.getElementById('ag-step2').style.display='none';document.getElementById('ag-step3').style.display='none';document.getElementById('ag-step1').style.display='block';if(agStream){agStream.getTracks().forEach(t=>t.stop());agStream=null;}}
-async function agShowSelfie(){if(!agIdData){toast('Upload your ID first');return;}document.getElementById('ag-step1').style.display='none';document.getElementById('ag-step2').style.display='block';try{agStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});document.getElementById('ag-video').srcObject=agStream;}catch(e){toast('❌ Camera access denied');agStep1();}}
-function agCapture(){const v=document.getElementById('ag-video');const c=document.getElementById('ag-canvas');c.width=v.videoWidth||640;c.height=v.videoHeight||480;c.getContext('2d').drawImage(v,0,0);agSelfieData=c.toDataURL('image/jpeg',.9);document.getElementById('ag-selfie-thumb').src=agSelfieData;if(agStream){agStream.getTracks().forEach(t=>t.stop());agStream=null;}document.getElementById('ag-step2').style.display='none';document.getElementById('ag-step3').style.display='block';agVerify();}
-async function agVerify(){const res=document.getElementById('ag-result');const load=document.getElementById('ag-loading');load.style.display='block';res.style.display='none';try{await agLoadModels();const opts=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.3});const[idImg,sImg]=await Promise.all([faceapi.fetchImage(agIdData),faceapi.fetchImage(agSelfieData)]);const[idD,sD]=await Promise.all([faceapi.detectSingleFace(idImg,opts).withFaceLandmarks(true).withFaceDescriptor(),faceapi.detectSingleFace(sImg,opts).withFaceLandmarks(true).withFaceDescriptor()]);load.style.display='none';res.style.display='block';if(!idD||!sD){res.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">❌</div><div style="font-size:.82rem;color:var(--terra);margin:.4rem 0">Face not detected. Try again with better lighting.</div><button class="btn bp bsm" onclick="agStep1()">Try again</button></div>`;return;}const dist=faceapi.euclideanDistance(idD.descriptor,sD.descriptor);const sim=Math.round((1-Math.min(dist,1))*100);if(dist<0.55){await sb.from('profiles').update({verified:true}).eq('clerk_id',U.id);document.getElementById('agent-verify-badge').textContent='✅ Verified';document.getElementById('agent-verify-badge').style.cssText='background:rgba(76,175,125,.15);color:#4CAF7D';res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin:.3rem 0">Identity Verified! Match: ${sim}%</div><div style="font-size:.78rem;color:var(--td)">Your verified agent badge is now active.</div></div>`;toast('🎉 Identity verified!');}else{res.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">❌</div><div style="font-size:.82rem;color:var(--terra);margin:.4rem 0">Match: ${sim}% — too low. Try again.</div><button class="btn bp bsm" onclick="agStep1()">Try again</button></div>`;}}catch(e){load.style.display='none';res.style.display='block';res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.3);border-radius:10px;padding:1rem;text-align:center"><div style="font-size:1.5rem">⏳</div><div style="font-size:.82rem;color:var(--gold);margin:.4rem 0">Documents saved — manual review within 24h.</div></div>`;}}
+let _agIdFile=null,_agSelfieFile=null;
+function agOnIDSelected(input){_agIdFile=input.files?.[0];if(!_agIdFile)return;const l=document.getElementById('ag-id-upload-label');const p=document.getElementById('ag-id-preview-small');const i=document.getElementById('ag-id-preview-img');if(l)l.textContent=_agIdFile.name.substring(0,20);if(p&&i){i.src=URL.createObjectURL(_agIdFile);p.style.display='block';}agCheckBothReady();}
+function agOnSelfieSelected(input){_agSelfieFile=input.files?.[0];if(!_agSelfieFile)return;const l=document.getElementById('ag-selfie-upload-label');const p=document.getElementById('ag-selfie-preview-small');const i=document.getElementById('ag-selfie-preview-img');if(l)l.textContent=_agSelfieFile.name.substring(0,20);if(p&&i){i.src=URL.createObjectURL(_agSelfieFile);p.style.display='block';}agCheckBothReady();}
+function agCheckBothReady(){const btn=document.getElementById('ag-submit-verify-btn');if(btn){const ok=_agIdFile&&_agSelfieFile;btn.disabled=!ok;btn.style.opacity=ok?'1':'.5';}}
+async function agSubmitIDForVerification(){if(!_agIdFile||!_agSelfieFile){toast('Please upload both your ID and a selfie');return;}const status=document.getElementById('ag-upload-status');const btn=document.getElementById('ag-submit-verify-btn');if(status){status.style.display='block';status.innerHTML='<div style="color:var(--gold)">⏳ Uploading...</div>';}if(btn){btn.disabled=true;btn.style.opacity='.5';}try{const idExt=_agIdFile.name.split('.').pop();const selfieExt=_agSelfieFile.name.split('.').pop();const{error:e1}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`,_agIdFile,{upsert:true});if(e1)throw new Error(e1.message);const{error:e2}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`,_agSelfieFile,{upsert:true});if(e2)throw new Error(e2.message);await sb.from('profiles').update({id_submitted:true,id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);if(status)status.innerHTML='<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted!</div><div style="font-size:.78rem;color:var(--td)">Verification within 24 hours.</div></div>';toast('✅ Submitted!');const b=document.getElementById('agent-verify-badge');if(b){b.textContent='⏳ Pending';b.style.cssText='background:rgba(212,168,71,.15);color:var(--gold);';}}catch(e){if(status)status.innerHTML='<div style="color:var(--red)">❌ '+e.message+'</div>';if(btn){btn.disabled=false;btn.style.opacity='1';}toast('❌ '+e.message);}}
 
 async function acceptRemoteRequest(visitId, listingId, tenantId, listingTitle, price){
   toast('⏳ Accepting client...');
