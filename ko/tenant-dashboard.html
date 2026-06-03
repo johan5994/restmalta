@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <script src="https://js.stripe.com/v3/"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>
   window.__clerk_publishable_key = 'pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';
 </script>
@@ -694,60 +693,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card">
         <div class="ch"><div class="ct">🪪 Identity verification</div><span id="verify-badge" class="badge b-dim">Not verified</span></div>
         <div class="cb">
-          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified tenants get a ✅ badge visible to all landlords and are prioritised in tenant matching.</p>
-          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.75rem;margin-bottom:1rem;font-size:.75rem;color:var(--tm);line-height:1.5">
-            ℹ️ <strong>How it works:</strong> This verification checks that your selfie matches the photo on your ID using face recognition (face-api.js, runs locally in your browser). It does <strong>not</strong> verify that the ID document itself is authentic — that requires a notary or official service. Full document verification will be available soon via Stripe Identity.
-          </div>
+          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified tenants get a ✅ badge visible to all landlords and are prioritised in tenant matching. A RestMalta team member will verify your ID within 24 hours.</p>
 
-          <!-- Step 1: ID upload -->
-          <div id="verify-step1">
-            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 1 — Upload your ID or passport</div>
-            <div style="border:2px dashed var(--b2);border-radius:10px;padding:1.2rem;text-align:center;cursor:pointer;transition:all .2s" id="id-drop" onclick="document.getElementById('id-up').click()" ondragover="event.preventDefault();this.style.borderColor='var(--terra)'" ondragleave="this.style.borderColor='var(--b2)'" ondrop="handleIDDrop(event)">
-              <div style="font-size:2rem;margin-bottom:.4rem">🪪</div>
-              <div style="font-size:.83rem;color:var(--tm);font-weight:500">Click or drag & drop your ID / passport</div>
-              <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">JPG, PNG · Max 5MB · Front side</div>
-              <input type="file" id="id-up" accept="image/*" style="display:none" onchange="handleIDUpload(this)">
-            </div>
-            <div id="id-preview" style="margin-top:.75rem;display:none">
-              <img id="id-img" style="max-width:100%;border-radius:10px;max-height:180px;object-fit:cover;border:2px solid var(--green)">
-              <div style="font-size:.75rem;color:var(--green);margin-top:.4rem">✅ ID uploaded — now take a selfie</div>
-              <button class="btn bp" style="margin-top:.75rem;width:100%;justify-content:center" onclick="showSelfieStep()">Continue → Take selfie</button>
-            </div>
-          </div>
-
-          <!-- Step 2: Selfie -->
-          <div id="verify-step2" style="display:none">
-            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 2 — Take a selfie</div>
-            <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;text-align:center">
-              <video id="selfie-video" autoplay playsinline style="width:100%;max-height:240px;object-fit:cover;border-radius:12px"></video>
-              <div style="position:absolute;inset:0;border:3px solid rgba(76,175,125,.5);border-radius:12px;pointer-events:none"></div>
-              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:150px;height:200px;border:2px dashed rgba(255,255,255,.4);border-radius:50%;pointer-events:none"></div>
-            </div>
-            <canvas id="selfie-canvas" style="display:none"></canvas>
-            <div style="display:flex;gap:.75rem;margin-top:.75rem">
-              <button class="btn bg" style="flex:1;justify-content:center" onclick="showStep1()">← Back</button>
-              <button class="btn bp" style="flex:2;justify-content:center" onclick="captureSelfie()">📸 Capture selfie</button>
-            </div>
-          </div>
-
-          <!-- Step 3: Verification result -->
-          <div id="verify-step3" style="display:none">
-            <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--txt)">Step 3 — Verification</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
-              <div style="text-align:center">
-                <div style="font-size:.72rem;color:var(--td);margin-bottom:.3rem">Your ID</div>
-                <img id="id-thumb" style="width:100%;border-radius:8px;max-height:120px;object-fit:cover">
+          <div id="verify-upload-section">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
+              <!-- ID upload -->
+              <div>
+                <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;color:var(--txt)">🪪 ID or passport</div>
+                <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('id-up').click()">
+                  <div style="font-size:1.5rem;margin-bottom:.3rem">🪪</div>
+                  <div id="id-upload-label" style="font-size:.75rem;color:var(--tm)">Click to upload</div>
+                  <div style="font-size:.65rem;color:var(--td);margin-top:.15rem">JPG, PNG, PDF · Max 5MB</div>
+                  <input type="file" id="id-up" accept="image/*,.pdf" style="display:none" onchange="onIDSelected(this)">
+                </div>
+                <div id="id-preview-small" style="display:none;margin-top:.4rem;text-align:center">
+                  <img id="id-preview-img" style="max-width:100%;border-radius:8px;max-height:80px;object-fit:cover;border:2px solid var(--green)">
+                  <div style="font-size:.68rem;color:var(--green);margin-top:.2rem">✅ Ready</div>
+                </div>
               </div>
-              <div style="text-align:center">
-                <div style="font-size:.72rem;color:var(--td);margin-bottom:.3rem">Your selfie</div>
-                <img id="selfie-thumb" style="width:100%;border-radius:8px;max-height:120px;object-fit:cover">
+              <!-- Selfie upload -->
+              <div>
+                <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;color:var(--txt)">🤳 Selfie</div>
+                <div style="border:2px dashed var(--b2);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="document.getElementById('selfie-up').click()">
+                  <div style="font-size:1.5rem;margin-bottom:.3rem">🤳</div>
+                  <div id="selfie-upload-label" style="font-size:.75rem;color:var(--tm)">Click to upload</div>
+                  <div style="font-size:.65rem;color:var(--td);margin-top:.15rem">JPG, PNG · Clear face photo</div>
+                  <input type="file" id="selfie-up" accept="image/*" style="display:none" onchange="onSelfieSelected(this)">
+                </div>
+                <div id="selfie-preview-small" style="display:none;margin-top:.4rem;text-align:center">
+                  <img id="selfie-preview-img" style="max-width:100%;border-radius:8px;max-height:80px;object-fit:cover;border:2px solid var(--green)">
+                  <div style="font-size:.68rem;color:var(--green);margin-top:.2rem">✅ Ready</div>
+                </div>
               </div>
             </div>
-            <div id="verify-loading" style="text-align:center;padding:1rem">
-              <div class="sp" style="margin:0 auto .5rem"></div>
-              <div style="font-size:.82rem;color:var(--tm)">Analysing your documents...</div>
-            </div>
-            <div id="verify-result" style="display:none"></div>
+            <button id="submit-verify-btn" onclick="submitIDForVerification()" disabled style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer;opacity:.5">Submit for verification →</button>
+            <div id="upload-status" style="margin-top:.75rem;display:none"></div>
           </div>
 
           <div id="id-status" style="margin-top:.75rem;font-size:.82rem;color:var(--td)"></div>
@@ -3025,29 +3005,82 @@ function handleIDDrop(e){
   if(file&&file.type.startsWith('image/'))processIDFile(file);
 }
 
-function handleIDUpload(input){
-  const file=input.files[0];
-  if(file)processIDFile(file);
+let _idFile = null;
+let _selfieFile = null;
+
+function onIDSelected(input){
+  _idFile = input.files?.[0];
+  if(!_idFile) return;
+  const label = document.getElementById('id-upload-label');
+  const preview = document.getElementById('id-preview-small');
+  const img = document.getElementById('id-preview-img');
+  if(label) label.textContent = _idFile.name.substring(0, 20);
+  if(preview && img){
+    img.src = URL.createObjectURL(_idFile);
+    preview.style.display = 'block';
+  }
+  checkBothReady();
 }
 
-function processIDFile(file){
-  if(file.size>5*1024*1024){toast('❌ File too large — max 5MB');return;}
-  const reader=new FileReader();
-  reader.onload=e=>{
-    idImageData=e.target.result;
-    document.getElementById('id-img').src=idImageData;
-    document.getElementById('id-preview').style.display='block';
-    document.getElementById('id-thumb').src=idImageData;
-  };
-  reader.readAsDataURL(file);
+function onSelfieSelected(input){
+  _selfieFile = input.files?.[0];
+  if(!_selfieFile) return;
+  const label = document.getElementById('selfie-upload-label');
+  const preview = document.getElementById('selfie-preview-small');
+  const img = document.getElementById('selfie-preview-img');
+  if(label) label.textContent = _selfieFile.name.substring(0, 20);
+  if(preview && img){
+    img.src = URL.createObjectURL(_selfieFile);
+    preview.style.display = 'block';
+  }
+  checkBothReady();
 }
 
-function showStep1(){
-  document.getElementById('verify-step2').style.display='none';
-  document.getElementById('verify-step3').style.display='none';
-  document.getElementById('verify-step1').style.display='block';
-  stopCamera();
+function checkBothReady(){
+  const btn = document.getElementById('submit-verify-btn');
+  if(btn){
+    const ready = _idFile && _selfieFile;
+    btn.disabled = !ready;
+    btn.style.opacity = ready ? '1' : '.5';
+    btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+  }
 }
+
+async function submitIDForVerification(){
+  if(!_idFile || !_selfieFile){ toast('Please upload both your ID and a selfie'); return; }
+  const status = document.getElementById('upload-status');
+  const btn = document.getElementById('submit-verify-btn');
+  if(status){ status.style.display='block'; status.innerHTML='<div style="color:var(--gold)">⏳ Uploading...</div>'; }
+  if(btn){ btn.disabled=true; btn.style.opacity='.5'; }
+  try{
+    const idExt = _idFile.name.split('.').pop();
+    const selfieExt = _selfieFile.name.split('.').pop();
+    const{error:e1} = await sb.storage.from('tenant-documents').upload('id-docs/'+U.id+'/id.'+idExt, _idFile, {upsert:true});
+    if(e1) throw new Error(e1.message);
+    const{error:e2} = await sb.storage.from('tenant-documents').upload('id-docs/'+U.id+'/selfie.'+selfieExt, _selfieFile, {upsert:true});
+    if(e2) throw new Error(e2.message);
+    await sb.from('profiles').update({id_submitted:true, id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
+    if(status) status.innerHTML = '<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
+    toast('✅ ID + selfie submitted for verification!');
+  }catch(e){
+    if(status) status.innerHTML = '<div style="color:var(--red)">❌ '+e.message+'</div>';
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+    toast('❌ '+e.message);
+  }
+}
+
+function handleIDDrop(event){
+  event.preventDefault();
+  const file = event.dataTransfer?.files?.[0];
+  if(file){
+    const input = document.getElementById('id-up');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    submitIDForVerification(input);
+  }
+}
+
 
 async function showSelfieStep(){
   if(!idImageData){toast('Please upload your ID first');return;}
