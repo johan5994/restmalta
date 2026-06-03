@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestMalta Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#0F1117;--s:#1A1D27;--s2:#22263A;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--terra:#E05A3A;--green:#4CAF7D;--gold:#D4A847;--red:#E05A5A;--txt:#F0EDE8;--tm:rgba(240,237,232,.45);--td:rgba(240,237,232,.25)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif,system-ui;background:var(--bg);color:var(--txt);min-height:100vh}
+.login{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-box{background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:2rem;width:100%;max-width:360px;text-align:center}
+.logo{font-size:1.6rem;font-weight:900;color:var(--terra);margin-bottom:.3rem}
+.fi{width:100%;padding:.65rem .9rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--txt);font-size:.9rem;outline:none;margin-bottom:.75rem}
+.btn{padding:.65rem 1.4rem;border-radius:8px;border:none;font-size:.88rem;font-weight:700;cursor:pointer;width:100%}
+.bp{background:var(--terra);color:white}
+.admin{display:none;padding:1.5rem 2rem;max-width:1200px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--b)}
+.tabs{display:flex;gap:.5rem;margin-bottom:1.5rem}
+.tab{padding:.45rem 1rem;border-radius:8px;border:1px solid var(--b);background:none;color:var(--tm);cursor:pointer;font-size:.83rem;font-weight:600}
+.tab.act{background:var(--terra);color:white;border-color:var(--terra)}
+.card{background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;margin-bottom:1rem}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.kcard{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1.1rem 1.3rem}
+.klabel{font-size:.7rem;color:var(--td);font-weight:600;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.4px}
+.kval{font-size:1.8rem;font-weight:800}
+.badge{padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:700}
+.b-gold{background:rgba(212,168,71,.15);color:var(--gold)}
+.b-green{background:rgba(76,175,125,.15);color:var(--green)}
+.b-red{background:rgba(224,90,90,.15);color:var(--red)}
+.b-dim{background:rgba(255,255,255,.06);color:var(--td)}
+.tenant-row{display:flex;align-items:center;gap:1rem;padding:1rem 1.2rem;border-bottom:1px solid var(--b)}
+.tenant-row:last-child{border-bottom:none}
+.av{width:38px;height:38px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0}
+.docs-grid{display:flex;gap:.4rem;flex-wrap:wrap}
+.doc-chip{padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.doc-ok{background:rgba(76,175,125,.15);color:var(--green)}
+.doc-miss{background:rgba(255,255,255,.05);color:var(--td)}
+.action-btn{padding:.35rem .75rem;border-radius:7px;border:none;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s}
+.verify-btn{background:rgba(76,175,125,.15);color:var(--green);border:1px solid rgba(76,175,125,.3)}
+.verify-btn:hover{background:#4CAF7D;color:white}
+.reject-btn{background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3)}
+.reject-btn:hover{background:var(--red);color:white}
+.sp{width:18px;height:18px;border:2px solid rgba(224,90,58,.2);border-top-color:var(--terra);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--s2);color:var(--txt);padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;border:1px solid var(--b2)}
+.toast.show{transform:translateY(0);opacity:1}
+.search{padding:.55rem .9rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--txt);font-size:.85rem;outline:none;width:260px}
+img.doc-thumb{width:60px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--b2);cursor:pointer}
+img.doc-thumb:hover{border-color:var(--terra)}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login" id="login-screen">
+  <div class="login-box">
+    <div class="logo">RestMalta</div>
+    <div style="font-size:.78rem;color:var(--td);margin-bottom:1.5rem">Admin Panel</div>
+    <input class="fi" type="password" id="pwd" placeholder="Admin password" onkeydown="if(event.key==='Enter')login()">
+    <button class="btn bp" onclick="login()">Sign in →</button>
+    <div id="login-err" style="color:var(--red);font-size:.78rem;margin-top:.5rem"></div>
+  </div>
+</div>
+
+<!-- Admin -->
+<div class="admin" id="admin-screen">
+  <div class="topbar">
+    <div>
+      <div style="font-size:1.1rem;font-weight:800">🏠 RestMalta Admin</div>
+      <div style="font-size:.75rem;color:var(--td);margin-top:.1rem">Identity verification & tenant management</div>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <input class="search" id="search" placeholder="Search tenant..." oninput="filterTenants(this.value)">
+      <button class="btn" style="background:rgba(255,255,255,.06);color:var(--tm);border:1px solid var(--b);padding:.5rem .9rem;font-size:.8rem;width:auto" onclick="loadAll()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid">
+    <div class="kcard"><div class="klabel">Total tenants</div><div class="kval" id="k-total" style="color:var(--txt)">—</div></div>
+    <div class="kcard"><div class="klabel">Pending verification</div><div class="kval" id="k-pending" style="color:var(--gold)">—</div></div>
+    <div class="kcard"><div class="klabel">Verified</div><div class="kval" id="k-verified" style="color:var(--green)">—</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab act" onclick="setTab('pending',this)">⏳ Pending verification</button>
+    <button class="tab" onclick="setTab('verified',this)">✅ Verified</button>
+    <button class="tab" onclick="setTab('all',this)">👥 All tenants</button>
+  </div>
+
+  <div id="tenants-list"><div style="text-align:center;padding:2rem;color:var(--td)"><div class="sp"></div></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SU='https://clfqftbvohwybkrtvylo.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
+const sb = window.supabase.createClient(SU, SK, {auth:{persistSession:false}});
+
+const ADMIN_PWD = 'RestMalta2024!'; // Change this!
+let allTenants = [];
+let currentTab = 'pending';
+
+function login(){
+  const pwd = document.getElementById('pwd').value;
+  if(pwd === ADMIN_PWD){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('login-err').textContent = 'Wrong password';
+  }
+}
+
+async function loadAll(){
+  const wrap = document.getElementById('tenants-list');
+  wrap.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--td)"><div class="sp"></div></div>';
+
+  const{data:profiles} = await sb.from('profiles').select('*').eq('role','tenant').order('created_at',{ascending:false});
+  allTenants = profiles || [];
+
+  // KPIs
+  document.getElementById('k-total').textContent = allTenants.length;
+  document.getElementById('k-pending').textContent = allTenants.filter(p=>p.id_submitted&&!p.verified).length;
+  document.getElementById('k-verified').textContent = allTenants.filter(p=>p.verified).length;
+
+  renderTenants();
+}
+
+function setTab(tab, btn){
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
+  btn.classList.add('act');
+  renderTenants();
+}
+
+function filterTenants(q){
+  renderTenants(q);
+}
+
+function renderTenants(q=''){
+  const wrap = document.getElementById('tenants-list');
+  let tenants = allTenants;
+
+  if(currentTab === 'pending') tenants = tenants.filter(p=>p.id_submitted&&!p.verified);
+  if(currentTab === 'verified') tenants = tenants.filter(p=>p.verified);
+  if(q) tenants = tenants.filter(p=>(p.full_name||'').toLowerCase().includes(q.toLowerCase())||(p.email||'').toLowerCase().includes(q.toLowerCase()));
+
+  if(!tenants.length){
+    wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--td)">'+
+      (currentTab==='pending'?'No pending verifications 🎉':currentTab==='verified'?'No verified tenants yet':'No tenants found')+'</div>';
+    return;
+  }
+
+  wrap.innerHTML = '<div class="card">'+tenants.map(p=>`
+    <div class="tenant-row" id="row-${p.clerk_id}">
+      <div class="av">${(p.full_name||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+          <div style="font-size:.9rem;font-weight:700">${p.full_name||'—'}</div>
+          ${p.verified?'<span class="badge b-green">✅ Verified</span>':p.id_submitted?'<span class="badge b-gold">⏳ Pending</span>':'<span class="badge b-dim">Not submitted</span>'}
+        </div>
+        <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">${p.email||'—'} · ${p.nationality||'—'} · ${p.phone||'—'}</div>
+        <div id="docs-${p.clerk_id}" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          <span style="font-size:.7rem;color:var(--td)">Loading docs...</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
+        ${!p.verified && p.id_submitted ? `
+        <button class="action-btn verify-btn" onclick="verifyTenant('${p.clerk_id}','${(p.full_name||'').replace(/'/g,"\\'")}')">✅ Verify</button>
+        <button class="action-btn reject-btn" onclick="rejectTenant('${p.clerk_id}')">❌ Reject</button>` : ''}
+        ${p.verified ? '<span style="font-size:.72rem;color:var(--green)">✅ Verified '+new Date(p.verified_at||p.updated_at).toLocaleDateString('en-GB')+'</span>' : ''}
+        <button class="action-btn" style="background:rgba(255,255,255,.06);color:var(--tm);border:1px solid var(--b);font-size:.7rem" onclick="viewProfile('${p.clerk_id}')">👁 Profile</button>
+      </div>
+    </div>`).join('')+'</div>';
+
+  // Charger les docs pour chaque tenant
+  tenants.forEach(p => loadTenantDocs(p.clerk_id));
+}
+
+async function loadTenantDocs(clerkId){
+  const wrap = document.getElementById('docs-'+clerkId);
+  if(!wrap) return;
+  try{
+    // Lister les fichiers dans id-docs/{clerkId}/
+    const{data:files} = await sb.storage.from('tenant-documents').list('id-docs/'+clerkId, {limit:10});
+    // Lister aussi les docs dans la table profiles
+    const{data:profile} = await sb.from('profiles').select('documents').eq('clerk_id',clerkId).single();
+
+    let html = '';
+
+    // ID et selfie
+    if(files&&files.length){
+      for(const f of files){
+        const{data:url} = await sb.storage.from('tenant-documents').createSignedUrl('id-docs/'+clerkId+'/'+f.name, 300);
+        const isID = f.name.startsWith('id.');
+        const isSelfie = f.name.startsWith('selfie.');
+        html += `<a href="${url.signedUrl}" target="_blank" title="${f.name}">
+          <img class="doc-thumb" src="${url.signedUrl}" alt="${f.name}">
+        </a>`;
+      }
+    }
+
+    // Autres documents
+    const docs = profile?.documents ? (typeof profile.documents==='string'?JSON.parse(profile.documents):profile.documents) : {};
+    const docLabels = {id:'🪪 ID',bank_statement:'🏦 Bank',emprent_letter:'💼 Employment',reference_letter:'⭐ Reference',rent1:'🏠 Rent 1',rent2:'🏠 Rent 2',rent3:'🏠 Rent 3'};
+    for(const [key, doc] of Object.entries(docs)){
+      if(!doc?.path) continue;
+      const{data:url} = await sb.storage.from('tenant-documents').createSignedUrl(doc.path, 300);
+      if(url?.signedUrl){
+        html += `<a href="${url.signedUrl}" target="_blank" class="doc-chip doc-ok">${docLabels[key]||key}</a>`;
+      }
+    }
+
+    if(!html) html = '<span style="font-size:.7rem;color:var(--td)">No documents uploaded</span>';
+    wrap.innerHTML = html;
+  }catch(e){
+    wrap.innerHTML = '<span style="font-size:.7rem;color:var(--td)">—</span>';
+  }
+}
+
+async function verifyTenant(clerkId, name){
+  if(!confirm('Verify '+name+'? This will grant the ✅ badge.')) return;
+  const{error} = await sb.from('profiles').update({verified:true, verified_at:new Date().toISOString()}).eq('clerk_id',clerkId);
+  if(error){toast('❌ Error: '+error.message);return;}
+  toast('✅ '+name+' verified!');
+  // Notifier le tenant
+  await sb.from('messages').insert({
+    listing_id:'00000000-0000-0000-0000-000000000000',
+    sender_id:'system',
+    receiver_id:clerkId,
+    content:'🎉 Your identity has been verified by RestMalta!\n\nYour ✅ Verified badge is now visible to all landlords. This increases your chances of being selected.',
+    type:'verified'
+  }).catch(()=>{});
+  loadAll();
+}
+
+async function rejectTenant(clerkId){
+  const reason = prompt('Reason for rejection (will be sent to tenant):');
+  if(!reason) return;
+  await sb.from('profiles').update({id_submitted:false}).eq('clerk_id',clerkId);
+  await sb.from('messages').insert({
+    listing_id:'00000000-0000-0000-0000-000000000000',
+    sender_id:'system',
+    receiver_id:clerkId,
+    content:'⚠️ Your identity verification was not approved.\n\nReason: '+reason+'\n\nPlease re-upload your documents in your profile.',
+    type:'verify_rejected'
+  }).catch(()=>{});
+  toast('Tenant notified of rejection.');
+  loadAll();
+}
+
+function viewProfile(clerkId){
+  window.open('https://supabase.com/dashboard/project/clfqftbvohwybkrtvylo/editor?schema=public&table=profiles&filter=clerk_id%3Aeq%3A'+clerkId,'_blank');
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
