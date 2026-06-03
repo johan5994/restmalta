@@ -504,10 +504,142 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Full legal name * <span style="font-size:.68rem;color:var(--td)">(as on passport)</span></label><input class="fi" id="p-name" placeholder="Marie Dupont"></div>
             <div class="fg"><label class="fl">Email</label><input class="fi" id="p-email" readonly style="opacity:.6"></div>
             <div class="fg"><label class="fl">Phone *</label><input class="fi" id="p-phone" placeholder="+356 9999 0000" autocomplete="tel"></div>
-            <div class="fg"><label class="fl">Nationality *</label><input class="fi" id="p-nat" placeholder="French"></div>
+            <div class="fg"><label class="fl">Nationality *</label>
+              <select class="fsel" id="p-nat">
+                <option value="">Select country...</option>
+                <option value="Afghan">Afghan</option><option value="Albanian">Albanian</option><option value="Algerian">Algerian</option><option value="American">American</option><option value="Andorran">Andorran</option><option value="Angolan">Angolan</option><option value="Argentine">Argentine</option><option value="Armenian">Armenian</option><option value="Australian">Australian</option><option value="Austrian">Austrian</option><option value="Azerbaijani">Azerbaijani</option><option value="Bahraini">Bahraini</option><option value="Bangladeshi">Bangladeshi</option><option value="Belgian">Belgian</option><option value="Bolivian">Bolivian</option><option value="Bosnian">Bosnian</option><option value="Brazilian">Brazilian</option><option value="British">British</option><option value="Bulgarian">Bulgarian</option><option value="Cambodian">Cambodian</option><option value="Cameroonian">Cameroonian</option><option value="Canadian">Canadian</option><option value="Chilean">Chilean</option><option value="Chinese">Chinese</option><option value="Colombian">Colombian</option><option value="Croatian">Croatian</option><option value="Cuban">Cuban</option><option value="Cypriot">Cypriot</option><option value="Czech">Czech</option><option value="Danish">Danish</option><option value="Dominican">Dominican</option><option value="Dutch">Dutch</option><option value="Ecuadorian">Ecuadorian</option><option value="Egyptian">Egyptian</option><option value="Emirati">Emirati</option><option value="Estonian">Estonian</option><option value="Ethiopian">Ethiopian</option><option value="Filipino">Filipino</option><option value="Finnish">Finnish</option><option value="French">French</option><option value="Georgian">Georgian</option><option value="German">German</option><option value="Ghanaian">Ghanaian</option><option value="Greek">Greek</option><option value="Guatemalan">Guatemalan</option><option value="Honduran">Honduran</option><option value="Hungarian">Hungarian</option><option value="Icelandic">Icelandic</option><option value="Indian">Indian</option><option value="Indonesian">Indonesian</option><option value="Iranian">Iranian</option><option value="Iraqi">Iraqi</option><option value="Irish">Irish</option><option value="Israeli">Israeli</option><option value="Italian">Italian</option><option value="Ivorian">Ivorian</option><option value="Jamaican">Jamaican</option><option value="Japanese">Japanese</option><option value="Jordanian">Jordanian</option><option value="Kazakh">Kazakh</option><option value="Kenyan">Kenyan</option><option value="Korean">Korean</option><option value="Kuwaiti">Kuwaiti</option><option value="Latvian">Latvian</option><option value="Lebanese">Lebanese</option><option value="Libyan">Libyan</option><option value="Lithuanian">Lithuanian</option><option value="Luxembourgish">Luxembourgish</option><option value="Macedonian">Macedonian</option><option value="Malaysian">Malaysian</option><option value="Maltese">Maltese</option><option value="Mexican">Mexican</option><option value="Moldovan">Moldovan</option><option value="Mongolian">Mongolian</option><option value="Montenegrin">Montenegrin</option><option value="Moroccan">Moroccan</option><option value="Mozambican">Mozambican</option><option value="Namibian">Namibian</option><option value="Nepali">Nepali</option><option value="New Zealander">New Zealander</option><option value="Nicaraguan">Nicaraguan</option><option value="Nigerian">Nigerian</option><option value="Norwegian">Norwegian</option><option value="Omani">Omani</option><option value="Pakistani">Pakistani</option><option value="Panamanian">Panamanian</option><option value="Paraguayan">Paraguayan</option><option value="Peruvian">Peruvian</option><option value="Polish">Polish</option><option value="Portuguese">Portuguese</option><option value="Qatari">Qatari</option><option value="Romanian">Romanian</option><option value="Russian">Russian</option><option value="Saudi">Saudi</option><option value="Senegalese">Senegalese</option><option value="Serbian">Serbian</option><option value="Singaporean">Singaporean</option><option value="Slovak">Slovak</option><option value="Slovenian">Slovenian</option><option value="South African">South African</option><option value="Spanish">Spanish</option><option value="Sri Lankan">Sri Lankan</option><option value="Sudanese">Sudanese</option><option value="Swedish">Swedish</option><option value="Swiss">Swiss</option><option value="Syrian">Syrian</option><option value="Taiwanese">Taiwanese</option><option value="Tanzanian">Tanzanian</option><option value="Thai">Thai</option><option value="Tunisian">Tunisian</option><option value="Turkish">Turkish</option><option value="Ugandan">Ugandan</option><option value="Ukrainian">Ukrainian</option><option value="Uruguayan">Uruguayan</option><option value="Uzbek">Uzbek</option><option value="Venezuelan">Venezuelan</option><option value="Vietnamese">Vietnamese</option><option value="Yemeni">Yemeni</option><option value="Zambian">Zambian</option><option value="Zimbabwean">Zimbabwean</option>
+              </select></div>
             <div class="fg"><label class="fl">Passport / ID number *</label><input class="fi" id="p-passport" placeholder="e.g. 12345678A"></div>
             <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="p-dob"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Place of birth *</label><input class="fi" id="p-pob" placeholder="Paris, France"></div>
+            <div class="fg" style="grid-column:1/-1">
+              <label class="fl">Place of birth *</label>
+              <div style="display:flex;gap:.5rem">
+                <input class="fi" id="p-pob-city" placeholder="City" style="flex:1">
+                <select class="fsel" id="p-pob-country" style="flex:1">
+                  <option value="">Country...</option>
+                  <option value="Afghanistan">Afghanistan</option>
+<option value="Albania">Albania</option>
+<option value="Algeria">Algeria</option>
+<option value="Andorra">Andorra</option>
+<option value="Angola">Angola</option>
+<option value="Argentina">Argentina</option>
+<option value="Armenia">Armenia</option>
+<option value="Australia">Australia</option>
+<option value="Austria">Austria</option>
+<option value="Azerbaijan">Azerbaijan</option>
+<option value="Bahrain">Bahrain</option>
+<option value="Bangladesh">Bangladesh</option>
+<option value="Belgium">Belgium</option>
+<option value="Bolivia">Bolivia</option>
+<option value="Bosnia">Bosnia</option>
+<option value="Brazil">Brazil</option>
+<option value="Bulgaria">Bulgaria</option>
+<option value="Cambodia">Cambodia</option>
+<option value="Cameroon">Cameroon</option>
+<option value="Canada">Canada</option>
+<option value="Chile">Chile</option>
+<option value="China">China</option>
+<option value="Colombia">Colombia</option>
+<option value="Croatia">Croatia</option>
+<option value="Cuba">Cuba</option>
+<option value="Cyprus">Cyprus</option>
+<option value="Czech Republic">Czech Republic</option>
+<option value="Denmark">Denmark</option>
+<option value="Dominican Republic">Dominican Republic</option>
+<option value="Ecuador">Ecuador</option>
+<option value="Egypt">Egypt</option>
+<option value="El Salvador">El Salvador</option>
+<option value="Estonia">Estonia</option>
+<option value="Ethiopia">Ethiopia</option>
+<option value="Finland">Finland</option>
+<option value="France">France</option>
+<option value="Georgia">Georgia</option>
+<option value="Germany">Germany</option>
+<option value="Ghana">Ghana</option>
+<option value="Greece">Greece</option>
+<option value="Guatemala">Guatemala</option>
+<option value="Honduras">Honduras</option>
+<option value="Hungary">Hungary</option>
+<option value="Iceland">Iceland</option>
+<option value="India">India</option>
+<option value="Indonesia">Indonesia</option>
+<option value="Iran">Iran</option>
+<option value="Iraq">Iraq</option>
+<option value="Ireland">Ireland</option>
+<option value="Israel">Israel</option>
+<option value="Italy">Italy</option>
+<option value="Jamaica">Jamaica</option>
+<option value="Japan">Japan</option>
+<option value="Jordan">Jordan</option>
+<option value="Kazakhstan">Kazakhstan</option>
+<option value="Kenya">Kenya</option>
+<option value="Kosovo">Kosovo</option>
+<option value="Kuwait">Kuwait</option>
+<option value="Latvia">Latvia</option>
+<option value="Lebanon">Lebanon</option>
+<option value="Libya">Libya</option>
+<option value="Lithuania">Lithuania</option>
+<option value="Luxembourg">Luxembourg</option>
+<option value="Malaysia">Malaysia</option>
+<option value="Malta">Malta</option>
+<option value="Mexico">Mexico</option>
+<option value="Moldova">Moldova</option>
+<option value="Mongolia">Mongolia</option>
+<option value="Montenegro">Montenegro</option>
+<option value="Morocco">Morocco</option>
+<option value="Mozambique">Mozambique</option>
+<option value="Namibia">Namibia</option>
+<option value="Nepal">Nepal</option>
+<option value="Netherlands">Netherlands</option>
+<option value="New Zealand">New Zealand</option>
+<option value="Nicaragua">Nicaragua</option>
+<option value="Nigeria">Nigeria</option>
+<option value="North Macedonia">North Macedonia</option>
+<option value="Norway">Norway</option>
+<option value="Oman">Oman</option>
+<option value="Pakistan">Pakistan</option>
+<option value="Panama">Panama</option>
+<option value="Paraguay">Paraguay</option>
+<option value="Peru">Peru</option>
+<option value="Philippines">Philippines</option>
+<option value="Poland">Poland</option>
+<option value="Portugal">Portugal</option>
+<option value="Qatar">Qatar</option>
+<option value="Romania">Romania</option>
+<option value="Russia">Russia</option>
+<option value="Saudi Arabia">Saudi Arabia</option>
+<option value="Senegal">Senegal</option>
+<option value="Serbia">Serbia</option>
+<option value="Singapore">Singapore</option>
+<option value="Slovakia">Slovakia</option>
+<option value="Slovenia">Slovenia</option>
+<option value="South Africa">South Africa</option>
+<option value="South Korea">South Korea</option>
+<option value="Spain">Spain</option>
+<option value="Sri Lanka">Sri Lanka</option>
+<option value="Sudan">Sudan</option>
+<option value="Sweden">Sweden</option>
+<option value="Switzerland">Switzerland</option>
+<option value="Syria">Syria</option>
+<option value="Taiwan">Taiwan</option>
+<option value="Tanzania">Tanzania</option>
+<option value="Thailand">Thailand</option>
+<option value="Tunisia">Tunisia</option>
+<option value="Turkey">Turkey</option>
+<option value="Uganda">Uganda</option>
+<option value="Ukraine">Ukraine</option>
+<option value="United Kingdom">United Kingdom</option>
+<option value="United States">United States</option>
+<option value="Uruguay">Uruguay</option>
+<option value="Uzbekistan">Uzbekistan</option>
+<option value="Venezuela">Venezuela</option>
+<option value="Vietnam">Vietnam</option>
+<option value="Yemen">Yemen</option>
+<option value="Zambia">Zambia</option>
+<option value="Zimbabwe">Zimbabwe</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <!-- Required for lease -->
@@ -666,7 +798,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">⭐</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Landlord reference letter <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.85rem;font-weight:600">Landlord reference letter <span style="background:var(--sea);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Highly recommended</span></div>
               <div style="font-size:.72rem;color:var(--tm)">From a previous landlord — increases your chances</div>
             </div>
             <div id="doc-ref-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
@@ -678,7 +810,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏠</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Rent receipt 1 <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.85rem;font-weight:600">Rent receipt 1 <span style="background:var(--sea);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Highly recommended</span></div>
               <div style="font-size:.72rem;color:var(--tm)">Most recent monthly rent receipt from previous landlord</div>
             </div>
             <div id="doc-rent1-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
@@ -688,7 +820,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏠</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Rent receipt 2 <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.85rem;font-weight:600">Rent receipt 2 <span style="background:var(--sea);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Highly recommended</span></div>
               <div style="font-size:.72rem;color:var(--tm)">2nd most recent monthly rent receipt</div>
             </div>
             <div id="doc-rent2-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
@@ -698,7 +830,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0">
             <div style="width:36px;height:36px;border-radius:8px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏠</div>
             <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600">Rent receipt 3 <span style="font-weight:400;color:var(--td)">(optional)</span></div>
+              <div style="font-size:.85rem;font-weight:600">Rent receipt 3 <span style="background:var(--sea);color:white;font-size:.6rem;padding:.1rem .4rem;border-radius:100px;margin-left:.3rem">Highly recommended</span></div>
               <div style="font-size:.72rem;color:var(--tm)">3rd most recent monthly rent receipt</div>
             </div>
             <div id="doc-rent3-status" style="font-size:.75rem;color:var(--td)">Not uploaded</div>
@@ -2481,7 +2613,11 @@ async function loadProfilee(){
   document.getElementById('p-nat').value=P.nationality||'';
   document.getElementById('p-passport').value=P.passport_number||'';
   document.getElementById('p-dob').value=P.date_of_birth||'';
-  document.getElementById('p-pob').value=P.place_of_birth||'';
+  if(document.getElementById('p-pob-city')){
+    const pob=(P.place_of_birth||'').split(',');
+    document.getElementById('p-pob-city').value=pob[0]?.trim()||'';
+    if(pob[1]&&document.getElementById('p-pob-country'))document.getElementById('p-pob-country').value=pob[1]?.trim()||'';
+  }
   document.getElementById('p-father').value=P.father_name||'';
   if(document.getElementById('p-father-last'))document.getElementById('p-father-last').value=P.father_last_name||'';
   document.getElementById('p-mother').value=P.mother_name||'';
@@ -2501,7 +2637,7 @@ function updateProfileeCompleteness(){
     document.getElementById('p-nat')?.value,
     document.getElementById('p-passport')?.value,
     document.getElementById('p-dob')?.value,
-    document.getElementById('p-pob')?.value,
+    document.getElementById('p-pob-city')?.value,
     document.getElementById('p-father')?.value,
     document.getElementById('p-mother')?.value,
     document.getElementById('p-mother-maiden')?.value,
