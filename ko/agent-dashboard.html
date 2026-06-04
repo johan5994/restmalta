@@ -1375,7 +1375,7 @@ function renderAllVisitsDirect(){
         +'</div>';
     }
     const issueBtn='<button class="btn bg bsm" style="font-size:.72rem" data-vid="'+v.id+'" data-lid="'+(v.listing_id||'')+'" data-tid="'+(v.tenant_id||'')+'" data-llid="'+(v.landlord_id||'')+'" onclick="showVisitIssueOptions(this.dataset.vid,this.dataset.lid,this.dataset.tid,this.dataset.llid)">⚠️ Issue</button>';
-    const viewBtn=v.listing_id?'<a href="/?listing='+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
+    const viewBtn=v.listing_id?'<a href="https://restmalta.com/?listing='+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
 
     html+='<div style="background:'+sc+';border:1.5px solid '+bc+';border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="visit-card-'+v.id+'">'
       +'<div style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">'
@@ -1438,11 +1438,13 @@ function renderAllVisitsDirect(){
 }
 
 async function loadLandlordInfo(landlordId, visitId){
+  if(!landlordId){return;}
   const el=document.getElementById('ll-info-'+visitId);
-  if(!el||el.dataset.loaded==='1')return; // Éviter re-chargement en boucle
+  if(!el){setTimeout(()=>loadLandlordInfo(landlordId,visitId),500);return;}
+  if(el.dataset.loaded==='1')return;
   el.dataset.loaded='1';
   try{
-    const{data:lp}=await sb.from('profiles').select('full_name,phone,email').eq('clerk_id',landlordId).single();
+    const{data:lp}=await sb.from('profiles').select('full_name,phone,email,malta_address').eq('clerk_id',landlordId).maybeSingle();
     if(!lp){el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';return;}
     el.innerHTML='<div style="display:flex;align-items:center;gap:.6rem">'
       +'<div style="width:34px;height:34px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:.9rem;flex-shrink:0">'+(lp.full_name||'L')[0].toUpperCase()+'</div>'
