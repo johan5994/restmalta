@@ -664,7 +664,8 @@ footer ul a:hover{color:var(--terra)}
         </div>
       </div>
 
-      <!-- Visit & Inventory presence options -->
+      <!-- Visit & Inventory presence options — visible seulement avec agent -->
+      <div id="agent-details-section" style="display:none">
       <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
         <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.75rem">🏠 Your availability during visits & inventory</div>
         <div class="frow">
@@ -713,6 +714,7 @@ footer ul a:hover{color:var(--terra)}
           📋 The agent will organise the visit and send you a summary after.
         </div>
       </div>
+      </div><!-- end agent-details-section -->
 
       <div class="fg2" style="margin-top:.75rem"><label>Description</label><textarea class="fta" id="pde" rows="4" placeholder="Describe your flat — furnished, WiFi, near transport, bills included, house rules…"></textarea></div>
 
@@ -733,17 +735,13 @@ footer ul a:hover{color:var(--terra)}
         <div class="frow">
           <div class="fg2"><label>Notice period</label>
             <select class="fi" id="p-notice" style="cursor:pointer">
-              <option value="1_month">1 month (minimum by Maltase law)</option>
-              <option value="2_months">2 months</option>
-              <option value="3_months">3 months</option>
+              <option value="1_week">1 week (required by Maltese law)</option>
             </select>
           </div>
           <div class="fg2"><label>Bills situation</label>
             <select class="fi" id="p-bills" style="cursor:pointer">
-              <option value="included">All bills included in rent</option>
-              <option value="excluded">Bills not included — tenant pays</option>
-              <option value="water_only">Water included, electricity extra</option>
-              <option value="split">Bills split between occupants</option>
+              <option value="included">✅ All bills included in rent</option>
+              <option value="excluded">❌ Bills not included — tenant pays separately</option>
             </select>
           </div>
         </div>
@@ -1819,6 +1817,8 @@ function setT(el,t){
 }
 
 function updateAgentOpt(val){
+  const agentDetails=document.getElementById('agent-details-section');
+  if(agentDetails)agentDetails.style.display=val==='none'?'none':'block';
   ['none','full'].forEach(o=>{
     const radio=document.getElementById(`agent-opt-${o}`);
     if(radio)radio.checked=(o===val);
