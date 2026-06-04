@@ -1964,6 +1964,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     const url=URL.createObjectURL(file);
     document.getElementById('video-preview').innerHTML=`<video src="${url}" controls style="width:100%;border-radius:8px;max-height:200px;margin-top:.5rem"></video><div style="font-size:.72rem;color:var(--stone-l);margin-top:.3rem">✅ ${file.name} · ${(file.size/1024/1024).toFixed(1)}MB</div>`;
   });
+
+  // Ouvrir directement une annonce depuis #listing-ID
+  const hash=window.location.hash;
+  if(hash&&hash.startsWith('#listing-')){
+    const listingId=hash.replace('#listing-','');
+    setTimeout(()=>openDet(listingId),1000);
+  }
 });
 
 async function uploadPhotos(listingId) {
