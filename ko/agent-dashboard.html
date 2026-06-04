@@ -1016,7 +1016,7 @@ async function loadVisits(){
       const lIds=[...new Set(confirmedVisits.map(v=>v.listing_id).filter(Boolean))];
       if(lIds.length){
         try{
-          const{data:ls}=await sb.from('listings').select('id,title,zone,full_address,key_type,key_location,price').in('id',lIds);
+          const{data:ls}=await sb.from('listings').select('id,title,zone,full_address,key_type,key_location,price,photos,landlord_id').in('id',lIds);
           const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
           const tIds=[...new Set(confirmedVisits.map(v=>v.tenant_id).filter(Boolean))];
           let tMap={};
@@ -1026,6 +1026,8 @@ async function loadVisits(){
             listing_title:v.listing_title||lMap[v.listing_id]?.title||'Property',
             listing_zone:v.listing_zone||lMap[v.listing_id]?.zone||'Malta',
             listing_address:v.listing_address||lMap[v.listing_id]?.full_address||lMap[v.listing_id]?.zone||'Malta',
+            listing:lMap[v.listing_id]||null,
+            landlord_id:v.landlord_id||lMap[v.listing_id]?.landlord_id||null,
             listing_price:v.listing_price||lMap[v.listing_id]?.price||0,
             key_type:v.key_type||lMap[v.listing_id]?.key_type||'',
             key_location:v.key_location||lMap[v.listing_id]?.key_location||'',
@@ -1049,13 +1051,15 @@ async function loadVisits(){
       const lIds=[...new Set(confirmedVisits.map(v=>v.listing_id).filter(Boolean))];
       if(lIds.length){
         try{
-          const{data:ls}=await sb.from('listings').select('id,title,zone,full_address,key_type,key_location,price').in('id',lIds);
+          const{data:ls}=await sb.from('listings').select('id,title,zone,full_address,key_type,key_location,price,photos,landlord_id').in('id',lIds);
           const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
           confirmedVisits=confirmedVisits.map(v=>({
             ...v,
             listing_title:v.listing_title||lMap[v.listing_id]?.title||'Property',
             listing_zone:v.listing_zone||lMap[v.listing_id]?.zone||'Malta',
             listing_address:v.listing_address||lMap[v.listing_id]?.full_address||lMap[v.listing_id]?.zone||'Malta',
+            listing:lMap[v.listing_id]||null,
+            landlord_id:v.landlord_id||lMap[v.listing_id]?.landlord_id||null,
             key_type:v.key_type||lMap[v.listing_id]?.key_type||'',
             key_location:v.key_location||lMap[v.listing_id]?.key_location||''
           }));
@@ -1350,7 +1354,7 @@ function renderAllVisitsDirect(){
     const keyDisplay=keyL[v.key_type]||v.key_info||'Contact landlord';
     const sc=['agent_assigned','confirmed'].includes(v.status)?'rgba(76,175,125,.1)':['edl_scheduled','signing_day'].includes(v.status)?'rgba(58,143,181,.1)':'var(--s2)';
     const bc=['agent_assigned','confirmed'].includes(v.status)?'rgba(76,175,125,.3)':['edl_scheduled','signing_day'].includes(v.status)?'rgba(58,143,181,.3)':'var(--b)';
-    const statusBadge={'agent_assigned':'✅ Confirmed','confirmed':'✅ Tenant confirmed','edl_scheduled':'📋 Signing day','signing_day':'📋 Signing day','completed':'🏁 Done','lease_pending':'📄 Lease pending'}[v.status]||v.status;
+    const statusBadge={'agent_assigned':'⏳ Awaiting tenant confirmation','confirmed':'✅ Tenant confirmed','edl_scheduled':'📋 Signing day','signing_day':'📋 Signing day','completed':'🏁 Done','lease_pending':'📄 Lease pending'}[v.status]||v.status;
     const badgeCls=['agent_assigned','confirmed'].includes(v.status)?'b-green':['edl_scheduled','signing_day'].includes(v.status)?'b-sea':'b-gold';
     const keyCode=v.key_location?'<div style="font-size:.68rem;color:var(--sea)">Code: '+v.key_location+'</div>':'';
     const tPhone=v.tenant_phone?'<div style="font-size:.73rem"><a href="tel:'+v.tenant_phone+'" style="color:var(--sea);text-decoration:none">📞 '+v.tenant_phone+'</a></div>':'';
@@ -1371,6 +1375,7 @@ function renderAllVisitsDirect(){
         +'</div>';
     }
     const issueBtn='<button class="btn bg bsm" style="font-size:.72rem" data-vid="'+v.id+'" data-lid="'+(v.listing_id||'')+'" data-tid="'+(v.tenant_id||'')+'" data-llid="'+(v.landlord_id||'')+'" onclick="showVisitIssueOptions(this.dataset.vid,this.dataset.lid,this.dataset.tid,this.dataset.llid)">⚠️ Issue</button>';
+    const viewBtn=v.listing_id?'<a href="/?listing='+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
 
     html+='<div style="background:'+sc+';border:1.5px solid '+bc+';border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="visit-card-'+v.id+'">'
       +'<div style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">'
@@ -1411,10 +1416,15 @@ function renderAllVisitsDirect(){
           +'<div style="font-size:.6rem;color:var(--td)">tenant 40% + landlord 40%</div>'
         +'</div>'
       +'</div>'
-      +'<div style="padding:.65rem 1rem;display:flex;gap:.4rem">'+doneBtn+issueBtn+'</div>'
+      +'<div style="padding:.65rem 1rem;display:flex;gap:.4rem">'+doneBtn+viewBtn+issueBtn+'</div>'
       +(statusInfo?'<div style="padding:0 1rem .65rem">'+statusInfo+'</div>':'')
     +'</div>';
-    if(v.landlord_id) loadLandlordInfo(v.landlord_id, v.id);
+    const llId = v.landlord_id || v.listing?.landlord_id;
+    if(llId) loadLandlordInfo(llId, v.id);
+    else if(v.listing_id){
+      sb.from('listings').select('landlord_id').eq('id',v.listing_id).single()
+        .then(({data:l})=>{if(l?.landlord_id)loadLandlordInfo(l.landlord_id,v.id);});
+    }
   });
 
   if(past.length){
