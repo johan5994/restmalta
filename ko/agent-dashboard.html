@@ -1375,8 +1375,7 @@ function renderAllVisitsDirect(){
         +'</div>';
     }
     const issueBtn='<button class="btn bg bsm" style="font-size:.72rem" data-vid="'+v.id+'" data-lid="'+(v.listing_id||'')+'" data-tid="'+(v.tenant_id||'')+'" data-llid="'+(v.landlord_id||'')+'" onclick="showVisitIssueOptions(this.dataset.vid,this.dataset.lid,this.dataset.tid,this.dataset.llid)">⚠️ Issue</button>';
-    const viewBtn=v.listing_id?'<a href="https://restmalta.com/?listing='+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
-
+    const viewBtn=v.listing_id?'<a href="https://restmalta.netlify.app/?listing='+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
     html+='<div style="background:'+sc+';border:1.5px solid '+bc+';border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="visit-card-'+v.id+'">'
       +'<div style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">'
         +'<div><div style="font-size:.92rem;font-weight:800">'+(v.listing_title||'Property')+'</div>'
@@ -1444,7 +1443,22 @@ async function loadLandlordInfo(landlordId, visitId){
   if(el.dataset.loaded==='1')return;
   el.dataset.loaded='1';
   try{
-    const{data:lp}=await sb.from('profiles').select('full_name,phone,email,malta_address').eq('clerk_id',landlordId).maybeSingle();
+    // Chercher par clerk_id d'abord, puis par id UUID
+    let lp = null;
+    const{data:lp1}=await sb.from('profiles').select('full_name,phone,email,malta_address').eq('clerk_id',landlordId).maybeSingle();
+    if(lp1){lp=lp1;}
+    else{
+      const{data:lp2}=await sb.from('profiles').select('full_name,phone,email,malta_address').eq('id',landlordId).maybeSingle();
+      if(lp2)lp=lp2;
+    }
+    if(!lp){
+      // Dernier recours — chercher via listing
+      const{data:listing}=await sb.from('listings').select('landlord_id').eq('id',landlordId).maybeSingle();
+      if(listing?.landlord_id){
+        const{data:lp3}=await sb.from('profiles').select('full_name,phone,email,malta_address').eq('clerk_id',listing.landlord_id).maybeSingle();
+        if(lp3)lp=lp3;
+      }
+    }
     if(!lp){el.innerHTML='<div style="font-size:.75rem;color:var(--td)">—</div>';return;}
     el.innerHTML='<div style="display:flex;align-items:center;gap:.6rem">'
       +'<div style="width:34px;height:34px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:.9rem;flex-shrink:0">'+(lp.full_name||'L')[0].toUpperCase()+'</div>'
