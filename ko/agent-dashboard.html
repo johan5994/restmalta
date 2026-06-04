@@ -1375,7 +1375,7 @@ function renderAllVisitsDirect(){
         +'</div>';
     }
     const issueBtn='<button class="btn bg bsm" style="font-size:.72rem" data-vid="'+v.id+'" data-lid="'+(v.listing_id||'')+'" data-tid="'+(v.tenant_id||'')+'" data-llid="'+(v.landlord_id||'')+'" onclick="showVisitIssueOptions(this.dataset.vid,this.dataset.lid,this.dataset.tid,this.dataset.llid)">⚠️ Issue</button>';
-    const viewBtn=v.listing_id?'<a href="https://restmalta.netlify.app/?listing='+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
+    const viewBtn=v.listing_id?'<a href="https://restmalta.netlify.app/#listing-'+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
     html+='<div style="background:'+sc+';border:1.5px solid '+bc+';border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="visit-card-'+v.id+'">'
       +'<div style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">'
         +'<div><div style="font-size:.92rem;font-weight:800">'+(v.listing_title||'Property')+'</div>'
