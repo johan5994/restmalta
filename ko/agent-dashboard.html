@@ -1418,12 +1418,16 @@ function renderAllVisitsDirect(){
       +'<div style="padding:.65rem 1rem;display:flex;gap:.4rem">'+doneBtn+viewBtn+issueBtn+'</div>'
       +(statusInfo?'<div style="padding:0 1rem .65rem">'+statusInfo+'</div>':'')
     +'</div>';
-    const llId = v.landlord_id || v.listing?.landlord_id;
-    if(llId) loadLandlordInfo(llId, v.id);
-    else if(v.listing_id){
-      sb.from('listings').select('landlord_id').eq('id',v.listing_id).single()
-        .then(({data:l})=>{if(l?.landlord_id)loadLandlordInfo(l.landlord_id,v.id);});
-    }
+    // Attendre que le DOM soit rendu avant d'appeler loadLandlordInfo
+    const _llId = v.landlord_id || v.listing?.landlord_id;
+    const _vid = v.id;
+    setTimeout(()=>{
+      if(_llId) loadLandlordInfo(_llId, _vid);
+      else if(v.listing_id){
+        sb.from('listings').select('landlord_id').eq('id',v.listing_id).single()
+          .then(({data:l})=>{if(l?.landlord_id)loadLandlordInfo(l.landlord_id,_vid);});
+      }
+    }, 200);
   });
 
   if(past.length){
