@@ -1356,6 +1356,7 @@ function renderAllVisitsDirect(){
     const tPhone=v.tenant_phone?'<div style="font-size:.73rem"><a href="tel:'+v.tenant_phone+'" style="color:var(--sea);text-decoration:none">📞 '+v.tenant_phone+'</a></div>':'';
     const tEmail=v.tenant_email?'<div style="font-size:.68rem;color:var(--td)">✉️ '+v.tenant_email+'</div>':'';
     let doneBtn='';
+    let statusInfo='';
     if(['agent_assigned','confirmed'].includes(v.status)) doneBtn='<button class="btn bp bsm" style="flex:1;justify-content:center;font-size:.75rem" data-vid="'+v.id+'" onclick="markVisitDone(this.dataset.vid)">✅ Visit done</button>';
     else if(['edl_scheduled','signing_day'].includes(v.status)){
       const leaseSigned=(v.booking?.lease_signed_landlord&&v.booking?.lease_signed_tenant);
