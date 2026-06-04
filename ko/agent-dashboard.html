@@ -1199,13 +1199,6 @@ async function applyForVisit(msgId, listingId, visitId){
   try{
     const{data:current}=await sb.from('visits').select('status,agent_id').eq('id',visitId).single();
     
-    // Vérifier que le landlord a confirmé la dispo
-    if(current?.status==='awaiting_landlord'){
-      toast('⏳ Wait for the landlord to confirm availability first.');
-      await loadVisits();
-      return;
-    }
-    
     // Vérifier qu'aucun autre agent n'a été assigné
     if(current?.agent_id){
       toast('⚠️ Another agent was just assigned. Better luck next time!');
@@ -1218,7 +1211,7 @@ async function applyForVisit(msgId, listingId, visitId){
       agent_name:P?.full_name||'Agent',
       status:'agent_assigned',
       agents_applying_since:new Date().toISOString()
-    }).eq('id',visitId).in('status',['agents_applying']);
+    }).eq('id',visitId).in('status',['agents_applying','awaiting_landlord','pending']);
 
     let visit=null;try{const{data:_v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=_v;}catch(e){}
     let listing=null;try{const{data:_l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=_l;}catch(e){}
