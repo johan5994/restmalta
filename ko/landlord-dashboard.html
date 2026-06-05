@@ -3938,6 +3938,63 @@ async function viewTenantDoc(path){
 }
 
 
+function renderLeaseSection(g){
+  const bk=g.booking||null;
+  const llSigned=bk?.lease_signed_landlord;
+  const tSigned=bk?.lease_signed_tenant;
+  const payDeclared=bk?.first_payment_sent;
+  const payConfirmed=bk?.first_payment_confirmed;
+  const edlDate=bk?.edl_date||g.edl_date||null;
+  const moveIn=bk?.start_date||g.move_in_date||null;
+
+  return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
+    <div style="background:rgba(76,175,125,.12);padding:.55rem .85rem">
+      <div style="font-size:.82rem;font-weight:700;color:#4CAF7D">🎉 Application accepted — lease in progress</div>
+    </div>
+    <div style="padding:.75rem .85rem">
+
+      <!-- Dates -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
+        <div style="background:var(--s2);border-radius:8px;padding:.5rem .65rem">
+          <div style="font-size:.65rem;color:var(--td);margin-bottom:.15rem">📋 EDL / Key handover</div>
+          <div style="font-size:.8rem;font-weight:600;color:var(--txt)">${edlDate?new Date(edlDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'⏳ TBC'}</div>
+        </div>
+        <div style="background:var(--s2);border-radius:8px;padding:.5rem .65rem">
+          <div style="font-size:.65rem;color:var(--td);margin-bottom:.15rem">🏠 Move-in date</div>
+          <div style="font-size:.8rem;font-weight:600;color:var(--txt)">${moveIn?new Date(moveIn).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'⏳ TBC'}</div>
+        </div>
+      </div>
+
+      <!-- Signatures -->
+      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">Signatures</div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">🏠 You (landlord)</span>
+          ${llSigned
+            ?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>'
+            :`<button onclick="openSigningDocLL('${bk?.id||''}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">👤 Tenant (${g.tenant_name||'—'})</span>
+          ${tSigned
+            ?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>'
+            :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>
+      </div>
+
+      <!-- Paiement -->
+      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
+      <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.78rem">${payConfirmed?'✅ Payment confirmed':payDeclared?'💶 Tenant declared payment':'⏳ Waiting for payment'}</span>
+        ${payDeclared&&!payConfirmed
+          ?`<button onclick="confirmTenantPayment('${bk?.id||''}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✅ Confirm received</button>`
+          :payConfirmed?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅</span>':''}
+      </div>
+
+    </div>
+  </div>`;
+}
+
 function renderLeasePayStatus(bk){
   if(!bk) return '';
   const lines=[];
@@ -3946,9 +4003,10 @@ function renderLeasePayStatus(bk){
   if(bk.lease_signed_landlord&&bk.lease_signed_tenant) lines.push('✅ Both signed the lease');
   if(bk.first_payment_sent&&!bk.first_payment_confirmed) lines.push('💶 Tenant declared payment — awaiting confirmation');
   if(bk.first_payment_confirmed) lines.push('✅ Payment confirmed');
-  if(!lines.length) lines.push('📄 Lease being prepared — waiting for signatures');
-  return `<div style="margin-top:.4rem;background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;font-size:.73rem;color:var(--tm);line-height:1.8">${lines.join('<br>')}</div>`;
+  if(!lines.length) return '';
+  return `<div style="margin-top:.4rem;font-size:.73rem;color:var(--tm);line-height:1.8">${lines.join('<br>')}</div>`;
 }
+
 
 function renderVisitGroup(g, isPast){
   const statusConfig={
@@ -4000,16 +4058,7 @@ function renderVisitGroup(g, isPast){
         <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
       </div>`:''}
 
-    ${['lease_pending','accepted','edl_scheduled','signing_day','move_in_ready'].includes(g.status)?`
-    <div style="margin-top:.4rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:9px;padding:.55rem .7rem">
-      <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.25rem">🎉 Application accepted!</div>
-      <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
-        👤 Tenant: <strong>${g.tenant_name||'—'}</strong>
-        ${g.agent_name?`<br>🏆 Agent: <strong>${g.agent_name}</strong>`:''}
-        ${g.move_in_date?`<br>📅 Move-in: <strong>${new Date(g.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong>`:''}
-      </div>
-    </div>
-    ${renderLeasePayStatus(g.booking)}`:''}
+    ${['lease_pending','accepted','edl_scheduled','signing_day','move_in_ready'].includes(g.status)?renderLeaseSection(g):''}
 
     ${g.status==='confirmed'&&!g.has_agent?`
       <div style="margin-top:.4rem">
@@ -4019,6 +4068,15 @@ function renderVisitGroup(g, isPast){
   </div>`;
 }
 
+
+async function confirmTenantPayment(bookingId){
+  if(!bookingId){toast('❌ No booking ID');return;}
+  if(!confirm('Confirm you received the tenant\'s payment?')) return;
+  const{error}=await sb.from('bookings').update({first_payment_confirmed:true,first_payment_confirmed_at:new Date().toISOString()}).eq('id',bookingId);
+  if(error){toast('❌ '+error.message);return;}
+  toast('✅ Payment confirmed!');
+  loadVisitsPage();
+}
 
 async function acceptDirectBooking(listingId, tenantId){
   toast('⏳ Accepting...');
