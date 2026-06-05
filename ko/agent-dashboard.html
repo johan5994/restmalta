@@ -979,9 +979,21 @@ async function loadVisits(){
       let doneIds=new Set();
       if(visitIds.length){
         try{
-          const{data:vs}=await sb.from('visits').select('id,status').in('id',visitIds);
+          // Filtrer les visites dont le listing veut un agent
+          const{data:vs}=await sb.from('visits').select('id,status,listing_id').in('id',visitIds);
+          // Charger les listings pour vérifier wants_agent
+          const vsLIds=[...new Set((vs||[]).map(v=>v.listing_id).filter(Boolean))];
+          let agentListingIds=new Set();
+          if(vsLIds.length){
+            const{data:vls}=await sb.from('listings').select('id,wants_agent,agent_service').in('id',vsLIds);
+            (vls||[]).forEach(l=>{
+              if(l.wants_agent&&l.agent_service==='full') agentListingIds.add(l.id);
+            });
+          }
           (vs||[]).forEach(v=>{
-            if(['agent_assigned','confirmed','cancelled','no_agent','date_rejected','done','completed','booking_pending','tenant_declined','no_show','edl_scheduled','signing_day','move_in_ready'].includes(v.status)){
+            // Masquer si le listing ne veut pas d'agent
+            if(!agentListingIds.has(v.listing_id)) doneIds.add(v.id);
+            else if(['agent_assigned','confirmed','cancelled','no_agent','date_rejected','done','completed','booking_pending','tenant_declined','no_show','edl_scheduled','signing_day','move_in_ready'].includes(v.status)){
               doneIds.add(v.id);
             }
           });
