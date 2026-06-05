@@ -1538,6 +1538,9 @@ function renderVisitCard(g, isPast=false){
     'tenant_declined':   {label:'👎 Not interested', cls:'b-dim'},
     'date_rejected':     {label:'📅 Date rejected', cls:'b-dim'},
     'booking_pending':   {label:'🔒 Reservation pending', cls:'b-sea'},
+    'pending':           {label:'🔒 Awaiting your decision', cls:'b-gold'},
+    'accepted':          {label:'✅ Accepted — lease in progress', cls:'b-green'},
+    'lease_pending':     {label:'📄 Lease being signed', cls:'b-sea'},
     'edl_scheduled':     {label:'📋 Lease in progress', cls:'b-green'},
     'signing_day':       {label:'📋 Signing Day', cls:'b-green'},
     'move_in_ready':     {label:'🏠 Moved in', cls:'b-green'},
@@ -1586,7 +1589,7 @@ function renderVisitCard(g, isPast=false){
         <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
       </div>`:''}
     ${!isPast&&g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
-    ${!isPast&&['edl_scheduled','signing_day','move_in_ready'].includes(g.status)?`
+    ${!isPast&&['edl_scheduled','signing_day','move_in_ready','lease_pending','accepted'].includes(g.status)?`
     <div style="margin-top:.4rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:9px;padding:.55rem .7rem">
       <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Application accepted!</div>
       <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
@@ -1595,7 +1598,7 @@ function renderVisitCard(g, isPast=false){
         📅 Move-in: <strong>${g.move_in_date?new Date(g.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—'}</strong>
       </div>
     </div>`:''} 
-    ${!isPast&&['edl_scheduled','signing_day','move_in_ready'].includes(g.status)?renderLeasePayStatus(g.booking):''}
+    ${!isPast&&['edl_scheduled','signing_day','move_in_ready','lease_pending','accepted'].includes(g.status)?renderLeasePayStatus(g.booking):''}
   </div>`;
 }
 
@@ -4186,6 +4189,11 @@ async function acceptDirectBooking(listingId, tenantId){
       landlord_id:U.id,
       total_tenants:totalTenants
     }).eq('id',booking.id);
+
+    // Mettre aussi à jour le statut de la visite → lease_pending
+    await sb.from('visits').update({
+      status:'lease_pending'
+    }).eq('listing_id',listingId).eq('tenant_id',tenantId);
 
     // Créer une fiche visite pour que ca apparaisse dans le tenant dashboard
     const{data:visit}=await sb.from('visits').insert({
