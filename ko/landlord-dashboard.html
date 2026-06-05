@@ -1296,310 +1296,88 @@ async function loadVisitsPage(){
   const wrap=document.getElementById('visits-page-list');
   const cnt=document.getElementById('visits-page-count');
   if(!wrap)return;
+  wrap.innerHTML='<div style="text-align:center;padding:2rem;color:var(--td)"><div class="sp"></div></div>';
 
-  // ── Bookings en attente ──────────────────────────────────────
-  let bookings=[];
   try{
-    // Récupérer d'abord tous les listing IDs du landlord
-    const{data:myListings}=await sb.from('listings').select('id,landlord_id,type').eq('landlord_id',U.id);
+    // 1. Charger toutes les visites du landlord
+    const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    const allVisits=visits||[];
+
+    // 2. Charger tous les bookings du landlord (tous statuts)
+    const{data:myListings}=await sb.from('listings').select('id,wants_agent,agent_service').eq('landlord_id',U.id);
     const myListingIds=(myListings||[]).map(l=>l.id);
+    const lMap={};(myListings||[]).forEach(l=>{lMap[l.id]=l;});
 
-    // Chercher bookings par landlord_id (Clerk ID) OU par listing_id (pour les anciens bookings)
-    let bQuery=sb.from('bookings').select('*').in('status',['pending','booking_pending']).order('created_at',{ascending:false});
+    let allBookings=[];
     if(myListingIds.length){
-      bQuery=bQuery.or(`landlord_id.eq.${U.id},listing_id.in.(${myListingIds.join(',')})`);
-    } else {
-      bQuery=bQuery.eq('landlord_id',U.id);
+      const{data:bks}=await sb.from('bookings').select('*').or(`landlord_id.eq.${U.id},listing_id.in.(${myListingIds.join(',')})`).order('created_at',{ascending:false});
+      // Dédupliquer
+      const seen=new Set();
+      allBookings=(bks||[]).filter(b=>{if(seen.has(b.id))return false;seen.add(b.id);return true;});
     }
-    const{data:bData,error:bErr}=await bQuery;
-    if(bErr)console.error('Bookings error:',bErr.message);
-    bookings=bData||[];
-    // Dédupliquer
-    const seen=new Set();
-    bookings=bookings.filter(b=>{if(seen.has(b.id))return false;seen.add(b.id);return true;});
-    if(bookings.length){
-      const lIds=[...new Set(bookings.map(b=>b.listing_id).filter(Boolean))];
-      if(lIds.length){
-        try{
-          const{data:ls}=await sb.from('listings').select('id,type').in('id',lIds);
-          const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l.type;});
-          bookings=bookings.map(b=>({...b,listing_type:lMap[b.listing_id]||'long'}));
-        }catch(e){}
+
+    // 3. Créer une map booking par listing_id+tenant_id
+    const bookingMap={};
+    allBookings.forEach(b=>{
+      const key=(b.listing_id||'')+'_'+(b.tenant_id||'');
+      if(!bookingMap[key]||new Date(b.created_at)>new Date(bookingMap[key].created_at)) bookingMap[key]=b;
+    });
+
+    // 4. Enrichir les visites avec leur booking
+    const enriched=allVisits.map(v=>{
+      const key=(v.listing_id||'')+'_'+(v.tenant_id||'');
+      const booking=bookingMap[key]||null;
+      const listing=lMap[v.listing_id]||null;
+      // Si un booking existe, utiliser son statut pour les étapes après la visite
+      let status=v.status;
+      if(booking){
+        if(booking.status==='pending'||booking.status==='booking_pending') status='booking_pending';
+        else if(booking.status==='accepted') status='lease_pending';
+        else if(booking.status==='declined') status='declined';
+        else if(['edl_scheduled','signing_day','move_in_ready'].includes(booking.status)) status=booking.status;
       }
+      return{...v,booking,status,has_agent:listing?.wants_agent&&listing?.agent_service==='full'};
+    });
+
+    // 5. Ajouter les bookings orphelins (sans visite)
+    const visitKeys=new Set(allVisits.map(v=>(v.listing_id||'')+'_'+(v.tenant_id||'')));
+    const orphans=allBookings.filter(b=>{
+      const key=(b.listing_id||'')+'_'+(b.tenant_id||'');
+      return !visitKeys.has(key)&&!['declined','cancelled'].includes(b.status);
+    }).map(b=>({
+      id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:b.tenant_id,
+      tenant_name:b.tenant_name,status:'booking_pending',booking:b,landlord_id:U.id,
+    }));
+
+    const groups=[...enriched,...orphans];
+
+    // Badges
+    const pendingCount=groups.filter(g=>['awaiting_landlord','booking_pending'].includes(g.status)).length;
+    if(cnt)cnt.textContent=pendingCount>0?`${pendingCount} pending`:'All good';
+    const badge=document.getElementById('nb-visits-ll');
+    if(badge){badge.textContent=pendingCount;badge.style.display=pendingCount>0?'inline':'none';}
+
+    if(!groups.length){
+      wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visit requests yet.<br>When tenants request visits they will appear here.</p></div>';
+      return;
     }
-  }catch(e){console.error('bookings fetch error:',e);}
 
-  // ── Visites normales ─────────────────────────────────────────
-  let groups=[];
-  try{
-    const{data:visitData}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('visit_date',{ascending:true});
-    groups=visitData||[];
-    if(groups.length){
-      const lIds=[...new Set(groups.map(g=>g.listing_id).filter(Boolean))];
-      if(lIds.length){
-        try{
-          const{data:ls}=await sb.from('listings').select('id,wants_agent,agent_service').in('id',lIds);
-          const lMap={};(ls||[]).forEach(l=>{lMap[l.id]={wants_agent:l.wants_agent,agent_service:l.agent_service};});
-          groups=groups.map(g=>({...g,has_agent:lMap[g.listing_id]?.wants_agent&&lMap[g.listing_id]?.agent_service==='full'}));
-        }catch(e){}
+    const doneStatuses=['done','declined','cancelled','tenant_declined','no_show','date_rejected','move_in_ready','completed'];
+    const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status));
+    const pastGroups=groups.filter(g=>doneStatuses.includes(g.status));
 
-        // Joindre les bookings pour afficher bail + paiement
-        try{
-          const{data:acBookings}=await sb.from('bookings').select('*').in('listing_id',lIds).not('status','in','(pending,booking_pending,declined,cancelled)');
-          const bMap={};(acBookings||[]).forEach(b=>{
-            // Garder le booking le plus récent par listing
-            if(!bMap[b.listing_id]||new Date(b.created_at)>new Date(bMap[b.listing_id].created_at)) bMap[b.listing_id]=b;
-          });
-          groups=groups.map(g=>({...g,booking:bMap[g.listing_id]||null}));
-        }catch(e){console.warn('booking join:',e);}
-      }
+    let html='';
+    if(activeGroups.length) html+=activeGroups.map(g=>renderVisitGroup(g,false)).join('');
+    if(pastGroups.length){
+      html+='<div style="font-size:.7rem;font-weight:700;color:var(--td);margin:1rem 0 .5rem;text-align:center">— Past —</div>';
+      html+=pastGroups.map(g=>renderVisitGroup(g,true)).join('');
     }
-  }catch(e){}
+    wrap.innerHTML=html;
 
-  // ── Badges ───────────────────────────────────────────────────
-  const pending=bookings.length+groups.filter(g=>g.status==='awaiting_landlord').length;
-  if(cnt)cnt.textContent=pending>0?`${pending} pending`:'All good';
-  const badge=document.getElementById('nb-visits-ll');
-  if(badge){badge.textContent=pending;badge.style.display=pending>0?'inline':'none';}
-
-  if(!bookings.length&&!groups.length){
-    wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visit requests yet.<br>When tenants request visits they will appear here.</p></div>';
-    return;
+  }catch(e){
+    console.error('loadVisitsPage error:',e);
+    wrap.innerHTML='<div style="color:var(--red);padding:1rem;text-align:center">❌ Error loading visits: '+e.message+'</div>';
   }
-
-  let html='';
-
-  // ── Rendu des bookings ───────────────────────────────────────
-  if(bookings.length){
-    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#4CAF7D;margin-bottom:.6rem;letter-spacing:.5px">🔒 Reservation Requests</div>`;
-    html+=bookings.map(b=>{
-      const deadline=new Date(new Date(b.created_at).getTime()+48*60*60*1000);
-      const hoursLeft=Math.max(0,Math.floor((deadline-Date.now())/3600000));
-      const urgentColor=hoursLeft<12?'var(--red)':hoursLeft<24?'var(--gold)':'#4CAF7D';
-      const moveIn=b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long'}):'—';
-      return`<div style="background:var(--card);border:1.5px solid rgba(76,175,125,.25);border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="booking-card-${b.id}" data-listing-type="${b.listing_type||'long'}">
-        <div style="background:linear-gradient(135deg,rgba(76,175,125,.1),rgba(58,143,181,.06));padding:.85rem 1rem;border-bottom:1px solid var(--b)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-            <div style="display:flex;align-items:center;gap:.5rem">
-              <div style="width:34px;height:34px;border-radius:50%;background:#4CAF7D;display:flex;align-items:center;justify-content:center;font-weight:700;color:white">${(b.tenant_name||'T')[0].toUpperCase()}</div>
-              <div>
-                <div style="font-size:.9rem;font-weight:700">${b.tenant_name||'—'}</div>
-                <div style="font-size:.65rem;color:var(--td)">Wants to rent your property</div>
-              </div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:.65rem;color:${urgentColor};font-weight:600">⏰ ${hoursLeft}h left</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:.3rem">
-            <div style="flex:1;background:rgba(76,175,125,.1);border-radius:6px;padding:.3rem .5rem;text-align:center">
-              <div style="font-size:.6rem;color:var(--td)">Rent</div>
-              <div style="font-size:.82rem;font-weight:700">€${b.monthly_rent||'—'}/mo</div>
-            </div>
-            <div style="flex:1;background:rgba(76,175,125,.1);border-radius:6px;padding:.3rem .5rem;text-align:center">
-              <div style="font-size:.6rem;color:var(--td)">Holding ✅</div>
-              <div style="font-size:.82rem;font-weight:700;color:#4CAF7D">€${b.holding_amount||'—'}</div>
-            </div>
-            <div style="flex:1;background:rgba(58,143,181,.08);border-radius:6px;padding:.3rem .5rem;text-align:center">
-              <div style="font-size:.6rem;color:var(--td)">Move-in</div>
-              <div style="font-size:.72rem;font-weight:600">${b.move_in_date?new Date(b.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—'}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dossier tenant -->
-        <div id="booking-dossier-${b.id}" style="padding:.75rem 1rem;border-bottom:1px solid var(--b)">
-          <div style="text-align:center;color:var(--td);font-size:.75rem;padding:.3rem">Loading tenant profile...</div>
-        </div>
-
-        <!-- Actions -->
-        <div style="padding:.75rem 1rem">
-          ${b.move_in_date?`<div style="background:rgba(58,143,181,.08);border-radius:6px;padding:.35rem .6rem;margin-bottom:.5rem;font-size:.75rem">
-            <span style="color:var(--td)">📅 Desired move-in: </span>
-            <span style="font-weight:700;color:var(--sea)">${moveIn}</span>
-          </div>`:''}
-          <div style="display:flex;gap:.4rem;margin-bottom:.4rem">
-            <button onclick="showLeaseDatesBooking('${b.id}','${b.move_in_date||''}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:700;cursor:pointer">✅ Accept</button>
-            <button onclick="showProposeDate('${b.id}')" style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">📅 Other date</button>
-            <button onclick="showDeclineBooking('${b.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
-          </div>
-          <div id="propose-date-${b.id}" style="display:none;margin-bottom:.4rem;background:rgba(58,143,181,.05);border:1px solid rgba(58,143,181,.15);border-radius:8px;padding:.55rem">
-            <div style="font-size:.7rem;font-weight:600;color:var(--sea);margin-bottom:.3rem">Propose another date:</div>
-            <input type="date" id="propose-input-${b.id}" class="fi" style="font-size:.8rem;width:100%;margin-bottom:.35rem">
-            <button onclick="sendProposedDate('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">Send to tenant →</button>
-          </div>
-          <div id="decline-form-${b.id}" style="display:none;margin-bottom:.4rem;background:rgba(224,90,90,.04);border:1px solid rgba(224,90,90,.15);border-radius:8px;padding:.55rem">
-            <select id="decline-reason-${b.id}" style="width:100%;padding:.45rem;border-radius:7px;border:1px solid var(--b);background:var(--s2);color:var(--tf);font-size:.75rem;margin-bottom:.35rem">
-              <option value="">Select reason...</option>
-              <option value="pets">🐾 Pets not accepted</option>
-              <option value="occupants">👥 Too many occupants</option>
-              <option value="financial">💼 Financial concern</option>
-              <option value="visa">🛂 Visa concern</option>
-              <option value="unavailable">🚫 Property unavailable</option>
-              <option value="other">Other</option>
-            </select>
-            <button onclick="confirmDeclineBooking('${b.id}','${b.listing_id}','${b.tenant_id}')" style="width:100%;background:var(--red);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">Confirm decline → Auto-refund tenant</button>
-          </div>
-          <div id="lease-dates-${b.id}" style="display:none;margin-top:.4rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:8px;padding:.65rem">
-            <div style="font-size:.73rem;font-weight:700;color:var(--terra);margin-bottom:.45rem">📅 Set move-in date (= signing day)</div>
-            <div id="date-summary-${b.id}" style="display:none;background:rgba(58,143,181,.08);border-radius:7px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.72rem;color:var(--sea)"></div>
-            <input type="date" id="bstart-${b.id}" class="fi" style="font-size:.8rem;width:100%;margin-bottom:.45rem" onchange="autoSetEndDate('${b.id}','${b.listing_type||'long'}')">
-            <input type="hidden" id="bend-${b.id}">
-            <input type="hidden" id="bedl-${b.id}">
-            <div style="background:rgba(212,168,71,.08);border-radius:6px;padding:.4rem .6rem;margin-bottom:.45rem;font-size:.7rem;color:var(--gold)">
-              💳 Commission landlord: ${b.listing_type==='exclusive'?'35%':'40%'} TTC = €${Math.round((b.monthly_rent||b.listing_price||0)*(b.listing_type==='exclusive'?0.35:0.40))}
-            </div>
-            <div id="commission-payment-form-${b.id}" style="margin-top:.4rem"></div>
-            <button onclick="showCommissionPayment('${b.id}','${b.listing_id}','${b.tenant_id}',${b.monthly_rent||b.listing_price||0})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">💳 Pay Commission & Generate Lease →</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Rendu des visites normales ───────────────────────────────
-  const doneStatuses=['done','declined','cancelled','tenant_declined','no_show','date_rejected','move_in_ready'];
-  const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status));
-  const pastGroups=groups.filter(g=>doneStatuses.includes(g.status));
-
-  if(activeGroups.length){
-    if(bookings.length) html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--td);margin:.75rem 0 .5rem;letter-spacing:.5px">📅 Visit Requests</div>`;
-    html+=activeGroups.map(g=>renderVisitCard(g)).join('');
-  }
-
-  if(pastGroups.length){
-    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem">
-      <div style="flex:1;height:1px;background:var(--b)"></div><span>Past visits</span><div style="flex:1;height:1px;background:var(--b)"></div>
-    </div>`;
-    html+=pastGroups.map(g=>renderVisitCard(g,true)).join('');
-  }
-
-  wrap.innerHTML=html;
-  requestAnimationFrame(()=>{ bookings.forEach(b=>loadBookingDossier(b)); });
-}
-
-function renderLeasePayStatus(booking){
-  if(!booking) return '';
-  let html='<div style="margin-top:.5rem;border-top:1px solid var(--b);padding-top:.5rem;display:flex;flex-direction:column;gap:.3rem">';
-
-  // 1 — Bail
-  if(booking.lease_landlord_embed){
-    if(booking.lease_signed_landlord && booking.lease_signed_tenant){
-      html+='<div style="display:flex;align-items:center;gap:.4rem;background:rgba(76,175,125,.08);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">✅</span><span style="font-size:.73rem;font-weight:600;color:#4CAF7D">Lease signed by both parties</span></div>';
-    } else if(booking.lease_signed_landlord){
-      html+='<div style="display:flex;align-items:center;gap:.4rem;background:rgba(212,168,71,.06);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">⏳</span><span style="font-size:.73rem;font-weight:600;color:var(--gold)">You signed — waiting for tenant</span></div>';
-    } else {
-      html+='<button data-src="'+booking.lease_landlord_embed+'" onclick="openSigningDocLL(this.dataset.src,\'Lease\',this.dataset.bid)" data-bid="'+booking.id+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.76rem;font-weight:700;cursor:pointer">📄 Sign Lease Agreement →</button>';
-    }
-  } else {
-    // Pas de bail — bouton pour générer
-    if(booking.id && booking.listing_id && booking.tenant_id){
-      html+='<button data-bid="'+booking.id+'" data-lid="'+booking.listing_id+'" data-tid="'+booking.tenant_id+'" onclick="regenLease(this.dataset.bid,this.dataset.lid,this.dataset.tid)" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.76rem;font-weight:700;cursor:pointer">🔄 Generate Lease Now →</button>';
-    } else {
-      html+='<div style="font-size:.72rem;color:var(--gold);padding:.35rem .5rem">⏳ Lease being prepared...</div>';
-    }
-  }
-
-  // 2 — Paiement (seulement si lease signé ou en cours)
-  if(booking.first_payment_confirmed){
-    html+='<div style="display:flex;align-items:center;gap:.4rem;background:rgba(76,175,125,.08);border-radius:7px;padding:.4rem .6rem"><span style="font-size:.85rem">✅</span><span style="font-size:.73rem;font-weight:600;color:#4CAF7D">First payment confirmed</span></div>';
-  } else if(booking.first_payment_sent){
-    html+='<div style="font-size:.72rem;color:var(--gold);font-weight:600;margin-bottom:.2rem">💶 Tenant says payment sent — confirm:</div>';
-    html+='<div style="display:flex;gap:.3rem">';
-    html+='<button data-id="'+booking.id+'" onclick="confirmFirstPaymentReceived(this.dataset.id,true)" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">✅ Received</button>';
-    html+='<button data-id="'+booking.id+'" onclick="confirmFirstPaymentReceived(this.dataset.id,false)" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">❌ Not yet</button>';
-    html+='</div>';
-  } else if(booking.lease_signed_tenant && booking.lease_signed_landlord){
-    // Les deux ont signé — afficher attente paiement en orange
-    html+='<div style="display:flex;align-items:center;gap:.5rem;background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.3);border-radius:8px;padding:.45rem .65rem">';
-    html+='<span style="font-size:1rem">💶</span>';
-    html+='<div><div style="font-size:.73rem;font-weight:700;color:var(--gold)">Waiting for first payment</div>';
-    html+='<div style="font-size:.67rem;color:var(--td)">Tenant has been notified with your IBAN</div></div>';
-    html+='</div>';
-  }
-
-  html+='</div>';
-  return html;
-}
-
-
-function renderVisitCard(g, isPast=false){
-  const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(g.visit_time||'TBD'):'TBD';
-
-  const statusConfig={
-    'awaiting_landlord': {label:'⏳ Awaiting your confirmation', cls:'b-gold'},
-    'agents_applying':   {label:'🏆 Searching for agent...', cls:'b-sea'},
-    'agent_assigned':    {label:'✅ Agent assigned', cls:'b-green'},
-    'confirmed':         {label:'✅ Visit confirmed', cls:'b-green'},
-    'done':              {label:'🏁 Visit done', cls:'b-dim'},
-    'completed':         {label:'🏁 Visit done', cls:'b-dim'},
-    'cancelled':         {label:'❌ Cancelled', cls:'b-dim'},
-    'no_show':           {label:'🚫 No-show', cls:'b-dim'},
-    'tenant_declined':   {label:'👎 Not interested', cls:'b-dim'},
-    'date_rejected':     {label:'📅 Date rejected', cls:'b-dim'},
-    'booking_pending':   {label:'🔒 Reservation pending', cls:'b-sea'},
-    'pending':           {label:'🔒 Awaiting your decision', cls:'b-gold'},
-    'accepted':          {label:'✅ Accepted — lease in progress', cls:'b-green'},
-    'lease_pending':     {label:'📄 Lease being signed', cls:'b-sea'},
-    'edl_scheduled':     {label:'📋 Lease in progress', cls:'b-green'},
-    'signing_day':       {label:'📋 Signing Day', cls:'b-green'},
-    'move_in_ready':     {label:'🏠 Moved in', cls:'b-green'},
-  };
-  const sc=statusConfig[g.status]||{label:g.status, cls:'b-dim'};
-
-  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Call landlord'};
-
-  return`<div style="padding:.85rem;background:${isPast?'transparent':'var(--s2)'};border:1px solid ${isPast?'var(--b)':['agent_assigned','confirmed'].includes(g.status)?'rgba(76,175,125,.25)':g.status==='agents_applying'?'rgba(58,143,181,.25)':'var(--b)'};border-radius:12px;margin-bottom:.6rem;opacity:${isPast?'.6':'1'}">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
-      <div style="font-size:.88rem;font-weight:700">👤 ${g.tenant_name||'—'}</div>
-      <span class="badge ${sc.cls}" style="font-size:.62rem">${sc.label}</span>
-    </div>
-    <div style="font-size:.73rem;color:var(--td);margin-bottom:.25rem">🗓 ${visitDateStr}</div>
-
-    ${g.status==='agents_applying'?`
-      <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
-        <div style="font-size:.75rem;color:var(--sea);font-weight:600">🏆 Searching for best agent...</div>
-        <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected within 5 minutes.</div>
-      </div>`:''}
-
-    ${g.status==='agent_assigned'?`
-      <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
-        <div style="font-size:.75rem;color:#4CAF7D;font-weight:600">🏆 Agent: ${g.agent_name||'—'}</div>
-        <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">⏳ Waiting for tenant to confirm attendance...</div>
-      </div>`:''}
-
-    ${g.status==='confirmed'?`
-      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);border-radius:8px;padding:.55rem .75rem;margin-top:.4rem">
-        <div style="font-size:.8rem;font-weight:700;color:#4CAF7D;margin-bottom:.35rem">✅ Visit fully confirmed!</div>
-        <div style="font-size:.73rem;color:var(--tm)">🏆 Agent: <strong>${g.agent_name||'—'}</strong></div>
-        <div style="font-size:.73rem;color:var(--tm)">👤 Tenant: <strong>${g.tenant_name||'—'}</strong></div>
-        <div style="font-size:.73rem;color:var(--tm)">📅 ${visitDateStr}</div>
-        ${g.key_type?`<div style="font-size:.73rem;color:var(--tm);margin-top:.3rem">🔑 ${keyLabels[g.key_type]||g.key_type}</div>`:''}
-        ${g.key_location?`<div style="font-size:.7rem;color:var(--td)">└ ${g.key_location}</div>`:''}
-      </div>`:''}
-
-    ${!isPast&&g.status==='awaiting_landlord'?`
-      <div style="display:flex;gap:.4rem;margin-top:.5rem">
-        <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Available</button>
-        <button onclick="landlordProposeDate('${g.id}','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">📅 Other date</button>
-        <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
-      </div>`:''}
-    ${!isPast&&!g.has_agent&&g.status==='agent_assigned'?`
-      <div style="margin-top:.4rem">
-        <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
-      </div>`:''}
-    ${!isPast&&g.has_agent&&['agent_assigned','confirmed'].includes(g.status)?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
-    ${!isPast&&['edl_scheduled','signing_day','move_in_ready','lease_pending','accepted'].includes(g.status)?`
-    <div style="margin-top:.4rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:9px;padding:.55rem .7rem">
-      <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">🎉 Application accepted!</div>
-      <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
-        👤 Tenant: <strong>${g.tenant_name||'—'}</strong><br>
-        🏆 Agent: <strong>${g.agent_name||'—'}</strong><br>
-        📅 Move-in: <strong>${g.move_in_date?new Date(g.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—'}</strong>
-      </div>
-    </div>`:''} 
-    ${!isPast&&['edl_scheduled','signing_day','move_in_ready','lease_pending','accepted'].includes(g.status)?renderLeasePayStatus(g.booking):''}
-  </div>`;
 }
 
 async function loadTenantDocuments(tenantId, bookingId){
@@ -4189,11 +3967,6 @@ async function acceptDirectBooking(listingId, tenantId){
       landlord_id:U.id,
       total_tenants:totalTenants
     }).eq('id',booking.id);
-
-    // Mettre aussi à jour le statut de la visite → lease_pending
-    await sb.from('visits').update({
-      status:'lease_pending'
-    }).eq('listing_id',listingId).eq('tenant_id',tenantId);
 
     // Créer une fiche visite pour que ca apparaisse dans le tenant dashboard
     const{data:visit}=await sb.from('visits').insert({
