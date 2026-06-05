@@ -1339,8 +1339,8 @@ function renderAllVisitsDirect(){
   const w=document.getElementById('all-visits-list');
   if(!w)return;
 
-  const assigned=(visits||[]).filter(v=>!['cancelled','no_show','move_in_ready','done'].includes(v.status));
-  const past=(visits||[]).filter(v=>['cancelled','done','no_show','move_in_ready'].includes(v.status));
+  const assigned=(visits||[]).filter(v=>!['cancelled','no_show','move_in_ready','done','completed'].includes(v.status));
+  const past=(visits||[]).filter(v=>['cancelled','done','no_show','move_in_ready','completed'].includes(v.status));
 
   if(!assigned.length&&!past.length){
     w.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits assigned yet</p></div>';
@@ -1352,9 +1352,40 @@ function renderAllVisitsDirect(){
   assigned.forEach(v=>{
     const keyL={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour',agent:'🏆 Agent has keys',landlord:'📞 Call landlord'};
     const keyDisplay=keyL[v.key_type]||v.key_info||'Contact landlord';
-    const sc=['agent_assigned','confirmed'].includes(v.status)?'rgba(76,175,125,.1)':['edl_scheduled','signing_day'].includes(v.status)?'rgba(58,143,181,.1)':'var(--s2)';
-    const bc=['agent_assigned','confirmed'].includes(v.status)?'rgba(76,175,125,.3)':['edl_scheduled','signing_day'].includes(v.status)?'rgba(58,143,181,.3)':'var(--b)';
-    const statusBadge={'agent_assigned':'⏳ Awaiting tenant confirmation','confirmed':'✅ Tenant confirmed','edl_scheduled':'📋 Signing day','signing_day':'📋 Signing day','completed':'🏁 Done','lease_pending':'📄 Lease pending'}[v.status]||v.status;
+    // Couleurs selon statut
+    const greenStatuses=['confirmed','accepted','edl_scheduled','signing_day','move_in_ready'];
+    const redStatuses=['tenant_declined','declined','cancelled','no_show'];
+    const blueStatuses=['booking_pending','lease_pending'];
+    const sc=greenStatuses.includes(v.status)?'rgba(76,175,125,.08)':redStatuses.includes(v.status)?'rgba(224,90,90,.08)':blueStatuses.includes(v.status)?'rgba(58,143,181,.08)':'var(--s2)';
+    const bc=greenStatuses.includes(v.status)?'rgba(76,175,125,.3)':redStatuses.includes(v.status)?'rgba(224,90,90,.3)':blueStatuses.includes(v.status)?'rgba(58,143,181,.3)':'var(--b)';
+    const statusMap={
+      'agent_assigned':'⏳ Awaiting tenant confirmation',
+      'awaiting_landlord':'⏳ Awaiting tenant confirmation',
+      'confirmed':'✅ Visit confirmed',
+      'tenant_interested':'📋 Dossier sent to landlord',
+      'booking_pending':'📋 Awaiting landlord decision',
+      'tenant_declined':'🔴 Tenant not interested',
+      'declined':'🔴 Dossier declined by landlord',
+      'accepted':'✅ Landlord accepted — lease being signed',
+      'lease_pending':'📄 Awaiting signatures',
+      'edl_scheduled':'📋 EDL scheduled',
+      'signing_day':'📋 Signing day',
+      'move_in_ready':'🎉 Move-in ready',
+      'completed':'🏁 Completed',
+      'no_show':'❌ No show',
+      'cancelled':'❌ Cancelled',
+    };
+    const statusBadge=statusMap[v.status]||v.status;
+    // Infos bail et paiement depuis le booking
+    const bk=v.booking||null;
+    const leaseInfo=bk?[
+      bk.lease_signed_landlord&&!bk.lease_signed_tenant?'✍️ Landlord signed — waiting for tenant':'',
+      bk.lease_signed_tenant&&!bk.lease_signed_landlord?'✍️ Tenant signed — waiting for landlord':'',
+      bk.lease_signed_landlord&&bk.lease_signed_tenant?'✅ Both signed the lease':'',
+      bk.first_payment_sent&&!bk.first_payment_confirmed?'💶 Tenant declared payment — awaiting confirmation':'',
+      bk.first_payment_confirmed?'✅ Payment confirmed':'',
+    ].filter(Boolean).join('<br>'):'';
+
     const badgeCls=['agent_assigned','confirmed'].includes(v.status)?'b-green':['edl_scheduled','signing_day'].includes(v.status)?'b-sea':'b-gold';
     const keyCode=v.key_location?'<div style="font-size:.68rem;color:var(--sea)">Code: '+v.key_location+'</div>':'';
     const tPhone=v.tenant_phone?'<div style="font-size:.73rem"><a href="tel:'+v.tenant_phone+'" style="color:var(--sea);text-decoration:none">📞 '+v.tenant_phone+'</a></div>':'';
@@ -1417,6 +1448,7 @@ function renderAllVisitsDirect(){
       +'</div>'
       +'<div style="padding:.65rem 1rem;display:flex;gap:.4rem">'+doneBtn+viewBtn+issueBtn+'</div>'
       +(statusInfo?'<div style="padding:0 1rem .65rem">'+statusInfo+'</div>':'')
+    +(leaseInfo?'<div style="padding:0 1rem .5rem;font-size:.73rem;color:var(--tm);line-height:1.6">'+leaseInfo+'</div>':'')
     +'</div>';
     // Attendre que le DOM soit rendu avant d'appeler loadLandlordInfo
     const _llId = v.landlord_id || v.listing?.landlord_id;
@@ -1664,6 +1696,19 @@ async function acceptRemoteRequest(visitId, listingId, tenantId, listingTitle, p
   }catch(e){toast('❌ '+e.message);}
 }
 
+
+// ── Auto-refresh visits page ─────────────────────────────────
+let _visitsRefreshInterval = null;
+function startVisitsAutoRefresh(){
+  if(_visitsRefreshInterval) return;
+  _visitsRefreshInterval = setInterval(()=>{
+    const visitsPage = document.getElementById('page-visits');
+    if(visitsPage && visitsPage.classList.contains('active')){
+      loadVisits().catch(()=>{});
+    }
+  }, 30000);
+}
+startVisitsAutoRefresh();
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
