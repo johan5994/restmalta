@@ -1035,11 +1035,26 @@ async function loadVisits(){
             tenant_email:v.tenant_email||tMap[v.tenant_id]?.email||''
           }));
 
-          // Charger les bookings associés pour afficher statut bail+paiement
+          // Charger TOUS les bookings associés (tous statuts sauf declined/cancelled)
           try{
-            const{data:bks}=await sb.from('bookings').select('id,listing_id,status,lease_signed_landlord,lease_signed_tenant,first_payment_sent,first_payment_confirmed,lease_landlord_embed,lease_tenant_embed').in('listing_id',lIds).in('status',['accepted','edl_scheduled','signing_day','move_in_ready']);
-            const bMap={};(bks||[]).forEach(b=>{bMap[b.listing_id]=b;});
-            confirmedVisits=confirmedVisits.map(v=>({...v,booking:bMap[v.listing_id]||null}));
+            const{data:bks}=await sb.from('bookings').select('id,listing_id,tenant_id,status,lease_signed_landlord,lease_signed_tenant,first_payment_sent,first_payment_confirmed,lease_landlord_embed,lease_tenant_embed,monthly_rent,holding_amount,start_date,edl_date').in('listing_id',lIds).not('status','in','(declined,cancelled)');
+            const bMap={};(bks||[]).forEach(b=>{
+              const key=b.listing_id+'_'+b.tenant_id;
+              if(!bMap[key]||new Date(b.created_at)>new Date(bMap[key]?.created_at||0)) bMap[key]=b;
+            });
+            confirmedVisits=confirmedVisits.map(v=>{
+              const key=(v.listing_id||'')+'_'+(v.tenant_id||'');
+              const bk=bMap[key]||null;
+              // Mettre à jour le statut selon le booking
+              let status=v.status;
+              if(bk){
+                if(bk.status==='pending'||bk.status==='booking_pending') status='booking_pending';
+                else if(bk.status==='accepted') status='lease_pending';
+                else if(['edl_scheduled','signing_day','move_in_ready'].includes(bk.status)) status=bk.status;
+                else if(bk.status==='declined') status='declined';
+              }
+              return{...v,booking:bk,status};
+            });
           }catch(e){}
 
         }catch(e){}
