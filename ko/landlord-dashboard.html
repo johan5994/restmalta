@@ -3938,6 +3938,88 @@ async function viewTenantDoc(path){
 }
 
 
+function renderLeasePayStatus(bk){
+  if(!bk) return '';
+  const lines=[];
+  if(bk.lease_signed_landlord&&!bk.lease_signed_tenant) lines.push('✍️ You signed — waiting for tenant');
+  if(bk.lease_signed_tenant&&!bk.lease_signed_landlord) lines.push('✍️ Tenant signed — waiting for you');
+  if(bk.lease_signed_landlord&&bk.lease_signed_tenant) lines.push('✅ Both signed the lease');
+  if(bk.first_payment_sent&&!bk.first_payment_confirmed) lines.push('💶 Tenant declared payment — awaiting confirmation');
+  if(bk.first_payment_confirmed) lines.push('✅ Payment confirmed');
+  if(!lines.length) lines.push('📄 Lease being prepared — waiting for signatures');
+  return `<div style="margin-top:.4rem;background:rgba(58,143,181,.06);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;font-size:.73rem;color:var(--tm);line-height:1.8">${lines.join('<br>')}</div>`;
+}
+
+function renderVisitGroup(g, isPast){
+  const statusConfig={
+    'awaiting_landlord':{label:'⏳ Awaiting your confirmation',cls:'b-gold'},
+    'agents_applying':{label:'🏆 Searching for agent...',cls:'b-sea'},
+    'agent_assigned':{label:'✅ Agent assigned',cls:'b-green'},
+    'confirmed':{label:'✅ Visit confirmed',cls:'b-green'},
+    'done':{label:'🏁 Visit done',cls:'b-dim'},
+    'completed':{label:'🏁 Visit done',cls:'b-dim'},
+    'cancelled':{label:'❌ Cancelled',cls:'b-dim'},
+    'no_show':{label:'🚫 No-show',cls:'b-dim'},
+    'tenant_declined':{label:'👎 Not interested',cls:'b-dim'},
+    'date_rejected':{label:'📅 Date rejected',cls:'b-dim'},
+    'booking_pending':{label:'📋 Dossier received — awaiting your decision',cls:'b-gold'},
+    'pending':{label:'🔒 Awaiting your decision',cls:'b-gold'},
+    'accepted':{label:'✅ Accepted — lease in progress',cls:'b-green'},
+    'lease_pending':{label:'📄 Lease being signed',cls:'b-sea'},
+    'edl_scheduled':{label:'📋 Lease in progress',cls:'b-green'},
+    'signing_day':{label:'📋 Signing Day',cls:'b-green'},
+    'move_in_ready':{label:'🏠 Moved in',cls:'b-green'},
+    'declined':{label:'❌ Dossier declined',cls:'b-dim'},
+  };
+  const sc=statusConfig[g.status]||{label:g.status,cls:'b-dim'};
+  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Call landlord'};
+  const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+(g.visit_time?' at '+g.visit_time:''):'Date TBD';
+  const borderColor=sc.cls==='b-green'?'rgba(76,175,125,.25)':sc.cls==='b-gold'?'rgba(212,168,71,.25)':sc.cls==='b-sea'?'rgba(58,143,181,.25)':'var(--b)';
+  const bgColor=sc.cls==='b-green'?'rgba(76,175,125,.04)':sc.cls==='b-gold'?'rgba(212,168,71,.04)':sc.cls==='b-sea'?'rgba(58,143,181,.04)':'var(--s2)';
+
+  return`<div style="padding:.85rem;background:${isPast?'transparent':bgColor};border:1px solid ${isPast?'var(--b)':borderColor};border-radius:12px;margin-bottom:.6rem;opacity:${isPast?'.6':'1'}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+      <div style="font-size:.88rem;font-weight:700">👤 ${g.tenant_name||'—'}</div>
+      <span class="badge ${sc.cls}" style="font-size:.62rem">${sc.label}</span>
+    </div>
+    <div style="font-size:.73rem;color:var(--td);margin-bottom:.25rem">🗓 ${visitDateStr}</div>
+    ${g.agent_name?`<div style="font-size:.73rem;color:var(--td)">🏆 Agent: ${g.agent_name}</div>`:''}
+
+    ${g.status==='booking_pending'||g.status==='pending'?`
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem;font-size:.78rem;color:var(--gold)">
+        📋 Tenant wants to rent — review their dossier and decide
+      </div>
+      <div style="display:flex;gap:.4rem;margin-top:.5rem">
+        <button onclick="acceptDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Accept</button>
+        <button onclick="declineDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
+      </div>`:''}
+
+    ${g.status==='awaiting_landlord'?`
+      <div style="display:flex;gap:.4rem;margin-top:.5rem">
+        <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Available</button>
+        <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
+      </div>`:''}
+
+    ${['lease_pending','accepted','edl_scheduled','signing_day','move_in_ready'].includes(g.status)?`
+    <div style="margin-top:.4rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:9px;padding:.55rem .7rem">
+      <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.25rem">🎉 Application accepted!</div>
+      <div style="font-size:.72rem;color:var(--tm);line-height:1.8">
+        👤 Tenant: <strong>${g.tenant_name||'—'}</strong>
+        ${g.agent_name?`<br>🏆 Agent: <strong>${g.agent_name}</strong>`:''}
+        ${g.move_in_date?`<br>📅 Move-in: <strong>${new Date(g.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong>`:''}
+      </div>
+    </div>
+    ${renderLeasePayStatus(g.booking)}`:''}
+
+    ${g.status==='confirmed'&&!g.has_agent?`
+      <div style="margin-top:.4rem">
+        <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
+      </div>`:''}
+    ${g.status==='confirmed'&&g.has_agent?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
+  </div>`;
+}
+
+
 async function acceptDirectBooking(listingId, tenantId){
   toast('⏳ Accepting...');
   try{
