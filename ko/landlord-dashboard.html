@@ -3804,7 +3804,7 @@ function renderLeaseSection(g){
   const tSigned=bk?.lease_signed_tenant;
   const payDeclared=bk?.first_payment_sent;
   const payConfirmed=bk?.first_payment_confirmed;
-  const edlDate=bk?.edl_date||g.edl_date||null;
+  const edlDate=bk?.edl_date||g.edl_date||g.visit_date||null; // Date de visite = date EDL par défaut
   const moveIn=bk?.start_date||g.move_in_date||null;
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
@@ -3818,6 +3818,10 @@ function renderLeaseSection(g){
         <div style="background:var(--s2);border-radius:8px;padding:.5rem .65rem">
           <div style="font-size:.65rem;color:var(--td);margin-bottom:.15rem">📋 EDL / Key handover</div>
           <div style="font-size:.8rem;font-weight:600;color:var(--txt)">${edlDate?new Date(edlDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'⏳ TBC'}</div>
+          ${!edlDate?`<div style="display:flex;gap:.4rem;margin-top:.3rem">
+            <input type="date" id="edl-date-${bk?.id||''}" style="flex:1;padding:.3rem .5rem;background:var(--s);border:1px solid var(--b2);border-radius:6px;color:var(--txt);font-size:.72rem" min="${new Date().toISOString().slice(0,10)}">
+            <button onclick="setEDLDate('${bk?.id||''}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">Set →</button>
+          </div>`:''}
         </div>
         <div style="background:var(--s2);border-radius:8px;padding:.5rem .65rem">
           <div style="font-size:.65rem;color:var(--td);margin-bottom:.15rem">🏠 Move-in date</div>
@@ -3997,12 +4001,16 @@ async function acceptDirectBooking(listingId, tenantId){
       });
     }catch(e){console.warn('Holding release:',e.message);}
 
-    // Mettre à jour le booking
+    // Récupérer la date de visite
+    const{data:visitInfo}=await sb.from('visits').select('visit_date,visit_time').eq('listing_id',listingId).eq('tenant_id',tenantId).maybeSingle();
+
+    // Mettre à jour le booking avec edl_date = visit_date
     await sb.from('bookings').update({
       status:'accepted',
       accepted_at:new Date().toISOString(),
       landlord_id:U.id,
-      total_tenants:totalTenants
+      total_tenants:totalTenants,
+      edl_date:visitInfo?.visit_date||null
     }).eq('id',booking.id);
 
     // Créer une fiche visite pour que ca apparaisse dans le tenant dashboard
