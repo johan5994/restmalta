@@ -1986,6 +1986,14 @@ async function loadTenantVisits(){
         </div>`:''
       }
       ${v.status==='confirmed'?`<div style="font-size:.73rem;color:#4CAF7D;font-weight:600;margin-top:.3rem">${v.has_agent?'✅ Confirmed — see you there!':'✅ Visit confirmed by landlord!'}</div>`:''}
+      ${v.status==='completed'&&!v.booking?`
+        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
+          <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.4rem">How did the visit go?</div>
+          <div style="display:flex;gap:.4rem">
+            <button onclick="tenantInterested('${v.id}','${v.listing_id}',${v.listing_price||0},'${(v.listing_title||'').replace(/'/g,"\'")}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">🏠 I want to rent!</button>
+            <button onclick="tenantNotInterested('${v.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Not interested</button>
+          </div>
+        </div>`:''} 
       ${v.status==='completed'?`
         <div style="background:rgba(76,175,125,.08);border:2px solid rgba(76,175,125,.3);border-radius:10px;padding:.75rem;margin-top:.5rem">
           <div style="font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:#4CAF7D">🏠 Visit done! Do you want to rent?</div>
@@ -2117,6 +2125,20 @@ async function confirmTenantPresence(visitId){
   }
   try{await sb.from('visits').update({status:'confirmed',tenant_confirmed:true}).eq('id',visitId);}catch(e){}
   toast('✅ Presence confirmed! See you at the visit.');
+  loadTenantVisits();
+}
+
+async function tenantInterested(visitId, listingId, price, listingTitle){
+  // Récupérer le landlord_id depuis la visite
+  const{data:v}=await sb.from('visits').select('landlord_id').eq('id',visitId).single();
+  const landlordId=v?.landlord_id||null;
+  wantToRentDirect(listingId, listingTitle, landlordId, price);
+}
+
+async function tenantNotInterested(visitId){
+  if(!confirm('Confirm you are not interested in this property?')) return;
+  await sb.from('visits').update({status:'tenant_declined'}).eq('id',visitId);
+  toast('OK — visit moved to past.');
   loadTenantVisits();
 }
 
