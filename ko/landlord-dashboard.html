@@ -3832,7 +3832,9 @@ function renderLeaseSection(g){
           <span style="font-size:.78rem">🏠 You (landlord)</span>
           ${llSigned
             ?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>'
-            :`<button onclick="openSigningDocLL('${bk?.id||''}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+            :bk?.lease_landlord_embed
+              ?`<button onclick="openSigningDocLL('${bk?.lease_landlord_embed||''}','Lease Agreement','${bk?.id||''}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
+              :`<button onclick="regenLease('${bk?.id||''}','${g.listing_id||''}','${g.tenant_id||''}')" style="background:var(--gold);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">🔄 Generate lease</button>`}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem">👤 Tenant (${g.tenant_name||'—'})</span>
