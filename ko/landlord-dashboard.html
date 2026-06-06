@@ -1931,11 +1931,29 @@ async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
 }
 async function landlordConfirmVisit(visitId, response, listingId, tenantId){
   if(response==='yes'){
-    await sb.from('visits').update({status:'agents_applying', agents_applying_since: new Date().toISOString()}).eq('id',visitId);
+    // Vérifier si le listing veut un agent
+    const{data:listing}=await sb.from('listings').select('wants_agent,agent_service').eq('id',listingId).maybeSingle();
+    const wantsAgent=listing?.wants_agent&&listing?.agent_service==='full';
+    const newStatus=wantsAgent?'agents_applying':'confirmed';
+    await sb.from('visits').update({status:newStatus, agents_applying_since:wantsAgent?new Date().toISOString():null}).eq('id',visitId);
+    
+    // Si pas d'agent — notifier directement le tenant
+    if(!wantsAgent){
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+        visit_id:visitId,
+        content:'✅ Your visit is confirmed! The landlord has confirmed the date.',
+
+        type:'visit_confirmed'
+      }).catch(()=>{});
+      toast('✅ Visit confirmed! Tenant notified.');
+      loadVisitsPage();
+      return;
+    }
 
     // Get visit details for notification
     const{data:visit}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
-    const{data:listing}=await sb.from('listings').select('*').eq('id',listingId).maybeSingle();
+    const{data:listingFull}=await sb.from('listings').select('*').eq('id',listingId).maybeSingle();
 
     // Get all agents and send them updated notification
     let agents=[];
@@ -1946,8 +1964,8 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     }catch(e){}
 
     const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
-    const keyInfo=keyLabels[listing?.key_type]||'Contact landlord';
-    const keyDetail=listing?.key_location?`\nKey details: ${listing.key_location}`:'';
+    const keyInfo=keyLabels[listingFull?.key_type]||'Contact landlord';
+    const keyDetail=listingFull?.key_location?`\nKey details: ${listingFull.key_location}`:'';
     const visitDateStr=visit?.visit_date?new Date(visit.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+(visit?.visit_time||'TBD'):'TBD';
 
     for(const agent of agents){
@@ -1961,7 +1979,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
           .eq('type','visit_request')
           .maybeSingle();
 
-        const newContent=`✅ LANDLORD CONFIRMED — Apply now!\n\nProperty: ${listing?.title||'Listing'}\nAddress: ${listing?.full_address||listing?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\n⏱ You have 5 minutes to apply. Best rated agent will be automatically selected.`;
+        const newContent=`✅ LANDLORD CONFIRMED — Apply now!\n\nProperty: ${listingFull?.title||'Listing'}\nAddress: ${listingFull?.full_address||listingFull?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\n⏱ You have 5 minutes to apply. Best rated agent will be automatically selected.`;
 
         if(existing?.id){
           // Update le message existant
@@ -2132,9 +2150,9 @@ async function loadCommissionStatus(leases){
   }
 }
 
-async function markVisitDone(groupId){
-  await sb.from('visit_groups').update({status:'visit_done'}).eq('id',groupId);
-  toast('✅ Visit marquée comme effectuée.');
+async function markVisitDone(visitId){
+  await sb.from('visits').update({status:'completed'}).eq('id',visitId);
+  toast('✅ Visit marked as done. Tenant will be asked if they are interested.');
   loadVisitsPage();
 }
 let leaseListings=[];
@@ -3984,6 +4002,13 @@ function renderLeaseSection(g){
       </div>
 
       <!-- Paiement -->
+      ${llSigned&&tSigned&&bk?.status!=='signing_day'&&bk?.status!=='move_in_ready'?`
+      <div style="margin-bottom:.5rem">
+        <button onclick="setSigningDay('${bk?.id||''}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">📋 Mark as Signing Day</button>
+      </div>`:''}
+
+
+
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
       <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:.78rem">${payConfirmed?'✅ Payment confirmed':payDeclared?'💶 Tenant declared payment':'⏳ Waiting for payment'}</span>
@@ -4063,12 +4088,40 @@ function renderVisitGroup(g, isPast){
 
     ${g.status==='confirmed'&&!g.has_agent?`
       <div style="margin-top:.4rem">
-        <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit done</button>
+        <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit as done</button>
       </div>`:''}
     ${g.status==='confirmed'&&g.has_agent?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
   </div>`;
 }
 
+
+async function setEDLDate(bookingId){
+  const input=document.getElementById('edl-date-'+bookingId);
+  if(!input?.value){toast('Please select a date');return;}
+  const{error}=await sb.from('bookings').update({
+    edl_date:input.value,
+    status:'edl_scheduled'
+  }).eq('id',bookingId);
+  if(error){toast('❌ '+error.message);return;}
+  // Notifier le tenant
+  const{data:bk}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
+  if(bk){
+    await sb.from('messages').insert({
+      listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
+      content:'📋 EDL date confirmed: '+new Date(input.value).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'\n\nPlease be present for the key handover.',
+      type:'edl_scheduled'
+    }).catch(()=>{});
+  }
+  toast('✅ EDL date set! Tenant notified.');
+  loadVisitsPage();
+}
+
+async function setSigningDay(bookingId){
+  const{error}=await sb.from('bookings').update({status:'signing_day'}).eq('id',bookingId);
+  if(error){toast('❌ '+error.message);return;}
+  toast('✅ Marked as signing day!');
+  loadVisitsPage();
+}
 
 async function confirmTenantPayment(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
