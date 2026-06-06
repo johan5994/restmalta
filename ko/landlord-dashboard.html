@@ -4138,7 +4138,7 @@ async function acceptDirectBooking(listingId, tenantId){
   toast('⏳ Accepting...');
   try{
     // Trouver le booking avec co-tenants
-    const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).eq('status','pending').maybeSingle();
+    const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).in('status',['pending','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(!booking){toast('❌ Booking not found');return;}
 
     // Nombre total de locataires (principal + co-tenants)
@@ -4226,7 +4226,7 @@ async function acceptDirectBooking(listingId, tenantId){
 async function declineDirectBooking(listingId, tenantId){
   if(!confirm('Decline this tenant? Their holding deposit will be fully refunded.'))return;
   try{
-    const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).eq('status','pending').maybeSingle();
+    const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).in('status',['pending','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(!booking){toast('❌ Booking not found');return;}
 
     await fetch('/.netlify/functions/holding-deposit',{
