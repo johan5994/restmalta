@@ -1363,7 +1363,8 @@ async function loadVisitsPage(){
     }
 
     const doneStatuses=['done','declined','cancelled','tenant_declined','no_show','date_rejected','move_in_ready','completed'];
-    const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status));
+    // Exclure visites direct landlord→tenant des statuts agent
+    const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status)&&!(g.status==='agents_applying'&&!g.has_agent));
     const pastGroups=groups.filter(g=>doneStatuses.includes(g.status));
 
     let html='';
@@ -4011,7 +4012,7 @@ function renderLeasePayStatus(bk){
 function renderVisitGroup(g, isPast){
   const statusConfig={
     'awaiting_landlord':{label:'⏳ Awaiting your confirmation',cls:'b-gold'},
-    'agents_applying':{label:'🏆 Searching for agent...',cls:'b-sea'},
+    'agents_applying':{label:g.has_agent?'🏆 Searching for agent...':'⏳ Visit pending',cls:'b-sea'},
     'agent_assigned':{label:'✅ Agent assigned',cls:'b-green'},
     'confirmed':{label:'✅ Visit confirmed',cls:'b-green'},
     'done':{label:'🏁 Visit done',cls:'b-dim'},
