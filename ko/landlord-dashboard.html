@@ -1330,13 +1330,15 @@ async function loadVisitsPage(){
       const listing=lMap[v.listing_id]||null;
       // Si un booking existe, utiliser son statut pour les étapes après la visite
       let status=v.status;
+      const has_agent=!!(listing?.wants_agent&&listing?.agent_service==='full');
+      if(status==='agents_applying'&&!has_agent) status='awaiting_landlord';
       if(booking){
         if(booking.status==='pending'||booking.status==='booking_pending') status='booking_pending';
         else if(booking.status==='accepted') status='lease_pending';
         else if(booking.status==='declined') status='declined';
         else if(['edl_scheduled','signing_day','move_in_ready'].includes(booking.status)) status=booking.status;
       }
-      return{...v,booking,status,has_agent:listing?.wants_agent&&listing?.agent_service==='full'};
+      return{...v,booking,status,has_agent};
     });
 
     // 5. Ajouter les bookings orphelins (sans visite)
