@@ -203,8 +203,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Properties</div>
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My listings</button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits-ll" style="display:none">0</span></button>
-    <button class="ni" onclick="sp('leases',this)"><span class="nico">📄</span>Leases & docs<span class="nbadge" id="nb-leases" style="display:none">0</span></button>
-    <button class="ni" onclick="sp('inventory',this)"><span class="nico">📋</span>Inventory</button>
+
+
     <button class="ni" onclick="sp('sublet',this)"><span class="nico">🔑</span>Subletting<span class="nbadge gold" id="nb-sublet" style="display:none">0</span></button>
     <div class="nl">Finance</div>
     <button class="ni" onclick="sp('payments',this)"><span class="nico">💶</span>Payments<span class="nbadge" id="nb-pay" style="display:none">0</span></button>
@@ -282,7 +282,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="card">
           <div class="ch"><div class="ct">Quick Actions</div></div>
           <div class="cb" style="display:flex;flex-direction:column;gap:.6rem">
-            <button class="btn bp" style="width:100%;justify-content:center" onclick="sp('leases',null);openNewLease()">📄 Generate lease</button>
+
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sendAllReminders()">📧 Send rent reminders</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('inventory',null)">📋 New inventory check</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="generateAllReceipts()">🧾 Generate all receipts</button>
@@ -359,115 +359,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
       <div id="visits-page-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
-    <div class="page" id="page-leases">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">Leases & Documents</div>
-      </div>
-
-      <!-- Lease generator -->
-      <div class="card" style="margin-bottom:1.5rem">
-        <div class="ch"><div class="ct">⚡ Auto Lease Generator</div><span style="font-size:.75rem;color:var(--td)">PRL Act compliant · Maltase law · E-sign via DocuSeal</span></div>
-        <div class="cb">
-          <div style="background:var(--grdim);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.2rem;font-size:.8rem;color:var(--green);line-height:1.6">
-            ✅ Select your property and the tenant — everything fills in automatically from their profiles. No retyping needed.
-          </div>
-
-          <!-- Step 1: Select listing -->
-          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Step 1 — Select your property</div>
-          <div class="fgrid2" style="margin-bottom:1.2rem">
-            <div class="fg"><label class="fl">Property</label>
-              <select class="fsel" id="lease-listing" onchange="onLeaseListingChange(this.value)">
-                <option value="">Select a listing...</option>
-              </select>
-            </div>
-            <div class="fg"><label class="fl">Lease type</label>
-              <select class="fsel" id="lease-type" onchange="autoSetEndDate()">
-                <option value="sublet">Short-let (under 6 months)</option>
-                <option value="long">Long-let (6 months+)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Auto-filled from listing -->
-          <div id="lease-listing-preview" style="display:none;background:var(--tdim);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.2rem;font-size:.83rem">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">ADDRESS</div><div id="lp-address" style="font-weight:600;color:var(--txt)">—</div></div>
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">MONTHLY RENT</div><div id="lp-rent" style="font-weight:700;color:var(--green)">—</div></div>
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">DEPOSIT</div><div id="lp-deposit" style="font-weight:600;color:var(--txt)">—</div></div>
-            </div>
-          </div>
-
-          <!-- Step 2: Select tenant -->
-          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Step 2 — Select the tenant(s)</div>
-          <div class="fgrid2" style="margin-bottom:.75rem">
-            <div class="fg" style="grid-column:1/-1">
-              <label class="fl">Primary Tenant (Lessee 1)</label>
-              <select class="fsel" id="lease-tenant-select" onchange="onLeaseTenantChange(this.value)">
-                <option value="">Select a tenant who contacted you...</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Auto-filled from tenant profile -->
-          <div id="lease-tenant-preview" style="display:none;background:var(--tdim);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem;font-size:.83rem">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">FULL NAME</div><div id="tp-name" style="font-weight:600;color:var(--txt)">—</div></div>
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">EMAIL</div><div id="tp-email" style="font-weight:600;color:var(--txt)">—</div></div>
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">PASSPORT / ID</div><div id="tp-passport" style="font-weight:600;color:var(--txt)">—</div></div>
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">NATIONALITY</div><div id="tp-nat" style="font-weight:600;color:var(--txt)">—</div></div>
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">DATE OF BIRTH</div><div id="tp-dob" style="font-weight:600;color:var(--txt)">—</div></div>
-              <div><div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">HOME ADDRESS</div><div id="tp-address" style="font-weight:600;color:var(--txt)">—</div></div>
-            </div>
-            <div id="tp-incomplete" style="display:none;margin-top:.6rem;background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.5rem .75rem;font-size:.75rem;color:var(--gold)">
-              ⚠️ This tenant's profile is incomplete. The lease will have missing fields.
-            </div>
-          </div>
-
-          <!-- Co-tenants section -->
-          <div id="co-tenants-section" style="display:none;background:rgba(46,107,138,.06);border:1px solid rgba(46,107,138,.15);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.2rem">
-            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">👥 Co-tenants (Lessee 2, 3, 4)</div>
-            <div style="font-size:.72rem;color:var(--tm);margin-bottom:.75rem">Select additional tenants who will co-sign the lease. They must have a RestMalta account.</div>
-            <div id="co-tenants-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
-            <div style="font-size:.7rem;color:var(--td);margin-top:.5rem">Co-tenants are jointly and severally liable for all lease obligations.</div>
-          </div>
-
-          <button class="btn bg bsm" id="add-cotenant-btn" style="display:none;margin-bottom:1.2rem" onclick="toggleCoTenants()">👥 Add co-tenants to lease</button>
-
-          <!-- Step 3: Dates -->
-          <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Step 3 — Lease dates</div>
-          <div class="fgrid2" style="margin-bottom:1.2rem">
-            <div class="fg"><label class="fl">Start date *</label><input class="fi" id="lease-start" type="date" onchange="autoSetEndDate()"></div>
-            <div class="fg"><label class="fl">End date * <span id="end-date-hint" style="font-size:.68rem;color:var(--sea)"></span></label><input class="fi" id="lease-end" type="date"></div>
-          </div>
-
-          <!-- Hidden fields auto-filled -->
-          <input type="hidden" id="lease-tenant-name">
-          <input type="hidden" id="lease-tenant-email">
-          <input type="hidden" id="lease-tenant-id">
-          <input type="hidden" id="lease-rent">
-          <input type="hidden" id="lease-deposit">
-
-          <div id="lease-ready" style="display:none;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;font-size:.82rem;color:var(--green)">
-            ✅ All information ready — click Generate to send the lease for e-signature.
-          </div>
-
-          <button class="btn bp" style="width:100%;justify-content:center;font-size:.95rem" onclick="generateAndSendLease()">
-            📄 Generate & send for e-signature →
-          </button>
-        </div>
-      </div>
-
-      <!-- Existing leases -->
-      <div class="card">
-        <div class="ch"><div class="ct">All leases</div></div>
-        <table class="tbl">
-          <thead><tr><th>Tenant</th><th>Property</th><th>Type</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="leases-tbody"><tr><td colspan="6"><div class="ld"><div class="sp"></div></div></td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- PAYMENTS -->
     <div class="page" id="page-payments">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
         <div style="font-size:1rem;font-weight:700">Payments & Rent</div>
@@ -577,56 +468,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <!-- INVENTORY -->
-    <div class="page" id="page-inventory">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">Entry & Exit Inventory</div>
-        <div style="display:flex;gap:.5rem">
-          <select class="fsel" style="width:auto;font-size:.78rem;padding:.35rem .7rem" id="inv-listing" onchange="loadInventory()"><option value="">Select un bien...</option></select>
-          <button class="btn bg bsm" onclick="exportInventory()">📥 Export PDF</button>
-        </div>
-      </div>
-      <div style="background:var(--sdim);border:1px solid rgba(58,143,181,.15);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.2rem;font-size:.82rem;color:var(--tm);line-height:1.6">
-        📋 Document the condition of each room and item at entry and exit. The tenant signs digitally — this protects you in case of deposit disputes.
-      </div>
-
-      <!-- Entry / Exit toggle -->
-      <div style="display:flex;gap:.5rem;margin-bottom:1.2rem">
-        <button class="btn bp bsm" id="inv-entry-btn" onclick="setInvType('entry',this)">📥 État d'entrée</button>
-        <button class="btn bg bsm" id="inv-exit-btn" onclick="setInvType('exit',this)">📤 État de sortie</button>
-        <span id="inv-type-badge" class="badge b-green" style="margin-left:.5rem">Entrée</span>
-      </div>
-      <input type="hidden" id="inv-type" value="entry">
-
-      <div id="inventory-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem"><div class="ld"><div class="sp"></div></div></div>
-
-      <!-- Photo upload per room -->
-      <div style="margin-top:1rem;background:var(--tdim);border-radius:10px;padding:1rem">
-        <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem">📸 Photos par pièce</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Ajoutez des photos for chaque pièce — elles seront annexées à l'état des lieux signé.</div>
-        <div id="inv-photos" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem"></div>
-        <button class="btn bg bsm" onclick="document.getElementById('inv-photo-input').click()">📷 Add photos</button>
-        <input type="file" id="inv-photo-input" accept="image/*" multiple style="display:none" onchange="addInvPhotos(this)">
-      </div>
-
-      <!-- Signature section -->
-      <div style="margin-top:1rem;background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:1rem">
-        <div style="font-size:.82rem;font-weight:700;color:var(--green);margin-bottom:.5rem">✍️ Digital Signature</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem">Once inventory is completed, send it to the tenant for electronic signature via DocuSeal.</div>
-        <div style="display:flex;gap:.75rem">
-          <button class="btn bg" onclick="saveInventory()">💾 Save</button>
-          <button class="btn bp" onclick="sendInventoryForSignature()">📤 Send for signature →</button>
-        </div>
-      </div>
-
-      <!-- Agent for état des lieux (point 10) — exit only -->
-      <div style="margin-top:1rem;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:1rem">
-        <div style="font-size:.82rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">🏆 Book an agent for exit inventory (~120€)</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.75rem;line-height:1.5">A certified RestMalta agent handles the exit inventory — documents everything, takes photos, and gets both parties to sign. Available for exit check only (entry templates are already provided above).</div>
-        <button class="btn bg bsm" onclick="bookAgentInventory('exit')">📤 Book agent — exit inventory</button>
-      </div>
-    </div>
-
-    <!-- SUBLETTING -->
     <div class="page" id="page-sublet">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
         <div style="font-size:1rem;font-weight:700">Subletting</div>
@@ -1152,14 +993,13 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',visits:'Visits',leases:'Leases & Documents',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',inventory:'Inventory',sublet:'Subletting',reviews:'Reviews',profile:'Profile & Settings'};
+  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',visits:'Visits',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',sublet:'Subletting',reviews:'Reviews',profile:'Profile & Settings'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
   if(id==='visits')loadVisitsPage();
   if(id==='inventory')loadInventoryUI();
   if(id==='leases'){
-    loadLeases();
     setTimeout(()=>{
       const s=document.getElementById('lease-start');
       const e=document.getElementById('lease-end');
@@ -2486,8 +2326,7 @@ async function generateAndSendLease(){
         }
       }
       coTenants=[];
-      loadLeases();
-      // Also add commission column header to leases table
+        // Also add commission column header to leases table
       const th=document.querySelector('#leases-tbody')?.closest('table')?.querySelector('thead tr');
       if(th&&!document.getElementById('comm-header')){
         const td=document.createElement('th');
