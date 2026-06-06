@@ -2151,9 +2151,41 @@ async function declareTenantPayment(bookingId){
 }
 
 async function openTenantLeaseDoc(bookingId){
-  const{data:bk}=await sb.from('bookings').select('lease_tenant_embed').eq('id',bookingId).single();
+  const{data:bk}=await sb.from('bookings').select('lease_tenant_embed,id').eq('id',bookingId).single();
   if(!bk?.lease_tenant_embed){toast('❌ Lease document not ready yet');return;}
-  window.open(bk.lease_tenant_embed,'_blank');
+
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  const header=document.createElement('div');
+  header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Lease Agreement</div>';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
+  closeBtn.textContent='✕';
+  closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
+  header.appendChild(closeBtn);
+  const body=document.createElement('div');
+  body.style.cssText='flex:1;overflow:auto;background:white';
+  const form=document.createElement('docuseal-form');
+  form.setAttribute('data-src',bk.lease_tenant_embed);
+  form.setAttribute('data-send-copy-email','false');
+  form.style.cssText='width:100%;display:block;min-height:100vh';
+  form.addEventListener('completed',async()=>{
+    toast('✅ Lease signed!');
+    try{
+      await sb.from('bookings').update({lease_signed_tenant:true,lease_signed_tenant_at:new Date().toISOString()}).eq('id',bookingId);
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        content:'✅ Tenant signed the lease!',type:'lease_signed_tenant'
+      });
+    }catch(e){}
+    modal.remove();
+    loadTenantVisits();
+  });
+  body.appendChild(form);
+  modal.appendChild(header);
+  modal.appendChild(body);
+  document.body.appendChild(modal);
 }
 
 async function confirmTenantPresence(visitId){
