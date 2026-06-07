@@ -3895,54 +3895,96 @@ function renderVisitGroup(g, isPast){
     'no_show':{label:'🚫 No-show',cls:'b-dim'},
     'tenant_declined':{label:'👎 Not interested',cls:'b-dim'},
     'date_rejected':{label:'📅 Date rejected',cls:'b-dim'},
-    'booking_pending':{label:'📋 Dossier received — awaiting your decision',cls:'b-gold'},
-    'pending':{label:'🔒 Awaiting your decision',cls:'b-gold'},
+    'booking_pending':{label:'📋 Dossier received',cls:'b-gold'},
+    'pending':{label:'📋 Dossier received',cls:'b-gold'},
     'accepted':{label:'✅ Accepted — lease in progress',cls:'b-green'},
     'lease_pending':{label:'📄 Lease being signed',cls:'b-sea'},
-    'edl_scheduled':{label:'📋 Lease in progress',cls:'b-green'},
-    'signing_day':{label:'📋 Signing Day',cls:'b-green'},
+    'edl_scheduled':{label:'📋 EDL scheduled',cls:'b-green'},
+    'signing_day':{label:'🎉 Signing Day',cls:'b-green'},
     'move_in_ready':{label:'🏠 Moved in',cls:'b-green'},
     'declined':{label:'❌ Dossier declined',cls:'b-dim'},
   };
   const sc=statusConfig[g.status]||{label:g.status,cls:'b-dim'};
-  const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Call landlord'};
   const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+(g.visit_time?' at '+g.visit_time:''):'Date TBD';
   const borderColor=sc.cls==='b-green'?'rgba(76,175,125,.25)':sc.cls==='b-gold'?'rgba(212,168,71,.25)':sc.cls==='b-sea'?'rgba(58,143,181,.25)':'var(--b)';
   const bgColor=sc.cls==='b-green'?'rgba(76,175,125,.04)':sc.cls==='b-gold'?'rgba(212,168,71,.04)':sc.cls==='b-sea'?'rgba(58,143,181,.04)':'var(--s2)';
+  const bk=g.booking||null;
+
+  // Charger les infos du tenant si dossier reçu
+  if((g.status==='booking_pending'||g.status==='pending')&&g.tenant_id){
+    setTimeout(()=>loadTenantDossierForLL(g.tenant_id),50);
+  }
 
   return`<div style="padding:.85rem;background:${isPast?'transparent':bgColor};border:1px solid ${isPast?'var(--b)':borderColor};border-radius:12px;margin-bottom:.6rem;opacity:${isPast?'.6':'1'}">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
-      <div style="font-size:.88rem;font-weight:700">👤 ${g.tenant_name||'—'}</div>
-      <span class="badge ${sc.cls}" style="font-size:.62rem">${sc.label}</span>
-    </div>
-    <div style="font-size:.73rem;color:var(--td);margin-bottom:.25rem">🗓 ${visitDateStr}</div>
-    ${g.agent_name?`<div style="font-size:.73rem;color:var(--td)">🏆 Agent: ${g.agent_name}</div>`:''}
 
-    ${g.status==='booking_pending'||g.status==='pending'?`
-      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem;font-size:.78rem;color:var(--gold)">
-        📋 Tenant wants to rent — review their dossier and decide
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem">
+      <div>
+        <div style="font-size:.9rem;font-weight:700">👤 ${g.tenant_name||'—'}</div>
+        <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">🗓 ${visitDateStr}</div>
+        ${g.agent_name?`<div style="font-size:.7rem;color:var(--td)">🏆 Agent: ${g.agent_name}</div>`:''}
       </div>
-      <div style="display:flex;gap:.4rem;margin-top:.5rem">
-        <button onclick="acceptDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Accept</button>
-        <button onclick="declineDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
-      </div>`:''}
+      <span class="badge ${sc.cls}" style="font-size:.62rem;flex-shrink:0">${sc.label}</span>
+    </div>
 
     ${g.status==='awaiting_landlord'?`
-      <div style="display:flex;gap:.4rem;margin-top:.5rem">
-        <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Available</button>
-        <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
-      </div>`:''}
+    <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem .75rem;margin-top:.4rem">
+      <div style="font-size:.78rem;font-weight:600;color:var(--gold);margin-bottom:.3rem">⏳ Tenant requested a visit</div>
+      <div style="font-size:.7rem;color:var(--td);margin-bottom:.4rem">📅 ${visitDateStr}</div>
+      <div style="display:flex;gap:.4rem">
+        <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ I'm available</button>
+        <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Can't make it</button>
+      </div>
+    </div>`:''} 
+
+    ${g.status==='confirmed'?`
+    <div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem .75rem;margin-top:.4rem">
+      <div style="font-size:.78rem;font-weight:600;color:#4CAF7D;margin-bottom:.2rem">✅ Visit confirmed</div>
+      <div style="font-size:.7rem;color:var(--td)">📅 ${visitDateStr}</div>
+    </div>
+    ${!g.has_agent?`<div style="margin-top:.4rem"><button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit as done</button></div>`:`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`}`:''} 
+
+    ${g.status==='booking_pending'||g.status==='pending'?`
+    <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.65rem .75rem;margin-top:.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">📋 ${g.tenant_name||'Tenant'} wants to rent!</div>
+      <div id="t-dossier-${g.tenant_id}" style="margin-bottom:.5rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem">
+          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Nationality</div><div id="t-nat-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
+          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Verified</div><div id="t-ver-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
+          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Phone</div><div id="t-phone-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
+          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Monthly rent</div><div style="font-size:.73rem;font-weight:700">€${bk?.monthly_rent||g.listing_price||'—'}/mo</div></div>
+        </div>
+        <div id="t-docs-chips-${g.tenant_id}" style="margin-top:.3rem;display:flex;gap:.3rem;flex-wrap:wrap"></div>
+      </div>
+      <div style="display:flex;gap:.4rem">
+        <button onclick="acceptDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">✅ Accept</button>
+        <button onclick="declineDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Decline</button>
+      </div>
+    </div>`:''} 
 
     ${['lease_pending','accepted','edl_scheduled','signing_day','move_in_ready'].includes(g.status)?renderLeaseSection(g):''}
 
-    ${g.status==='confirmed'&&!g.has_agent?`
-      <div style="margin-top:.4rem">
-        <button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')">✅ Mark visit as done</button>
-      </div>`:''}
-    ${g.status==='confirmed'&&g.has_agent?`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem">👷 Agent handles this visit</div>`:''}
   </div>`;
 }
 
+async function loadTenantDossierForLL(tenantId){
+  try{
+    const{data:p}=await sb.from('profiles').select('full_name,nationality,phone,verified,id_submitted,documents').eq('clerk_id',tenantId).maybeSingle();
+    if(!p)return;
+    const nat=document.getElementById('t-nat-'+tenantId);
+    const ver=document.getElementById('t-ver-'+tenantId);
+    const phone=document.getElementById('t-phone-'+tenantId);
+    const docs=document.getElementById('t-docs-chips-'+tenantId);
+    if(nat)nat.textContent=p.nationality||'—';
+    if(ver)ver.innerHTML=p.verified?'<span style="color:#4CAF7D">✅ Verified</span>':p.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)">❌ Not verified</span>';
+    if(phone)phone.textContent=p.phone||'—';
+    if(docs&&p.documents){
+      const docLabels={id:'🪪 ID',bank_statement:'🏦 Bank',emprent_letter:'💼 Employment',reference_letter:'⭐ Reference',rent1:'🏠 Rent 1',rent2:'🏠 Rent 2',rent3:'🏠 Rent 3'};
+      const uploaded=Object.keys(typeof p.documents==='string'?JSON.parse(p.documents):p.documents);
+      docs.innerHTML=uploaded.map(k=>`<span style="background:rgba(76,175,125,.15);color:#4CAF7D;border-radius:5px;padding:.15rem .4rem;font-size:.65rem;font-weight:600">${docLabels[k]||k}</span>`).join('');
+    }
+  }catch(e){}
+}
 
 async function setEDLDate(bookingId){
   const input=document.getElementById('edl-date-'+bookingId);
