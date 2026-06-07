@@ -1955,75 +1955,92 @@ async function loadTenantVisits(){
   // Bookings actifs maintenant fusionnés dans les visites
   // Visites actives
   activeVisits.forEach(v=>{
-    const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+(v.visit_time||'TBD'):'TBD';
-    const statusColors={'awaiting_landlord':'b-gold','agents_applying':'b-sea','agent_assigned':'b-green','confirmed':'b-green','completed':'b-sea','tenant_interested':'b-green','booking_pending':'b-gold','accepted':'b-green','lease_pending':'b-sea','edl_scheduled':'b-sea','signing_day':'b-sea','move_in_ready':'b-green'};
-    const _sl={'awaiting_landlord':'⏳ Awaiting landlord','agents_applying':v.has_agent?'🏆 Agent being selected':'⏳ Visit confirmed by landlord','agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by landlord','confirmed':v.has_agent?'✅ You confirmed':'✅ Visit confirmed','completed':'🏁 Visit done','tenant_interested':'🎉 Reservation sent','booking_pending':'🔒 Awaiting landlord decision','accepted':'🎉 Application accepted!','lease_pending':'📄 Lease being signed','edl_scheduled':'📋 Move-in scheduled','signing_day':'📋 Signing day','move_in_ready':'🏠 Moved in'};
-    const statusLabels=_sl;
     const bk=v.booking||null;
-    const bgCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.05)':v.status==='booking_pending'?'rgba(212,168,71,.05)':'var(--s2)';
-    const borderCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.2)':v.status==='booking_pending'?'rgba(212,168,71,.2)':'var(--b)';
+    const statusColors={
+      'awaiting_landlord':'b-gold','agents_applying':'b-sea','agent_assigned':'b-green',
+      'confirmed':'b-green','completed':'b-sea','tenant_interested':'b-green',
+      'booking_pending':'b-gold','accepted':'b-green','lease_pending':'b-sea',
+      'edl_scheduled':'b-green','signing_day':'b-green','move_in_ready':'b-green'
+    };
+    const statusLabels={
+      'awaiting_landlord':'⏳ Awaiting landlord confirmation',
+      'agents_applying':v.has_agent?'🏆 Agent being selected':'⏳ Visit confirmed by landlord',
+      'agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by landlord',
+      'confirmed':v.has_agent?'✅ You confirmed':'✅ Visit confirmed',
+      'completed':'🏁 Visit done',
+      'booking_pending':'🔒 Awaiting landlord decision',
+      'accepted':'🎉 Application accepted!',
+      'lease_pending':'📄 Lease being signed',
+      'edl_scheduled':'📋 EDL scheduled',
+      'signing_day':'🎉 Signing Day',
+      'move_in_ready':'🏠 Moved in'
+    };
+    const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(v.visit_time?' at '+v.visit_time:''):'Date TBD';
+    const sc=statusColors[v.status]||'b-dim';
+    const sl=statusLabels[v.status]||v.status;
+    const bgCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.05)':v.status==='booking_pending'?'rgba(212,168,71,.05)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.05)':'var(--s2)';
+    const borderCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.2)':v.status==='booking_pending'?'rgba(212,168,71,.2)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.2)':'var(--b)';
+
     html+=`<div style="padding:.85rem;background:${bgCol};border:1px solid ${borderCol};border-radius:12px;margin-bottom:.65rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-        <div style="font-size:.88rem;font-weight:700">${v.listing_title||'Property'}</div>
-        <span class="badge ${statusColors[v.status]||'b-dim'}" style="font-size:.62rem">${statusLabels[v.status]||v.status}</span>
+
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem">
+        <div>
+          <div style="font-size:.88rem;font-weight:700">${v.listing_title||'Property'}</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">🗓 ${dateStr}</div>
+          ${v.listing_zone?`<div style="font-size:.7rem;color:var(--td)">📍 ${v.listing_zone}</div>`:''}
+          ${v.agent_name?`<div style="font-size:.7rem;color:var(--td)">🏆 Agent: ${v.agent_name}</div>`:''}
+        </div>
+        <span class="badge ${sc}" style="font-size:.62rem;flex-shrink:0">${sl}</span>
       </div>
-      <div style="font-size:.73rem;color:var(--td);margin-bottom:.25rem">🗓 ${dateStr}</div>
-      ${v.listing_zone?`<div style="font-size:.72rem;color:var(--td)">📍 ${v.listing_zone}</div>`:''}
-      ${v.agent_name?`<div style="font-size:.72rem;color:var(--td)">🏆 Agent: ${v.agent_name}</div>`:''}
+
+      <!-- ÉTAPE 1 : En attente confirmation landlord -->
       ${v.status==='awaiting_landlord'?`
-        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
-          <div style="font-size:.75rem;color:var(--gold);font-weight:600">${v.has_agent?'⏳ Step 1/3 — Awaiting landlord confirmation':'⏳ Awaiting landlord confirmation'}</div>
-          <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">The landlord needs to confirm the date is available.</div>
-        </div>`:''}
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--gold)">
+        ⏳ Waiting for the landlord to confirm the date is available.
+      </div>`:''} 
+
+      <!-- ÉTAPE 2 : Agent sélection (avec agent) -->
       ${v.status==='agents_applying'&&v.has_agent?`
-        <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.4rem">
-          <div style="font-size:.75rem;color:var(--sea);font-weight:600">✅ Step 2/3 — Landlord confirmed! Finding your agent...</div>
-          <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">An agent is being assigned. You'll confirm attendance in step 3.</div>
-        </div>`:''}
-      ${v.status==='agent_assigned'&&!v.tenant_confirmed&&v.has_agent?`
-        <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
-          <div style="font-size:.8rem;font-weight:700;color:#4CAF7D;margin-bottom:.3rem">✅ Step 3/3 — Agent assigned! Confirm your attendance</div>
-          <div style="font-size:.72rem;color:var(--tm);margin-bottom:.4rem">€50 no-show fee if you miss without 24h cancellation.</div>
-          ${P?.stripe_customer_id
-            ?`<button class="btn bp" style="width:100%;justify-content:center;font-size:.82rem" onclick="confirmTenantPresence('${v.id}')">✅ I will attend</button>`
-            :`<div style="font-size:.72rem;color:var(--red);margin-bottom:.35rem">⚠️ Register your card first to confirm</div>
-              <button class="btn bp" style="width:100%;justify-content:center;font-size:.82rem;background:var(--sea)" onclick="registerCardForVisit('${v.id}')">💳 Register card →</button>`
-          }
-        </div>`:''
-      }
-      ${v.status==='confirmed'?`<div style="font-size:.73rem;color:#4CAF7D;font-weight:600;margin-top:.3rem">${v.has_agent?'✅ Confirmed — see you there!':'✅ Visit confirmed by landlord!'}</div>`:''}
-      ${v.status==='completed'&&!v.booking?`
-        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem;margin-top:.5rem">
-          <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.4rem">How did the visit go?</div>
-          <div style="display:flex;gap:.4rem">
-            <button onclick="tenantInterested('${v.id}','${v.listing_id}',${v.listing_price||0},'${(v.listing_title||'').replace(/'/g,"\'")}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">🏠 I want to rent!</button>
-            <button onclick="tenantNotInterested('${v.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Not interested</button>
-          </div>
-        </div>`:''} 
-      ${v.status==='completed'?`
-        <div style="background:rgba(76,175,125,.08);border:2px solid rgba(76,175,125,.3);border-radius:10px;padding:.75rem;margin-top:.5rem">
-          <div style="font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:#4CAF7D">🏠 Visit done! Do you want to rent?</div>
-          <div style="display:flex;gap:.5rem">
-            <button onclick="showHoldingDeposit('${v.id}','${v.listing_id}',${v.listing_price||0})" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:9px;padding:.7rem;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(76,175,125,.3)">✅ Yes, I want to rent!</button>
-            <button onclick="respondToInterest('','${v.id}','${v.listing_id}',false)" style="flex:1;background:rgba(224,90,90,.12);color:#E05A5A;border:1.5px solid rgba(224,90,90,.4);border-radius:9px;padding:.7rem;font-size:.82rem;font-weight:700;cursor:pointer">❌ Not interested</button>
-          </div>
-          <div id="holding-section-${v.id}" style="display:none;margin-top:.6rem;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.25);border-radius:10px;padding:.75rem">
-            <div style="font-size:.75rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">🔒 Reserve this property</div>
-            <div style="font-size:.7rem;color:var(--tm);margin-bottom:.5rem;line-height:1.5">Pay Holding Deposit to reserve. Full refund if landlord declines.</div>
-            <div style="margin-bottom:.5rem">
-              <label style="font-size:.7rem;font-weight:600;display:block;margin-bottom:.2rem">📅 Desired move-in date *</label>
-              <input type="date" id="movein-${v.id}" class="fi" style="font-size:.8rem;width:100%">
-            </div>
-            <div id="holding-breakdown-${v.id}" style="background:rgba(255,255,255,.04);border-radius:8px;padding:.45rem .65rem;margin-bottom:.4rem;font-size:.73rem"></div>
-            <div id="holding-card-${v.id}"></div>
-            <button id="holding-btn-${v.id}" onclick="payHoldingDepositFromVisits('${v.id}','${v.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:.35rem">🔒 Reserve & Pay →</button>
-            <div id="holding-done-${v.id}" style="display:none;text-align:center;font-size:.75rem;color:#4CAF7D;font-weight:600;padding:.4rem">✅ Reserved! Check your email.</div>
-          </div>
-        </div>`:''}
-      ${['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(v.status)&&bk?renderTenantLeaseSection(v,bk):''}
+      <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--sea)">
+        ✅ Landlord confirmed — an agent is being assigned to your visit.
+      </div>`:''} 
+
+      <!-- ÉTAPE 3 : Visite confirmée -->
+      ${(v.status==='confirmed'||v.status==='agent_assigned')?`
+      <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem">
+        <div style="font-size:.75rem;font-weight:600;color:#4CAF7D;margin-bottom:.15rem">✅ Visit confirmed — see you there!</div>
+        <div style="font-size:.7rem;color:var(--td)">📅 ${dateStr}</div>
+      </div>
+      ${v.has_agent&&!v.tenant_confirmed?`
+      <div style="margin-top:.4rem">
+        <button onclick="confirmTenantPresence('${v.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Confirm I will attend</button>
+      </div>`:''} `:''} 
+
+      <!-- ÉTAPE 4 : Visite faite — intéressé ou non -->
+      ${v.status==='completed'&&!bk?`
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem;margin-top:.4rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.4rem">How did the visit go?</div>
+        <div style="display:flex;gap:.4rem">
+          <button onclick="tenantInterested('${v.id}','${v.listing_id}',${v.listing_price||0},'${(v.listing_title||'').replace(/'/g,"\'")}','${v.landlord_id||''}' )" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">🏠 I want to rent!</button>
+          <button onclick="tenantNotInterested('${v.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">❌ Not interested</button>
+        </div>
+      </div>`:''} 
+
+      <!-- ÉTAPE 5 : En attente décision landlord -->
+      ${v.status==='booking_pending'?`
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--gold)">
+        🔒 Your rental request has been sent to the landlord. Awaiting their decision.
+      </div>`:''} 
+
+      <!-- ÉTAPES 6+ : Bail, paiement, EDL -->
+      ${['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(v.status)&&bk?renderTenantLeaseSection(v,bk):''} 
+
+      <!-- Bouton annuler si début du flow -->
       <div style="margin-top:.4rem">
         ${['awaiting_landlord','agents_applying','agent_assigned','confirmed'].includes(v.status)?`<button class="btn bg bsm" style="font-size:.68rem" onclick="cancelVisit('${v.id}','${v.agent_id||''}','${v.listing_id||''}')">Cancel visit</button>`:''}
       </div>
+
     </div>`;
   });
 
@@ -2134,10 +2151,11 @@ async function confirmTenantPresence(visitId){
   loadTenantVisits();
 }
 
-async function tenantInterested(visitId, listingId, price, listingTitle){
-  // Récupérer le landlord_id depuis la visite
-  const{data:v}=await sb.from('visits').select('landlord_id').eq('id',visitId).single();
-  const landlordId=v?.landlord_id||null;
+async function tenantInterested(visitId, listingId, price, listingTitle, landlordId){
+  if(!landlordId){
+    const{data:v}=await sb.from('visits').select('landlord_id').eq('id',visitId).single();
+    landlordId=v?.landlord_id||null;
+  }
   wantToRentDirect(listingId, listingTitle, landlordId, price);
 }
 
