@@ -1884,25 +1884,29 @@ async function loadTenantVisits(){
 
   // Fusionner visites et bookings par listing_id
   const bookingByListing={};
-  bookings.forEach(b=>{bookingByListing[b.listing_id]=b;});
+  bookings.forEach(b=>{
+    const key=b.listing_id+'_'+U.id;
+    bookingByListing[key]=b;
+  });
   
   // Enrichir les visites avec leur booking
   visits=visits.map(v=>{
-    const bk=bookingByListing[v.listing_id]||null;
+    const key=v.listing_id+'_'+U.id;
+    const bk=bookingByListing[key]||null;
     let status=v.status;
     if(bk){
       if(bk.status==='pending'||bk.status==='booking_pending') status='booking_pending';
       else if(bk.status==='accepted') status='accepted';
       else if(bk.status==='declined') status='declined';
       else if(['edl_scheduled','signing_day','move_in_ready'].includes(bk.status)) status=bk.status;
-      if(bk.listing_id) delete bookingByListing[v.listing_id]; // Marqué comme fusionné
+      delete bookingByListing[key]; // Marqué comme fusionné
     }
     return{...v,booking:bk,status};
   });
 
   // Bookings sans visite correspondante
   const orphanBookings=Object.values(bookingByListing).filter(b=>!['declined','cancelled_by_tenant'].includes(b.status)).map(b=>({
-    id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:b.tenant_id,
+    id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:U.id,
     listing_title:b.listing_title,listing_zone:b.zone||'Malta',
     status:b.status==='accepted'?'accepted':'booking_pending',
     booking:b,has_agent:false
