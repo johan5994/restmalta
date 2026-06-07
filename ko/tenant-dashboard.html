@@ -1883,23 +1883,25 @@ async function loadTenantVisits(){
   }
 
   // Fusionner visites et bookings par listing_id
-  const bookingByListing={};
-  bookings.forEach(b=>{
-    const key=b.listing_id+'_'+U.id;
-    bookingByListing[key]=b;
-  });
+  // Trier les bookings par statut le plus avancé
+  const statusPriority={'move_in_ready':6,'signing_day':5,'edl_scheduled':4,'accepted':3,'lease_pending':3,'booking_pending':2,'pending':1};
+  const sortedBookings=[...bookings].sort((a,b)=>(statusPriority[b.status]||0)-(statusPriority[a.status]||0));
+  
+  // Pour chaque visite, trouver le booking le plus avancé pour ce listing
+  // On utilise un Set pour éviter d'assigner le même booking à 2 visites
+  const usedBookingIds=new Set();
   
   // Enrichir les visites avec leur booking
   visits=visits.map(v=>{
-    const key=v.listing_id+'_'+U.id;
-    const bk=bookingByListing[key]||null;
+    // Trouver le booking le plus avancé pour cette visite (même listing)
+    const bk=sortedBookings.find(b=>b.listing_id===v.listing_id&&!usedBookingIds.has(b.id))||null;
+    if(bk) usedBookingIds.add(bk.id);
     let status=v.status;
     if(bk){
       if(bk.status==='pending'||bk.status==='booking_pending') status='booking_pending';
       else if(bk.status==='accepted') status='accepted';
       else if(bk.status==='declined') status='declined';
       else if(['edl_scheduled','signing_day','move_in_ready'].includes(bk.status)) status=bk.status;
-      delete bookingByListing[key]; // Marqué comme fusionné
     }
     return{...v,booking:bk,status};
   });
