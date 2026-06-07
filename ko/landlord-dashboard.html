@@ -4013,20 +4013,11 @@ async function acceptDirectBooking(listingId, tenantId){
       edl_date:visitInfo?.visit_date||null
     }).eq('id',booking.id);
 
-    // Créer une fiche visite pour que ca apparaisse dans le tenant dashboard
-    const{data:visit}=await sb.from('visits').insert({
-      tenant_id:tenantId,
-      tenant_name:booking.tenant_name||'Tenant',
-      listing_id:listingId,
-      landlord_id:U.id,
-      status:'edl_scheduled',
-      visit_type:'direct',
-      move_in_date:booking.move_in_date||null,
-      listing_price:monthlyRent
-    }).select().single().catch(()=>({data:null}));
-
-    // Générer le bail avec co-tenants
+    // Générer le bail avec co-tenants (gère aussi le update booking)
     await generateLeaseFromBooking(booking.id, listingId, tenantId);
+
+    // Mettre à jour le statut de la visite existante → lease_pending
+    try{await sb.from('visits').update({status:'lease_pending'}).eq('listing_id',listingId).eq('tenant_id',tenantId);}catch(e){}
 
     // Notifier le tenant principal
     const refundMsg = totalTenants > 1
