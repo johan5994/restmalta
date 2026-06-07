@@ -1684,10 +1684,12 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
           submissionId=docuData.submission_id||null;
         } else {
           console.warn('generate-lease failed:',docuData.error||docuData.message);
+          toast('⚠️ Lease generation issue: '+(docuData.error||'Unknown error'));
         }
       } else {
         const t=await docuRes.text();
         console.error('generate-lease HTTP error:',docuRes.status,t.slice(0,300));
+        toast('⚠️ Lease generation failed (HTTP '+docuRes.status+')');
       }
     }catch(e){console.warn('Lease generation:',e.message);}
 
