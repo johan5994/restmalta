@@ -179,7 +179,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 </div>
 
 <!-- Auth -->
-<div id="sign-in-wrap" style="display:none;position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100">
+<div id="sign-in-wrap" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:100">
   <div style="text-align:center;max-width:360px">
     <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--terra);margin-bottom:.3rem">RestMalta</div>
     <div class="agency-badge" style="margin-bottom:1.5rem">🏢 Agency Portal</div>
@@ -671,7 +671,8 @@ async function init(){
     loadAll();
   } else {
     document.getElementById('loading').style.display='none';
-    document.getElementById('sign-in-wrap').style.display='flex';
+    const wrap=document.getElementById('sign-in-wrap');
+    wrap.style.display='flex';
     clerk.mountSignIn(document.getElementById('clerk-sign-in'),{
       afterSignInUrl:window.location.href,
       appearance:{variables:{colorPrimary:'#6366F1',colorBackground:'#0D1220',colorText:'#F0EDE8'}}
