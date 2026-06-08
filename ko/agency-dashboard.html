@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <script>window.__clerk_publishable_key='pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';</script>
-<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <style>
 :root{
@@ -1295,39 +1295,24 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'),3200);
 }
 
-async function init(){
-  try{
-    // Attendre que Clerk soit prêt
-    if(!window.Clerk){
-      setTimeout(init, 200);
-      return;
-    }
-    const clerk=window.Clerk;
-    await clerk.load({afterSignInUrl:window.location.href,afterSignUpUrl:window.location.href});
-    
-    if(clerk.user){
-      U=clerk.user;
-      document.getElementById('loading').style.display='none';
-      document.getElementById('sidebar').style.display='flex';
-      document.getElementById('main').style.display='flex';
-      document.getElementById('main').style.flexDirection='column';
-      loadAll();
-    } else {
-      document.getElementById('loading').style.display='none';
-      const wrap=document.getElementById('sign-in-wrap');
-      wrap.style.display='flex';
-      clerk.mountSignIn(document.getElementById('clerk-sign-in'),{
-        appearance:{variables:{colorPrimary:'#6366F1',colorBackground:'#0D1220',colorText:'#F0EDE8'}}
-      });
-      clerk.addListener(e=>{if(e.user){window.location.reload();}});
-    }
-  }catch(e){
-    console.error('Init error:',e);
-    document.getElementById('loading').innerHTML='<div style="color:var(--red);text-align:center"><div style="font-size:1.5rem;margin-bottom:.5rem">❌</div><div>Error loading: '+e.message+'</div><button onclick="window.location.reload()" style="margin-top:1rem;background:var(--agency);color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer">Retry</button></div>';
+window.addEventListener('load', async()=>{
+  await window.Clerk.load();
+  const clerk=window.Clerk;
+  if(clerk.user){
+    U=clerk.user;
+    document.getElementById('loading').style.display='none';
+    document.getElementById('sidebar').style.display='flex';
+    document.getElementById('main').style.display='block';
+    loadAll();
+  } else {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('sign-in-wrap').style.display='flex';
+    clerk.mountSignIn(document.getElementById('clerk-sign-in'),{
+      appearance:{variables:{colorPrimary:'#6366F1',colorBackground:'#0D1220',colorText:'#F0EDE8'}}
+    });
+    clerk.addListener(({user})=>{if(user)window.location.reload();});
   }
-}
-
-window.addEventListener('load',()=>setTimeout(init,100));
+});
 </script>
 </body>
 </html>
