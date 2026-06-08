@@ -1907,7 +1907,7 @@ async function loadTenantVisits(){
   });
 
   // Bookings sans visite correspondante
-  const orphanBookings=Object.values(bookingByListing).filter(b=>!['declined','cancelled_by_tenant'].includes(b.status)).map(b=>({
+  const orphanBookings=bookings.filter(b=>!usedBookingIds.has(b.id)&&!['declined','cancelled_by_tenant'].includes(b.status)).map(b=>({
     id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:U.id,
     listing_title:b.listing_title,listing_zone:b.zone||'Malta',
     status:b.status==='accepted'?'accepted':'booking_pending',
