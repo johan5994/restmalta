@@ -654,7 +654,7 @@ const pageTitles={
   visits:'All Visits',subscription:'Subscription',profile:'Agency Profile'
 };
 
-let U=null,P=null,agencyData=null;
+let clerk,U=null,P=null,agencyData=null;
 let currentCRMTab='all';
 let importedListing=null;
 let uploadedPhotos=[];
@@ -682,7 +682,6 @@ async function init(){
 }
 
 async function loadAll(){
-  await loadAgencyProfile();
   loadOverview();
   setInterval(()=>{if(document.getElementById('page-crm').classList.contains('act'))loadCRM();},30000);
 }
@@ -1294,24 +1293,33 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'),3200);
 }
 
-window.addEventListener('load', async()=>{
-  await window.Clerk.load();
-  const clerk=window.Clerk;
-  if(clerk.user){
-    U=clerk.user;
-    document.getElementById('loading').style.display='none';
-    document.getElementById('sidebar').style.display='flex';
-    document.getElementById('main').style.display='block';
-    loadAll();
-  } else {
-    document.getElementById('loading').style.display='none';
-    document.getElementById('sign-in-wrap').style.display='flex';
-    clerk.mountSignIn(document.getElementById('clerk-sign-in'),{
-      appearance:{variables:{colorPrimary:'#6366F1',colorBackground:'#0D1220',colorText:'#F0EDE8'}}
-    });
-    clerk.addListener(({user})=>{if(user)window.location.reload();});
+(async()=>{
+  clerk=window.Clerk;
+  await clerk.load();
+  if(!clerk.user){window.location.href='/';return;}
+  U={id:clerk.user.id,email:clerk.user.primaryEmailAddress?.emailAddress||'',clerk:clerk.user};
+  
+  // Charger profil
+  let P_data=null;
+  for(let i=0;i<5;i++){
+    const{data}=await sb.from('profiles').select('*').eq('clerk_id',U.id).single();
+    if(data){P_data=data;break;}
+    await new Promise(r=>setTimeout(r,800));
   }
-});
+  P=P_data;
+  if(!P||P.role!=='agency'){
+    // Créer le profil agency si pas encore fait
+    if(!P){
+      await sb.from('profiles').insert({clerk_id:U.id,role:'agency',full_name:clerk.user.fullName||'Agency'}).catch(()=>{});
+    }
+  }
+  
+  document.getElementById('loading').style.display='none';
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('main').style.display='block';
+  await loadAgencyProfile();
+  loadAll();
+})();
 </script>
 </body>
 </html>
