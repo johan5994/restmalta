@@ -1235,7 +1235,7 @@ async function loadMessages(){
           </button>
         </div>
         <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-price="${m.listings?.price||0}"
-          onclick="wantToRentDirect(this.dataset.lid,this.dataset.name,this.dataset.oid,parseFloat(this.dataset.price))"
+          onclick="showNegotiationModal(this.dataset.lid,this.dataset.name,this.dataset.oid,parseFloat(this.dataset.price))"
           style="width:100%;background:var(--terra);color:white;border:none;border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer">
           🏠 I want to rent this property →
         </button>
@@ -2156,7 +2156,7 @@ async function tenantInterested(visitId, listingId, price, listingTitle, landlor
     const{data:v}=await sb.from('visits').select('landlord_id').eq('id',visitId).single();
     landlordId=v?.landlord_id||null;
   }
-  wantToRentDirect(listingId, listingTitle, landlordId, price);
+  showNegotiationModal(listingId, listingTitle, landlordId, price);
 }
 
 async function tenantNotInterested(visitId){
@@ -3584,7 +3584,70 @@ async function rentRemotelyFromContact(listingId, listingTitle, zone, contactId)
 }
 
 
-async function wantToRentDirect(listingId, listingTitle, contactId, price){
+async function showNegotiationModal(listingId, listingTitle, contactId, price){
+  // Modal de négociation avant envoi du dossier
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:#1A1D27;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:1.5rem;width:100%;max-width:420px">
+      <div style="font-size:1rem;font-weight:800;color:#F0EDE8;margin-bottom:.3rem">🤝 Before sending your application</div>
+      <div style="font-size:.78rem;color:rgba(240,237,232,.4);margin-bottom:1.3rem">Current rent: <strong style="color:#F0EDE8">€${price||'—'}/mo</strong> · You can negotiate before the landlord reviews your dossier.</div>
+
+      <!-- Proposer un loyer -->
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.75rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.4rem">💶 Propose a rent (optional)</label>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="color:rgba(240,237,232,.4);font-size:.9rem">€</span>
+          <input type="number" id="neg-price" value="${price||''}" placeholder="${price||'—'}" style="flex:1;padding:.6rem .9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.88rem;outline:none;font-family:'DM Sans',sans-serif">
+          <span style="font-size:.78rem;color:rgba(240,237,232,.3)">/mo</span>
+        </div>
+        <div style="font-size:.68rem;color:rgba(240,237,232,.25);margin-top:.25rem">Leave as is if you accept the current rent</div>
+      </div>
+
+      <!-- Extras demandés -->
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.75rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.4rem">🎁 Extras to request (optional)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.5rem">
+          ${['🔥 Microwave','❄️ A/C unit','🧺 Washing machine','🚗 Parking spot','📺 Smart TV','📶 Faster WiFi','🛋️ Extra furniture','🧹 1st clean included'].map(e=>`
+            <label style="display:flex;align-items:center;gap:.45rem;padding:.45rem .65rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;font-size:.78rem;color:rgba(240,237,232,.6)">
+              <input type="checkbox" class="neg-extra" value="${e.replace(/[🔥❄️🧺🚗📺📶🛋️🧹]/g,'').trim()}" style="accent-color:#E05A3A;cursor:pointer">${e}
+            </label>`).join('')}
+        </div>
+      </div>
+
+      <!-- Message perso -->
+      <div style="margin-bottom:1.2rem">
+        <label style="font-size:.75rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.4rem">💬 Message to landlord (optional)</label>
+        <textarea id="neg-message" rows="2" placeholder="Hi, I'm very interested in your flat. I work nearby and would be a reliable tenant..." style="width:100%;padding:.6rem .9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.82rem;outline:none;font-family:'DM Sans',sans-serif;resize:none;line-height:1.5"></textarea>
+      </div>
+
+      <div style="display:flex;gap:.5rem">
+        <button onclick="submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function submitNegotiationAndRent(listingId, listingTitle, contactId, originalPrice){
+  const proposedPrice=parseInt(document.getElementById('neg-price')?.value)||originalPrice;
+  const extras=[...document.querySelectorAll('.neg-extra:checked')].map(e=>e.value);
+  const message=document.getElementById('neg-message')?.value.trim()||'';
+
+  // Fermer le modal
+  document.querySelector('[style*="position:fixed"][style*="z-index:9999"]')?.remove();
+
+  // Construire la note de négociation
+  let negotiationNote='';
+  if(proposedPrice!==originalPrice) negotiationNote+=`💶 Proposed rent: €${proposedPrice}/mo (listed at €${originalPrice}/mo)\n`;
+  if(extras.length) negotiationNote+=`🎁 Requested extras: ${extras.join(', ')}\n`;
+  if(message) negotiationNote+=`💬 "${message}"`;
+
+  // Appeler wantToRentDirect avec les infos de négociation
+  await wantToRentDirect(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras);
+}
+
+async function wantToRentDirect(listingId, listingTitle, contactId, price, negotiationNote='', extras=[]){
   // Créer un booking direct (sans agent) et afficher le paiement
   toast('⏳ Loading...');
   try{
@@ -3598,6 +3661,8 @@ async function wantToRentDirect(listingId, listingTitle, contactId, price){
 
     // Créer le booking
     const{data:booking,error}=await sb.from('bookings').insert({
+      negotiation_note:negotiationNote||null,
+      requested_extras:extras.length?JSON.stringify(extras):null,
       tenant_id:U.id,
       tenant_name:P?.full_name||'Tenant',
       listing_id:listingId,
