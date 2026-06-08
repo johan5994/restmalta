@@ -706,12 +706,14 @@ async function loadAgencyProfile(){
       updatePlanBar(p.plan||'starter',p.listing_count||0);
     } else {
       // Créer le profil agence
-      const{data}=await sb.from('agency_profiles').insert({
-        clerk_id:U.id,
-        agency_name:U.organizationMemberships?.[0]?.organization?.name||U.fullName||'My Agency',
-        plan:'starter',listing_count:0,agent_count:0
-      }).select().single().catch(()=>({data:null}));
-      if(data){agencyData=data;document.getElementById('agency-name').textContent=data.agency_name;}
+      try{
+        const{data:newAg}=await sb.from('agency_profiles').insert({
+          clerk_id:U.id,
+          agency_name:U.fullName||'My Agency',
+          plan:'starter',listing_count:0,agent_count:0
+        }).select().single();
+        if(newAg){agencyData=newAg;document.getElementById('agency-name').textContent=newAg.agency_name;}
+      }catch(insertErr){console.warn('Create agency profile:',insertErr);}
     }
   }catch(e){console.warn('Agency profile:',e);}
 }
