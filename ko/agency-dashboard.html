@@ -659,27 +659,7 @@ let currentCRMTab='all';
 let importedListing=null;
 let uploadedPhotos=[];
 
-// ── Init ─────────────────────────────────────────────────────
-async function init(){
-  const clerk=window.Clerk;
-  await clerk.load();
-  if(clerk.user){
-    U=clerk.user;
-    document.getElementById('loading').style.display='none';
-    document.getElementById('sidebar').style.display='flex';
-    document.getElementById('main').style.display='flex';
-    loadAll();
-  } else {
-    document.getElementById('loading').style.display='none';
-    const wrap=document.getElementById('sign-in-wrap');
-    wrap.style.display='flex';
-    clerk.mountSignIn(document.getElementById('clerk-sign-in'),{
-      afterSignInUrl:window.location.href,
-      appearance:{variables:{colorPrimary:'#6366F1',colorBackground:'#0D1220',colorText:'#F0EDE8'}}
-    });
-    clerk.addListener(e=>{if(e.user){window.location.reload();}});
-  }
-}
+// Init via IIFE ci-dessous
 
 async function loadAll(){
   loadOverview();
