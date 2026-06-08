@@ -1461,7 +1461,7 @@ function renderAllVisitsDirect(){
       +'<div style="padding:.65rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)">'
         +'<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.4rem">🏠 Landlord</div>'
         +'<div id="ll-info-'+v.id+'"><div style="font-size:.75rem;color:var(--td)">Loading...</div></div>'
-      +'</div>'
+        +'<div id="ct-info-'+v.id+'" style="display:none"></div>'
       +'<div style="padding:.5rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:.5rem">'
         +'<div style="background:rgba(255,255,255,.04);border-radius:7px;padding:.4rem .65rem;flex:1;text-align:center">'
           +'<div style="font-size:.6rem;color:var(--td)">Rent</div>'
@@ -1482,6 +1482,7 @@ function renderAllVisitsDirect(){
     const _vid = v.id;
     setTimeout(()=>{
       if(_llId) loadLandlordInfo(_llId, _vid);
+    if(v.listing_id) setTimeout(()=>loadCurrentTenantInfo(v.listing_id, _vid), 300);
       else if(v.listing_id){
         sb.from('listings').select('landlord_id').eq('id',v.listing_id).single()
           .then(({data:l})=>{if(l?.landlord_id)loadLandlordInfo(l.landlord_id,_vid);});
@@ -1736,6 +1737,30 @@ function startVisitsAutoRefresh(){
   }, 30000);
 }
 startVisitsAutoRefresh();
+
+async function loadCurrentTenantInfo(listingId, visitId){
+  try{
+    const{data:l}=await sb.from('listings').select('current_tenant_phone,lease_end_date,tenant_availability,key_type').eq('id',listingId).maybeSingle();
+    if(!l||(!l.current_tenant_phone&&l.tenant_availability==='vacant')) return;
+    const el=document.getElementById('ct-info-'+visitId);
+    if(!el) return;
+    const availLabels={flexible:'🟢 Flexible — call to confirm',weekends:'📅 Weekends only',evenings:'🌙 Evenings only',by_appointment:'📞 By appointment only',vacant:'🏠 Vacant'};
+    const keyLabels={current_tenant:'🏠 Current tenant has keys',keysafe:'🔐 Key safe on site',neighbor:'🏘️ Neighbour/concierge',agent:'🏆 Agent has keys',landlord:'📞 Call landlord'};
+    if(l.tenant_availability==='vacant') return; // Vacant, pas besoin d'afficher
+    el.style.display='block';
+    el.innerHTML='<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem .75rem;margin-top:.4rem">'+
+      '<div style="font-size:.7rem;font-weight:700;color:var(--gold);margin-bottom:.35rem">👤 Property is occupied — coordinate with current tenant</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-bottom:.3rem">'+
+        (l.current_tenant_phone?'<div style="font-size:.72rem;color:var(--tm)">📞 <a href="tel:'+l.current_tenant_phone+'" style="color:var(--sea);text-decoration:none;font-weight:600">'+l.current_tenant_phone+'</a></div>':'<div style="font-size:.72rem;color:var(--td)">📞 No phone provided</div>')+
+        (l.lease_end_date?'<div style="font-size:.72rem;color:var(--tm)">📅 Free from: <strong>'+new Date(l.lease_end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</strong></div>':'')+
+        '<div style="font-size:.72rem;color:var(--tm)">🗓 '+( availLabels[l.tenant_availability]||'—')+'</div>'+
+        '<div style="font-size:.72rem;color:var(--tm)">'+(keyLabels[l.key_type]||'—')+'</div>'+
+      '</div>'+
+      '<div style="font-size:.68rem;color:rgba(212,168,71,.7)">⚠️ Call tenant before confirming visit time</div>'+
+    '</div>';
+  }catch(e){}
+}
+
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
