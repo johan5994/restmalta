@@ -3954,6 +3954,11 @@ function renderVisitGroup(g, isPast){
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Phone</div><div id="t-phone-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Monthly rent</div><div style="font-size:.73rem;font-weight:700">€${bk?.monthly_rent||g.listing_price||'—'}/mo</div></div>
         </div>
+        ${bk?.negotiation_note?`
+        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:7px;padding:.5rem .65rem;margin-bottom:.4rem">
+          <div style="font-size:.63rem;color:var(--gold);font-weight:700;margin-bottom:.2rem">🤝 Tenant's negotiation request</div>
+          <div style="font-size:.73rem;color:var(--tm);white-space:pre-line">${bk.negotiation_note}</div>
+        </div>`:''}
         <div id="t-docs-chips-${g.tenant_id}" style="margin-top:.3rem;display:flex;gap:.3rem;flex-wrap:wrap"></div>
       </div>
       <div style="display:flex;gap:.4rem">
