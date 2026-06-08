@@ -1280,7 +1280,6 @@ function previewLogo(input){
 }
 
 // ── Utils ─────────────────────────────────────────────────────
-async function doLogout(){await window.Clerk.signOut();window.location.reload();}
 function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
