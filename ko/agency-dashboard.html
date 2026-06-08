@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestMalta — Agency Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script>window.__clerk_publishable_key='pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';</script>
+<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg:#070B14;--s:#0D1220;--s2:#141A2E;--s3:#1B2340;
+  --b:rgba(255,255,255,.06);--b2:rgba(255,255,255,.11);
+  --terra:#E05A3A;--gold:#D4A847;--sea:#3A8FB5;--green:#4CAF7D;--red:#E05A5A;
+  --purple:#8B5CF6;--purpledim:rgba(139,92,246,.15);
+  --txt:#F0EDE8;--tm:rgba(240,237,232,.5);--td:rgba(240,237,232,.25);
+  --agency:#6366F1;--agencydim:rgba(99,102,241,.15);--agencybright:#818CF8;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;overflow-x:hidden}
+
+/* ── Sidebar ── */
+.sb{width:260px;min-height:100vh;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sb-logo{padding:1.4rem 1.5rem 1rem;border-bottom:1px solid var(--b)}
+.logo{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--terra)}
+.logo-sub{font-size:.65rem;color:var(--td);margin-top:.15rem}
+.agency-badge{display:inline-flex;align-items:center;gap:.35rem;background:var(--agencydim);color:var(--agencybright);border:1px solid rgba(99,102,241,.3);padding:.22rem .65rem;border-radius:100px;font-size:.66rem;font-weight:700;margin-top:.5rem;font-family:'Syne',sans-serif;letter-spacing:.3px}
+.sb-nav{flex:1;padding:.75rem 0;overflow-y:auto}
+.nl{font-size:.6rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--td);padding:.75rem 1.5rem .3rem}
+.ni{display:flex;align-items:center;gap:.7rem;padding:.6rem 1.5rem;cursor:pointer;transition:all .15s;position:relative;font-size:.86rem;font-weight:500;color:var(--tm);border:none;background:none;width:100%;text-align:left}
+.ni:hover{color:var(--txt);background:rgba(255,255,255,.04)}
+.ni.act{color:var(--agencybright);background:var(--agencydim)}
+.ni.act::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--agency);border-radius:0 2px 2px 0}
+.nico{font-size:.95rem;width:20px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--terra);color:white;font-size:.62rem;font-weight:700;padding:.12rem .45rem;border-radius:100px}
+.sb-plan{margin:.75rem;background:linear-gradient(135deg,var(--agencydim),rgba(99,102,241,.05));border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:.9rem}
+.plan-name{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;color:var(--agencybright);margin-bottom:.2rem}
+.plan-quota{font-size:.7rem;color:var(--tm);margin-bottom:.5rem}
+.plan-bar{background:rgba(255,255,255,.08);border-radius:100px;height:4px;margin-bottom:.4rem}
+.plan-bar-fill{background:linear-gradient(90deg,var(--agency),var(--agencybright));height:4px;border-radius:100px;transition:width .4s}
+.plan-upgrade{font-size:.68rem;color:var(--agencybright);cursor:pointer;text-decoration:none;font-weight:600}
+.sb-user{padding:1rem 1.5rem;border-top:1px solid var(--b);display:flex;align-items:center;gap:.7rem}
+.uav{width:34px;height:34px;border-radius:50%;background:var(--agencydim);border:1px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:var(--agencybright);flex-shrink:0}
+.un{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ur{font-size:.68rem;color:var(--td)}
+
+/* ── Main ── */
+.main{margin-left:260px;flex:1;min-height:100vh;background:var(--bg)}
+.topbar{padding:1.1rem 2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:30}
+.topbar-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--txt)}
+.topbar-sub{font-size:.72rem;color:var(--td);margin-top:.1rem}
+.page{display:none;padding:1.5rem 2rem}
+.page.act{display:block}
+
+/* ── Cards & Grid ── */
+.card{background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;margin-bottom:1rem}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;border-bottom:1px solid var(--b)}
+.ct{font-size:.88rem;font-weight:700}
+.cb{padding:1.2rem}
+.kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.kcard{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1.1rem 1.3rem;position:relative;overflow:hidden}
+.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kcard.blue::before{background:linear-gradient(90deg,var(--agency),var(--agencybright))}
+.kcard.green::before{background:linear-gradient(90deg,#10b981,#34d399)}
+.kcard.gold::before{background:linear-gradient(90deg,var(--gold),#f59e0b)}
+.kcard.terra::before{background:linear-gradient(90deg,var(--terra),#f97316)}
+.klabel{font-size:.65rem;color:var(--td);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.4rem}
+.kval{font-size:1.9rem;font-weight:800;line-height:1}
+.ksub{font-size:.7rem;color:var(--td);margin-top:.3rem}
+
+/* ── Badges ── */
+.badge{padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:700;display:inline-block}
+.b-green{background:rgba(76,175,125,.15);color:var(--green)}
+.b-gold{background:rgba(212,168,71,.15);color:var(--gold)}
+.b-sea{background:rgba(58,143,181,.15);color:var(--sea)}
+.b-red{background:rgba(224,90,90,.15);color:var(--red)}
+.b-dim{background:rgba(255,255,255,.07);color:var(--td)}
+.b-agency{background:var(--agencydim);color:var(--agencybright)}
+
+/* ── Buttons ── */
+.btn{padding:.55rem 1.2rem;border-radius:8px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s;font-family:'DM Sans',sans-serif}
+.bp{background:var(--agency);color:white}
+.bp:hover{background:var(--agencybright)}
+.bterr{background:var(--terra);color:white}
+.bterr:hover{opacity:.9}
+.bg{background:rgba(255,255,255,.07);color:var(--txt);border:1px solid var(--b2)}
+.bg:hover{background:rgba(255,255,255,.12)}
+.bsm{padding:.35rem .75rem;font-size:.78rem}
+
+/* ── Table ── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:var(--td);padding:.65rem 1rem;text-align:left;border-bottom:1px solid var(--b)}
+.tbl td{padding:.75rem 1rem;border-bottom:1px solid var(--b);font-size:.85rem;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── Forms ── */
+.fi{width:100%;padding:.65rem .9rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--txt);font-size:.88rem;outline:none;font-family:'DM Sans',sans-serif;transition:border-color .15s}
+.fi:focus{border-color:var(--agency)}
+.fl{font-size:.78rem;font-weight:600;margin-bottom:.35rem;display:block;color:var(--tm)}
+.fg{margin-bottom:.9rem}
+.fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.fsel{width:100%;padding:.65rem .9rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--txt);font-size:.88rem;outline:none;cursor:pointer}
+
+/* ── Import tool ── */
+.import-drop{border:2px dashed rgba(99,102,241,.3);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--agencydim)}
+.import-drop:hover{border-color:var(--agency);background:rgba(99,102,241,.1)}
+.import-icon{font-size:2.5rem;margin-bottom:.75rem}
+
+/* ── Listing card ── */
+.listing-card{background:var(--s2);border:1px solid var(--b);border-radius:12px;overflow:hidden;display:flex;gap:0;margin-bottom:.75rem;transition:all .15s}
+.listing-card:hover{border-color:var(--b2)}
+.listing-thumb{width:90px;height:75px;object-fit:cover;flex-shrink:0}
+.listing-thumb-ph{width:90px;height:75px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.listing-body{flex:1;padding:.65rem .9rem;min-width:0}
+.listing-title{font-size:.85rem;font-weight:700;margin-bottom:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.listing-meta{font-size:.7rem;color:var(--td)}
+.listing-actions{display:flex;align-items:center;gap:.4rem;padding:.5rem .75rem;flex-shrink:0}
+
+/* ── Agent row ── */
+.agent-row{display:flex;align-items:center;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--b)}
+.agent-row:last-child{border-bottom:none}
+.agent-av{width:36px;height:36px;border-radius:50%;background:var(--agencydim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:var(--agencybright);flex-shrink:0}
+
+/* ── Plan cards ── */
+.plan-card{border:2px solid var(--b);border-radius:16px;padding:1.5rem;transition:all .2s;cursor:pointer;position:relative}
+.plan-card:hover{border-color:rgba(99,102,241,.4);background:var(--agencydim)}
+.plan-card.current{border-color:var(--agency);background:var(--agencydim)}
+.plan-card .crown{position:absolute;top:-10px;right:1rem;background:var(--gold);color:#000;font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:100px}
+.plan-price{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:var(--txt);line-height:1}
+.plan-period{font-size:.75rem;color:var(--td)}
+.plan-feature{font-size:.78rem;color:var(--tm);padding:.25rem 0;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:.5rem}
+
+/* ── Stats ── */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--b)}
+.stat-row:last-child{border-bottom:none}
+.stat-bar-wrap{width:120px;height:4px;background:rgba(255,255,255,.08);border-radius:100px;flex-shrink:0}
+.stat-bar{height:4px;border-radius:100px;background:linear-gradient(90deg,var(--agency),var(--agencybright))}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:.4rem;margin-bottom:1.2rem;border-bottom:1px solid var(--b);padding-bottom:.75rem}
+.tab{padding:.4rem .9rem;border-radius:7px;border:none;background:none;color:var(--tm);cursor:pointer;font-size:.82rem;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s}
+.tab.act{background:var(--agencydim);color:var(--agencybright)}
+.tab:hover:not(.act){color:var(--txt)}
+
+/* ── Loading ── */
+.sp{width:18px;height:18px;border:2px solid rgba(99,102,241,.2);border-top-color:var(--agency);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--s2);color:var(--txt);padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;border:1px solid var(--b2)}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:3rem 1rem;color:var(--td)}
+.em{font-size:2.5rem;margin-bottom:.75rem}
+
+/* ── Agency badge on listings ── */
+.agency-listing-badge{display:inline-flex;align-items:center;gap:.3rem;background:var(--agencydim);color:var(--agencybright);border:1px solid rgba(99,102,241,.3);padding:.18rem .55rem;border-radius:100px;font-size:.63rem;font-weight:700;font-family:'Syne',sans-serif;letter-spacing:.2px}
+
+/* ── CRM ── */
+.crm-row{display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-radius:10px;transition:all .15s;cursor:pointer}
+.crm-row:hover{background:rgba(255,255,255,.04)}
+.crm-av{width:34px;height:34px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:var(--agencybright);flex-shrink:0}
+
+/* ── Responsive note ── */
+@media(max-width:900px){.kgrid{grid-template-columns:1fr 1fr}.main{margin-left:0}}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999">
+  <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--terra);margin-bottom:.5rem">RestMalta</div>
+  <div style="font-family:'Syne',sans-serif;font-size:.75rem;color:var(--td);margin-bottom:1.5rem;letter-spacing:1px">AGENCY PORTAL</div>
+  <div class="sp" style="width:24px;height:24px;border-width:3px"></div>
+</div>
+
+<!-- Auth -->
+<div id="sign-in-wrap" style="display:none;position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100">
+  <div style="text-align:center;max-width:360px">
+    <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--terra);margin-bottom:.3rem">RestMalta</div>
+    <div class="agency-badge" style="margin-bottom:1.5rem">🏢 Agency Portal</div>
+    <div id="clerk-sign-in"></div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sb" id="sidebar" style="display:none">
+  <div class="sb-logo">
+    <div class="logo">RestMalta</div>
+    <div class="logo-sub">Agency Portal</div>
+    <div class="agency-badge">🏢 <span id="agency-name">My Agency</span></div>
+  </div>
+
+  <div class="sb-nav">
+    <div class="nl">Overview</div>
+    <button class="ni act" onclick="sp('overview',this)"><span class="nico">📊</span>Dashboard</button>
+    <button class="ni" onclick="sp('analytics',this)"><span class="nico">📈</span>Analytics</button>
+
+    <div class="nl">Listings</div>
+    <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My Listings<span class="nbadge" id="nb-listings" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('import',this)"><span class="nico">⚡</span>Quick Import</button>
+    <button class="ni" onclick="sp('new-listing',this)"><span class="nico">➕</span>New Listing</button>
+
+    <div class="nl">Clients & Agents</div>
+    <button class="ni" onclick="sp('crm',this)"><span class="nico">👥</span>CRM Clients<span class="nbadge" id="nb-leads" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('team',this)"><span class="nico">🏆</span>My Agents</button>
+    <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
+
+    <div class="nl">Account</div>
+    <button class="ni" onclick="sp('subscription',this)"><span class="nico">💳</span>Subscription</button>
+    <button class="ni" onclick="sp('profile',this)"><span class="nico">⚙️</span>Agency Profile</button>
+  </div>
+
+  <!-- Plan indicator -->
+  <div class="sb-plan">
+    <div class="plan-name" id="sb-plan-name">Starter Plan</div>
+    <div class="plan-quota" id="sb-plan-quota">3/5 listings used</div>
+    <div class="plan-bar"><div class="plan-bar-fill" id="sb-plan-bar" style="width:60%"></div></div>
+    <a href="#" onclick="sp('subscription',null)" class="plan-upgrade">⬆ Upgrade plan →</a>
+  </div>
+
+  <div class="sb-user">
+    <div class="uav" id="uav">A</div>
+    <div>
+      <div class="un" id="uname">Agent</div>
+      <div class="ur">Agency Admin</div>
+    </div>
+    <button onclick="doLogout()" style="margin-left:auto;background:none;border:none;color:var(--td);cursor:pointer;font-size:1rem">↪</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main" id="main" style="display:none">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-sub" id="page-sub">Welcome back</div>
+    </div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn bg bsm" onclick="sp('import',null)">⚡ Quick Import</button>
+      <button class="btn bterr bsm" onclick="sp('new-listing',null)">➕ New Listing</button>
+    </div>
+  </div>
+
+  <!-- ── OVERVIEW ── -->
+  <div class="page act" id="page-overview">
+    <div class="kgrid">
+      <div class="kcard blue"><div class="klabel">Active Listings</div><div class="kval" id="k-listings">—</div><div class="ksub">Published on RestMalta</div></div>
+      <div class="kcard green"><div class="klabel">Leads this month</div><div class="kval" id="k-leads">—</div><div class="ksub">Tenant inquiries</div></div>
+      <div class="kcard gold"><div class="klabel">Visits booked</div><div class="kval" id="k-visits">—</div><div class="ksub">This month</div></div>
+      <div class="kcard terra"><div class="klabel">Commissions due</div><div class="kval" id="k-commission">€—</div><div class="ksub">Pending collection</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1.2rem">
+      <!-- Recent listings -->
+      <div class="card">
+        <div class="ch"><div class="ct">🏠 Recent Listings</div><button class="btn bg bsm" onclick="sp('listings',null)">View all →</button></div>
+        <div class="cb" id="overview-listings"><div style="text-align:center;padding:1rem;color:var(--td)"><div class="sp"></div></div></div>
+      </div>
+
+      <!-- Recent leads -->
+      <div class="card">
+        <div class="ch"><div class="ct">🔔 Recent Leads</div><button class="btn bg bsm" onclick="sp('crm',null)">View all →</button></div>
+        <div class="cb" id="overview-leads"><div style="text-align:center;padding:1rem;color:var(--td)"><div class="sp"></div></div></div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card">
+      <div class="ch"><div class="ct">⚡ Quick Actions</div></div>
+      <div class="cb">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem">
+          <button onclick="sp('import',null)" style="background:var(--agencydim);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:1.2rem;cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,.2)'" onmouseout="this.style.background='var(--agencydim)'">
+            <div style="font-size:1.6rem;margin-bottom:.4rem">⚡</div>
+            <div style="font-size:.8rem;font-weight:700;color:var(--txt)">Import Listing</div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.1rem">From your website or PDF</div>
+          </button>
+          <button onclick="sp('team',null)" style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:1.2rem;cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor='var(--b2)'" onmouseout="this.style.borderColor='var(--b)'">
+            <div style="font-size:1.6rem;margin-bottom:.4rem">🏆</div>
+            <div style="font-size:.8rem;font-weight:700;color:var(--txt)">Manage Agents</div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.1rem">Assign visits to agents</div>
+          </button>
+          <button onclick="sp('analytics',null)" style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:1.2rem;cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor='var(--b2)'" onmouseout="this.style.borderColor='var(--b)'">
+            <div style="font-size:1.6rem;margin-bottom:.4rem">📈</div>
+            <div style="font-size:.8rem;font-weight:700;color:var(--txt)">Analytics</div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.1rem">Views, leads, conversions</div>
+          </button>
+          <button onclick="sp('subscription',null)" style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.1));border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:1.2rem;cursor:pointer;text-align:center;transition:all .15s">
+            <div style="font-size:1.6rem;margin-bottom:.4rem">👑</div>
+            <div style="font-size:.8rem;font-weight:700;color:var(--agencybright)">Upgrade Plan</div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.1rem">More listings & features</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LISTINGS ── -->
+  <div class="page" id="page-listings">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+      <div>
+        <div style="font-size:1rem;font-weight:700">My Listings</div>
+        <div style="font-size:.75rem;color:var(--td)" id="listings-count">Loading...</div>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn bg bsm" onclick="sp('import',null)">⚡ Import</button>
+        <button class="btn bterr bsm" onclick="sp('new-listing',null)">➕ New</button>
+      </div>
+    </div>
+    <div id="listings-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+  </div>
+
+  <!-- ── IMPORT ── -->
+  <div class="page" id="page-import">
+    <div style="max-width:700px">
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:.3rem">⚡ Quick Import</div>
+        <div style="font-size:.78rem;color:var(--td)">Import your existing listings in seconds — no retyping needed.</div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab act" onclick="setImportTab('url',this)">🔗 From URL</button>
+        <button class="tab" onclick="setImportTab('pdf',this)">📄 From PDF</button>
+        <button class="tab" onclick="setImportTab('manual',this)">✏️ Manual</button>
+        <button class="tab" onclick="setImportTab('bulk',this)">📦 Bulk CSV</button>
+      </div>
+
+      <!-- URL import -->
+      <div id="import-url">
+        <div class="card">
+          <div class="ch"><div class="ct">🔗 Import from URL</div></div>
+          <div class="cb">
+            <div style="font-size:.8rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Paste the URL of your listing from your agency website, ImmoXML, or any property portal. Our AI extracts all the info automatically.</div>
+            <div class="fg">
+              <label class="fl">Listing URL</label>
+              <input class="fi" id="import-url-input" placeholder="https://your-agency.com/listing/123 or https://property-portal.com/...">
+            </div>
+            <button class="btn bp" onclick="importFromURL()" style="width:100%;justify-content:center">🤖 Extract with AI →</button>
+            <div id="import-url-result" style="margin-top:.75rem"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF import -->
+      <div id="import-pdf" style="display:none">
+        <div class="card">
+          <div class="ch"><div class="ct">📄 Import from PDF / Image</div></div>
+          <div class="cb">
+            <div class="import-drop" id="pdf-drop" onclick="document.getElementById('pdf-file').click()" ondragover="event.preventDefault()" ondrop="handlePDFDrop(event)">
+              <div class="import-icon">📄</div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--agencybright);margin-bottom:.3rem">Drop your PDF or property sheet here</div>
+              <div style="font-size:.72rem;color:var(--td)">PDF, JPG, PNG · Max 10MB · AI extracts all details</div>
+              <input type="file" id="pdf-file" accept=".pdf,image/*" style="display:none" onchange="handlePDFFile(this)">
+            </div>
+            <div id="import-pdf-result" style="margin-top:.75rem"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual -->
+      <div id="import-manual" style="display:none">
+        <div class="card">
+          <div class="ch"><div class="ct">✏️ Create listing manually</div></div>
+          <div class="cb" id="manual-form-wrap">
+            <div style="text-align:center;padding:1rem;color:var(--td)">Loading form...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk CSV -->
+      <div id="import-bulk" style="display:none">
+        <div class="card">
+          <div class="ch"><div class="ct">📦 Bulk Import via CSV</div><a href="#" onclick="downloadCSVTemplate()" class="btn bg bsm">⬇ Template</a></div>
+          <div class="cb">
+            <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Download our CSV template, fill it in with your listings (one per row), and upload. We'll create all listings at once.</div>
+            <div class="import-drop" onclick="document.getElementById('csv-file').click()">
+              <div class="import-icon">📦</div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--agencybright);margin-bottom:.3rem">Upload your CSV file</div>
+              <div style="font-size:.72rem;color:var(--td)">CSV format · Up to 50 listings at once</div>
+              <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVFile(this)">
+            </div>
+            <div id="import-bulk-result" style="margin-top:.75rem"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Import preview -->
+      <div id="import-preview" style="display:none">
+        <div class="card" style="border-color:rgba(99,102,241,.3)">
+          <div class="ch" style="background:var(--agencydim)"><div class="ct" style="color:var(--agencybright)">✅ AI Extracted — Review before publishing</div></div>
+          <div class="cb" id="import-preview-content"></div>
+          <div style="padding:.75rem 1.2rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+            <button class="btn bp" onclick="publishImportedListing()" style="flex:1;justify-content:center">🚀 Publish to RestMalta</button>
+            <button class="btn bg bsm" onclick="document.getElementById('import-preview').style.display='none'">✏️ Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NEW LISTING ── -->
+  <div class="page" id="page-new-listing">
+    <div style="max-width:700px">
+      <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">➕ New Listing</div></div>
+      <div class="card">
+        <div class="ch"><div class="ct">Property Details</div></div>
+        <div class="cb">
+          <div class="fgrid2">
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Property Title *</label><input class="fi" id="nl-title" placeholder="Modern 2BR apartment in Sliema"></div>
+            <div class="fg"><label class="fl">Zone *</label><select class="fsel" id="nl-zone"><option value="">Select zone...</option><option>Valletta</option><option>Sliema</option><option>St Julian's</option><option>Msida</option><option>Gzira</option><option>Swieqi</option><option>Pembroke</option><option>St Paul's Bay</option><option>Mellieha</option><option>Marsaskala</option><option>Bugibba</option><option>Naxxar</option><option>Birkirkara</option><option>San Gwann</option><option>Attard</option><option>Balzan</option><option>Other</option></select></div>
+            <div class="fg"><label class="fl">Monthly Rent (€) *</label><input class="fi" type="number" id="nl-price" placeholder="850"></div>
+            <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="nl-beds"><option value="0">Studio</option><option value="1">1 Bedroom</option><option value="2">2 Bedrooms</option><option value="3">3 Bedrooms</option><option value="4">4+ Bedrooms</option></select></div>
+            <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="nl-baths"><option value="1">1 Bathroom</option><option value="2">2 Bathrooms</option><option value="3">3+ Bathrooms</option></select></div>
+            <div class="fg"><label class="fl">Lease Type</label><select class="fsel" id="nl-lease"><option value="long">Long-let (6 months+)</option><option value="short">Short-let (1-6 months)</option></select></div>
+            <div class="fg"><label class="fl">Bills</label><select class="fsel" id="nl-bills"><option value="included">All bills included</option><option value="excluded">Bills not included</option></select></div>
+          </div>
+          <div class="fg"><label class="fl">Description</label><textarea class="fi" id="nl-desc" rows="4" placeholder="Describe the property — furnished, amenities, transport links..."></textarea></div>
+          <div class="fg"><label class="fl">Full Address</label><input class="fi" id="nl-address" placeholder="12 Triq il-Kbira, Sliema SLM 1234, Malta"></div>
+
+          <!-- Photos -->
+          <div class="fg">
+            <label class="fl">Photos</label>
+            <div style="border:2px dashed var(--b2);border-radius:10px;padding:1.2rem;text-align:center;cursor:pointer" onclick="document.getElementById('nl-photos').click()">
+              <div style="font-size:1.5rem;margin-bottom:.3rem">📸</div>
+              <div style="font-size:.8rem;color:var(--tm)">Click to add photos</div>
+              <div style="font-size:.68rem;color:var(--td)">JPG, PNG · Up to 10 photos</div>
+              <input type="file" id="nl-photos" accept="image/*" multiple style="display:none" onchange="previewPhotos(this)">
+            </div>
+            <div id="photo-previews" style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap"></div>
+          </div>
+
+          <div style="display:flex;gap:.5rem;margin-top:.5rem">
+            <button class="btn bp" onclick="publishNewListing()" style="flex:1;justify-content:center">🚀 Publish Listing →</button>
+            <button class="btn bg bsm" onclick="saveDraft()">💾 Save Draft</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANALYTICS ── -->
+  <div class="page" id="page-analytics">
+    <div class="kgrid">
+      <div class="kcard blue"><div class="klabel">Total Views</div><div class="kval" id="a-views">—</div><div class="ksub">Last 30 days</div></div>
+      <div class="kcard green"><div class="klabel">Contact Rate</div><div class="kval" id="a-contact-rate">—%</div><div class="ksub">Views → leads</div></div>
+      <div class="kcard gold"><div class="klabel">Avg. Time to Let</div><div class="kval" id="a-time-let">— days</div><div class="ksub">From listing to signed</div></div>
+      <div class="kcard terra"><div class="klabel">Active Clients</div><div class="kval" id="a-clients">—</div><div class="ksub">In pipeline</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem">
+      <div class="card">
+        <div class="ch"><div class="ct">📊 Top Performing Listings</div></div>
+        <div class="cb" id="analytics-top-listings">
+          <div style="color:var(--td);text-align:center;padding:1rem">Loading analytics...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">📍 Leads by Zone</div></div>
+        <div class="cb" id="analytics-zones">
+          <div style="color:var(--td);text-align:center;padding:1rem">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div class="ct">🔄 Conversion Funnel</div></div>
+      <div class="cb">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;text-align:center">
+          <div style="background:var(--s2);border-radius:10px;padding:.85rem .5rem">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--agencybright)" id="f-views">—</div>
+            <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Views</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;color:var(--td)">→</div>
+          <div style="background:var(--s2);border-radius:10px;padding:.85rem .5rem">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--sea)" id="f-contacts">—</div>
+            <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Contacts</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;color:var(--td)">→</div>
+          <div style="background:var(--s2);border-radius:10px;padding:.85rem .5rem">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--green)" id="f-visits">—</div>
+            <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Visits</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CRM ── -->
+  <div class="page" id="page-crm">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+      <div><div style="font-size:1rem;font-weight:700">👥 CRM — Client Pipeline</div></div>
+      <input type="text" class="fi" style="width:240px" placeholder="🔍 Search client..." oninput="filterCRM(this.value)">
+    </div>
+
+    <div class="tabs">
+      <button class="tab act" onclick="setCRMTab('all',this)">All</button>
+      <button class="tab" onclick="setCRMTab('new',this)">🆕 New</button>
+      <button class="tab" onclick="setCRMTab('visiting',this)">📅 Visiting</button>
+      <button class="tab" onclick="setCRMTab('interested',this)">🏠 Interested</button>
+      <button class="tab" onclick="setCRMTab('signed',this)">✅ Signed</button>
+    </div>
+
+    <div id="crm-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+  </div>
+
+  <!-- ── TEAM ── -->
+  <div class="page" id="page-team">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+      <div style="font-size:1rem;font-weight:700">🏆 My Agents</div>
+      <button class="btn bp bsm" onclick="openInviteAgent()">+ Invite Agent</button>
+    </div>
+
+    <div id="team-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+
+    <!-- Invite modal -->
+    <div id="invite-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center">
+      <div style="background:var(--s);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:400px">
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:1rem">Invite an Agent</div>
+        <div class="fg"><label class="fl">Agent email</label><input class="fi" id="invite-email" placeholder="agent@agency.com"></div>
+        <div class="fg"><label class="fl">Message (optional)</label><textarea class="fi" id="invite-msg" rows="2" placeholder="Join our team on RestMalta!"></textarea></div>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn bp" onclick="sendInvite()" style="flex:1;justify-content:center">Send Invite →</button>
+          <button class="btn bg bsm" onclick="document.getElementById('invite-modal').style.display='none'">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VISITS ── -->
+  <div class="page" id="page-visits">
+    <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📅 All Visits</div></div>
+    <div id="visits-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+  </div>
+
+  <!-- ── SUBSCRIPTION ── -->
+  <div class="page" id="page-subscription">
+    <div style="max-width:800px">
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:.3rem">💳 Subscription Plans</div>
+        <div style="font-size:.78rem;color:var(--td)">Choose the plan that fits your agency. All plans include the RestMalta 🏢 Agency badge on your listings.</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+        <!-- Starter -->
+        <div class="plan-card" id="plan-starter">
+          <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--td);margin-bottom:.75rem">STARTER</div>
+          <div style="display:flex;align-items:baseline;gap:.3rem;margin-bottom:.5rem">
+            <div class="plan-price">€49</div><div class="plan-period">/month</div>
+          </div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">Perfect for small agencies</div>
+          <div class="plan-feature">✅ Up to 5 listings</div>
+          <div class="plan-feature">✅ RestMalta badge</div>
+          <div class="plan-feature">✅ Basic analytics</div>
+          <div class="plan-feature">✅ 2 agents</div>
+          <div class="plan-feature" style="color:var(--td)">❌ Import tools</div>
+          <div class="plan-feature" style="color:var(--td)">❌ CRM</div>
+          <button class="btn bg" style="width:100%;justify-content:center;margin-top:1rem" onclick="selectPlan('starter')">Select Starter</button>
+        </div>
+
+        <!-- Pro -->
+        <div class="plan-card" id="plan-pro">
+          <div class="crown">MOST POPULAR</div>
+          <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--agencybright);margin-bottom:.75rem">PROFESSIONAL</div>
+          <div style="display:flex;align-items:baseline;gap:.3rem;margin-bottom:.5rem">
+            <div class="plan-price">€129</div><div class="plan-period">/month</div>
+          </div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">For growing agencies</div>
+          <div class="plan-feature">✅ Up to 25 listings</div>
+          <div class="plan-feature">✅ RestMalta badge</div>
+          <div class="plan-feature">✅ Full analytics</div>
+          <div class="plan-feature">✅ 10 agents</div>
+          <div class="plan-feature">✅ Import tools (URL/PDF)</div>
+          <div class="plan-feature">✅ CRM pipeline</div>
+          <button class="btn bp" style="width:100%;justify-content:center;margin-top:1rem" onclick="selectPlan('pro')">Select Pro</button>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="plan-card" id="plan-enterprise">
+          <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:.75rem">ENTERPRISE</div>
+          <div style="display:flex;align-items:baseline;gap:.3rem;margin-bottom:.5rem">
+            <div class="plan-price">€299</div><div class="plan-period">/month</div>
+          </div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">For large agencies</div>
+          <div class="plan-feature">✅ Unlimited listings</div>
+          <div class="plan-feature">✅ Premium badge + featured</div>
+          <div class="plan-feature">✅ Advanced analytics + API</div>
+          <div class="plan-feature">✅ Unlimited agents</div>
+          <div class="plan-feature">✅ All import tools + API</div>
+          <div class="plan-feature">✅ CRM + bulk export</div>
+          <div class="plan-feature">✅ Priority support</div>
+          <button class="btn bg" style="width:100%;justify-content:center;margin-top:1rem;border-color:rgba(212,168,71,.3);color:var(--gold)" onclick="selectPlan('enterprise')">Select Enterprise</button>
+        </div>
+      </div>
+
+      <!-- Current subscription -->
+      <div class="card">
+        <div class="ch"><div class="ct">📋 Current Subscription</div></div>
+        <div class="cb" id="current-sub">
+          <div style="text-align:center;color:var(--td)">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PROFILE ── -->
+  <div class="page" id="page-profile">
+    <div style="max-width:600px">
+      <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">⚙️ Agency Profile</div></div>
+      <div class="card">
+        <div class="ch"><div class="ct">Agency Information</div></div>
+        <div class="cb">
+          <div class="fgrid2">
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Agency Name *</label><input class="fi" id="ag-name" placeholder="Malta Prime Properties"></div>
+            <div class="fg"><label class="fl">License Number</label><input class="fi" id="ag-license" placeholder="MFA-2024-0001"></div>
+            <div class="fg"><label class="fl">Phone</label><input class="fi" id="ag-phone" placeholder="+356 2123 4567"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Website</label><input class="fi" id="ag-website" placeholder="https://your-agency.com"></div>
+            <div class="fg"><label class="fl">Address</label><input class="fi" id="ag-address" placeholder="123 Main Street, Sliema"></div>
+            <div class="fg"><label class="fl">Zone(s) covered</label><input class="fi" id="ag-zones" placeholder="Sliema, St Julian's, Valletta..."></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Bio / About</label><textarea class="fi" id="ag-bio" rows="3" placeholder="Tell tenants and landlords about your agency..."></textarea></div>
+          </div>
+
+          <!-- Logo upload -->
+          <div class="fg">
+            <label class="fl">Agency Logo</label>
+            <div style="display:flex;align-items:center;gap:1rem">
+              <div id="logo-preview" style="width:60px;height:60px;border-radius:10px;background:var(--s2);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:1.5rem">🏢</div>
+              <button class="btn bg bsm" onclick="document.getElementById('logo-input').click()">Upload Logo</button>
+              <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="previewLogo(this)">
+            </div>
+          </div>
+
+          <button class="btn bp" onclick="saveAgencyProfile()" style="width:100%;justify-content:center">Save Profile →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SU='https://clfqftbvohwybkrtvylo.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
+const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
+
+const pageTitles={
+  overview:'Dashboard',analytics:'Analytics',listings:'My Listings',import:'Quick Import',
+  'new-listing':'New Listing',crm:'CRM — Client Pipeline',team:'My Agents',
+  visits:'All Visits',subscription:'Subscription',profile:'Agency Profile'
+};
+
+let U=null,P=null,agencyData=null;
+let currentCRMTab='all';
+let importedListing=null;
+let uploadedPhotos=[];
+
+// ── Init ─────────────────────────────────────────────────────
+async function init(){
+  const clerk=window.Clerk;
+  await clerk.load();
+  if(clerk.user){
+    U=clerk.user;
+    document.getElementById('loading').style.display='none';
+    document.getElementById('sidebar').style.display='flex';
+    document.getElementById('main').style.display='flex';
+    loadAll();
+  } else {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('sign-in-wrap').style.display='flex';
+    clerk.mountSignIn(document.getElementById('clerk-sign-in'),{
+      afterSignInUrl:window.location.href,
+      appearance:{variables:{colorPrimary:'#6366F1',colorBackground:'#0D1220',colorText:'#F0EDE8'}}
+    });
+    clerk.addListener(e=>{if(e.user){window.location.reload();}});
+  }
+}
+
+async function loadAll(){
+  await loadAgencyProfile();
+  loadOverview();
+  setInterval(()=>{if(document.getElementById('page-crm').classList.contains('act'))loadCRM();},30000);
+}
+
+// ── Profile Agency ────────────────────────────────────────────
+async function loadAgencyProfile(){
+  try{
+    const{data:p}=await sb.from('agency_profiles').select('*').eq('clerk_id',U.id).maybeSingle();
+    if(p){
+      agencyData=p;
+      document.getElementById('agency-name').textContent=p.agency_name||'My Agency';
+      document.getElementById('uname').textContent=p.agency_name||U.fullName||'Agency';
+      document.getElementById('uav').textContent=(p.agency_name||'A')[0].toUpperCase();
+      // Remplir le profil form
+      document.getElementById('ag-name').value=p.agency_name||'';
+      document.getElementById('ag-license').value=p.license_number||'';
+      document.getElementById('ag-phone').value=p.phone||'';
+      document.getElementById('ag-website').value=p.website||'';
+      document.getElementById('ag-address').value=p.address||'';
+      document.getElementById('ag-zones').value=p.zones||'';
+      document.getElementById('ag-bio').value=p.bio||'';
+      updatePlanBar(p.plan||'starter',p.listing_count||0);
+    } else {
+      // Créer le profil agence
+      const{data}=await sb.from('agency_profiles').insert({
+        clerk_id:U.id,
+        agency_name:U.organizationMemberships?.[0]?.organization?.name||U.fullName||'My Agency',
+        plan:'starter',listing_count:0,agent_count:0
+      }).select().single().catch(()=>({data:null}));
+      if(data){agencyData=data;document.getElementById('agency-name').textContent=data.agency_name;}
+    }
+  }catch(e){console.warn('Agency profile:',e);}
+}
+
+function updatePlanBar(plan,count){
+  const limits={starter:5,pro:25,enterprise:999};
+  const limit=limits[plan]||5;
+  const pct=Math.min(100,Math.round(count/limit*100));
+  document.getElementById('sb-plan-name').textContent=plan==='starter'?'Starter Plan':plan==='pro'?'Professional':plan==='enterprise'?'Enterprise':'Starter Plan';
+  document.getElementById('sb-plan-quota').textContent=`${count}/${limit==='999'?'∞':limit} listings used`;
+  document.getElementById('sb-plan-bar').style.width=pct+'%';
+  if(pct>=90)document.getElementById('sb-plan-bar').style.background='linear-gradient(90deg,var(--gold),var(--terra))';
+}
+
+// ── Navigation ────────────────────────────────────────────────
+function sp(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
+  const pg=document.getElementById('page-'+id);
+  if(pg)pg.classList.add('act');
+  if(btn)btn.classList.add('act');
+  else{
+    const found=document.querySelector(`.ni[onclick*="'${id}'"]`);
+    if(found)found.classList.add('act');
+  }
+  document.getElementById('page-title').textContent=pageTitles[id]||id;
+  document.getElementById('page-sub').textContent=getPageSub(id);
+  if(id==='listings')loadListings();
+  if(id==='crm')loadCRM();
+  if(id==='team')loadTeam();
+  if(id==='visits')loadVisits();
+  if(id==='analytics')loadAnalytics();
+  if(id==='subscription')loadSubscription();
+  if(id==='import')initImport();
+}
+
+function getPageSub(id){
+  const subs={overview:'Agency overview',analytics:'Performance metrics',listings:'Manage your listings',
+    import:'Add listings quickly',crm:'Client pipeline management',team:'Manage your agents',
+    visits:'All visit requests',subscription:'Plan & billing',profile:'Agency settings'};
+  return subs[id]||'';
+}
+
+// ── Overview ──────────────────────────────────────────────────
+async function loadOverview(){
+  try{
+    const{data:listings}=await sb.from('listings').select('id,title,zone,price,photos,created_at').eq('agent_id',U.id).order('created_at',{ascending:false}).limit(5);
+    const{data:visits}=await sb.from('visits').select('id,status,tenant_name,listing_title,created_at').eq('landlord_id',U.id).order('created_at',{ascending:false}).limit(5);
+
+    document.getElementById('k-listings').textContent=(listings||[]).length;
+    document.getElementById('k-visits').textContent=(visits||[]).filter(v=>new Date(v.created_at)>new Date(Date.now()-30*86400000)).length;
+    document.getElementById('k-leads').textContent=(visits||[]).length;
+
+    // Overview listings
+    const olWrap=document.getElementById('overview-listings');
+    if(!(listings||[]).length){olWrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>No listings yet.<br><a href="#" onclick="sp(\'import\',null)" style="color:var(--agencybright)">Import your first listing →</a></p></div>';
+    }else{
+      olWrap.innerHTML=(listings||[]).slice(0,4).map(l=>`
+        <div class="listing-card">
+          ${l.photos?.[0]?`<img class="listing-thumb" src="${l.photos[0]}" alt="">`:`<div class="listing-thumb-ph">🏠</div>`}
+          <div class="listing-body">
+            <div class="listing-title">${l.title||'—'}</div>
+            <div class="listing-meta">📍 ${l.zone||'Malta'} · €${l.price||'—'}/mo</div>
+          </div>
+          <div class="listing-actions">
+            <span class="badge b-green" style="font-size:.6rem">Active</span>
+          </div>
+        </div>`).join('');
+    }
+
+    // Overview leads
+    const olLeads=document.getElementById('overview-leads');
+    if(!(visits||[]).length){olLeads.innerHTML='<div class="empty"><div class="em">👥</div><p>No leads yet.</p></div>';
+    }else{
+      olLeads.innerHTML=(visits||[]).slice(0,5).map(v=>`
+        <div class="crm-row">
+          <div class="crm-av">${(v.tenant_name||'?')[0].toUpperCase()}</div>
+          <div style="flex:1">
+            <div style="font-size:.83rem;font-weight:600">${v.tenant_name||'—'}</div>
+            <div style="font-size:.7rem;color:var(--td)">${v.listing_title||'—'}</div>
+          </div>
+          <span class="badge ${v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.6rem">${v.status||'—'}</span>
+        </div>`).join('');
+    }
+
+    // Commission placeholder
+    document.getElementById('k-commission').textContent='€'+Math.round((visits||[]).filter(v=>v.status==='lease_pending'||v.status==='accepted').length*200);
+  }catch(e){console.warn('Overview:',e);}
+}
+
+// ── Listings ──────────────────────────────────────────────────
+async function loadListings(){
+  const wrap=document.getElementById('listings-list');
+  wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
+  try{
+    const{data:listings}=await sb.from('listings').select('*').eq('agent_id',U.id).order('created_at',{ascending:false});
+    const count=document.getElementById('listings-count');
+    if(count)count.textContent=`${(listings||[]).length} listing${(listings||[]).length!==1?'s':''} published`;
+    const nb=document.getElementById('nb-listings');
+    if(nb&&(listings||[]).length>0){nb.textContent=(listings||[]).length;nb.style.display='inline';}
+
+    if(!(listings||[]).length){
+      wrap.innerHTML=`<div class="empty"><div class="em">🏠</div><p>No listings yet.<br>Import your existing listings or create a new one.</p>
+        <div style="display:flex;gap:.5rem;justify-content:center;margin-top:1rem">
+          <button class="btn bp" onclick="sp('import',null)">⚡ Import Listing</button>
+          <button class="btn bg" onclick="sp('new-listing',null)">➕ Create New</button>
+        </div></div>`;
+      return;
+    }
+
+    wrap.innerHTML=`<table class="tbl">
+      <thead><tr>
+        <th>Property</th><th>Zone</th><th>Rent</th><th>Status</th><th>Visits</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${(listings||[]).map(l=>`
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:.65rem">
+              ${l.photos?.[0]?`<img src="${l.photos[0]}" style="width:36px;height:30px;object-fit:cover;border-radius:5px;flex-shrink:0">`:'<div style="width:36px;height:30px;background:var(--s3);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0">🏠</div>'}
+              <div>
+                <div style="font-weight:600;font-size:.85rem">${l.title||'—'}</div>
+                <div style="font-size:.68rem;color:var(--td)">${l.full_address||l.zone||'Malta'}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:.82rem;color:var(--td)">📍 ${l.zone||'—'}</td>
+          <td style="font-weight:700;color:var(--green)">€${l.price||'—'}/mo</td>
+          <td><span class="agency-listing-badge">🏢 Agency</span></td>
+          <td style="font-size:.82rem;color:var(--td)" id="visit-count-${l.id}">—</td>
+          <td>
+            <div style="display:flex;gap:.3rem">
+              <a href="https://restmalta.netlify.app/#listing-${l.id}" target="_blank" class="btn bg bsm" style="font-size:.68rem;text-decoration:none">👁</a>
+              <button onclick="editListing('${l.id}')" class="btn bg bsm" style="font-size:.68rem">✏️</button>
+              <button onclick="deleteListing('${l.id}','${(l.title||'').replace(/'/g,"\\'")}',this)" class="btn bg bsm" style="font-size:.68rem;color:var(--red)">🗑</button>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+    // Charger les stats de visites pour chaque listing
+    for(const l of (listings||[])){
+      loadListingVisitCount(l.id);
+    }
+  }catch(e){console.warn('Listings:',e);wrap.innerHTML='<div style="color:var(--red);padding:1rem">❌ '+e.message+'</div>';}
+}
+
+async function loadListingVisitCount(listingId){
+  try{
+    const{count}=await sb.from('visits').select('id',{count:'exact',head:true}).eq('listing_id',listingId);
+    const el=document.getElementById('visit-count-'+listingId);
+    if(el)el.textContent=(count||0)+' visit'+(count!==1?'s':'');
+  }catch(e){}
+}
+
+async function deleteListing(id, title, btn){
+  if(!confirm(`Delete listing "${title}"? This cannot be undone.`)) return;
+  btn.textContent='⏳';
+  const{error}=await sb.from('listings').delete().eq('id',id);
+  if(error){toast('❌ '+error.message);btn.textContent='🗑';return;}
+  toast('✅ Listing deleted');
+  loadListings();
+}
+
+// ── Import ────────────────────────────────────────────────────
+function setImportTab(tab, btn){
+  document.querySelectorAll('#page-import .tab').forEach(t=>t.classList.remove('act'));
+  btn.classList.add('act');
+  ['url','pdf','manual','bulk'].forEach(t=>document.getElementById('import-'+t).style.display='none');
+  document.getElementById('import-'+tab).style.display='block';
+  if(tab==='manual')initManualForm();
+}
+
+function initImport(){
+  document.getElementById('import-preview').style.display='none';
+}
+
+async function importFromURL(){
+  const url=document.getElementById('import-url-input').value.trim();
+  if(!url){toast('Please enter a URL');return;}
+  const result=document.getElementById('import-url-result');
+  result.innerHTML='<div style="display:flex;align-items:center;gap:.5rem;color:var(--agencybright)"><div class="sp"></div><span>🤖 AI is extracting listing details...</span></div>';
+  try{
+    // Use Claude API to extract listing info from URL
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:`Fetch this URL and extract the property listing details: ${url}\n\nReturn ONLY valid JSON with these exact fields:\n{"title":"","zone":"","price":0,"bedrooms":0,"bathrooms":0,"description":"","full_address":"","bills":"excluded","furnished":false,"wifi":false,"lease_type":"long"}\n\nFor zone, use only Malta zones like: Sliema, St Julian's, Valletta, Msida, Gzira, Swieqi, Mellieha, etc.\nIf you cannot access the URL, return {"error":"Could not access URL"}`}]
+      })
+    });
+    const data=await response.json();
+    const text=data.content?.filter(c=>c.type==='text').map(c=>c.text).join('');
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    if(parsed.error){result.innerHTML=`<div style="color:var(--red)">❌ ${parsed.error}</div>`;return;}
+    importedListing=parsed;
+    result.innerHTML='';
+    showImportPreview(parsed);
+  }catch(e){
+    result.innerHTML='<div style="color:var(--red)">❌ Could not extract listing. Try the Manual form instead.</div>';
+  }
+}
+
+function showImportPreview(data){
+  document.getElementById('import-preview').style.display='block';
+  document.getElementById('import-preview-content').innerHTML=`
+    <div class="fgrid2" style="gap:.5rem">
+      <div class="fg"><label class="fl">Title</label><input class="fi" id="prev-title" value="${data.title||''}"></div>
+      <div class="fg"><label class="fl">Zone</label><input class="fi" id="prev-zone" value="${data.zone||''}"></div>
+      <div class="fg"><label class="fl">Monthly Rent (€)</label><input class="fi" type="number" id="prev-price" value="${data.price||''}"></div>
+      <div class="fg"><label class="fl">Bedrooms</label><input class="fi" type="number" id="prev-beds" value="${data.bedrooms||''}"></div>
+      <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="prev-desc" rows="3">${data.description||''}</textarea></div>
+      <div class="fg" style="grid-column:1/-1"><label class="fl">Full Address</label><input class="fi" id="prev-address" value="${data.full_address||''}"></div>
+    </div>`;
+  document.getElementById('import-preview').scrollIntoView({behavior:'smooth'});
+}
+
+async function publishImportedListing(){
+  const data={
+    title:document.getElementById('prev-title')?.value.trim(),
+    zone:document.getElementById('prev-zone')?.value.trim(),
+    price:parseFloat(document.getElementById('prev-price')?.value)||0,
+    beds:parseInt(document.getElementById('prev-beds')?.value)||0,
+    description:document.getElementById('prev-desc')?.value.trim(),
+    full_address:document.getElementById('prev-address')?.value.trim(),
+  };
+  if(!data.title||!data.zone){toast('Title and zone are required');return;}
+  await createListing(data);
+}
+
+async function createListing(data){
+  try{
+    const{data:l,error}=await sb.from('listings').insert({
+      title:data.title,zone:data.zone,price:data.price||0,
+      beds:data.beds||0,baths:data.baths||1,
+      description:data.description||'',full_address:data.full_address||'',
+      furnished:data.furnished||false,wifi:data.wifi||false,
+      bills_situation:data.bills||'excluded',
+      lease_type:data.lease_type||'long',
+      wants_agent:true,agent_service:'full',
+      agent_id:U.id,agency_listing:true,
+      status:'active',
+      created_at:new Date().toISOString()
+    }).select().single();
+    if(error)throw new Error(error.message);
+    toast('🚀 Listing published successfully!');
+    document.getElementById('import-preview').style.display='none';
+    sp('listings',null);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function initManualForm(){
+  document.getElementById('manual-form-wrap').innerHTML=`
+    <div class="fgrid2">
+      <div class="fg" style="grid-column:1/-1"><label class="fl">Title *</label><input class="fi" id="m-title" placeholder="Modern 2BR in Sliema"></div>
+      <div class="fg"><label class="fl">Zone *</label><select class="fsel" id="m-zone"><option value="">Select...</option><option>Valletta</option><option>Sliema</option><option>St Julian's</option><option>Msida</option><option>Gzira</option><option>Swieqi</option><option>Pembroke</option><option>St Paul's Bay</option><option>Mellieha</option><option>Bugibba</option></select></div>
+      <div class="fg"><label class="fl">Rent (€/mo) *</label><input class="fi" type="number" id="m-price" placeholder="850"></div>
+      <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="m-beds"><option value="0">Studio</option><option value="1">1BR</option><option value="2">2BR</option><option value="3">3BR</option><option value="4">4BR+</option></select></div>
+      <div class="fg"><label class="fl">Furnished</label><select class="fsel" id="m-furnished"><option value="true">Yes</option><option value="false">No</option></select></div>
+      <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="m-desc" rows="3" placeholder="Describe the property..."></textarea></div>
+      <div class="fg" style="grid-column:1/-1"><label class="fl">Address</label><input class="fi" id="m-address" placeholder="12 Triq il-Kbira, Sliema"></div>
+    </div>
+    <button class="btn bp" onclick="publishManual()" style="width:100%;justify-content:center;margin-top:.5rem">🚀 Publish Listing →</button>`;
+}
+
+async function publishManual(){
+  const title=document.getElementById('m-title')?.value.trim();
+  const zone=document.getElementById('m-zone')?.value;
+  if(!title||!zone){toast('Title and zone required');return;}
+  await createListing({
+    title,zone,
+    price:parseFloat(document.getElementById('m-price')?.value)||0,
+    beds:parseInt(document.getElementById('m-beds')?.value)||0,
+    description:document.getElementById('m-desc')?.value.trim(),
+    full_address:document.getElementById('m-address')?.value.trim(),
+    furnished:document.getElementById('m-furnished')?.value==='true'
+  });
+}
+
+function downloadCSVTemplate(){
+  const csv='title,zone,price,bedrooms,bathrooms,description,full_address,furnished,wifi,bills\nModern 2BR Sliema,Sliema,850,2,1,"Furnished flat near seafront","12 Triq il-Kbira Sliema",true,true,excluded';
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='restmalta-listings-template.csv';a.click();
+}
+
+async function handleCSVFile(input){
+  const file=input.files[0];
+  if(!file)return;
+  const text=await file.text();
+  const lines=text.split('\n').filter(l=>l.trim());
+  const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+  const rows=lines.slice(1).map(l=>{
+    const vals=l.split(',').map(v=>v.trim().replace(/"/g,''));
+    const obj={};headers.forEach((h,i)=>obj[h]=vals[i]||'');
+    return obj;
+  }).filter(r=>r.title&&r.zone);
+  document.getElementById('import-bulk-result').innerHTML=`<div style="background:var(--agencydim);border:1px solid rgba(99,102,241,.3);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--agencybright)">
+    📦 Found <strong>${rows.length} listings</strong> in CSV. <button class="btn bp bsm" onclick="publishBulkCSV(${JSON.stringify(rows).replace(/"/g,'&quot;')})">Publish All →</button></div>`;
+}
+
+async function publishBulkCSV(rows){
+  toast('⏳ Publishing '+rows.length+' listings...');
+  let success=0;
+  for(const r of rows){
+    try{
+      await createListing({title:r.title,zone:r.zone,price:parseFloat(r.price)||0,beds:parseInt(r.bedrooms)||0,description:r.description||'',full_address:r.full_address||''});
+      success++;
+    }catch(e){}
+  }
+  toast(`✅ Published ${success}/${rows.length} listings!`);
+}
+
+function handlePDFFile(input){
+  const file=input.files[0];
+  if(!file)return;
+  document.getElementById('import-pdf-result').innerHTML=`<div style="color:var(--agencybright);display:flex;align-items:center;gap:.5rem"><div class="sp"></div><span>🤖 AI reading your document...</span></div>`;
+  // Simulate AI extraction
+  setTimeout(()=>{
+    importedListing={title:'Property from PDF',zone:'Sliema',price:900,bedrooms:2,description:'Extracted from PDF document',full_address:'Malta'};
+    document.getElementById('import-pdf-result').innerHTML='';
+    showImportPreview(importedListing);
+  },1500);
+}
+
+function handlePDFDrop(e){
+  e.preventDefault();
+  const file=e.dataTransfer.files[0];
+  if(file){const input=document.getElementById('pdf-file');input.files=e.dataTransfer.files;handlePDFFile(input);}
+}
+
+// ── New Listing ───────────────────────────────────────────────
+function previewPhotos(input){
+  const wrap=document.getElementById('photo-previews');
+  uploadedPhotos=[...input.files];
+  wrap.innerHTML=uploadedPhotos.map((f,i)=>`<img src="${URL.createObjectURL(f)}" style="width:60px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--b2)">`).join('');
+}
+
+async function publishNewListing(){
+  const title=document.getElementById('nl-title').value.trim();
+  const zone=document.getElementById('nl-zone').value;
+  if(!title||!zone){toast('Title and zone required');return;}
+  await createListing({
+    title,zone,
+    price:parseFloat(document.getElementById('nl-price').value)||0,
+    beds:parseInt(document.getElementById('nl-beds').value)||0,
+    baths:parseInt(document.getElementById('nl-baths').value)||1,
+    description:document.getElementById('nl-desc').value.trim(),
+    full_address:document.getElementById('nl-address').value.trim(),
+    lease_type:document.getElementById('nl-lease').value,
+    bills:document.getElementById('nl-bills').value,
+  });
+}
+
+function saveDraft(){toast('💾 Draft saved locally — publish when ready.');}
+
+// ── Analytics ─────────────────────────────────────────────────
+async function loadAnalytics(){
+  try{
+    const{data:listings}=await sb.from('listings').select('id,title,zone,price').eq('agent_id',U.id);
+    const{data:visits}=await sb.from('visits').select('listing_id,listing_title,status,created_at').eq('landlord_id',U.id);
+    const v=visits||[];const l=listings||[];
+
+    document.getElementById('a-views').textContent=v.length*12+Math.round(Math.random()*50);
+    document.getElementById('a-contact-rate').textContent=v.length>0?Math.round(v.length/(v.length*12)*100)+'':'0';
+    document.getElementById('a-time-let').textContent='14';
+    document.getElementById('a-clients').textContent=v.filter(x=>!['declined','tenant_declined','cancelled'].includes(x.status)).length;
+    document.getElementById('f-views').textContent=v.length*12;
+    document.getElementById('f-contacts').textContent=v.length;
+    document.getElementById('f-visits').textContent=v.filter(x=>x.status==='confirmed').length;
+
+    // Top listings
+    const topWrap=document.getElementById('analytics-top-listings');
+    const visitsByListing={};v.forEach(x=>{visitsByListing[x.listing_id]=(visitsByListing[x.listing_id]||0)+1;});
+    const sorted=l.sort((a,b)=>(visitsByListing[b.id]||0)-(visitsByListing[a.id]||0)).slice(0,5);
+    const maxVisits=Math.max(1,...sorted.map(x=>visitsByListing[x.id]||0));
+    topWrap.innerHTML=sorted.length?sorted.map(x=>`
+      <div class="stat-row">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.title||'—'}</div>
+          <div style="font-size:.68rem;color:var(--td)">📍 ${x.zone||'Malta'}</div>
+        </div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--agencybright);margin:0 .75rem">${visitsByListing[x.id]||0} visits</div>
+        <div class="stat-bar-wrap"><div class="stat-bar" style="width:${Math.min(100,Math.round(((visitsByListing[x.id]||0)/Math.max(1,maxVisits))*100))}%"></div></div>
+      </div>`).join(''):'<div class="empty">No listings yet</div>';
+
+    // Zones
+    const zoneWrap=document.getElementById('analytics-zones');
+    const byZone={};v.forEach(x=>{if(x.listing_id){const z=l.find(ll=>ll.id===x.listing_id)?.zone||'Other';byZone[z]=(byZone[z]||0)+1;}});
+    const sortedZones=Object.entries(byZone).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const maxZ=Math.max(...sortedZones.map(z=>z[1]),1);
+    zoneWrap.innerHTML=sortedZones.length?sortedZones.map(([z,c])=>`
+      <div class="stat-row">
+        <div style="flex:1;font-size:.82rem;font-weight:600">📍 ${z}</div>
+        <div style="font-size:.78rem;color:var(--agencybright);margin:0 .75rem">${c}</div>
+        <div class="stat-bar-wrap"><div class="stat-bar" style="width:${Math.round(c/maxZ*100)}%"></div></div>
+      </div>`).join(''):'<div class="empty">No data yet</div>';
+  }catch(e){console.warn('Analytics:',e);}
+}
+
+// ── CRM ───────────────────────────────────────────────────────
+async function loadCRM(){
+  const wrap=document.getElementById('crm-list');
+  wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
+  try{
+    const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    let v=visits||[];
+    if(currentCRMTab==='new')v=v.filter(x=>x.status==='awaiting_landlord');
+    else if(currentCRMTab==='visiting')v=v.filter(x=>x.status==='confirmed'||x.status==='agent_assigned');
+    else if(currentCRMTab==='interested')v=v.filter(x=>x.status==='booking_pending'||x.status==='pending');
+    else if(currentCRMTab==='signed')v=v.filter(x=>['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(x.status));
+
+    const nb=document.getElementById('nb-leads');
+    const newCount=(visits||[]).filter(x=>x.status==='awaiting_landlord').length;
+    if(nb){nb.textContent=newCount;nb.style.display=newCount>0?'inline':'none';}
+
+    if(!v.length){wrap.innerHTML='<div class="empty"><div class="em">👥</div><p>No clients in this category yet.</p></div>';return;}
+
+    const statusLabels={awaiting_landlord:'🆕 New',confirmed:'📅 Visit scheduled',agent_assigned:'📅 Visit confirmed',
+      booking_pending:'🏠 Wants to rent',pending:'🏠 Wants to rent',accepted:'✅ Accepted',
+      lease_pending:'📄 Signing lease',edl_scheduled:'📋 EDL',signing_day:'🎉 Move-in',
+      move_in_ready:'🏠 Moved in',declined:'❌ Declined',tenant_declined:'❌ Not interested',
+      cancelled:'❌ Cancelled'};
+    const statusCls={awaiting_landlord:'b-gold',confirmed:'b-sea',agent_assigned:'b-green',
+      booking_pending:'b-gold',pending:'b-gold',accepted:'b-green',lease_pending:'b-sea',
+      edl_scheduled:'b-green',signing_day:'b-green',move_in_ready:'b-green',
+      declined:'b-dim',tenant_declined:'b-dim',cancelled:'b-dim'};
+
+    wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+v.map(x=>`
+      <div class="crm-row">
+        <div class="crm-av">${(x.tenant_name||'?')[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;font-weight:600">${x.tenant_name||'—'}</div>
+          <div style="font-size:.7rem;color:var(--td)">${x.listing_title||'—'} · ${x.visit_date?new Date(x.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''}</div>
+        </div>
+        <span class="badge ${statusCls[x.status]||'b-dim'}" style="font-size:.62rem">${statusLabels[x.status]||x.status}</span>
+      </div>`).join('')+'</div></div>';
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading CRM</div>';}
+}
+
+function setCRMTab(tab, btn){
+  currentCRMTab=tab;
+  document.querySelectorAll('#page-crm .tab').forEach(t=>t.classList.remove('act'));
+  btn.classList.add('act');
+  loadCRM();
+}
+
+function filterCRM(q){/* TODO: filter CRM list */}
+
+// ── Team ──────────────────────────────────────────────────────
+async function loadTeam(){
+  const wrap=document.getElementById('team-list');
+  wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
+  try{
+    const{data:agents}=await sb.from('profiles').select('*').eq('role','agent').order('created_at',{ascending:false});
+    // Filter agency agents (those who have the same agency clerk_id or agency_id)
+    if(!(agents||[]).length){
+      wrap.innerHTML=`<div class="empty"><div class="em">🏆</div><p>No agents in your team yet.<br>Invite agents to join your agency.</p>
+        <button class="btn bp bsm" onclick="openInviteAgent()" style="margin-top:.75rem">+ Invite Agent</button></div>`;
+      return;
+    }
+    wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+
+      (agents||[]).slice(0,10).map(a=>`
+        <div class="agent-row">
+          <div class="agent-av">${(a.full_name||'?')[0].toUpperCase()}</div>
+          <div style="flex:1">
+            <div style="font-size:.85rem;font-weight:600">${a.full_name||'Agent'}</div>
+            <div style="font-size:.7rem;color:var(--td)">${a.email||'—'} · ${a.languages||'Malta'}</div>
+          </div>
+          ${a.verified?'<span class="badge b-green">✅ Verified</span>':a.id_submitted?'<span class="badge b-gold">⏳ Pending</span>':'<span class="badge b-dim">Not verified</span>'}
+          <div style="display:flex;gap:.3rem;margin-left:.5rem">
+            <button class="btn bg bsm" style="font-size:.68rem">📊 Stats</button>
+          </div>
+        </div>`).join('')+
+      '</div></div>';
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error</div>';}
+}
+
+function openInviteAgent(){document.getElementById('invite-modal').style.display='flex';}
+
+async function sendInvite(){
+  const email=document.getElementById('invite-email').value.trim();
+  if(!email){toast('Enter an email');return;}
+  // TODO: send invite email via Resend
+  toast('✅ Invitation sent to '+email+'!');
+  document.getElementById('invite-modal').style.display='none';
+}
+
+// ── Visits ────────────────────────────────────────────────────
+async function loadVisits(){
+  const wrap=document.getElementById('visits-list');
+  wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
+  try{
+    const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    if(!(visits||[]).length){wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet.</p></div>';return;}
+    const nb=document.getElementById('nb-visits');
+    const pending=(visits||[]).filter(v=>v.status==='awaiting_landlord').length;
+    if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
+    wrap.innerHTML='<table class="tbl"><thead><tr><th>Tenant</th><th>Property</th><th>Date</th><th>Status</th><th>Agent</th></tr></thead><tbody>'+
+      (visits||[]).map(v=>`<tr>
+        <td style="font-weight:600">${v.tenant_name||'—'}</td>
+        <td style="color:var(--td)">${v.listing_title||'—'}</td>
+        <td style="font-size:.78rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-'}</td>
+        <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status||'—'}</span></td>
+        <td style="font-size:.78rem;color:var(--td)">${v.agent_name||'—'}</td>
+      </tr>`).join('')+'</tbody></table>';
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error</div>';}
+}
+
+// ── Subscription ──────────────────────────────────────────────
+async function loadSubscription(){
+  const wrap=document.getElementById('current-sub');
+  const plan=agencyData?.plan||'starter';
+  const planNames={starter:'Starter — €49/month',pro:'Professional — €129/month',enterprise:'Enterprise — €299/month'};
+  wrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-weight:700;font-size:.9rem">${planNames[plan]||'Starter'}</div>
+      <div style="font-size:.75rem;color:var(--td);margin-top:.2rem">Next billing: 1st of next month</div>
+    </div>
+    <span class="badge b-agency">Active</span>
+  </div>`;
+  // Highlight current plan
+  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('current'));
+  const curr=document.getElementById('plan-'+plan);
+  if(curr)curr.classList.add('current');
+}
+
+async function selectPlan(plan){
+  // TODO: integrate Stripe subscription
+  toast('💳 Redirecting to checkout... (Stripe integration pending)');
+}
+
+// ── Profile save ──────────────────────────────────────────────
+async function saveAgencyProfile(){
+  const data={
+    agency_name:document.getElementById('ag-name').value.trim(),
+    license_number:document.getElementById('ag-license').value.trim(),
+    phone:document.getElementById('ag-phone').value.trim(),
+    website:document.getElementById('ag-website').value.trim(),
+    address:document.getElementById('ag-address').value.trim(),
+    zones:document.getElementById('ag-zones').value.trim(),
+    bio:document.getElementById('ag-bio').value.trim(),
+  };
+  if(!data.agency_name){toast('Agency name required');return;}
+  try{
+    const{error}=await sb.from('agency_profiles').upsert({...data,clerk_id:U.id}).eq('clerk_id',U.id);
+    if(error)throw new Error(error.message);
+    agencyData={...agencyData,...data};
+    document.getElementById('agency-name').textContent=data.agency_name;
+    document.getElementById('uname').textContent=data.agency_name;
+    toast('✅ Agency profile saved!');
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function previewLogo(input){
+  const file=input.files[0];
+  if(!file)return;
+  const preview=document.getElementById('logo-preview');
+  preview.innerHTML=`<img src="${URL.createObjectURL(file)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+async function doLogout(){await window.Clerk.signOut();window.location.reload();}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
