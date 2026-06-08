@@ -701,6 +701,7 @@ footer ul a:hover{color:var(--terra)}
                 <option value="neighbor">🏘️ With neighbour / concierge</option>
                 <option value="agent">🏆 I give keys to agent in advance</option>
                 <option value="landlord">📞 I hand keys personally (I'll be there)</option>
+                <option value="current_tenant">🏠 Current tenant has the keys</option>
               </select>
             </div>
             <div class="fg2">
@@ -711,6 +712,35 @@ footer ul a:hover{color:var(--terra)}
             </div>
           </div>
         </div>
+
+        <!-- Tenant actuel -->
+        <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b)">
+          <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">👤 Current tenant (if property is occupied)</div>
+          <div style="font-size:.7rem;color:var(--stone-l);margin-bottom:.6rem;line-height:1.5">If someone is currently living in the property, the agent needs to coordinate visit times with them.</div>
+          <div class="frow">
+            <div class="fg2">
+              <label>Current tenant's phone number</label>
+              <input class="fi" id="p-current-tenant-phone" placeholder="+356 9999 1234 (optional)">
+            </div>
+            <div class="fg2">
+              <label>Lease end date (when property is free)</label>
+              <input class="fi" type="date" id="p-lease-end-date">
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg2" style="grid-column:1/-1">
+              <label>Tenant availability for visits</label>
+              <select class="fi" id="p-tenant-availability" style="cursor:pointer">
+                <option value="flexible">🟢 Flexible — agent contacts them directly</option>
+                <option value="weekends">📅 Weekends only</option>
+                <option value="evenings">🌙 Evenings only (after 6pm)</option>
+                <option value="by_appointment">📞 By appointment only — landlord coordinates</option>
+                <option value="vacant">🏠 Property is vacant — no coordination needed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div id="presence-info" style="margin-top:.5rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
           📋 The agent will organise the visit and send you a summary after.
         </div>
@@ -2056,7 +2086,10 @@ async function doPost(){
     inventory_presence:document.getElementById('p-inventory-presence')?.value||'mandatory',
     agent_sign_auth:(document.getElementById('p-inventory-presence')?.value==='if_possible'||document.getElementById('p-inventory-presence')?.value==='not_needed'),
     key_type:document.getElementById('p-key-type')?.value||'landlord',
-    key_location:document.getElementById('p-key-location')?.value.trim()||null
+    key_location:document.getElementById('p-key-location')?.value.trim()||null,
+    current_tenant_phone:document.getElementById('p-current-tenant-phone')?.value.trim()||null,
+    lease_end_date:document.getElementById('p-lease-end-date')?.value||null,
+    tenant_availability:document.getElementById('p-tenant-availability')?.value||'vacant'
   }).select().single();
   if(error){sA(err,error.message);ok.style.display='none';return;}
   // Save extra amenities
