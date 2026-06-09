@@ -180,18 +180,18 @@ footer ul a:hover{color:var(--terra)}
 .aok{background:rgba(76,175,125,.08);color:#2d7a56;padding:.7rem 1rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem;display:none;border:1px solid rgba(76,175,125,.2)}
 
 /* POST */
-.pwrap{max-width:700px;margin:0 auto;padding:3rem 2rem 5rem}
-.ptitle{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;margin-bottom:.3rem}
-.psub{color:var(--stone);margin-bottom:2rem;font-size:.95rem}
-.fcard{background:white;border-radius:20px;padding:2rem;box-shadow:0 8px 32px rgba(26,20,16,.06);border:1px solid rgba(107,95,82,.08);margin-bottom:1.5rem}
-.fcard h3{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:1.2rem;padding-bottom:.8rem;border-bottom:1px solid rgba(107,95,82,.1)}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.pwrap{max-width:680px;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+.ptitle{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;margin-bottom:.3rem}
+.psub{color:var(--stone);margin-bottom:1.75rem;font-size:.92rem}
+.fcard{background:white;border-radius:20px;padding:1.75rem;box-shadow:0 8px 32px rgba(26,20,16,.06);border:1px solid rgba(107,95,82,.08);margin-bottom:1.25rem}
+.fcard h3{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;margin-bottom:1rem;padding-bottom:.7rem;border-bottom:1px solid rgba(107,95,82,.1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
 .ttog{display:flex;background:var(--sand);border-radius:10px;padding:4px;gap:4px}
-.tbtn{flex:1;padding:.6rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;background:transparent;color:var(--stone);transition:all .2s}
+.tbtn{flex:1;padding:.55rem .4rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer;background:transparent;color:var(--stone);transition:all .2s;white-space:nowrap}
 .tbtn.active{background:var(--terra);color:white;font-weight:600}
-.cbwrap{display:flex;gap:1.5rem;flex-wrap:wrap}
-.cl{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--stone);cursor:pointer}
-.cl input{accent-color:var(--terra);width:15px;height:15px;cursor:pointer}
+.cbwrap{display:flex;gap:1rem;flex-wrap:wrap}
+.cl{display:flex;align-items:center;gap:.45rem;font-size:.82rem;color:var(--stone);cursor:pointer}
+.cl input{accent-color:var(--terra);width:14px;height:14px;cursor:pointer;flex-shrink:0}
 
 /* DETAIL */
 .dwrap{max-width:900px;margin:0 auto;padding:2rem 2rem 5rem}
@@ -561,7 +561,7 @@ footer ul a:hover{color:var(--terra)}
 
       <div class="fg2" style="margin-top:.75rem"><label>Title *</label><input class="fi" type="text" id="pti" placeholder="e.g. Bright furnished studio near the sea, St. Julian's"></div>
       <div class="frow">
-        <div class="fg2"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema...">
+        <div class="fg2" style="grid-column:1/-1"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema...">
 <datalist id="zones-post">
   <option value="St. Julian's"><option value="Sliema"><option value="Valletta"><option value="Msida">
   <option value="Gzira"><option value="Gozo"><option value="Birkirkara"><option value="Swieqi">
@@ -625,6 +625,35 @@ footer ul a:hover{color:var(--terra)}
 
 
       <!-- Visit & Inventory presence options — visible seulement avec agent -->
+      <!-- Agent options -->
+      <div style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.5rem">🏆 RestMalta Agent Service</div>
+        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.75rem">Do you want a RestMalta agent to handle visits and inventory?</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('none')">
+            <input type="radio" name="agent-service" id="agent-opt-none" value="none" checked style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">🧍 Without agent — I manage everything myself</div><div style="font-size:.7rem;color:var(--stone-l)">You handle visits and inventory yourself. 10% platform fee from tenant on signing.</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
+            <input type="radio" name="agent-service" id="agent-opt-full" value="full" style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry inventory</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and the entry inventory. 40% TTC from tenant + 40% TTC from landlord on signing.</div></div>
+          </label>
+        </div>
+        <!-- Mandat exclusif -->
+        <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(139,92,246,.15)">
+          <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
+            <input type="checkbox" id="p-exclusif" onchange="toggleExclusif(this)" style="margin-top:.2rem">
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:#8B5CF6">🤝 RestMalta Exclusive Mandate</div>
+              <div style="font-size:.72rem;color:var(--stone-l);margin-top:.2rem;line-height:1.5">Publish only on RestMalta for 3 months. In exchange: <strong style="color:#8B5CF6">reduced commission + priority placement</strong>. A mandate contract will be generated and signed digitally.</div>
+            </div>
+          </label>
+          <div id="exclusif-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem 1rem;font-size:.78rem;color:var(--stone)">
+            ✅ Exclusive mandate activated — You get priority placement and a reduced commission rate. A mandate contract will be sent to your email for e-signature upon publication.
+          </div>
+        </div>
+      </div>
+
       <div id="agent-details-section" style="display:none">
       <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
         <label style="display:flex;align-items:center;gap:.65rem;cursor:pointer;margin-bottom:.6rem">
@@ -738,7 +767,7 @@ footer ul a:hover{color:var(--terra)}
         </div>
       </div>
 
-      <div class="fg2"><label>Amenities</label>
+      <div class="fg2" style="grid-column:1/-1"><label>Amenities</label>
         <div class="cbwrap">
           <label class="cl"><input type="checkbox" id="pfu" checked> 🛋️ Furnished</label>
           <label class="cl"><input type="checkbox" id="pwi"> 📶 WiFi available</label>
