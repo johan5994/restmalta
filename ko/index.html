@@ -524,51 +524,15 @@ footer ul a:hover{color:var(--terra)}
 
       <!-- Short-let specific options -->
       <div id="shortlet-opts" style="background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--terra);margin-bottom:.5rem">🏠 Short-let — accepted stay duration</div>
-        <div class="frow">
-          <div class="fg2"><label>Minimum stay accepted</label>
-            <select class="fi" id="p-min-stay" style="cursor:pointer">
-              <option value="1_month">1 month (required by Maltese law)</option>
-            </select>
-          </div>
-          <div class="fg2"><label>Maximum stay accepted</label>
-            <select class="fi" id="p-max-stay" style="cursor:pointer">
-              <option value="6_months">6 months maximum (required by Maltese law)</option>
-            </select>
-          </div>
-        </div>
-        <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">⚠️ Short-let duration is fixed by Maltese law (Cap. 604) — minimum 1 month, maximum 6 months. Cannot be renewed.</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--terra);margin-bottom:.3rem">🏠 Short-let</div>
+        <div style="font-size:.75rem;color:var(--stone-l);line-height:1.6">⚠️ Duration fixed by Maltese law (Cap. 604) — minimum 1 month, maximum 6 months. Cannot be renewed.</div>
       </div>
 
       <!-- Long-let options -->
       <div id="longlet-opts" style="display:none;background:rgba(46,107,138,.05);border:1px solid rgba(46,107,138,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">📅 Long-let preferences</div>
-        <div class="frow">
-          <div class="fg2"><label>Minimum lease duration</label>
-            <select class="fi" id="p-lease-duration" style="cursor:pointer">
-              <option value="1_year" selected>1 year (legal minimum)</option>
-              <option value="2_years">2 years</option>
-              <option value="3_years">3 years</option>
-            </select>
-          </div>
-          <div class="fg2"><label>Maximum lease duration</label>
-            <select class="fi" id="p-max-lease" style="cursor:pointer">
-              <option value="no_max" selected>No maximum — open ended</option>
-              <option value="1_year">1 year</option>
-              <option value="2_years">2 years</option>
-              <option value="3_years">3 years</option>
-            </select>
-          </div>
-        </div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.3rem">📅 Long-let</div>
+        <div style="font-size:.75rem;color:var(--stone-l);line-height:1.6">⚠️ Minimum 1 year lease required by Maltese law (Cap. 604).</div>
         <div class="frow" style="margin-top:.5rem">
-          <div class="fg2"><label>Di Fermo (lock-in period)</label>
-            <select class="fi" id="p-di-fermo" style="cursor:pointer">
-              <option value="6_months" selected>6 months (standard for 1 year lease)</option>
-              <option value="9_months">9 months (standard for 2 year lease)</option>
-              <option value="1_year">1 year (standard for 3 year lease)</option>
-              <option value="none">No lock-in period</option>
-            </select>
-          </div>
         </div>
         <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">ℹ️ Di Fermo = minimum period during which tenant cannot leave without penalty. Must be minimum 1 year.</div>
       </div>
@@ -592,6 +556,16 @@ footer ul a:hover{color:var(--terra)}
             <option value="4">4 bedrooms</option>
             <option value="5">5+ bedrooms</option>
           </select>
+          <div class="fg2"><label>Bathrooms</label>
+            <select class="fi" id="p-baths" style="cursor:pointer">
+              <option value="1" selected>1 bathroom</option>
+              <option value="2">2 bathrooms</option>
+              <option value="3">3+ bathrooms</option>
+            </select>
+          </div>
+          <div class="fg2"><label>Size (m²) <span style="font-weight:400;color:var(--stone-l)">(optional)</span></label>
+            <input class="fi" type="number" id="p-sqm" placeholder="e.g. 65" min="10" max="1000">
+          </div>
         </div>
       </div>
       <div class="frow">
@@ -668,22 +642,29 @@ footer ul a:hover{color:var(--terra)}
       <!-- Visit & Inventory presence options — visible seulement avec agent -->
       <div id="agent-details-section" style="display:none">
       <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.75rem">🏠 Your availability during visits & inventory</div>
-        <div class="frow">
-          <div class="fg2">
-            <label>During property visits</label>
-            <select class="fi" id="p-visit-presence" style="cursor:pointer">
-              <option value="not_needed">❌ Not needed — agent handles everything</option>
-              <option value="if_possible">👋 If possible — I'll join if available</option>
-            </select>
+        <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;margin-bottom:.5rem">
+          <input type="checkbox" id="p-landlord-present" onchange="toggleLandlordPresence(this.checked)" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--green)">🏠 I will be present during visits & inventory</div>
+            <div style="font-size:.7rem;color:var(--stone-l);margin-top:.1rem">Check this if you want to attend visits and/or the EDL</div>
           </div>
-          <div class="fg2">
-            <label>During entry inventory (EDL)</label>
-            <select class="fi" id="p-inventory-presence" style="cursor:pointer" onchange="toggleSignAuth(this.value)">
-              <option value="mandatory">✅ I will be there</option>
-              <option value="if_possible">👋 If possible (agent signs if I can't make it)</option>
-              <option value="not_needed">❌ Not needed — agent signs on my behalf</option>
-            </select>
+        </label>
+        <div id="presence-details" style="display:none;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:8px;padding:.75rem">
+          <div class="frow">
+            <div class="fg2">
+              <label>During property visits</label>
+              <select class="fi" id="p-visit-presence" style="cursor:pointer">
+                <option value="if_possible">👋 If possible — I'll join if available</option>
+                <option value="mandatory">✅ Always present</option>
+              </select>
+            </div>
+            <div class="fg2">
+              <label>During entry inventory (EDL)</label>
+              <select class="fi" id="p-inventory-presence" style="cursor:pointer" onchange="toggleSignAuth(this.value)">
+                <option value="mandatory">✅ I will be there</option>
+                <option value="if_possible">👋 If possible (agent signs if I can't)</option>
+              </select>
+            </div>
           </div>
         </div>
         <div id="sign-auth-notice" style="display:none;margin-top:.5rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;font-size:.72rem;color:var(--gold)">
@@ -699,7 +680,6 @@ footer ul a:hover{color:var(--terra)}
               <select class="fi" id="p-key-type" style="cursor:pointer" onchange="toggleKeyDetail(this.value)">
                 <option value="keysafe">🔐 Key safe on site</option>
                 <option value="neighbor">🏘️ With neighbour / concierge</option>
-                <option value="agent">🏆 I give keys to agent in advance</option>
                 <option value="landlord">📞 I hand keys personally (I'll be there)</option>
                 <option value="current_tenant">🏠 Current tenant has the keys</option>
               </select>
@@ -715,28 +695,17 @@ footer ul a:hover{color:var(--terra)}
 
         <!-- Tenant actuel -->
         <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b)">
-          <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">👤 Current tenant (if property is occupied)</div>
-          <div style="font-size:.7rem;color:var(--stone-l);margin-bottom:.6rem;line-height:1.5">If someone is currently living in the property, the agent needs to coordinate visit times with them.</div>
-          <div class="frow">
-            <div class="fg2">
-              <label>Current tenant's phone number</label>
-              <input class="fi" id="p-current-tenant-phone" placeholder="+356 9999 1234 (optional)">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;margin-bottom:.5rem">
+            <input type="checkbox" id="p-is-occupied" onchange="toggleOccupied(this.checked)" style="width:16px;height:16px;accent-color:var(--terra);cursor:pointer;flex-shrink:0">
+            <div>
+              <div style="font-size:.78rem;font-weight:700;color:var(--gold)">👤 Property is currently occupied</div>
+              <div style="font-size:.7rem;color:var(--stone-l);margin-top:.1rem">Check this if a tenant is still living there</div>
             </div>
-            <div class="fg2">
-              <label>Lease end date (when property is free)</label>
-              <input class="fi" type="date" id="p-lease-end-date">
-            </div>
-          </div>
-          <div class="frow">
-            <div class="fg2" style="grid-column:1/-1">
-              <label>Tenant availability for visits</label>
-              <select class="fi" id="p-tenant-availability" style="cursor:pointer">
-                <option value="flexible">🟢 Flexible — agent contacts them directly</option>
-                <option value="weekends">📅 Weekends only</option>
-                <option value="evenings">🌙 Evenings only (after 6pm)</option>
-                <option value="by_appointment">📞 By appointment only — landlord coordinates</option>
-                <option value="vacant">🏠 Property is vacant — no coordination needed</option>
-              </select>
+          </label>
+          <div id="occupied-details" style="display:none;background:rgba(212,168,71,.05);border:1px solid rgba(212,168,71,.15);border-radius:8px;padding:.75rem">
+            <div class="frow">
+              <div class="fg2"><label>Current tenant's phone number</label><input class="fi" id="p-current-tenant-phone" placeholder="+356 9999 1234"></div>
+              <div class="fg2"><label>Lease end date (when property is free)</label><input class="fi" type="date" id="p-lease-end-date"></div>
             </div>
           </div>
         </div>
@@ -781,8 +750,7 @@ footer ul a:hover{color:var(--terra)}
       <div class="fg2"><label>Amenities</label>
         <div class="cbwrap">
           <label class="cl"><input type="checkbox" id="pfu" checked> 🛋️ Furnished</label>
-          <label class="cl"><input type="checkbox" id="pwi"> 📶 WiFi included</label>
-          <label class="cl"><input type="checkbox" id="pbi"> 💡 Bills included</label>
+          <label class="cl"><input type="checkbox" id="pwi"> 📶 WiFi available</label>
           <label class="cl"><input type="checkbox" id="pac"> ❄️ A/C</label>
           <label class="cl"><input type="checkbox" id="ppk"> 🚗 Parking</label>
           <label class="cl"><input type="checkbox" id="ppool"> 🏊 Pool</label>
@@ -1896,6 +1864,17 @@ function onAvailableFromChange(val){
   }
 }
 
+
+function toggleOccupied(checked){
+  document.getElementById('occupied-details').style.display=checked?'block':'none';
+  if(!checked){document.getElementById('p-current-tenant-phone').value='';document.getElementById('p-lease-end-date').value='';}
+}
+
+function toggleLandlordPresence(checked){
+  document.getElementById('presence-details').style.display=checked?'block':'none';
+  if(!checked)document.getElementById('sign-auth-notice').style.display='none';
+}
+
 function toggleSignAuth(val){
   const notice=document.getElementById('sign-auth-notice');
   if(notice)notice.style.display=(val==='if_possible'||val==='not_needed')?'block':'none';
@@ -2059,6 +2038,8 @@ async function doPost(){
     price:parseInt(pr),
     deposit:parseInt(document.getElementById('pdep').value)||null,
     spots:parseInt(document.getElementById('psp').value)||1,
+    baths:parseInt(document.getElementById('p-baths')?.value)||1,
+    sqm:parseInt(document.getElementById('p-sqm')?.value)||null,
     available_from:document.getElementById('pfr').value||null,
     available_until:document.getElementById('pun').value||null,
     description:document.getElementById('pde').value,
