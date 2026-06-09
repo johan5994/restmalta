@@ -674,7 +674,7 @@ footer ul a:hover{color:var(--terra)}
               <label>During property visits</label>
               <select class="fi" id="p-visit-presence" style="cursor:pointer">
                 <option value="if_possible">👋 If possible — I'll join if available</option>
-                <option value="mandatory">✅ Always present</option>
+                <option value="not_needed">❌ I don't want to be there</option>
               </select>
             </div>
             <div class="fg2">
@@ -682,6 +682,7 @@ footer ul a:hover{color:var(--terra)}
               <select class="fi" id="p-inventory-presence" style="cursor:pointer" onchange="toggleSignAuth(this.value)">
                 <option value="mandatory">✅ I will be there</option>
                 <option value="if_possible">👋 If possible (agent signs if I can't)</option>
+                <option value="not_needed">❌ I don't want to be there</option>
               </select>
             </div>
           </div>
