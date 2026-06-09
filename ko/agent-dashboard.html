@@ -6,6 +6,8 @@
 <title>RestMalta — Agent Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>window.__clerk_publishable_key='pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';</script>
 <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
 <style>
@@ -411,26 +413,64 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- ZONE -->
     <div class="page" id="page-zone">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div style="margin-bottom:1.2rem">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:.2rem">📍 My coverage zone</div>
+        <div style="font-size:.78rem;color:var(--td)">Select the zones of Malta you want to cover. Landlords in uncovered zones won't be able to assign an agent.</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1rem">
+        <!-- Carte -->
         <div class="card">
-          <div class="ch"><span class="ct">📍 My exclusive zone</span></div>
+          <div class="ch"><span class="ct">📍 Set your location</span></div>
+          <div class="cb" style="padding:.75rem">
+            <div style="font-size:.78rem;color:var(--td);margin-bottom:.5rem">Click on the map to set your base location in Malta</div>
+            <div id="agent-map" style="height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--b2)"></div>
+            <div id="agent-location-label" style="margin-top:.5rem;font-size:.75rem;color:var(--td);text-align:center">📍 No location set yet</div>
+          </div>
+        </div>
+
+        <!-- Zones -->
+        <div class="card">
+          <div class="ch"><span class="ct">🗺 Zones I cover</span></div>
           <div class="cb">
-            <div style="background:var(--s2);border-radius:12px;padding:2rem;text-align:center;margin-bottom:1rem">
-              <div style="font-size:3rem;margin-bottom:.5rem">🗺️</div>
-              <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--terra)" id="zone-name">Your zone</div><div style="font-size:.75rem;color:var(--td);margin-top:.3rem">Set in your profile → My Zone</div>
+            <div style="font-size:.75rem;color:var(--td);margin-bottom:.75rem">Select all zones you're willing to travel to for visits</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem" id="zones-list">
+              ${['Valletta','Floriana','Sliema','St Julian\'s','Msida','Gzira','Swieqi','Pembroke','St Andrew\'s','Paceville','Mellieha','St Paul\'s Bay','Bugibba','Naxxar','Birkirkara','San Gwann','Attard','Balzan','Lija','Mosta','Qormi','Zebbug','Hamrun','Marsa','Marsaskala','Zabbar','Zejtun','Fgura','Tarxien','Paola','Luqa','Gudja','Mqabba','Zurrieq','Siggiewi','Rabat','Mdina','Dingli','Gharghur','San Gwann'].map(z=>`
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="${z}" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 ${z}</span>
+              </label>`).join('')}
             </div>
-            <div style="display:flex;flex-direction:column;gap:.25rem">
-              <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Active listings</span><strong id="zone-listings-count">0</strong></div>
-              <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.6rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Visits this month</span><strong>8</strong></div>
-              <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.6rem 0"><span style="color:var(--tm)">Signed leases</span><strong>3</strong></div>
+            <div style="display:flex;gap:.4rem;margin-top:.75rem">
+              <button onclick="selectAllZones()" class="btn bg bsm" style="flex:1;justify-content:center;font-size:.72rem">Select all</button>
+              <button onclick="clearAllZones()" class="btn bg bsm" style="flex:1;justify-content:center;font-size:.72rem">Clear all</button>
             </div>
           </div>
         </div>
-        <div class="card">
-          <div class="ch"><span class="ct">🏠 Zone listings</span></div>
-          <div class="cb" id="zone-listings-list"><div class="empty"><div class="em">🏠</div><p>No listings in your zone yet</p></div></div>
+      </div>
+
+      <!-- Stats zone -->
+      <div class="card" style="margin-top:1rem">
+        <div class="ch"><span class="ct">📊 My zone stats</span></div>
+        <div class="cb">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+            <div style="background:var(--s2);border-radius:10px;padding:.85rem;text-align:center">
+              <div style="font-size:1.6rem;font-weight:800;color:var(--terra)" id="zone-listings-count">0</div>
+              <div style="font-size:.7rem;color:var(--td)">Active listings in my zones</div>
+            </div>
+            <div style="background:var(--s2);border-radius:10px;padding:.85rem;text-align:center">
+              <div style="font-size:1.6rem;font-weight:800;color:var(--green)" id="zone-visits-count">0</div>
+              <div style="font-size:.7rem;color:var(--td)">Visits this month</div>
+            </div>
+            <div style="background:var(--s2);border-radius:10px;padding:.85rem;text-align:center">
+              <div style="font-size:1.6rem;font-weight:800;color:var(--gold)" id="zone-agents-count">0</div>
+              <div style="font-size:.7rem;color:var(--td)">Other agents in same zones</div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <button onclick="saveZone()" class="btn bp" style="margin-top:1rem;padding:.7rem 2rem">💾 Save my zones →</button>
     </div>
 
   </div>
@@ -462,6 +502,89 @@ let clerk,U=null,P=null;
 let currentMonth=new Date().getMonth(),currentYear=new Date().getFullYear();
 let visits=[],listings=[],visitMsgs=[],appliedIds=new Set();
 
+// ── Zone & Map ────────────────────────────────────────────────
+let agentMap=null,agentMarker=null,agentLat=null,agentLng=null;
+
+function initAgentMap(){
+  if(agentMap) return;
+  // Centre sur Malte
+  agentMap=L.map('agent-map').setView([35.9375,14.3754],11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:18
+  }).addTo(agentMap);
+
+  // Charger position sauvegardée
+  if(P?.agent_lat&&P?.agent_lng){
+    agentLat=P.agent_lat;agentLng=P.agent_lng;
+    agentMarker=L.marker([agentLat,agentLng],{draggable:true}).addTo(agentMap);
+    agentMap.setView([agentLat,agentLng],13);
+    document.getElementById('agent-location-label').textContent=`📍 ${agentLat.toFixed(4)}, ${agentLng.toFixed(4)}`;
+    agentMarker.on('dragend',e=>{
+      const pos=e.target.getLatLng();
+      agentLat=pos.lat;agentLng=pos.lng;
+      document.getElementById('agent-location-label').textContent=`📍 ${agentLat.toFixed(4)}, ${agentLng.toFixed(4)}`;
+    });
+  }
+
+  // Click sur la carte pour placer/déplacer le marqueur
+  agentMap.on('click',e=>{
+    agentLat=e.latlng.lat;agentLng=e.latlng.lng;
+    if(agentMarker)agentMarker.remove();
+    agentMarker=L.marker([agentLat,agentLng],{draggable:true}).addTo(agentMap);
+    document.getElementById('agent-location-label').textContent=`📍 ${agentLat.toFixed(4)}, ${agentLng.toFixed(4)}`;
+    agentMarker.on('dragend',e2=>{
+      const pos=e2.target.getLatLng();
+      agentLat=pos.lat;agentLng=pos.lng;
+      document.getElementById('agent-location-label').textContent=`📍 ${agentLat.toFixed(4)}, ${agentLng.toFixed(4)}`;
+    });
+  });
+}
+
+function loadSavedZones(){
+  if(!P?.zones)return;
+  const saved=P.zones.split(',').map(z=>z.trim());
+  document.querySelectorAll('.zone-cb').forEach(cb=>{
+    if(saved.includes(cb.value))cb.checked=true;
+  });
+}
+
+function selectAllZones(){
+  document.querySelectorAll('.zone-cb').forEach(cb=>cb.checked=true);
+}
+
+function clearAllZones(){
+  document.querySelectorAll('.zone-cb').forEach(cb=>cb.checked=false);
+}
+
+async function saveZone(){
+  const selectedZones=[...document.querySelectorAll('.zone-cb:checked')].map(cb=>cb.value);
+  if(!selectedZones.length){toast('⚠️ Select at least one zone');return;}
+  if(!agentLat||!agentLng){toast('⚠️ Click on the map to set your location');return;}
+
+  const{error}=await sb.from('profiles').update({
+    zones:selectedZones.join(','),
+    agent_lat:agentLat,
+    agent_lng:agentLng
+  }).eq('clerk_id',U.id);
+
+  if(error){toast('❌ '+error.message);return;}
+  P.zones=selectedZones.join(',');
+  P.agent_lat=agentLat;P.agent_lng=agentLng;
+  toast('✅ Zone saved! Landlords in your zones can now assign you visits.');
+
+  // Stats
+  loadZoneStats(selectedZones);
+}
+
+async function loadZoneStats(zones){
+  try{
+    const{count:lCount}=await sb.from('listings').select('id',{count:'exact',head:true}).in('zone',zones||[]);
+    const{count:vCount}=await sb.from('visits').select('id',{count:'exact',head:true}).eq('agent_id',U.id);
+    document.getElementById('zone-listings-count').textContent=lCount||0;
+    document.getElementById('zone-visits-count').textContent=vCount||0;
+  }catch(e){}
+}
+
 function sp(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
@@ -472,6 +595,13 @@ function sp(id,btn){
   if(id==='visits')loadVisits();
   if(id==='messages')loadAgentMessages();
   if(id==='revenue')renderRevChart().catch(()=>{});
+  if(id==='zone'){
+    setTimeout(()=>{
+      initAgentMap();
+      loadSavedZones();
+      if(P?.zones)loadZoneStats(P.zones.split(','));
+    },100);
+  }
 }
 
 // ── Agent Identity Verification ───────────────────────────────
