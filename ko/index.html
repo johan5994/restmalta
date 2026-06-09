@@ -369,7 +369,7 @@ footer ul a:hover{color:var(--terra)}
         <option value="">All types</option>
         <option value="short">🏠 Short-let only</option>
         <option value="long">📅 Long-let only</option>
-        <option value="sublet">🔑 Subletting</option>
+        <option value="room_rental">🔑 Room rental</option>
       </select></div>
       <div class="sf"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
       <div class="sf"><label>📋 Attestation</label><select id="fa" onchange="loadL()"><option value="">All</option><option value="yes">✅ Attestation OK</option></select></div>
@@ -473,7 +473,7 @@ footer ul a:hover{color:var(--terra)}
   <footer>
     <div class="fg">
       <div><div class="flogo">RestMalta</div><p class="fdesc">Malta's first smart rental platform. Real-time chat, agent visits, e-signed leases and secure deposit escrow. Built for interns, expats and independent landlords.</p></div>
-      <div><h4>For tenants</h4><ul><li><a onclick="stl()">Browse listings</a></li><li><a>Virtual visits</a></li><li><a>Tenant dossier</a></li><li><a>Subletting</a></li></ul></div>
+      <div><h4>For tenants</h4><ul><li><a onclick="stl()">Browse listings</a></li><li><a>Virtual visits</a></li><li><a>Tenant dossier</a></li><li><a>Room rental</a></li></ul></div>
       <div><h4>For landlords</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a>Agent visits</a></li><li><a>Dashboard</a></li><li><a>Lease generator</a></li></ul></div>
       <div><h4>Legal</h4><ul><li><a>Terms of service</a></li><li><a>Privacy policy</a></li><li><a>Contact us</a></li></ul></div>
     </div>
@@ -514,7 +514,7 @@ footer ul a:hover{color:var(--terra)}
         <div class="ttog">
           <button class="tbtn active" onclick="setT(this,'short')">🏠 Short-let only</button>
           <button class="tbtn" onclick="setT(this,'long')">📅 Long-let only</button>
-          <button class="tbtn" onclick="setT(this,'sublet')">🔑 Subletting</button>
+          <button class="tbtn" onclick="setT(this,'room_rental')">🔑 Room rental</button>
         </div>
         <input type="hidden" id="pt" value="short">
         <div id="type-info" style="margin-top:.5rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
@@ -594,49 +594,40 @@ footer ul a:hover{color:var(--terra)}
         </div>
       </div>
 
-      <!-- Subletting legal notice (point 3) -->
-      <div id="sublet-notice" style="display:none;background:rgba(212,168,71,.07);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--ochre);margin-bottom:.4rem">⚠️ Obligations légales — Subletting à Malta</div>
-        <div style="font-size:.73rem;color:var(--stone);line-height:1.6">
-          By posting a sublet, you confirm:<br>
-          ✓ Have written consent from the property owner<br>
-          ✓ Be able to provide the signed contract if requested<br>
-          ✓ Comprendre que <strong>l'enregistrement auprès de la Housing Authority est your responsabilité</strong> — RestMalta n'effectue pas cet enregistrement<br>
-          ✓ RestMalta est une plateforme de mise en relation uniquement
-        </div>
-        <label style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem;font-size:.78rem;cursor:pointer">
-          <input type="checkbox" id="sublet-confirm" required> I confirm I have read and accept these obligations
-        </label>
-      </div>
-
-      <!-- Agent options (point 15) -->
-      <div style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.5rem">🏆 Service agent RestMalta</div>
-        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.75rem">The agent handles visits and inventory. RestMalta never manages attestation — go directly to a notary for that.</div>
-        <div style="display:flex;flex-direction:column;gap:.5rem">
-          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('none')">
-            <input type="radio" name="agent-service" id="agent-opt-none" value="none" checked style="margin-top:.1rem">
-            <div><div style="font-size:.82rem;font-weight:600">🧍 Without agent — I manage everything myself</div><div style="font-size:.7rem;color:var(--stone-l)">You handle visits and inventory yourself. Free.</div></div>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
-            <input type="radio" name="agent-service" id="agent-opt-full" value="full" style="margin-top:.1rem">
-            <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry inventory</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and the entry inventory on your behalf. Commission: 40% TTC from tenant + 40% TTC from landlord. Exclusive mandate: 35% TTC from landlord. Attestation is NOT included.</div></div>
-          </label>
-        </div>
-
-        <!-- Mandat exclusif (points 18 & 19) -->
-        <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(139,92,246,.15)">
-          <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
-            <input type="checkbox" id="p-exclusif" onchange="toggleExclusif(this)" style="margin-top:.2rem">
-            <div>
-              <div style="font-size:.82rem;font-weight:700;color:#8B5CF6">🤝 RestMalta Exclusive Mandate</div>
-              <div style="font-size:.72rem;color:var(--stone-l);margin-top:.2rem;line-height:1.5">En cochant cette case, you you engagez à ne publier ce bien que sur RestMalta pendant 3 months. En échange : <strong style="color:#8B5CF6">reduced commission + priority placement</strong> dans les résultats. Un contrat de mandat sera généré et signé digitalement.</div>
-            </div>
-          </label>
-          <div id="exclusif-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem 1rem;font-size:.78rem;color:var(--stone)">
-            ✅ Mandat exclusif activé — You bénéficiez d'une mise en avant prioritaire et d'une commission réduite. Un contrat de mandat you sera envoyé par email for signature électronique à la publication.
+      <!-- Room rental legal notice (point 3) -->
+      <div id="room_rental-notice" style="display:none;background:rgba(212,168,71,.07);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--ochre);margin-bottom:.5rem">🛏 Room rental / Colocation details</div>
+        <div class="frow">
+          <div class="fg2"><label>Room type</label>
+            <select class="fi" id="p-room-type" style="cursor:pointer">
+              <option value="private">🚪 Private room (own bedroom)</option>
+              <option value="shared">👥 Shared room</option>
+            </select>
+          </div>
+          <div class="fg2"><label>Bathroom</label>
+            <select class="fi" id="p-room-bathroom" style="cursor:pointer">
+              <option value="shared">🚿 Shared bathroom</option>
+              <option value="private">🚿 Private bathroom</option>
+            </select>
+          </div>
+          <div class="fg2"><label>People already in flat</label>
+            <select class="fi" id="p-roommates" style="cursor:pointer">
+              <option value="1">1 person (you)</option>
+              <option value="2">2 people</option>
+              <option value="3">3 people</option>
+              <option value="4">4+ people</option>
+            </select>
+          </div>
+          <div class="fg2"><label>Available from</label>
+            <input class="fi" type="date" id="p-room-available">
           </div>
         </div>
+        <div style="font-size:.73rem;color:var(--stone);line-height:1.6;margin-top:.5rem">
+          ⚠️ By posting a room rental, you confirm you have the owner's consent to sublet and accept that RestMalta does not handle Housing Authority registration.<br>
+        </div>
+        <label style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem;font-size:.78rem;cursor:pointer">
+          <input type="checkbox" id="room_rental-confirm" required> I confirm I have read and accept these obligations
+        </label>
       </div>
 
       <!-- Visit & Inventory presence options — visible seulement avec agent -->
@@ -1246,10 +1237,10 @@ async function loadL(){
 async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true);document.getElementById('sc').textContent=count??'0';}
 
 function rCard(l){
-  const ic={short:'🏠',sublet:'🔑',long:'📅'};
-  const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',sublet:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
-  const lb={short:'🏠 Short-let',sublet:'🔑 Subletting',long:'📅 Long-let'};
-  const lbColor={short:'#C9553A',sublet:'#D4A847',long:'#2E6B8A'};
+  const ic={short:'🏠',room_rental:'🔑',long:'📅'};
+  const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
+  const lb={short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'📅 Long-let'};
+  const lbColor={short:'#C9553A',room_rental:'#D4A847',long:'#2E6B8A'};
   const tags=[l.furnished?'Furnished':null,l.wifi?'WiFi':null,l.bills_included?'Bills incl.':null,l.ac?'A/C':null,l.parking?'Parking':null,l.pool?'Pool':null,l.balcony?'Balcony':null,l.spots>1?`${l.spots} spots`:null].filter(Boolean).slice(0,3);
   const fr=l.available_indefinitely?'Available indefinitely':l.available_from?'From '+new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Available now';
   // Agent service badge
@@ -1261,7 +1252,7 @@ function rCard(l){
   const attBadge=l.accepts_attestation?
     `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(46,107,138,.9);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ✅</span>`:'';
   return`<div class="lcard" onclick="openDet('${l.id}')">
-    <div class="limg" style="background:${bg[l.type]||bg.sublet}">
+    <div class="limg" style="background:${bg[l.type]||bg.room_rental}">
       ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'🏠'}</span>`}
       <span style="position:absolute;top:.5rem;right:.5rem;background:${lbColor[l.type]||'#C9553A'};color:white;font-size:.65rem;font-weight:700;padding:.25rem .6rem;border-radius:100px">${lb[l.type]||'Listing'}</span>
       ${agentBadge}${attBadge}
@@ -1277,8 +1268,8 @@ function rCard(l){
 
 async function openDet(id){
   const{data:l}=await sb.from('listings').select('*').eq('id',id).single();if(!l)return;AL=l;
-  const ic={short:'🏠',sublet:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',sublet:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
-  const h=document.getElementById('dh');h.style.background=bg[l.type]||bg.sublet;
+  const ic={short:'🏠',room_rental:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
+  const h=document.getElementById('dh');h.style.background=bg[l.type]||bg.room_rental;
   // Show video if available, else photos
   if(l.video_url){
     h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><video src="${l.video_url}" controls style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:20px" poster="${l.photos?.[0]||''}"></video>`;
@@ -1312,7 +1303,7 @@ async function openDet(id){
   if(l.wants_agent&&l.agent_service!=='none')fe.unshift('🏆 Agent visits available');
   if(l.video_url)fe.unshift('🎥 Virtual tour available');
   document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
-  const tl={short:'Short-let',sublet:'Subletting',long:'Long-let (1 year+)'};
+  const tl={short:'Short-let',room_rental:'Room rental',long:'Long-let (1 year+)'};
   const difermoLabels={'6_months':'6 months','9_months':'9 months','1_year':'1 year','none':'None'};
   const durationLabels={'1_year':'1 year (minimum)','2_years':'2 years','3_years':'3 years','flexible':'Flexible'};
   const badge=await getLandlordResponseBadge(l.landlord_id);
@@ -1794,18 +1785,18 @@ function setT(el,t){
   document.getElementById('pt').value=t;
   const shortOpts=document.getElementById('shortlet-opts');
   const longOpts=document.getElementById('longlet-opts');
-  const subletNotice=document.getElementById('sublet-notice');
-  const subletOpts=document.getElementById('sublet-opts');
+  const room_rentalNotice=document.getElementById('room_rental-notice');
+  const room_rentalOpts=document.getElementById('room_rental-opts');
   const typeInfo=document.getElementById('type-info');
   if(shortOpts)shortOpts.style.display=t==='short'?'block':'none';
   if(longOpts)longOpts.style.display=t==='long'?'block':'none';
-  if(subletNotice)subletNotice.style.display=t==='sublet'?'block':'none';
-  if(subletOpts)subletOpts.style.display=t==='sublet'?'block':'none';
+  if(room_rentalNotice)room_rentalNotice.style.display=t==='room_rental'?'block':'none';
+  if(room_rentalOpts)room_rentalOpts.style.display=t==='room_rental'?'block':'none';
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltase law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
 
-    sublet:'🔑 Subletting: written owner consent required. Housing Authority registration is your responsibility.'
+    room_rental:'🔑 Room rental: written owner consent required. Housing Authority registration is your responsibility.'
   };
   if(typeInfo)typeInfo.textContent=infos[t]||'';
 
@@ -2166,7 +2157,7 @@ async function loadML(){
   if(P?.role!=='landlord'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a landlord account to post and manage listings.</p></div>';return;}
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo">📋</div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
-  const ic={short:'🏠',sublet:'🔑',long:'🏛️'};
+  const ic={short:'🏠',room_rental:'🔑',long:'🏛️'};
   w.innerHTML=data.map(l=>`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">€${l.price}/mo · ${l.zone} · <span class="dot ${l.active?'dg':'dr'}"></span>${l.active?'Active':'Paused'}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button><button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button></div></div>`).join('');
 }
 
