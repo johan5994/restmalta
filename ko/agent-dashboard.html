@@ -434,12 +434,163 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="ch"><span class="ct">🗺 Zones I cover</span></div>
           <div class="cb">
             <div style="font-size:.75rem;color:var(--td);margin-bottom:.75rem">Select all zones you're willing to travel to for visits</div>
-            <div style="display:flex;flex-direction:column;gap:.4rem" id="zones-list">
-              ${['Valletta','Floriana','Sliema','St Julian\'s','Msida','Gzira','Swieqi','Pembroke','St Andrew\'s','Paceville','Mellieha','St Paul\'s Bay','Bugibba','Naxxar','Birkirkara','San Gwann','Attard','Balzan','Lija','Mosta','Qormi','Zebbug','Hamrun','Marsa','Marsaskala','Zabbar','Zejtun','Fgura','Tarxien','Paola','Luqa','Gudja','Mqabba','Zurrieq','Siggiewi','Rabat','Mdina','Dingli','Gharghur','San Gwann'].map(z=>`
-              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
-                <input type="checkbox" class="zone-cb" value="${z}" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
-                <span style="font-size:.82rem">📍 ${z}</span>
-              </label>`).join('')}
+            <div style="display:flex;flex-direction:column;gap:.4rem;max-height:280px;overflow-y:auto" id="zones-list">
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Valletta" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Valletta</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Floriana" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Floriana</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Sliema" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Sliema</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="St Julian's" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 St Julian's</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Msida" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Msida</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Gzira" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Gzira</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Swieqi" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Swieqi</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Pembroke" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Pembroke</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="St Andrew's" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 St Andrew's</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Paceville" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Paceville</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Mellieha" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Mellieha</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="St Paul's Bay" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 St Paul's Bay</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Bugibba" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Bugibba</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Naxxar" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Naxxar</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Birkirkara" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Birkirkara</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="San Gwann" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 San Gwann</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Attard" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Attard</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Balzan" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Balzan</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Lija" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Lija</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Mosta" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Mosta</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Qormi" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Qormi</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Zebbug" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Zebbug</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Hamrun" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Hamrun</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Marsa" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Marsa</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Marsaskala" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Marsaskala</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Zabbar" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Zabbar</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Zejtun" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Zejtun</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Fgura" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Fgura</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Tarxien" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Tarxien</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Paola" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Paola</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Luqa" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Luqa</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Gudja" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Gudja</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Mqabba" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Mqabba</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Zurrieq" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Zurrieq</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Siggiewi" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Siggiewi</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Rabat" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Rabat</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Mdina" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Mdina</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Dingli" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Dingli</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:7px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="zone-cb" value="Gharghur" style="accent-color:var(--terra);width:14px;height:14px;cursor:pointer">
+                <span style="font-size:.82rem">📍 Gharghur</span>
+              </label>
             </div>
             <div style="display:flex;gap:.4rem;margin-top:.75rem">
               <button onclick="selectAllZones()" class="btn bg bsm" style="flex:1;justify-content:center;font-size:.72rem">Select all</button>
