@@ -539,7 +539,7 @@ footer ul a:hover{color:var(--terra)}
 
       <div class="fg2" style="margin-top:.75rem"><label>Title *</label><input class="fi" type="text" id="pti" placeholder="e.g. Bright furnished studio near the sea, St. Julian's"></div>
         <div class="frow" id="section-beds">
-        <div class="fg2"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema...">
+        <div class="fg2"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema..." oninput="checkAgentsInZone(this.value)" onchange="checkAgentsInZone(this.value)">
 <datalist id="zones-post">
   <option value="St. Julian's"><option value="Sliema"><option value="Valletta"><option value="Msida">
   <option value="Gzira"><option value="Gozo"><option value="Birkirkara"><option value="Swieqi">
@@ -593,7 +593,7 @@ footer ul a:hover{color:var(--terra)}
             <input type="radio" name="agent-service" id="agent-opt-none" value="none" checked style="margin-top:.1rem">
             <div><div style="font-size:.82rem;font-weight:600">🧍 Without agent — I manage everything myself</div><div style="font-size:.7rem;color:var(--stone-l)">You handle visits and inventory yourself. 10% platform fee from tenant on signing.</div></div>
           </label>
-          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
+          <label id="agent-opt-full-label" style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
             <input type="radio" name="agent-service" id="agent-opt-full" value="full" style="margin-top:.1rem">
             <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry inventory</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and the entry inventory. 40% TTC from tenant + 40% TTC from landlord on signing.</div></div>
           </label>
@@ -1853,6 +1853,48 @@ function setT(el,t){
     start.setFullYear(start.getFullYear()+1);
     punInput.value=start.toISOString().split('T')[0];
   }
+}
+
+async function checkAgentsInZone(zone){
+  if(!zone) return;
+  const agentFullLabel=document.getElementById('agent-opt-full-label');
+  const agentFullRadio=document.getElementById('agent-opt-full');
+  if(!agentFullLabel||!agentFullRadio) return;
+
+  try{
+    // Chercher des agents qui couvrent cette zone
+    const{data:agents}=await sb.from('profiles')
+      .select('clerk_id,full_name,zones')
+      .or('role.eq.agent,role.eq.Agent');
+    
+    const availableAgents=(agents||[]).filter(a=>{
+      if(!a.zones)return false;
+      const agentZones=a.zones.split(',').map(z=>z.trim().toLowerCase());
+      return agentZones.includes(zone.toLowerCase());
+    });
+
+    if(availableAgents.length===0){
+      agentFullRadio.disabled=true;
+      agentFullLabel.style.opacity='.4';
+      agentFullLabel.style.cursor='not-allowed';
+      // Afficher message
+      let noAgentMsg=document.getElementById('no-agent-msg');
+      if(!noAgentMsg){
+        noAgentMsg=document.createElement('div');
+        noAgentMsg.id='no-agent-msg';
+        noAgentMsg.style.cssText='font-size:.72rem;color:var(--td);margin-top:.4rem;padding:.4rem .6rem;background:rgba(255,255,255,.04);border-radius:7px';
+        agentFullLabel.parentNode.insertBefore(noAgentMsg,agentFullLabel.nextSibling);
+      }
+      noAgentMsg.textContent=`⚠️ No RestMalta agent available in ${zone} yet. You can still post your listing — we'll notify you when an agent covers your zone.`;
+      noAgentMsg.style.display='block';
+    } else {
+      agentFullRadio.disabled=false;
+      agentFullLabel.style.opacity='1';
+      agentFullLabel.style.cursor='pointer';
+      const noAgentMsg=document.getElementById('no-agent-msg');
+      if(noAgentMsg)noAgentMsg.style.display='none';
+    }
+  }catch(e){}
 }
 
 function updateAgentOpt(val){
