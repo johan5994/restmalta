@@ -310,155 +310,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- PROFILE -->
     <!-- VISITS PAGE -->
     <div class="page" id="page-visits">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My Visits</div>
-      <div class="card" style="margin-bottom:1rem" id="card-register-section">
-        <div class="ch">
-          <div class="ct">💳 Register your card</div>
-          <span class="badge b-gold" id="card-status-badge">Required</span>
-        </div>
-        <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Required to confirm visits. <strong>Only charged €50 if you no-show without 24h cancellation.</strong></p>
-          <div id="card-form-wrap">
-            <div id="card-element" style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.75rem"></div>
-            <button class="btn bp" style="width:100%;justify-content:center" onclick="registerCard()">💳 Save card →</button>
-          </div>
-          <div id="card-saved-msg" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;color:var(--green)">✅ Card registered</div>
-        </div>
-      </div>
-      <div id="tenant-visits-list">
-        <div class="empty"><div class="em">📅</div><p>Loading visits...</p></div>
-      </div>
-    </div>
-    <div class="page" id="page-messages">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Messages from landlords</div>
-      <div id="messages-list"><div class="ld"><div class="sp"></div></div></div>
-    </div>
-
-    <!-- MAINTENANCE -->
-    <div class="page" id="page-maintenance">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">Maintenance tickets</div>
-        <button class="btn bp bsm" onclick="openTicketModal()">+ Report problem</button>
-      </div>
-      <div class="ai">🔧 Report any issue in your flat and your landlord is notified instantly. Track the status in real time — from open to in progress to resolved.</div>
-      <div id="tickets-list"><div class="ld"><div class="sp"></div></div></div>
-    </div>
-
-    <!-- DOCUMENTS -->
-    <div class="page" id="page-documents">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My leases & documents</div>
-      <div class="ai">📄 Your signed lease agreements appear here. Generated automatically, compliant with Maltase law (PRL Act), and e-signed by both parties via DocuSeal.</div>
-      <div class="card"><div class="cb" id="docs-list"><div class="ld"><div class="sp"></div></div></div></div>
-    </div>
-
-    <!-- PAYMENTS -->
-    <div class="page" id="page-payments">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My payments</div>
-
-      <!-- Due now -->
-      <div id="pay-due-now"></div>
-
-      <!-- Advance payment option (points 7/8) -->
-      <div class="card" style="margin-bottom:1rem"><div class="ch"><div class="ct">Payment history</div></div><div id="pay-list"><div class="ld"><div class="sp"></div></div></div></div>
-
-      <!-- Notice generator (point 22) -->
-      <div class="card">
-        <div class="ch"><div class="ct">📤 Generate notice to leave</div></div>
-        <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Planning to leave? Generate your official notice letter. The app will automatically calculate if you are still in your Di Fermo period and give you the exact date you can hand back the keys.</p>
-          <div class="fgrid2" style="margin-bottom:.75rem">
-            <div class="fg"><label class="fl">Your lease start date</label><input class="fi" type="date" id="notice-start"></div>
-            <div class="fg"><label class="fl">Di Fermo period</label>
-              <select class="fsel" id="notice-difermo">
-                <option value="6">6 months (standard)</option>
-                <option value="12">12 months</option>
-                <option value="0">No Di Fermo</option>
-              </select>
-            </div>
-            <div class="fg"><label class="fl">Notice period</label>
-              <select class="fsel" id="notice-period">
-                <option value="1">1 month (standard)</option>
-                <option value="2">2 months</option>
-                <option value="3">3 months</option>
-              </select>
-            </div>
-            <div class="fg"><label class="fl">Desired departure date</label><input class="fi" type="date" id="notice-departure"></div>
-          </div>
-          <button class="btn bp" onclick="generateNotice()">📄 Calculate & generate notice →</button>
-          <div id="notice-result" style="display:none;margin-top:1rem"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- DEPOSIT -->
-    <div class="page" id="page-deposit">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My deposit de garantie</div>
-
-      <!-- Escrow status -->
-      <div id="escrow-status-card"></div>
-
-      <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">🔐 Comment fonctionne l'escrow RestMalta</div></div>
-        <div class="cb">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.5rem">
-            <div style="background:var(--tdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">💶</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">1. You pay</div><div style="font-size:.62rem;color:var(--tm)">Deposit to RestMalta</div></div>
-            <div style="background:var(--gdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🔒</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">2. Sécurisé</div><div style="font-size:.62rem;color:var(--tm)">RestMalta retient</div></div>
-            <div style="background:var(--sdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">⏰</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">3. 24h for confirmer</div><div style="font-size:.62rem;color:var(--tm)">À your arrivée</div></div>
-            <div style="background:var(--grdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🏠</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">4. Libéré</div><div style="font-size:.62rem;color:var(--tm)">Au owner si OK</div></div>
-          </div>
-          <div id="deposit-info"><div class="ld"><div class="sp"></div></div></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="ch"><div class="ct">✅ Confirm mon entrée dans le logement</div></div>
-        <div class="cb">
-          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-            ⏰ <strong>You have 24h after move-in</strong> to confirm the property correspond à l'listing. After this period, the deposit is automatically released to the landlord.
-          </div>
-          <div class="fg"><label class="fl">Tout est conforme ? Des remarques ?</label><textarea class="fta" id="entry-notes" rows="2" placeholder="Everything is fine — no issues (or describe any problems found)"></textarea></div>
-          <div style="display:flex;gap:.75rem">
-            <button class="btn bp" onclick="confirmEntry()">✅ Everything OK — release deposit</button>
-            <button class="btn bg" onclick="sp('maintenance',document.querySelectorAll('.ni')[3]);openTicketModal()">⚠️ Signaler un problème</button>
-          </div>
-          <div style="margin-top:.75rem;font-size:.72rem;color:var(--td);line-height:1.5">
-            En cas de problème grave (logement inexistant, état très différent de l'listing), your deposit will be fully refunded after RestMalta reviews your report.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- REVIEWS -->
-    <div class="page" id="page-reviews">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Leave a review</div>
-      <div class="ai">⭐ Your reviews help the RestMalta community. Landlords with great reviews get more visibility — honest feedback makes the platform better for everyone.</div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">Review your landlord</div></div>
-        <div class="cb">
-          <div class="fg"><label class="fl">Landlord email</label><input class="fi" id="rev-landlord" placeholder="landlord@email.com"></div>
-          <div class="fg"><label class="fl">Rating</label>
-            <div style="display:flex;gap:.5rem;margin-bottom:.5rem" id="stars-wrap">
-              <span class="star-btn active" onclick="setRating(1)">⭐</span>
-              <span class="star-btn active" onclick="setRating(2)">⭐</span>
-              <span class="star-btn active" onclick="setRating(3)">⭐</span>
-              <span class="star-btn active" onclick="setRating(4)">⭐</span>
-              <span class="star-btn active" onclick="setRating(5)">⭐</span>
-            </div>
-            <input type="hidden" id="rev-rating" value="5">
-          </div>
-          <div class="fg"><label class="fl">Your experience</label><textarea class="fta" id="rev-comment" rows="4" placeholder="Was the landlord responsive? Was the flat as described?"></textarea></div>
-          <button class="btn bp" onclick="submitReview()">Submit review →</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="ch"><div class="ct">Reviews I submitted</div></div>
-        <div class="cb" id="my-reviews"><div class="ld"><div class="sp"></div></div></div>
-      </div>
-    </div>
-
-    <!-- PROFILE -->
-    <!-- VISITS PAGE -->
-    <div class="page" id="page-visits">
       <div style="margin-bottom:1rem;font-size:1rem;font-weight:700">My Visits</div>
 
       <!-- Card registration -->
@@ -1491,7 +1342,7 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
   if(!section)return;
   section.style.display='block';
 
-  const tenantRate=hasAgent?0.40:0.15;
+  const tenantRate=hasAgent?0.40:0.10;
   const holding=Math.round(price/2); // 50% bonne foi — pré-auth remboursée après réponse landlord
   const commission=Math.round(price*tenantRate);
   const total=holding+commission;
@@ -1594,7 +1445,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
   try{
     const price=cardWrap._price||0;
     const hasAgent=cardWrap._hasAgent||false;
-    const tenantRate=hasAgent?0.40:0.15;
+    const tenantRate=hasAgent?0.40:0.10;
     const holding=Math.round(price/2); // 50% bonne foi — pré-auth remboursée après réponse landlord
     const commission=Math.round(price*tenantRate);
 
