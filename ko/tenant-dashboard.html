@@ -589,6 +589,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         </div>
       </div>
 
+
+    </div>
+
+    <!-- FIND A FLAT -->
+      <div id="docs-section" style="display:none">
       <!-- Documents supporting dossier -->
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">📁 Supporting documents</div><span id="docs-badge" class="badge b-dim">—</span></div>
@@ -648,10 +653,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
         </div>
       </div>
-
-    </div>
-
-    <!-- FIND A FLAT -->
+      </div>
     <div class="page" id="page-search">
       <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
         <div>
@@ -1035,13 +1037,16 @@ function initUI(){
   if(!P?.full_name||!P?.passport_number)setTimeout(()=>toast('⚠️ Complete your profile to unlock automatic lease generation!'),1000);
 }
 
-async function loadAll(){await Promise.all([loadOverview(),loadPaymentsData(),loadMyReviews(),loadProfilee()]);}
+async function loadAll(){await Promise.all([loadOverview(),loadPaymentsData(),loadMyReviews()]);}
 
 function sp(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
+  // Afficher docs seulement sur profile
+  const docsSection=document.getElementById('docs-section');
+  if(docsSection) docsSection.style.display=id==='profile'?'block':'none';
   const titles={overview:'My Rentals',messages:'Messages',maintenance:'Maintenance',documents:'My Leases',payments:'Payments',deposit:'My Deposit',reviews:'Reviews',profile:'My Profile',search:'Find a Flat',dossier:'My Dossier',visits:'My Visits'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')loadMessages();
