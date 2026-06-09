@@ -659,7 +659,7 @@ footer ul a:hover{color:var(--terra)}
       </div>
 
       <!-- Visit & Inventory presence options — visible seulement avec agent -->
-      <div id="agent-details-section" style="display:none">
+      <div id="section-agent-details" style="display:none">
       <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
         <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;margin-bottom:.5rem">
           <input type="checkbox" id="p-landlord-present" onchange="toggleLandlordPresence(this.checked)" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
@@ -1830,6 +1830,8 @@ function setT(el,t){
   if(secAtt)secAtt.style.display=isRoom?'none':'block';
   if(secLease)secLease.style.display=isRoom?'none':'block';
   if(secAgent)secAgent.style.display=isRoom?'none':'block';
+  const secAgentDetails=document.getElementById('section-agent-details');
+  if(secAgentDetails)secAgentDetails.style.display=isRoom?'none':'block';
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltase law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
@@ -1877,28 +1879,24 @@ async function checkAgentsInZone(zone){
       agentFullRadio.disabled=true;
       agentFullLabel.style.opacity='.4';
       agentFullLabel.style.cursor='not-allowed';
-      // Afficher message
-      let noAgentMsg=document.getElementById('no-agent-msg');
-      if(!noAgentMsg){
-        noAgentMsg=document.createElement('div');
-        noAgentMsg.id='no-agent-msg';
-        noAgentMsg.style.cssText='font-size:.72rem;color:var(--td);margin-top:.4rem;padding:.4rem .6rem;background:rgba(255,255,255,.04);border-radius:7px';
-        agentFullLabel.parentNode.insertBefore(noAgentMsg,agentFullLabel.nextSibling);
-      }
-      noAgentMsg.textContent=`⚠️ No RestMalta agent available in ${zone} yet. You can still post your listing — we'll notify you when an agent covers your zone.`;
-      noAgentMsg.style.display='block';
+      let msg=document.getElementById('agent-zone-msg');
+      if(!msg){msg=document.createElement('div');msg.id='agent-zone-msg';agentFullLabel.parentNode.insertBefore(msg,agentFullLabel.nextSibling);}
+      msg.style.cssText='font-size:.72rem;margin-top:.4rem;padding:.4rem .6rem;border-radius:7px;background:rgba(224,90,90,.08);color:var(--red)';
+      msg.textContent=`⚠️ No RestMalta agent available in ${zone} yet. We'll notify you when one covers your zone.`;
     } else {
       agentFullRadio.disabled=false;
       agentFullLabel.style.opacity='1';
       agentFullLabel.style.cursor='pointer';
-      const noAgentMsg=document.getElementById('no-agent-msg');
-      if(noAgentMsg)noAgentMsg.style.display='none';
+      let msg=document.getElementById('agent-zone-msg');
+      if(!msg){msg=document.createElement('div');msg.id='agent-zone-msg';agentFullLabel.parentNode.insertBefore(msg,agentFullLabel.nextSibling);}
+      msg.style.cssText='font-size:.72rem;margin-top:.4rem;padding:.4rem .6rem;border-radius:7px;background:rgba(76,175,125,.08);color:var(--green)';
+      msg.textContent=`✅ ${availableAgents.length} agent${availableAgents.length>1?'s':''} available in ${zone} — you can assign one for visits!`;
     }
   }catch(e){}
 }
 
 function updateAgentOpt(val){
-  const agentDetails=document.getElementById('agent-details-section');
+  const agentDetails=document.getElementById('section-agent-details');
   if(agentDetails)agentDetails.style.display=val==='none'?'none':'block';
   ['none','full'].forEach(o=>{
     const radio=document.getElementById(`agent-opt-${o}`);
