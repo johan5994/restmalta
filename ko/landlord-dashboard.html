@@ -4039,7 +4039,7 @@ async function acceptDirectBooking(listingId, tenantId){
     const coTenantIds = booking.co_tenant_ids ? JSON.parse(booking.co_tenant_ids) : [];
     const totalTenants = 1 + coTenantIds.length;
     const monthlyRent = booking.monthly_rent || 0;
-    const commissionPerTenant = Math.round((monthlyRent * 0.15) / totalTenants);
+    const commissionPerTenant = Math.round((monthlyRent * 0.10) / totalTenants);
     const holdingPerTenant = Math.round((monthlyRent * 0.5) / totalTenants);
 
     // Libérer le holding deposit (rembourser le 50% loyer)
