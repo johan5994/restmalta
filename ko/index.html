@@ -584,6 +584,34 @@ footer ul a:hover{color:var(--terra)}
         </div>
       </div>
 
+      <!-- Agent options -->
+      <div id="section-agent" style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.5rem">🏆 RestMalta Agent Service</div>
+        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.75rem">Do you want a RestMalta agent to handle visits and inventory?</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('none')">
+            <input type="radio" name="agent-service" id="agent-opt-none" value="none" checked style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">🧍 Without agent — I manage everything myself</div><div style="font-size:.7rem;color:var(--stone-l)">You handle visits and inventory yourself. 10% platform fee from tenant on signing.</div></div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid rgba(139,92,246,.15);border-radius:8px;cursor:pointer;background:rgba(139,92,246,.03)" onclick="updateAgentOpt('full')">
+            <input type="radio" name="agent-service" id="agent-opt-full" value="full" style="margin-top:.1rem">
+            <div><div style="font-size:.82rem;font-weight:600">🏆 With agent — visits + entry inventory</div><div style="font-size:.7rem;color:var(--stone-l)">A RestMalta agent handles all visits and the entry inventory. 40% TTC from tenant + 40% TTC from landlord on signing.</div></div>
+          </label>
+        </div>
+        <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(139,92,246,.15)">
+          <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
+            <input type="checkbox" id="p-exclusif" onchange="toggleExclusif(this)" style="margin-top:.2rem">
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:#8B5CF6">🤝 RestMalta Exclusive Mandate</div>
+              <div style="font-size:.72rem;color:var(--stone-l);margin-top:.2rem;line-height:1.5">Publish only on RestMalta for 3 months. In exchange: <strong style="color:#8B5CF6">reduced commission + priority placement</strong>. A mandate contract will be sent for e-signature on publication.</div>
+            </div>
+          </label>
+          <div id="exclusif-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem 1rem;font-size:.78rem;color:var(--stone)">
+            ✅ Exclusive mandate activated — You get priority placement and a reduced commission rate. A mandate contract will be sent to your email for e-signature upon publication.
+          </div>
+        </div>
+      </div>
+
       <!-- Lease Agreement Attestation -->
       <div id="section-attestation" style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
         <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation <span style="font-size:.65rem;font-weight:400;color:var(--stone-l)">(Malta — required for some non-EU residence permits)</span></div>
@@ -1797,9 +1825,11 @@ function setT(el,t){
   const secBeds=document.getElementById('section-beds');
   const secAtt=document.getElementById('section-attestation');
   const secLease=document.getElementById('section-lease-cond');
+  const secAgent=document.getElementById('section-agent');
   if(secBeds)secBeds.style.display=isRoom?'none':'grid';
   if(secAtt)secAtt.style.display=isRoom?'none':'block';
   if(secLease)secLease.style.display=isRoom?'none':'block';
+  if(secAgent)secAgent.style.display=isRoom?'none':'block';
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltase law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
