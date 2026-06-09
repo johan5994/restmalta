@@ -537,8 +537,8 @@ footer ul a:hover{color:var(--terra)}
         <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">ℹ️ Di Fermo = minimum period during which tenant cannot leave without penalty. Must be minimum 1 year.</div>
       </div>
 
-      <div class="fg2" style="margin-top:.75rem"><label>Title *</label><input class="fi" type="text" id="pti" placeholder="e.g. Bright furnished studio near the sea, St. Julian's"></div>
-        <div class="frow" id="section-beds">
+      <div class="frow" style="margin-top:.75rem">
+        <div class="fg2" style="grid-column:1/-1"><label>Title *</label><input class="fi" type="text" id="pti" placeholder="e.g. Bright furnished studio near the sea, St. Julian's"></div>
         <div class="fg2"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema..." oninput="checkAgentsInZone(this.value)" onchange="checkAgentsInZone(this.value)">
 <datalist id="zones-post">
   <option value="St. Julian's"><option value="Sliema"><option value="Valletta"><option value="Msida">
@@ -547,32 +547,8 @@ footer ul a:hover{color:var(--terra)}
   <option value="Mosta"><option value="Naxxar"><option value="Rabat"><option value="Mdina">
   <option value="Marsaskala"><option value="Marsaxlokk"><option value="Birgu"><option value="Senglea">
 </datalist></div>
-        <div class="fg2"><label>Number of bedrooms</label>
-          <select class="fi" id="psp" style="cursor:pointer">
-            <option value="0">Studio (0 bedroom)</option>
-            <option value="1" selected>1 bedroom</option>
-            <option value="2">2 bedrooms</option>
-            <option value="3">3 bedrooms</option>
-            <option value="4">4 bedrooms</option>
-            <option value="5">5+ bedrooms</option>
-          </select>
-          <div class="fg2"><label>Bathrooms</label>
-            <select class="fi" id="p-baths" style="cursor:pointer">
-              <option value="1" selected>1 bathroom</option>
-              <option value="2">2 bathrooms</option>
-              <option value="3">3+ bathrooms</option>
-            </select>
-          </div>
-          <div class="fg2"><label>Size (m²) <span style="font-weight:400;color:var(--stone-l)">(optional)</span></label>
-            <input class="fi" type="number" id="p-sqm" placeholder="e.g. 65" min="10" max="1000">
-          </div>
-        </div>
-      </div>
-      <div class="frow">
         <div class="fg2"><label>Monthly rent (€) *</label><input class="fi" type="number" id="ppr" placeholder="650"></div>
         <div class="fg2"><label>Deposit (€)</label><input class="fi" type="number" id="pdep" placeholder="650"></div>
-      </div>
-      <div class="frow">
         <div class="fg2"><label>Available from</label><input class="fi" type="date" id="pfr" onchange="onAvailableFromChange(this.value)"></div>
         <div class="fg2"><label>Available until</label>
           <div style="display:flex;gap:.5rem;align-items:center">
@@ -581,6 +557,30 @@ footer ul a:hover{color:var(--terra)}
               <input type="checkbox" id="p-indefinite" onchange="toggleIndefinite(this)"> Indefinitely
             </label>
           </div>
+        </div>
+      </div>
+
+      <!-- Beds / Baths / m² -->
+      <div class="frow" id="section-beds" style="margin-top:.5rem">
+        <div class="fg2"><label>Number of bedrooms</label>
+          <select class="fi" id="psp" style="cursor:pointer">
+            <option value="0">Studio</option>
+            <option value="1" selected>1 bedroom</option>
+            <option value="2">2 bedrooms</option>
+            <option value="3">3 bedrooms</option>
+            <option value="4">4 bedrooms</option>
+            <option value="5">5+ bedrooms</option>
+          </select>
+        </div>
+        <div class="fg2"><label>Bathrooms</label>
+          <select class="fi" id="p-baths" style="cursor:pointer">
+            <option value="1" selected>1 bathroom</option>
+            <option value="2">2 bathrooms</option>
+            <option value="3">3+ bathrooms</option>
+          </select>
+        </div>
+        <div class="fg2"><label>Size (m²) <span style="font-weight:400;color:var(--stone-l)">(optional)</span></label>
+          <input class="fi" type="number" id="p-sqm" placeholder="e.g. 65" min="10" max="1000">
         </div>
       </div>
 
