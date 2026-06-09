@@ -55,11 +55,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
 /* HERO */
 .hero{min-height:calc(100vh - 80px);display:grid;grid-template-columns:1fr 1fr;position:relative;overflow:hidden}
-.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 80% 50%,rgba(46,107,138,.07) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 10% 80%,rgba(201,85,58,.05) 0%,transparent 70%)}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 75% 40%,rgba(46,107,138,.09) 0%,transparent 65%),radial-gradient(ellipse 50% 50% at 5% 85%,rgba(201,85,58,.07) 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 50% 0%,rgba(212,168,71,.04) 0%,transparent 60%)}
 .hero-l{display:flex;flex-direction:column;justify-content:center;padding:4rem 3rem 4rem 5rem;position:relative;z-index:1}
 .hero-tag{display:inline-flex;align-items:center;gap:.5rem;background:rgba(201,85,58,.1);color:var(--terra);border:1px solid rgba(201,85,58,.2);padding:.4rem 1rem;border-radius:100px;font-size:.75rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;width:fit-content;margin-bottom:1.8rem}
-.hero h1{font-family:'Playfair Display',serif;font-size:clamp(2.8rem,4.5vw,4rem);font-weight:900;line-height:1.08;letter-spacing:-1.5px;margin-bottom:1.3rem}
-.hero h1 em{font-style:italic;color:var(--terra)}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,5vw,4.5rem);font-weight:900;line-height:1.06;letter-spacing:-2px;margin-bottom:1.3rem}
+.hero h1 em{font-style:italic;color:var(--terra);position:relative}
 .hero-desc{font-size:1rem;color:var(--stone);line-height:1.7;max-width:420px;margin-bottom:2rem}
 .hero-acts{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:3rem}
 .hero-stats{display:flex;gap:2.5rem;padding-top:2rem;border-top:1px solid rgba(107,95,82,.12)}
@@ -323,18 +323,26 @@ footer ul a:hover{color:var(--terra)}
   <div class="hero">
     <div class="hero-bg"></div>
     <div class="hero-l">
-      <div class="hero-tag">🇲🇹 Malta's #1 rental platform</div>
-      <h1>Find your flat in<br><em>Malta</em> — no<br>Facebook needed.</h1>
-      <p class="hero-desc">Find verified flats in Malta without agents or Facebook. Real-time chat, virtual visits, e-signed leases and secure deposit — all in one place. Free for tenants.</p>
+      <div class="hero-tag">🇲🇹 Malta's rental platform</div>
+      <h1>Rent a flat in Malta<br>— <em>the right way.</em></h1>
+      <p class="hero-desc">Verified listings, digital leases, secure deposits. No Facebook groups, no cash to strangers. No upfront fees. No subscription. You pay only when your lease is signed.</p>
+
+      <!-- Trust signals avant les boutons -->
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:.35rem;font-size:.78rem;color:var(--stone)"><span style="color:var(--green);font-size:.9rem">✅</span>Verified landlords</div>
+        <div style="display:flex;align-items:center;gap:.35rem;font-size:.78rem;color:var(--stone)"><span style="color:var(--green);font-size:.9rem">✅</span>E-signed leases</div>
+        <div style="display:flex;align-items:center;gap:.35rem;font-size:.78rem;color:var(--stone)"><span style="color:var(--green);font-size:.9rem">✅</span>PRL Act compliant</div>
+      </div>
+
       <div class="hero-acts">
-        <button class="btn btn-p" onclick="stl()">🔍 Browse listings</button>
-        <button class="btn btn-s" onclick="chkPost()">🏠 List your flat</button>
+        <button class="btn btn-p" onclick="stl()" style="padding:.8rem 1.8rem;font-size:.92rem">🔍 Browse listings</button>
+        <button class="btn btn-s" onclick="chkPost()" style="padding:.8rem 1.6rem;font-size:.92rem">🏠 List your flat</button>
       </div>
 
       <div class="hero-stats">
         <div><div class="sn" id="sc">—</div><div class="sl">Active listings</div></div>
-        <div><div class="sn">3×</div><div class="sl">Cheaper than agents</div></div>
-        <div><div class="sn">0€</div><div class="sl">Free for tenants</div></div>
+        <div><div class="sn">Pay on</div><div class="sl">success only</div></div>
+        <div><div class="sn">🇲🇹</div><div class="sl">Malta only</div></div>
       </div>
     </div>
     <div class="hero-r">
@@ -347,9 +355,22 @@ footer ul a:hover{color:var(--terra)}
           <div class="mpin pi-d"><div class="pl">Gozo</div><div class="pd" style="background:var(--ochre)"></div></div>
         </div>
         <div class="pitems">
-          <div class="pitem"><div class="pe">🏠</div><div class="pi"><div class="pt">Studio · St. Julian's</div><div class="ps">1 bed · Available now</div></div><div class="pp">€650/mo</div></div>
-          <div class="pitem"><div class="pe">🌊</div><div class="pi"><div class="pt">Room · Sliema seafront</div><div class="ps">Shared · 2 spots left</div></div><div class="pp">€420/mo</div></div>
-          <div class="pitem"><div class="pe">🔑</div><div class="pi"><div class="pt">Long-let · Valletta</div><div class="ps">6 months+ · Furnished</div></div><div class="pp">€980/mo</div></div>
+          <div class="pitem" style="border-left:3px solid var(--terra)"><div class="pe">🏠</div><div class="pi"><div class="pt">Studio · St. Julian's</div><div class="ps">1 bed · Available now · Furnished</div></div><div class="pp" style="color:var(--terra)">€650/mo</div></div>
+          <div class="pitem"><div class="pe">🌊</div><div class="pi"><div class="pt">Room · Sliema seafront</div><div class="ps">Shared · WiFi · 2 spots left</div></div><div class="pp">€420/mo</div></div>
+          <div class="pitem"><div class="pe">🔑</div><div class="pi"><div class="pt">2BR · Valletta</div><div class="ps">Long-let · 6 months+ · Bills incl.</div></div><div class="pp">€980/mo</div></div>
+
+          <!-- Social proof -->
+          <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid rgba(107,95,82,.1);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:.72rem;color:var(--stone-l)">⚡ 3 new listings today</div>
+            <div style="display:flex;align-items:center;gap:.4rem">
+              <div style="display:flex">
+                <div style="width:22px;height:22px;border-radius:50%;background:var(--terra);border:2px solid white;margin-right:-6px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:white;font-weight:700">J</div>
+                <div style="width:22px;height:22px;border-radius:50%;background:var(--sea);border:2px solid white;margin-right:-6px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:white;font-weight:700">M</div>
+                <div style="width:22px;height:22px;border-radius:50%;background:var(--ochre);border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:white;font-weight:700">A</div>
+              </div>
+              <span style="font-size:.7rem;color:var(--stone-l)">+12 this week</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -394,12 +415,12 @@ footer ul a:hover{color:var(--terra)}
 
   <div class="hiw">
     <div class="stag">✦ Simple process</div>
-    <h2>From scroll to <em>signed</em> in 3 steps</h2>
-    <p>No agents, no Facebook, no cash to strangers. RestMalta handles everything — listing, visit, lease, deposit. 100% digital, 100% legal in Malta.</p>
+    <h2>From search to <em>keys in hand</em></h2>
+    <p>No agents, no Facebook, no cash to strangers. RestMalta handles everything — verified listing, visit, e-signed lease, secure deposit. 100% digital, 100% legal in Malta.</p>
     <div class="steps">
-      <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & contact</h3><p>Filter by zone, budget and type. Message landlords directly through real-time chat — no phone numbers shared, no middlemen.</p></div>
-      <div class="step"><div class="snum">02</div><div class="sico">🏆</div><h3>Visit with confidence</h3><p>Book a guided visit with a RestMalta agent — they show you the property and verify everything is as described. Or visit directly with the landlord.</p></div>
-      <div class="step"><div class="snum">03</div><div class="sico">📄</div><h3>Sign & move in</h3><p>Your lease is auto-generated, e-signed via DocuSeal, and compliant with Maltase law. Deposit held securely by RestMalta until you're settled in.</p></div>
+      <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & request a visit</h3><p>Filter by zone, budget and type. Request a visit directly — the landlord confirms availability and an agent is assigned if needed. No middlemen.</p></div>
+      <div class="step"><div class="snum">02</div><div class="sico">🏠</div><h3>Visit the property</h3><p>Visit with the landlord directly, or with a RestMalta agent who handles keys, scheduling and tenant coordination. Everything tracked in your dashboard.</p></div>
+      <div class="step"><div class="snum">03</div><div class="sico">📄</div><h3>Sign your lease & move in</h3><p>Your lease is generated from both profiles, e-signed via DocuSeal, and compliant with Maltese law. Deposit held securely by RestMalta until move-in.</p></div>
     </div>
   </div>
 
@@ -407,12 +428,12 @@ footer ul a:hover{color:var(--terra)}
     <div class="stag">✦ Platform features</div>
     <h2>Everything you need,<br><em>nothing</em> you don't.</h2>
     <div class="fgrid">
-      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">💬</div><h3>Real-time chat</h3><p>Instant messaging between tenants and landlords. Messages appear live — no refreshing, no waiting. Like WhatsApp, built into the platform.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(212,168,71,.15)">🏆</div><h3>Agent-assisted visits</h3><p>Landlords can assign a RestMalta agent to handle visits. The agent shows the flat, verifies everything, and earns 25% commission per side.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">💬</div><h3>Real-time messaging</h3><p>Instant chat between tenants and landlords, built into the platform. No WhatsApp, no email chains — everything in one thread per listing.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(212,168,71,.15)">🏆</div><h3>Agent-managed visits</h3><p>Landlords assign a RestMalta agent to handle visits — scheduling, keys, and tenant coordination. Commission paid only when a lease is signed.</p></div>
       <div class="fc"><div class="fci" style="background:rgba(46,107,138,.15)">🗺</div><h3>Interactive map</h3><p>Browse listings on a live map of Malta. See exactly where each flat is — click any pin to view the listing instantly.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(76,175,125,.15)">🎥</div><h3>Virtual visit videos</h3><p>Landlords can upload a video tour of their flat. Perfect for tenants arriving from abroad — see the property before you even land in Malta.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">📋</div><h3>Digital tenant dossier</h3><p>Build your rental dossier once — ID, employment letter, references — and send it to any landlord in one click. No more paperwork.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(139,92,246,.15)">📊</div><h3>Full landlord dashboard</h3><p>Manage listings, leases, payments, maintenance tickets and tenant matching from one professional dashboard. Replace 5 tools with one.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(76,175,125,.15)">📄</div><h3>Auto-generated leases</h3><p>The lease is generated automatically from both profiles — no lawyers needed. E-signed via DocuSeal, fully PRL Act compliant, saved in both dashboards.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">📋</div><h3>Digital tenant dossier</h3><p>Build your rental dossier once — ID, employment letter, bank statement, rent receipts — and send it to any landlord in one click.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(139,92,246,.15)">🏢</div><h3>Agency portal</h3><p>Real estate agencies get a dedicated dashboard — bulk import listings, team management, CRM pipeline, and analytics. Plans from €49/month.</p></div>
     </div>
   </div>
 
@@ -420,8 +441,8 @@ footer ul a:hover{color:var(--terra)}
   <div style="padding:5rem 4rem;background:white">
     <div style="max-width:900px;margin:0 auto">
       <div class="stag">✦ Security deposit</div>
-      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:.8rem">Your dépôt est <em style="font-style:italic;color:var(--terra)">protégé</em></h2>
-      <p style="color:var(--stone);font-size:.95rem;line-height:1.7;max-width:520px;margin-bottom:3rem">RestMalta acts as a trusted third party — your deposit is held securely until'à ce que tout soit confirmé. Zéro risque d'arnaque.</p>
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:.8rem">Your deposit is <em style="font-style:italic;color:var(--terra)">protected</em></h2>
+      <p style="color:var(--stone);font-size:.95rem;line-height:1.7;max-width:520px;margin-bottom:3rem">RestMalta acts as a trusted third party — your deposit is held securely until everything is confirmed. Zero risk of scams, zero cash to strangers.</p>
 
       <div class="deposit-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;position:relative">
         <!-- Connector line -->
@@ -429,26 +450,26 @@ footer ul a:hover{color:var(--terra)}
 
         <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
           <div style="width:44px;height:44px;background:rgba(201,85,58,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">💶</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">1. Paiement</div>
-          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">The tenant pays the deposit to RestMalta — never directly to the owner</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">1. Payment</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">The tenant pays the deposit to RestMalta — never directly to the landlord</div>
         </div>
 
         <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
           <div style="width:44px;height:44px;background:rgba(212,168,71,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">🔒</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">2. Sécurisé</div>
-          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">RestMalta holds the deposit securely until'à l'entrée dans le logement</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">2. Secured</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">RestMalta holds the deposit securely until move-in day</div>
         </div>
 
         <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
           <div style="width:44px;height:44px;background:rgba(76,175,125,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">✅</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">3. Confirmation</div>
-          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">The tenant enters the property. Within 24h'appart et confirme que tout est ok dans l'app</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">3. Confirmed</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">The tenant moves in and confirms everything is as described in the app within 24h</div>
         </div>
 
         <div style="background:var(--warm);border-radius:16px;padding:1.5rem;border:1px solid rgba(107,95,82,.1);text-align:center;position:relative;z-index:1">
           <div style="width:44px;height:44px;background:rgba(46,107,138,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto .8rem">🏠</div>
           <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.4rem">4. Transfert</div>
-          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">RestMalta transfère le dépôt au owner dans les 24h — tout le monde est protégé</div>
+          <div style="font-size:.8rem;color:var(--stone);line-height:1.5">RestMalta transfers the deposit to the landlord within 24h — everyone is protected</div>
         </div>
       </div>
 
@@ -456,8 +477,8 @@ footer ul a:hover{color:var(--terra)}
       <div style="margin-top:2rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:14px;padding:1.2rem 1.5rem;display:flex;align-items:flex-start;gap:1rem">
         <div style="font-size:1.4rem;flex-shrink:0">⚠️</div>
         <div>
-          <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">Si quelque chose ne va pas à l'entrée ?</div>
-          <div style="font-size:.82rem;color:var(--stone);line-height:1.6">The tenant reports any issue in the app'app. RestMalta arbitre et peut rembourser tout ou partie du dépôt selon la situation. You n'êtes jamais seul face à un litige.</div>
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">Something wrong at move-in?</div>
+          <div style="font-size:.82rem;color:var(--stone);line-height:1.6">The tenant reports any issue in the app. RestMalta mediates and can refund part or all of the deposit depending on the situation. You're never alone in a dispute.</div>
         </div>
       </div>
     </div>
@@ -466,7 +487,7 @@ footer ul a:hover{color:var(--terra)}
   <div class="trust">
     <div class="ti"><div class="tico">💬</div><div class="ttext"><strong>Real-time chat</strong><span>Instant landlord-tenant messaging</span></div></div>
     <div class="ti"><div class="tico">🏆</div><div class="ttext"><strong>Agent visits</strong><span>Guided visits by RestMalta agents</span></div></div>
-    <div class="ti"><div class="tico">📜</div><div class="ttext"><strong>Legal Maltase leases</strong><span>Auto-generated & e-signed</span></div></div>
+    <div class="ti"><div class="tico">📜</div><div class="ttext"><strong>Legal Maltese leases</strong><span>Auto-generated & e-signed</span></div></div>
     <div class="ti"><div class="tico">🔐</div><div class="ttext"><strong>Deposit escrow</strong><span>Your money protected until move-in</span></div></div>
   </div>
 
@@ -477,7 +498,7 @@ footer ul a:hover{color:var(--terra)}
       <div><h4>For landlords</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a>Agent visits</a></li><li><a>Dashboard</a></li><li><a>Lease generator</a></li></ul></div>
       <div><h4>Legal</h4><ul><li><a>Terms of service</a></li><li><a>Privacy policy</a></li><li><a>Contact us</a></li></ul></div>
     </div>
-    <div class="fbot"><p>© 2026 RestMalta. Made with ☀️ in Malta.</p><p>Not affiliated with the Maltase government. RestMalta is not a real estate agency.</p></div>
+    <div class="fbot"><p>© 2026 RestMalta. Made with ☀️ in Malta.</p><p>Not affiliated with the Maltese government. RestMalta is a digital platform, not a real estate agency.</p></div>
   </footer>
 </div>
 
@@ -497,7 +518,7 @@ footer ul a:hover{color:var(--terra)}
       </button>
     </div>
     <div style="margin-top:1.5rem;font-size:.75rem;color:var(--stone-l);text-align:center;line-height:1.6">
-      ✅ Free for tenants · 🔒 Secure · 🇲🇹 Malta only
+      💶 Pay on success · 🔒 Secure deposit · 🇲🇹 Malta only
     </div>
   </div></div>
 </div>
@@ -660,7 +681,7 @@ footer ul a:hover{color:var(--terra)}
             </div>
           </label>
           <div id="exclusif-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem 1rem;font-size:.78rem;color:var(--stone)">
-            ✅ Mandat exclusif activé — You bénéficiez d'une mise en avant prioritaire et d'une commission réduite. Un contrat de mandat you sera envoyé par email for signature électronique à la publication.
+            ✅ Mandat exclusif activé — You get priority placement and a reduced commission rate. A mandate contract will be sent to your email for e-signature upon publication.
           </div>
         </div>
       </div>
@@ -1588,8 +1609,9 @@ function showReserveSection(){
   if(!wrap)return;
   wrap.style.display='block';
   const holding=Math.round(AL.price/2);
-  const commission=Math.round(AL.price*0.40);
-  const total=holding+commission;
+  const commission=Math.round(AL.price*0.10);
+  const depositFee=Math.round(AL.price*0.05);
+  const total=holding+commission+depositFee;
   document.getElementById('res-holding').textContent=`€${holding}`;
   document.getElementById('res-commission').textContent=`€${commission}`;
   document.getElementById('res-total').textContent=`€${total}`;
@@ -1619,7 +1641,8 @@ async function payHoldingDeposit(){
   try{
     const monthly_rent=AL.price||0;
     const holding_amount=Math.round(monthly_rent/2);
-    const commission_amount=Math.round(monthly_rent*0.40);
+    const commission_amount=Math.round(monthly_rent*0.10);
+    const deposit_fee=Math.round(monthly_rent*0.05);
 
     // 1 — Créer le PaymentIntent
     const res=await fetch('/.netlify/functions/holding-deposit',{
@@ -1834,7 +1857,7 @@ function setT(el,t){
   if(subletNotice)subletNotice.style.display=t==='sublet'?'block':'none';
   if(subletOpts)subletOpts.style.display=t==='sublet'?'block':'none';
   const infos={
-    short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltase law. Cannot be renewed.',
+    short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltese law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
 
     sublet:'🔑 Subletting: written owner consent required. Housing Authority registration is your responsibility.'
