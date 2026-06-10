@@ -788,100 +788,77 @@ footer ul a:hover{color:var(--terra)}
   <div class="dwrap">
     <div class="dhero" id="dh"><button class="bbtn" onclick="go('home')">← Back</button>🏠</div>
     <div class="dgrid">
+      <!-- COLONNE GAUCHE -->
       <div>
         <div class="dtitle" id="dti"></div>
         <div class="dzone" id="dzo"></div>
-        <div class="dfeats" id="dfe"></div>
-        <div class="ddesc" id="dde"></div>
+
+        <!-- Specs rapides : chambres, bains, m², type -->
+        <div id="dspecs" style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0"></div>
+
+        <!-- Description -->
+        <div style="margin-top:.5rem">
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.4rem;color:var(--stone)">Description</div>
+          <div class="ddesc" id="dde"></div>
+        </div>
+
+        <!-- Amenities -->
+        <div style="margin-top:1rem">
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.5rem;color:var(--stone)">✨ Features & amenities</div>
+          <div id="dfe" style="display:flex;flex-wrap:wrap;gap:.4rem"></div>
+        </div>
+
+        <!-- Infos bail -->
+        <div style="margin-top:1.2rem;background:white;border-radius:14px;padding:1rem;border:1px solid rgba(107,95,82,.08)">
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--stone)">📋 Lease details</div>
+          <div id="din"></div>
+        </div>
+
+        <!-- Coût pour le tenant -->
+        <div id="dcost" style="margin-top:1rem;background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:14px;padding:1rem">
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--terra)">💶 What you'll pay</div>
+          <div id="dcost-inner"></div>
+        </div>
       </div>
+
+      <!-- COLONNE DROITE -->
       <div>
         <div class="ccard">
           <div class="cprice" id="dpr"></div>
           <div class="cper">/month</div>
-          <div class="cinfo" id="din"></div>
 
-          <!-- Escrow deposit option — for tenants not on the island -->
-          <div style="margin-bottom:1rem;background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:12px;padding:.9rem 1rem">
-            <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.4rem">🔐 Secure my security deposit</div>
-            <div style="font-size:.72rem;color:var(--stone);margin-bottom:.75rem;line-height:1.5">You n'êtes pas encore à Malta ? RestMalta peut sécuriser your dépôt. À your arrivée you avez <strong>24h</strong> to confirm the property matches the listing. If all good → deposit released to landlord. If issues → deppôt remboursé.</div>
-            <div style="display:flex;flex-direction:column;gap:.4rem">
-              <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid rgba(76,175,125,.2);background:rgba(76,175,125,.04)" id="escrow-yes-wrap">
-                <input type="radio" name="escrow-opt" id="escrow-yes" value="yes" onchange="selectEscrow('yes')" style="margin-top:.15rem">
-                <div>
-                  <div style="font-size:.8rem;font-weight:600">✅ Yes — I want to secure my deposit</div>
-                  <div style="font-size:.68rem;color:var(--stone-l)">Recommandé si you arrivez de l'étranger</div>
-                </div>
-              </label>
-              <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid rgba(107,95,82,.1)" id="escrow-no-wrap">
-                <input type="radio" name="escrow-opt" id="escrow-no" value="no" onchange="selectEscrow('no')" style="margin-top:.15rem" checked>
-                <div>
-                  <div style="font-size:.8rem;font-weight:600">❌ No — I manage the deposit directly</div>
-                  <div style="font-size:.68rem;color:var(--stone-l)">Je suis déjà sur l'I trust the landlord</div>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <!-- Group visit — co-tenants -->
-          <div style="margin-bottom:1rem;background:rgba(46,107,138,.07);border:1px solid rgba(46,107,138,.2);border-radius:12px;padding:.9rem 1rem">
-            <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.4rem">👥 Visiting alone or as a group?</div>
-            <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
-              <button class="btn bg bsm" id="grp-solo-btn" onclick="setGroupMode('solo')" style="flex:1;background:var(--sea);color:white">🧍 Alone</button>
-              <button class="btn bg bsm" id="grp-group-btn" onclick="setGroupMode('group')" style="flex:1">👥 With others</button>
-            </div>
-            <div id="group-invite-section" style="display:none">
-              <div style="font-size:.72rem;color:var(--stone);margin-bottom:.5rem;line-height:1.4">Invite your co-tenants by their RestMalta email. They'll be added to the visit and co-sign the lease.</div>
-              <div id="co-tenant-list">
-                <div class="co-tenant-row" style="display:flex;gap:.4rem;margin-bottom:.4rem">
-                  <input class="fi" placeholder="Co-tenant 2 email (RestMalta account)" style="flex:1;font-size:.78rem" id="cotenant-2">
-                </div>
-                <div class="co-tenant-row" style="display:flex;gap:.4rem;margin-bottom:.4rem">
-                  <input class="fi" placeholder="Co-tenant 3 email (optional)" style="flex:1;font-size:.78rem" id="cotenant-3">
-                </div>
-                <div class="co-tenant-row" style="display:flex;gap:.4rem;margin-bottom:.4rem">
-                  <input class="fi" placeholder="Co-tenant 4 email (optional)" style="flex:1;font-size:.78rem" id="cotenant-4">
-                </div>
-                <div style="font-size:.68rem;color:var(--stone-l);line-height:1.4">⚠️ They must have a RestMalta account. They'll receive an invitation and be added to the visit group and lease as co-signatories.</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Contact card — changes based on agent or direct -->
+          <!-- Contact card -->
           <div id="contact-agent-notice" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem">
             <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.3rem">🏆 Agent-managed listing</div>
-            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5;margin-bottom:.5rem">The first agent to respond will be your dedicated contact for this property.</div>
+            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5;margin-bottom:.5rem">A RestMalta agent handles visits and inventory for this property.</div>
             <div class="fg2" style="margin-bottom:.5rem"><label style="font-size:.73rem;font-weight:600">Your message to the agent</label><textarea class="fta" id="dmsg-agent" rows="3" placeholder="Hi! I'm interested in this property. I'm looking for…"></textarea></div>
             <button class="btn btn-p" style="width:100%;justify-content:center;background:#8B5CF6" onclick="sendMsgToAgents()">💬 Contact an agent →</button>
           </div>
+
           <div id="contact-direct-wrap">
             <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
             <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
-            <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.6rem;font-size:.8rem" onclick="requestReference()">📋 Add a landlord reference to my profile</button>
           </div>
 
-          <!-- Attestation info — tenant manages themselves -->
+          <!-- Attestation -->
           <div id="attestation-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem">
             <div style="font-size:.75rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation</div>
-            <div style="font-size:.72rem;color:var(--stone);line-height:1.5;margin-bottom:.6rem">This landlord accepts tenants requiring a notary-attested lease (non-EU residence permit). RestMalta generates the base lease document — you must arrange the notary attestation yourself. RestMalta does not manage this process.</div>
+            <div style="font-size:.72rem;color:var(--stone);line-height:1.5;margin-bottom:.6rem">This landlord accepts tenants requiring a notary-attested lease (non-EU residence permit). You manage the notary process yourself.</div>
             <a href="https://www.google.com/search?q=notary+malta+lease+attestation" target="_blank" class="btn" style="width:100%;justify-content:center;background:#8B5CF6;color:white;font-size:.78rem;display:flex">🔍 Find a notary in Malta →</a>
           </div>
 
-          <!-- Visit request -->
+          <!-- Visit request — agent only -->
           <div id="visit-action-wrap" style="margin-top:.75rem;padding:.85rem;background:rgba(46,107,138,.06);border:1px solid rgba(46,107,138,.2);border-radius:10px">
-            <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.4rem" id="visit-action-title">📅 Request a visit</div>
-            <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem" id="visit-action-sub">Choose your preferred date and time. Availabthe agents will be notified and the landlord will confirm.</div>
+            <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.4rem" id="visit-action-title">📅 Book a guided visit</div>
+            <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem" id="visit-action-sub">A RestMalta agent will show you the property.</div>
             <div class="frow" style="margin-bottom:.5rem;gap:.5rem">
-              <div class="fg2"><label style="font-size:.72rem">Preferred date *</label><input class="fi" type="date" id="visit-date" style="font-size:.82rem" min=""></div>
+              <div class="fg2"><label style="font-size:.72rem">Preferred date *</label><input class="fi" type="date" id="visit-date" style="font-size:.82rem"></div>
               <div class="fg2"><label style="font-size:.72rem">Preferred time *</label>
                 <select class="fi" id="visit-time" style="font-size:.82rem">
-                  <option value="09:00">9:00 AM</option>
-                  <option value="10:00">10:00 AM</option>
-                  <option value="11:00">11:00 AM</option>
-                  <option value="12:00">12:00 PM</option>
-                  <option value="14:00" selected>2:00 PM</option>
-                  <option value="15:00">3:00 PM</option>
-                  <option value="16:00">4:00 PM</option>
-                  <option value="17:00">5:00 PM</option>
+                  <option value="09:00">9:00 AM</option><option value="10:00">10:00 AM</option>
+                  <option value="11:00">11:00 AM</option><option value="12:00">12:00 PM</option>
+                  <option value="14:00" selected>2:00 PM</option><option value="15:00">3:00 PM</option>
+                  <option value="16:00">4:00 PM</option><option value="17:00">5:00 PM</option>
                   <option value="18:00">6:00 PM</option>
                 </select>
               </div>
@@ -895,6 +872,7 @@ footer ul a:hover{color:var(--terra)}
     </div>
   </div>
 </div>
+
 
 <!-- DASHBOARD -->
 <div class="page" id="page-dash">
@@ -1275,7 +1253,6 @@ async function openDet(id){
   const{data:l}=await sb.from('listings').select('*').eq('id',id).single();if(!l)return;AL=l;
   const ic={short:'🏠',room_rental:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
   const h=document.getElementById('dh');h.style.background=bg[l.type]||bg.room_rental;
-  // Show video if available, else photos
   if(l.video_url){
     h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><video src="${l.video_url}" controls style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:20px" poster="${l.photos?.[0]||''}"></video>`;
   } else if(l.photos&&l.photos.length>0){
@@ -1283,72 +1260,84 @@ async function openDet(id){
   } else {
     h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><span style="font-size:7rem">${ic[l.type]||'🏠'}</span>`;
   }
+
   document.getElementById('dti').textContent=l.title;
   document.getElementById('dzo').textContent='📍 '+l.zone+(l.address?' · '+l.address:'');
   document.getElementById('dde').textContent=l.description||'No description provided.';
   document.getElementById('dpr').textContent='€'+l.price;
+
+  // Specs rapides
+  const specs=[];
+  if(l.bedrooms||l.spots)specs.push(`🛏 ${l.bedrooms||l.spots} bedroom${(l.bedrooms||l.spots)>1?'s':''}`);
+  if(l.baths)specs.push(`🚿 ${l.baths} bathroom${l.baths>1?'s':''}`);
+  if(l.sqm)specs.push(`📐 ${l.sqm} m²`);
+  specs.push({short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'🏛 Long-let'}[l.type]||l.type);
+  if(l.video_url)specs.push('🎥 Virtual tour');
+  document.getElementById('dspecs').innerHTML=specs.map(s=>`<span class="dfeat" style="background:var(--s2);border:1px solid var(--b2);font-size:.78rem;padding:.3rem .7rem;border-radius:20px">${s}</span>`).join('');
+
+  // Amenities
   const fe=[
     l.furnished?'✅ Furnished':'❌ Unfurnished',
-    l.wifi?'✅ WiFi':null,
-    l.bills_included?'✅ Bills included':null,
-    l.ac?'✅ A/C':null,
-    l.parking?'✅ Parking':null,
-    l.pool?'✅ Pool':null,
-    l.balcony?'✅ Balcony/Terrace':null,
-    l.washing_machine?'✅ Washing machine':null,
-    l.dishwasher?'✅ Dishwasher':null,
-    l.elevator?'✅ Elevator':null,
-    l.garden?'✅ Garden':null,
-    l.sea_view?'✅ Sea view':null,
-    (l.bedrooms||l.spots)?`🛏 ${l.bedrooms||l.spots} bedroom${(l.bedrooms||l.spots)>1?'s':''}`:null,
-    l.deposit?`💰 Deposit: €${l.deposit}`:'No deposit',
+    l.wifi?'📶 WiFi available':null,
+    l.bills_included?'💡 Bills included':null,
+    l.ac?'❄️ A/C':null,
+    l.parking?'🚗 Parking':null,
+    l.pool?'🏊 Pool':null,
+    l.balcony?'🌿 Balcony/Terrace':null,
+    l.washing_machine?'🫧 Washing machine':null,
+    l.dishwasher?'🍽 Dishwasher':null,
+    l.elevator?'🛗 Elevator':null,
+    l.garden?'🌳 Garden':null,
+    l.sea_view?'🌊 Sea view':null,
+    l.wants_agent&&l.agent_service!=='none'?'🏆 Agent-managed visits':null,
     l.accepts_attestation?'📋 Attestation accepted':null,
-    l.min_stay?`⏱ Min stay: ${l.min_stay.replace(/_/g,' ')}`:null,
   ].filter(Boolean);
-  if(l.wants_agent&&l.agent_service!=='none')fe.unshift('🏆 Agent visits available');
-  if(l.video_url)fe.unshift('🎥 Virtual tour available');
   document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
-  const tl={short:'Short-let',room_rental:'Room rental',long:'Long-let (1 year+)'};
-  const difermoLabels={'6_months':'6 months','9_months':'9 months','1_year':'1 year','none':'None'};
-  const durationLabels={'1_year':'1 year (minimum)','2_years':'2 years','3_years':'3 years','flexible':'Flexible'};
+
+  // Infos bail
+  const tl={short:'Short-let (1-6 months)',room_rental:'Room rental',long:'Long-let (1 year+)'};
   const badge=await getLandlordResponseBadge(l.landlord_id);
   document.getElementById('din').innerHTML=`
-    ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.75rem">${badge}</div>`:''}
+    ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">${badge}</div>`:''}
     <div class="crow"><span>Type</span><span>${tl[l.type]||l.type}</span></div>
     <div class="crow"><span>Available from</span><span>${l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Now'}</span></div>
-    ${l.available_indefinitely?'<div class="crow"><span>Available until</span><span>Indefinitely</span></div>':l.available_until?`<div class="crow"><span>Until</span><span>${new Date(l.available_until).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</span></div>`:''}
     <div class="crow"><span>Deposit</span><span>${l.deposit?'€'+l.deposit:'None'}</span></div>
-    ${l.type!=='short'&&l.di_fermo&&l.di_fermo!=='none'?`<div class="crow"><span>Di Fermo (lock-in)</span><span>${difermoLabels[l.di_fermo]||l.di_fermo}</span></div>`:''}
-    ${l.type!=='short'&&l.lease_duration?`<div class="crow"><span>Preferred lease</span><span>${durationLabels[l.lease_duration]||l.lease_duration}</span></div>`:''}
-    ${l.payment_due_day?`<div class="crow"><span>Rent due on the</span><span>${l.payment_due_day==='last'?'Last day of the month':l.payment_due_day+' of the month'}</span></div>`:''}
-    ${l.notice_period?`<div class="crow"><span>Notice period</span><span>${l.notice_period.replace(/_/g,' ')}</span></div>`:''}
-    ${l.landlord_present?`<div class="crow"><span>Visits</span><span>${l.landlord_present==='mandatory'?'✅ Owner present':l.landlord_present==='if_possible'?'👋 Owner if possible':l.wants_agent&&l.agent_service&&l.agent_service!=='none'?'🏆 Agent handles visits':'📅 Direct with owner'}</span></div>`:''}
-    ${l.mandat_exclusif?'<div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;color:#8B5CF6;margin-top:.5rem">🤝 RestMalta Exclusive Mandate — verified listing</div>':''}`;
+    ${l.bills_situation?`<div class="crow"><span>Bills</span><span>${l.bills_situation==='included'?'✅ Included in rent':'❌ Tenant pays separately'}</span></div>`:''}
+    ${l.payment_due_day?`<div class="crow"><span>Rent due</span><span>${l.payment_due_day==='last'?'Last day of month':l.payment_due_day+' of the month'}</span></div>`:''}
+    ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}
+    ${l.mandat_exclusif?'<div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;color:#8B5CF6;margin-top:.5rem">🤝 RestMalta Exclusive Mandate</div>':''}`;
+
+  // Coût total pour le tenant
+  const hasAgent=AL.wants_agent&&AL.agent_service==='full';
+  const commission=hasAgent?Math.round(l.price*0.40):Math.round(l.price*0.10);
+  const commissionLabel=hasAgent?'RestMalta fee (40% — with agent)':'RestMalta fee (10%)';
+  document.getElementById('dcost-inner').innerHTML=`
+    <div class="crow"><span>First month rent</span><span style="font-weight:700">€${l.price}</span></div>
+    <div class="crow"><span>Security deposit</span><span style="font-weight:700">${l.deposit?'€'+l.deposit:'None'}</span></div>
+    <div class="crow"><span>${commissionLabel}</span><span style="font-weight:700;color:var(--terra)">€${commission}</span></div>
+    <div style="height:1px;background:rgba(201,85,58,.15);margin:.5rem 0"></div>
+    <div class="crow" style="font-size:.92rem"><span style="font-weight:700">Total at signing</span><span style="font-weight:900;color:var(--terra);font-size:1.1rem">€${l.price+(l.deposit||0)+commission}</span></div>
+    <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">Deposit held securely by RestMalta until move-in confirmed.</div>`;
+
   go('det');
-  // Set min date to today for visit request
+
   const vdInput=document.getElementById('visit-date');
   if(vdInput)vdInput.min=new Date().toISOString().split('T')[0];
   const attBox=document.getElementById('attestation-info');
-  if(attBox)attBox.style.display='none';
+  if(attBox)attBox.style.display=l.accepts_attestation?'block':'none';
 
-  // Show agent notice or direct contact
-  const hasAgent=AL.wants_agent&&AL.agent_service==='full';
   const agentNotice=document.getElementById('contact-agent-notice');
   const directWrap=document.getElementById('contact-direct-wrap');
   if(agentNotice)agentNotice.style.display=hasAgent?'block':'none';
   if(directWrap)directWrap.style.display=hasAgent?'none':'block';
-  // Problem 10 — show correct visit button based on agent choice
-  const visitTitle=document.getElementById('visit-action-title');
-  const visitSub=document.getElementById('visit-action-sub');
+
+  const visitWrap=document.getElementById('visit-action-wrap');
   const visitBtn=document.getElementById('visit-action-btn');
-  if(l.wants_agent&&l.agent_service&&l.agent_service!=='none'){
-    if(visitTitle)visitTitle.textContent='🏆 Book a guided visit';
-    if(visitSub)visitSub.textContent='A RestMalta agent will show you the property and handle everything.';
+  if(hasAgent){
+    if(visitWrap)visitWrap.style.display='block';
     if(visitBtn){visitBtn.textContent='Book visit with agent →';visitBtn.onclick=requestAgentVisit;}
   } else {
-    if(visitTitle)visitTitle.textContent='📅 Schedule a visit';
-    if(visitSub)visitSub.textContent='The landlord manages visits directly. Send a message to arrange a time.';
-    if(visitBtn){visitBtn.style.background='var(--sea)';visitBtn.textContent='Request a visit →';visitBtn.onclick=()=>{document.getElementById('dmsg').value='Hi! I would like to schedule a visit for this property. When would you be available?';document.getElementById('dmsg').focus();};}
+    if(visitWrap)visitWrap.style.display='none';
   }
 }
 
