@@ -1262,6 +1262,7 @@ function rCard(l){
 
 async function openDet(id){
   const{data:l}=await sb.from('listings').select('*').eq('id',id).single();if(!l)return;AL=l;
+  const ic={short:'🏠',room_rental:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
   // Photos carousel
   const photos=l.photos&&l.photos.length>0?l.photos:[];
   let currentPhoto=0;
