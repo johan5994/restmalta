@@ -3948,18 +3948,25 @@ function renderVisitGroup(g, isPast){
     <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.65rem .75rem;margin-top:.4rem">
       <div style="font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">📋 ${g.tenant_name||'Tenant'} wants to rent!</div>
       <div id="t-dossier-${g.tenant_id}" style="margin-bottom:.5rem">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem">
-          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Nationality</div><div id="t-nat-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-bottom:.5rem">
+          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Full name</div><div id="t-name-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Verified</div><div id="t-ver-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
+          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Nationality</div><div id="t-nat-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Phone</div><div id="t-phone-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
-          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Monthly rent</div><div style="font-size:.73rem;font-weight:700">€${bk?.monthly_rent||g.listing_price||'—'}/mo</div></div>
+          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Proposed rent</div><div style="font-size:.73rem;font-weight:700;color:var(--terra)">€${bk?.monthly_rent||g.listing_price||'—'}/mo</div></div>
+          ${bk?.move_in_date?`<div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Move-in date</div><div style="font-size:.73rem;font-weight:600">${new Date(bk.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div></div>`:''}
         </div>
         ${bk?.negotiation_note?`
-        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:7px;padding:.5rem .65rem;margin-bottom:.4rem">
-          <div style="font-size:.63rem;color:var(--gold);font-weight:700;margin-bottom:.2rem">🤝 Tenant's negotiation request</div>
+        <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:7px;padding:.5rem .65rem;margin-bottom:.5rem">
+          <div style="font-size:.63rem;color:var(--gold);font-weight:700;margin-bottom:.2rem">🤝 Tenant's request</div>
           <div style="font-size:.73rem;color:var(--tm);white-space:pre-line">${bk.negotiation_note}</div>
         </div>`:''}
-        <div id="t-docs-chips-${g.tenant_id}" style="margin-top:.3rem;display:flex;gap:.3rem;flex-wrap:wrap"></div>
+        <div style="margin-bottom:.5rem">
+          <div style="font-size:.65rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem">📄 Documents</div>
+          <div id="t-docs-chips-${g.tenant_id}" style="display:flex;flex-direction:column;gap:.25rem">
+            <div style="font-size:.72rem;color:var(--td)">Loading...</div>
+          </div>
+        </div>
       </div>
       <div style="display:flex;gap:.4rem">
         <button onclick="acceptDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">✅ Accept</button>
@@ -3979,16 +3986,33 @@ async function loadTenantDossierForLL(tenantId){
     const nat=document.getElementById('t-nat-'+tenantId);
     const ver=document.getElementById('t-ver-'+tenantId);
     const phone=document.getElementById('t-phone-'+tenantId);
+    const name=document.getElementById('t-name-'+tenantId);
     const docs=document.getElementById('t-docs-chips-'+tenantId);
+    if(name)name.textContent=p.full_name||'—';
     if(nat)nat.textContent=p.nationality||'—';
     if(ver)ver.innerHTML=p.verified?'<span style="color:#4CAF7D">✅ Verified</span>':p.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)">❌ Not verified</span>';
     if(phone)phone.textContent=p.phone||'—';
-    if(docs&&p.documents){
-      const docLabels={id:'🪪 ID',bank_statement:'🏦 Bank',emprent_letter:'💼 Employment',reference_letter:'⭐ Reference',rent1:'🏠 Rent 1',rent2:'🏠 Rent 2',rent3:'🏠 Rent 3'};
-      const uploaded=Object.keys(typeof p.documents==='string'?JSON.parse(p.documents):p.documents);
-      docs.innerHTML=uploaded.map(k=>`<span style="background:rgba(76,175,125,.15);color:#4CAF7D;border-radius:5px;padding:.15rem .4rem;font-size:.65rem;font-weight:600">${docLabels[k]||k}</span>`).join('');
+    if(docs){
+      if(!p.documents){docs.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
+      const docMap=typeof p.documents==='string'?JSON.parse(p.documents):p.documents;
+      const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference letter',rent1:'🧾 Rent receipt 1',rent2:'🧾 Rent receipt 2',rent3:'🧾 Rent receipt 3'};
+      const entries=Object.entries(docMap).filter(([,d])=>d?.path);
+      if(!entries.length){docs.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
+      docs.innerHTML=entries.map(([key,doc])=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.35rem .6rem">
+          <div style="font-size:.75rem;font-weight:600">${docLabels[key]||key}</div>
+          <button data-path="${doc.path}" onclick="viewTenantDocLL(this.dataset.path)" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">View →</button>
+        </div>`).join('');
     }
   }catch(e){}
+}
+
+async function viewTenantDocLL(path){
+  try{
+    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
+    if(data?.signedUrl)window.open(data.signedUrl,'_blank');
+    else toast('❌ Could not open document');
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function setEDLDate(bookingId){
