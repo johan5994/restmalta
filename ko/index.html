@@ -768,17 +768,13 @@ footer ul a:hover{color:var(--terra)}
         <div id="photo-previews" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
         <div id="photo-required-msg" style="font-size:.75rem;color:var(--terra);margin-top:.3rem;display:none">⚠️ Please add at least 1 photo before publishing.</div>
       </div>
-      <div class="fg2">
-        <label>🎥 Virtual visit video (optional)</label>
-        <div style="border:2px dashed rgba(107,95,82,.2);border-radius:12px;padding:1rem;text-align:center;cursor:pointer;background:var(--warm)" onclick="document.getElementById('video-input').click()">
-          <div style="font-size:1.5rem;margin-bottom:.3rem">🎥</div>
-          <div style="font-size:.82rem;color:var(--stone)">Upload a video tour of your flat (max 50MB)</div>
-          <div style="font-size:.7rem;color:var(--stone-l);margin-top:.2rem">MP4, MOV · Will be shown on your listing</div>
-          <input type="file" id="video-input" accept="video/*" style="display:none">
-        </div>
-        <div id="video-preview" style="margin-top:.5rem"></div>
+      <div class="fg2" style="grid-column:1/-1">
+        <label>🎥 Virtual visit link <span style="font-weight:400;color:var(--stone-l)">(optional)</span></label>
+        <input class="fi" id="p-video-url" placeholder="YouTube, Matterport or any video link — https://...">
+        <div style="font-size:.7rem;color:var(--stone-l);margin-top:.3rem">📎 Paste a YouTube, Matterport 3D tour, or any video link. Tenants can watch the virtual visit before requesting a physical one.</div>
       </div>
       <div class="aerr" id="poer"></div><div class="aok" id="pook"></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;padding:.85rem;font-size:.95rem;margin-top:.5rem" onclick="postListing()">🚀 Publish my listing →</button>
     </div>
   </div>
 </div>
@@ -2085,6 +2081,7 @@ async function doPost(){
     spots:parseInt(document.getElementById('psp').value)||1,
     baths:parseInt(document.getElementById('p-baths')?.value)||1,
     sqm:parseInt(document.getElementById('p-sqm')?.value)||null,
+    video_url:document.getElementById('p-video-url')?.value.trim()||null,
     available_from:document.getElementById('pfr').value||null,
     available_until:document.getElementById('pun').value||null,
     description:document.getElementById('pde').value,
