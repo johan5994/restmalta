@@ -3541,7 +3541,28 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
           </div>
         </div>
       </div>
-      <div style="background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;margin-bottom:1rem">
+        <div style="font-size:.8rem;font-weight:600;color:#F0EDE8;margin-bottom:.6rem">📅 Your move-in details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div>
+            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.3rem">Desired move-in date *</label>
+            <input type="date" id="neg-movein" min="${new Date().toISOString().slice(0,10)}" style="width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.8rem;outline:none;font-family:'DM Sans',sans-serif">
+          </div>
+          <div>
+            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.3rem">Desired stay duration</label>
+            <select id="neg-duration" style="width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.8rem;outline:none;font-family:'DM Sans',sans-serif;cursor:pointer">
+              <option value="">Not specified</option>
+              <option value="1_month">1 month</option>
+              <option value="2_months">2 months</option>
+              <option value="3_months">3 months</option>
+              <option value="6_months">6 months</option>
+              <option value="1_year">1 year</option>
+              <option value="2_years">2 years</option>
+              <option value="open">Open ended</option>
+            </select>
+          </div>
+        </div>
+      </div>
         <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">💳 Platform fee authorization</div>
         <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (10%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
         ${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}
@@ -3562,24 +3583,22 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
 
 
 async function submitNegotiationAndRent(listingId, listingTitle, contactId, originalPrice){
+  const moveIn=document.getElementById('neg-movein')?.value;
+  if(!moveIn){toast('⚠️ Please select your desired move-in date');return;}
+  const duration=document.getElementById('neg-duration')?.value||null;
   const proposedPrice=parseInt(document.getElementById('neg-price')?.value)||originalPrice;
   const extras=[...document.querySelectorAll('.neg-extra:checked')].map(e=>e.value);
   const message=document.getElementById('neg-message')?.value.trim()||'';
-
-  // Fermer le modal
-  document.querySelector('[style*="position:fixed"][style*="z-index:9999"]')?.remove();
-
-  // Construire la note de négociation
+  document.querySelector('#nego-modal-overlay')?.remove();
   let negotiationNote='';
   if(proposedPrice!==originalPrice) negotiationNote+=`💶 Proposed rent: €${proposedPrice}/mo (listed at €${originalPrice}/mo)\n`;
   if(extras.length) negotiationNote+=`🎁 Requested extras: ${extras.join(', ')}\n`;
+  if(duration) negotiationNote+=`📅 Desired stay: ${duration.replace(/_/g,' ')}\n`;
   if(message) negotiationNote+=`💬 "${message}"`;
-
-  // Appeler wantToRentDirect avec les infos de négociation
-  await wantToRentDirect(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras);
+  await wantToRentDirect(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras, moveIn);
 }
 
-async function wantToRentDirect(listingId, listingTitle, contactId, price, negotiationNote='', extras=[]){
+async function wantToRentDirect(listingId, listingTitle, contactId, price, negotiationNote='', extras=[], moveIn=null){
   // Créer un booking direct (sans agent) et afficher le paiement
   toast('⏳ Loading...');
   try{
@@ -3601,7 +3620,8 @@ async function wantToRentDirect(listingId, listingTitle, contactId, price, negot
       landlord_id:contactId,
       monthly_rent:price,
       status:'pending',
-      has_agent:false
+      has_agent:false,
+      move_in_date:moveIn||null
     }).select().single();
     if(error)throw new Error(error.message);
 
