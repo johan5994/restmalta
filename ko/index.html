@@ -1817,8 +1817,7 @@ function setT(el,t){
   if(secAtt)secAtt.style.display=isRoom?'none':'block';
   if(secLease)secLease.style.display=isRoom?'none':'block';
   if(secAgent)secAgent.style.display=isRoom?'none':'block';
-  const secAgentDetails=document.getElementById('section-agent-details');
-  if(secAgentDetails)secAgentDetails.style.display=isRoom?'none':'block';
+  // section-agent-details reste géré par updateAgentOpt uniquement
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltase law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
