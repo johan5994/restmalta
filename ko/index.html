@@ -547,15 +547,10 @@ footer ul a:hover{color:var(--terra)}
   <option value="Mosta"><option value="Naxxar"><option value="Rabat"><option value="Mdina">
   <option value="Marsaskala"><option value="Marsaxlokk"><option value="Birgu"><option value="Senglea">
 </datalist></div>
+        <div class="fg2"><label>Size (m²)</label><input class="fi" type="number" id="p-sqm" placeholder="e.g. 65" min="10" max="1000"></div>
         <div class="fg2"><label>Monthly rent (€) *</label><input class="fi" type="number" id="ppr" placeholder="650"></div>
         <div class="fg2"><label>Deposit (€)</label><input class="fi" type="number" id="pdep" placeholder="650"></div>
-        <div class="fg2"><label>Available from</label><input class="fi" type="date" id="pfr" onchange="onAvailableFromChange(this.value)"></div>
-
-      </div>
-
-      <!-- Beds / Baths / m² -->
-      <div class="frow" id="section-beds" style="margin-top:.5rem">
-        <div class="fg2"><label>Number of bedrooms</label>
+        <div class="fg2" id="section-beds"><label>Number of bedrooms</label>
           <select class="fi" id="psp" style="cursor:pointer">
             <option value="0">Studio</option>
             <option value="1" selected>1 bedroom</option>
@@ -572,9 +567,7 @@ footer ul a:hover{color:var(--terra)}
             <option value="3">3+ bathrooms</option>
           </select>
         </div>
-        <div class="fg2"><label>Size (m²) <span style="font-weight:400;color:var(--stone-l)">(optional)</span></label>
-          <input class="fi" type="number" id="p-sqm" placeholder="e.g. 65" min="10" max="1000">
-        </div>
+        <div class="fg2"><label>Available from</label><input class="fi" type="date" id="pfr" onchange="onAvailableFromChange(this.value)"></div>
       </div>
 
       <!-- Agent options -->
@@ -741,11 +734,7 @@ footer ul a:hover{color:var(--terra)}
           </div>
         </div>
         <div class="frow">
-          <div class="fg2"><label>Notice period</label>
-            <select class="fi" id="p-notice" style="cursor:pointer">
-              <option value="1_week">1 week (required by Maltese law)</option>
-            </select>
-          </div>
+
           <div class="fg2"><label>Bills situation</label>
             <select class="fi" id="p-bills" style="cursor:pointer">
               <option value="included">✅ All bills included in rent</option>
@@ -1814,7 +1803,7 @@ function setT(el,t){
   const secAtt=document.getElementById('section-attestation');
   const secLease=document.getElementById('section-lease-cond');
   const secAgent=document.getElementById('section-agent');
-  if(secBeds)secBeds.style.display=isRoom?'none':'grid';
+  if(secBeds)secBeds.style.display=isRoom?'none':'block';
   if(secAtt)secAtt.style.display=isRoom?'none':'block';
   if(secLease)secLease.style.display=isRoom?'none':'block';
   if(secAgent)secAgent.style.display=isRoom?'none':'block';
