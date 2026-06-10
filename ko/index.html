@@ -550,14 +550,7 @@ footer ul a:hover{color:var(--terra)}
         <div class="fg2"><label>Monthly rent (€) *</label><input class="fi" type="number" id="ppr" placeholder="650"></div>
         <div class="fg2"><label>Deposit (€)</label><input class="fi" type="number" id="pdep" placeholder="650"></div>
         <div class="fg2"><label>Available from</label><input class="fi" type="date" id="pfr" onchange="onAvailableFromChange(this.value)"></div>
-        <div class="fg2"><label>Available until</label>
-          <div style="display:flex;gap:.5rem;align-items:center">
-            <input class="fi" type="date" id="pun" style="flex:1">
-            <label style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;white-space:nowrap;cursor:pointer">
-              <input type="checkbox" id="p-indefinite" onchange="toggleIndefinite(this)"> Indefinitely
-            </label>
-          </div>
-        </div>
+
       </div>
 
       <!-- Beds / Baths / m² -->
@@ -661,14 +654,8 @@ footer ul a:hover{color:var(--terra)}
       <!-- Visit & Inventory presence options — visible seulement avec agent -->
       <div id="section-agent-details" style="display:none">
       <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;margin-bottom:.5rem">
-          <input type="checkbox" id="p-landlord-present" onchange="toggleLandlordPresence(this.checked)" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
-          <div>
-            <div style="font-size:.78rem;font-weight:700;color:var(--green)">🏠 I will be present during visits & inventory</div>
-            <div style="font-size:.7rem;color:var(--stone-l);margin-top:.1rem">Check this if you want to attend visits and/or the EDL</div>
-          </div>
-        </label>
-        <div id="presence-details" style="display:none;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:8px;padding:.75rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.5rem">🏠 Your availability during visits & inventory</div>
+        <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:8px;padding:.75rem">
           <div class="frow">
             <div class="fg2">
               <label>During property visits</label>
@@ -686,7 +673,6 @@ footer ul a:hover{color:var(--terra)}
               </select>
             </div>
           </div>
-        </div>
         <div id="sign-auth-notice" style="display:none;margin-top:.5rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;font-size:.72rem;color:var(--gold)">
           ⚠️ By selecting this option you authorize the RestMalta agent to sign the entry inventory on your behalf. The bail (lease) must always be signed by you personally.
         </div>
