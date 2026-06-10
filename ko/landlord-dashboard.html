@@ -1144,7 +1144,7 @@ async function loadVisitsPage(){
     const allVisits=visits||[];
 
     // 2. Charger tous les bookings du landlord (tous statuts)
-    const{data:myListings}=await sb.from('listings').select('id,wants_agent,agent_service').eq('landlord_id',U.id);
+    const{data:myListings}=await sb.from('listings').select('id,wants_agent,agent_service,title,full_address,zone').eq('landlord_id',U.id);
     const myListingIds=(myListings||[]).map(l=>l.id);
     const lMap={};(myListings||[]).forEach(l=>{lMap[l.id]=l;});
 
@@ -1178,7 +1178,12 @@ async function loadVisitsPage(){
         else if(booking.status==='declined') status='declined';
         else if(['edl_scheduled','signing_day','move_in_ready'].includes(booking.status)) status=booking.status;
       }
-      return{...v,booking,status,has_agent};
+      return{...v,booking,status,has_agent,
+        listing_title:listing?.title||v.listing_title||null,
+        full_address:listing?.full_address||null,
+        zone:listing?.zone||v.zone||null,
+        listing_price:listing?.price||null
+      };
     });
 
     // 5. Ajouter les bookings orphelins (sans visite)
@@ -1231,7 +1236,7 @@ async function loadTenantDocuments(tenantId, bookingId){
     const raw=profile?.documents;
     if(!raw){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
     const docs=typeof raw==='string'?JSON.parse(raw):raw;
-    const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference',rent1:'🏠 Rent receipt 1',rent2:'🏠 Rent receipt 2',rent3:'🏠 Rent receipt 3',student:'🎓 Student card'};
+    const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference letter',rent1:'🧾 Rent receipt 1',rent2:'🧾 Rent receipt 2',rent3:'🧾 Rent receipt 3'};
     const entries=Object.entries(docs).filter(([,d])=>d?.path);
     if(!entries.length){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
     el.innerHTML=entries.map(([key,doc])=>{
@@ -3779,7 +3784,7 @@ async function loadTenantDocuments(tenantId,bookingId){
     const raw=profile?.documents;
     if(!raw){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
     const docs=typeof raw==='string'?JSON.parse(raw):raw;
-    const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference',rent1:'🏠 Rent receipt 1',rent2:'🏠 Rent receipt 2',rent3:'🏠 Rent receipt 3',student:'🎓 Student card'};
+    const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference letter',rent1:'🧾 Rent receipt 1',rent2:'🧾 Rent receipt 2',rent3:'🧾 Rent receipt 3'};
     const entries=Object.entries(docs).filter(([,d])=>d?.path);
     if(!entries.length){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
     el.innerHTML=entries.map(([key,doc])=>{
@@ -3922,6 +3927,8 @@ function renderVisitGroup(g, isPast){
       <div>
         <div style="font-size:.9rem;font-weight:700">👤 ${g.tenant_name||'—'}</div>
         <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">🗓 ${visitDateStr}</div>
+        ${g.listing_title?`<div style="font-size:.73rem;font-weight:600;color:var(--tf);margin-top:.2rem">🏠 ${g.listing_title}</div>`:''}
+        ${g.full_address||g.zone?`<div style="font-size:.7rem;color:var(--td)">📍 ${g.full_address||g.zone}</div>`:''}
         ${g.agent_name?`<div style="font-size:.7rem;color:var(--td)">🏆 Agent: ${g.agent_name}</div>`:''}
       </div>
       <span class="badge ${sc.cls}" style="font-size:.62rem;flex-shrink:0">${sc.label}</span>
@@ -3953,7 +3960,7 @@ function renderVisitGroup(g, isPast){
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Verified</div><div id="t-ver-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Nationality</div><div id="t-nat-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Phone</div><div id="t-phone-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
-          <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Proposed rent</div><div style="font-size:.73rem;font-weight:700;color:var(--terra)">€${bk?.monthly_rent||g.listing_price||'—'}/mo</div></div>
+          ${bk?.monthly_rent&&bk.monthly_rent!==g.listing_price?`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--gold)">💶 Proposed rent</div><div style="font-size:.73rem;font-weight:700;color:var(--gold)">€${bk.monthly_rent}/mo <span style="font-size:.65rem;font-weight:400;color:var(--td)">(listed: €${g.listing_price})</span></div></div>`:''}
           ${bk?.move_in_date?`<div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Move-in date</div><div style="font-size:.73rem;font-weight:600">${new Date(bk.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div></div>`:''}
         </div>
         ${bk?.negotiation_note?`
