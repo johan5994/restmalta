@@ -3503,49 +3503,63 @@ async function rentRemotelyFromContact(listingId, listingTitle, zone, contactId)
 
 
 async function showNegotiationModal(listingId, listingTitle, contactId, price){
-  // Modal de négociation avant envoi du dossier
+  const hasCard=P?.stripe_customer_id&&P?.stripe_pm_id;
+  const commission=Math.round((price||0)*0.10);
   const modal=document.createElement('div');
+  modal.id='nego-modal-overlay';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
   modal.innerHTML=`
-    <div style="background:#1A1D27;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:1.5rem;width:100%;max-width:420px">
-      <div style="font-size:1rem;font-weight:800;color:#F0EDE8;margin-bottom:.3rem">🤝 Before sending your application</div>
-      <div style="font-size:.78rem;color:rgba(240,237,232,.4);margin-bottom:1.3rem">Current rent: <strong style="color:#F0EDE8">€${price||'—'}/mo</strong> · You can negotiate before the landlord reviews your dossier.</div>
-
-      <!-- Proposer un loyer -->
-      <div style="margin-bottom:1rem">
-        <label style="font-size:.75rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.4rem">💶 Propose a rent (optional)</label>
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <span style="color:rgba(240,237,232,.4);font-size:.9rem">€</span>
-          <input type="number" id="neg-price" value="${price||''}" placeholder="${price||'—'}" style="flex:1;padding:.6rem .9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.88rem;outline:none;font-family:'DM Sans',sans-serif">
-          <span style="font-size:.78rem;color:rgba(240,237,232,.3)">/mo</span>
+    <div style="background:#1A1D27;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
+      <div style="font-size:1rem;font-weight:800;color:#F0EDE8;margin-bottom:.3rem">📋 Send your application</div>
+      <div style="font-size:.78rem;color:rgba(240,237,232,.4);margin-bottom:1.2rem"><strong style="color:#F0EDE8">€${price||'—'}/mo</strong> · ${listingTitle||''}</div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;margin-bottom:1rem">
+        <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer">
+          <input type="checkbox" id="nego-toggle" onchange="document.getElementById('nego-fields').style.display=this.checked?'block':'none'" style="accent-color:#E05A3A;width:15px;height:15px;cursor:pointer">
+          <div>
+            <div style="font-size:.8rem;font-weight:600;color:#F0EDE8">🤝 I want to negotiate</div>
+            <div style="font-size:.7rem;color:rgba(240,237,232,.35)">Propose a different rent or request extras</div>
+          </div>
+        </label>
+        <div id="nego-fields" style="display:none;margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(255,255,255,.07)">
+          <div style="margin-bottom:.85rem">
+            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.35rem">💶 Propose a rent</label>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span style="color:rgba(240,237,232,.4)">€</span>
+              <input type="number" id="neg-price" value="${price||''}" style="flex:1;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.86rem;outline:none;font-family:'DM Sans',sans-serif">
+              <span style="font-size:.75rem;color:rgba(240,237,232,.3)">/mo</span>
+            </div>
+          </div>
+          <div style="margin-bottom:.85rem">
+            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.35rem">🎁 Extras to request</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem">
+              ${['🔥 Microwave','❄️ A/C','🧺 Washing machine','🚗 Parking','📺 Smart TV','📶 Faster WiFi','🛋️ Extra furniture','🧹 1st clean'].map(e=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;font-size:.72rem;color:rgba(240,237,232,.6)"><input type="checkbox" class="neg-extra" value="${e.replace(/[🔥❄️🧺🚗📺📶🛋️🧹]/g,'').trim()}" style="accent-color:#E05A3A;cursor:pointer">${e}</label>`).join('')}
+            </div>
+          </div>
+          <div>
+            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.35rem">💬 Message to landlord</label>
+            <textarea id="neg-message" rows="2" placeholder="Hi, I'm very interested in your flat…" style="width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.8rem;outline:none;font-family:'DM Sans',sans-serif;resize:none;line-height:1.5"></textarea>
+          </div>
         </div>
-        <div style="font-size:.68rem;color:rgba(240,237,232,.25);margin-top:.25rem">Leave as is if you accept the current rent</div>
       </div>
-
-      <!-- Extras demandés -->
-      <div style="margin-bottom:1rem">
-        <label style="font-size:.75rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.4rem">🎁 Extras to request (optional)</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.5rem">
-          ${['🔥 Microwave','❄️ A/C unit','🧺 Washing machine','🚗 Parking spot','📺 Smart TV','📶 Faster WiFi','🛋️ Extra furniture','🧹 1st clean included'].map(e=>`
-            <label style="display:flex;align-items:center;gap:.45rem;padding:.45rem .65rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;font-size:.78rem;color:rgba(240,237,232,.6)">
-              <input type="checkbox" class="neg-extra" value="${e.replace(/[🔥❄️🧺🚗📺📶🛋️🧹]/g,'').trim()}" style="accent-color:#E05A3A;cursor:pointer">${e}
-            </label>`).join('')}
-        </div>
+      <div style="background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem">
+        <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">💳 Platform fee authorization</div>
+        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (10%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
+        ${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}
       </div>
-
-      <!-- Message perso -->
-      <div style="margin-bottom:1.2rem">
-        <label style="font-size:.75rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.4rem">💬 Message to landlord (optional)</label>
-        <textarea id="neg-message" rows="2" placeholder="Hi, I'm very interested in your flat. I work nearby and would be a reliable tenant..." style="width:100%;padding:.6rem .9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.82rem;outline:none;font-family:'DM Sans',sans-serif;resize:none;line-height:1.5"></textarea>
-      </div>
-
       <div style="display:flex;gap:.5rem">
-        <button onclick="submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
+        ${hasCard?`<button onclick="submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed">🚀 Send application →</button>`}
+        <button onclick="document.getElementById('nego-modal-overlay').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 }
+
+async function registerCardThenSend(listingId, listingTitle, contactId, price){
+  document.getElementById('nego-modal-overlay')?.remove();
+  await initStripeCard();
+  setTimeout(()=>showNegotiationModal(listingId, listingTitle, contactId, price), 1000);
+}
+
 
 async function submitNegotiationAndRent(listingId, listingTitle, contactId, originalPrice){
   const proposedPrice=parseInt(document.getElementById('neg-price')?.value)||originalPrice;
