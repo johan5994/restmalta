@@ -610,6 +610,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">These documents are shown to landlords when you apply for a flat. The more you upload, the stronger your application.</p>
 
           <div style="display:flex;flex-direction:column;gap:.65rem">
+            <!-- ID / Passport -->
+            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:9px;padding:.6rem .85rem">
+              <div><div style="font-size:.82rem;font-weight:600">🪪 ID card / Passport</div><div style="font-size:.7rem;color:var(--td);margin-top:.1rem">Photo of your ID or passport</div></div>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <span id="doc-id-status" class="badge b-dim" style="font-size:.65rem">Not uploaded</span>
+                <label style="background:var(--terra);color:white;padding:.3rem .65rem;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer">Upload<input type="file" accept="image/*,.pdf" style="display:none" onchange="uploadSupportDoc(this,'id')"></label>
+              </div>
+            </div>
             <!-- Bank statement -->
             <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:9px;padding:.6rem .85rem">
               <div><div style="font-size:.82rem;font-weight:600">🏦 Bank statement</div><div style="font-size:.7rem;color:var(--td);margin-top:.1rem">Last 3 months · PDF or screenshot</div></div>
