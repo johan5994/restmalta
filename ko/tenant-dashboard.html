@@ -3503,7 +3503,7 @@ async function rentRemotelyFromContact(listingId, listingTitle, zone, contactId)
 
 
 async function showNegotiationModal(listingId, listingTitle, contactId, price){
-  const hasCard=P?.stripe_customer_id&&P?.stripe_pm_id;
+  const hasCard=!!(P?.stripe_customer_id);
   const commission=Math.round((price||0)*0.10);
   const modal=document.createElement('div');
   modal.id='nego-modal-overlay';
