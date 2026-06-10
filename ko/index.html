@@ -536,6 +536,16 @@ footer ul a:hover{color:var(--terra)}
         </div>
         <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">ℹ️ Di Fermo = minimum period during which tenant cannot leave without penalty. Must be minimum 1 year.</div>
       </div>
+          <div class="fg2"><label>Bathrooms</label>
+            <select class="fi" id="p-baths" style="cursor:pointer">
+              <option value="1" selected>1 bathroom</option>
+              <option value="2">2 bathrooms</option>
+              <option value="3">3+ bathrooms</option>
+            </select>
+          </div>
+          <div class="fg2"><label>Size (m²)</label>
+            <input class="fi" type="number" id="p-sqm" placeholder="e.g. 65" min="10" max="1000">
+          </div>
 
       <div class="frow" style="margin-top:.75rem">
         <div class="fg2" style="grid-column:1/-1"><label>Title *</label><input class="fi" type="text" id="pti" placeholder="e.g. Bright furnished studio near the sea, St. Julian's"></div>
@@ -2086,36 +2096,39 @@ async function doPost(){
     spots:parseInt(document.getElementById('psp').value)||1,
     baths:parseInt(document.getElementById('p-baths')?.value)||1,
     sqm:parseInt(document.getElementById('p-sqm')?.value)||null,
+    video_url:document.getElementById('video-input')?.files?.[0]?.name||null,
+    baths:parseInt(document.getElementById('p-baths')?.value)||1,
+    sqm:parseInt(document.getElementById('p-sqm')?.value)||null,
     video_url:document.getElementById('p-video-url')?.value.trim()||null,
     available_from:document.getElementById('pfr').value||null,
-    available_until:document.getElementById('pun').value||null,
+    available_until:document.getElementById('pun')?.value||null,
     description:document.getElementById('pde').value,
     furnished:document.getElementById('pfu').checked,
     wifi:document.getElementById('pwi').checked,
-    bills_included:document.getElementById('pbi').checked,
+    bills_included:document.getElementById('pbi')?.checked||false,
     active:true,
     wants_agent,
     agent_service,
     accepts_attestation,
     mandat_exclusif:document.getElementById('p-exclusif')?.checked||false,
     // Lease fields
-    full_address:document.getElementById('p-full-address').value.trim(),
-    payment_due_day:document.getElementById('p-pay-day').value,
-    notice_period:document.getElementById('p-notice').value,
-    bills_situation:document.getElementById('p-bills').value,
+    full_address:document.getElementById('p-full-address')?.value.trim()||null,
+    payment_due_day:document.getElementById('p-pay-day')?.value||null,
+    notice_period:document.getElementById('p-notice')?.value||null,
+    bills_situation:document.getElementById('p-bills')?.value||null,
     // New fields
     min_stay:document.getElementById('p-min-stay')?.value||null,
     max_stay:document.getElementById('p-max-stay')?.value||null,
-    lease_duration:document.getElementById('pt')?.value==='short'?null:document.getElementById('p-lease-duration')?.value||null,
-    di_fermo:document.getElementById('pt')?.value==='short'?null:document.getElementById('p-di-fermo')?.value||null,
+    lease_duration:document.getElementById('p-lease-duration')?.value||null,
+    di_fermo:document.getElementById('p-di-fermo')?.value||null,
     available_indefinitely:document.getElementById('p-indefinite')?.checked||false,
     accepts_attestation:document.getElementById('att-yes')?.checked===true,
     landlord_present:document.getElementById('p-visit-presence')?.value||'not_needed',
     inventory_presence:document.getElementById('p-inventory-presence')?.value||'mandatory',
     agent_sign_auth:(document.getElementById('p-inventory-presence')?.value==='if_possible'||document.getElementById('p-inventory-presence')?.value==='not_needed'),
     key_type:document.getElementById('p-key-type')?.value||'landlord',
-    key_location:document.getElementById('p-key-location')?.value.trim()||null,
-    current_tenant_phone:document.getElementById('p-current-tenant-phone')?.value.trim()||null,
+    key_location:document.getElementById('p-key-location')?.value?.trim()||null,
+    current_tenant_phone:document.getElementById('p-current-tenant-phone')?.value?.trim()||null,
     lease_end_date:document.getElementById('p-lease-end-date')?.value||null,
     tenant_availability:document.getElementById('p-tenant-availability')?.value||'vacant'
   }).select().single();
