@@ -185,6 +185,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div id="messages-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
 
+    <!-- CHAT PAGE -->
+    <div class="page" id="page-chat">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--b)">
+        <button class="btn bg bsm" onclick="sp('messages',document.querySelector('.ni[onclick*=messages]'))" style="padding:.4rem .8rem;font-size:.8rem">← Back</button>
+        <div>
+          <div style="font-size:.92rem;font-weight:700" id="chat-title"></div>
+          <div style="font-size:.75rem;color:var(--td)" id="chat-sub"></div>
+        </div>
+      </div>
+      <div id="chat-thread" style="display:flex;flex-direction:column;gap:.6rem;max-height:calc(100vh - 280px);overflow-y:auto;padding-bottom:1rem"></div>
+      <div style="position:sticky;bottom:0;background:var(--bg);padding-top:.75rem;border-top:1px solid var(--b);margin-top:.75rem">
+        <textarea class="fta" id="chat-reply" rows="3" placeholder="Write your reply…" style="width:100%;margin-bottom:.5rem"></textarea>
+        <button class="btn bp" style="width:100%;justify-content:center" onclick="sendChatReply()">Send →</button>
+      </div>
+    </div>
+
     <!-- MAINTENANCE -->
     <div class="page" id="page-maintenance">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
@@ -329,13 +345,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
 
       <!-- Onglets -->
-      <div style="display:flex;gap:.3rem;margin-bottom:.85rem;overflow-x:auto;padding-bottom:.2rem" id="visits-tabs">
-        <button onclick="switchVisitTab('action')" id="vtab-action" class="vtab vtab-active">🔴 Action needed<span id="vtab-action-count" style="margin-left:.3rem"></span></button>
-        <button onclick="switchVisitTab('upcoming')" id="vtab-upcoming" class="vtab">📅 Upcoming<span id="vtab-upcoming-count" style="margin-left:.3rem"></span></button>
-        <button onclick="switchVisitTab('after')" id="vtab-after" class="vtab">🏠 After visit<span id="vtab-after-count" style="margin-left:.3rem"></span></button>
-        <button onclick="switchVisitTab('rental')" id="vtab-rental" class="vtab">✅ My rental<span id="vtab-rental-count" style="margin-left:.3rem"></span></button>
-        <button onclick="switchVisitTab('past')" id="vtab-past" class="vtab">📁 Past</button>
-      </div>
 
       <div id="tenant-visits-list">
         <div class="empty"><div class="em">📅</div><p>Loading visits...</p></div>
@@ -1136,19 +1145,7 @@ async function loadMessages(){
       </div>
       </div>
       ${m.sender_id===U.id && !m._hasVisit ? `<div style="display:flex;flex-direction:column;gap:.3rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
-        <div style="display:flex;gap:.3rem">
-          <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}"
-            onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"
-            style="flex:1;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.38rem;font-size:.7rem;font-weight:700;cursor:pointer">
-            📅 Visit
-          </button>
-          <button data-lid="${m.listing_id||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-zone="${(m.listings?.zone||'').replace(/"/g,'&quot;')}" data-oid="${m.otherId||''}"
-            onclick="rentRemotelyFromContact(this.dataset.lid,this.dataset.name,this.dataset.zone,this.dataset.oid)"
-            style="flex:1;background:rgba(58,143,181,.12);color:var(--sea);border:1px solid rgba(58,143,181,.25);border-radius:7px;padding:.38rem;font-size:.7rem;font-weight:700;cursor:pointer">
-            🌍 Remote
-          </button>
-        </div>
-        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-price="${m.listings?.price||0}"
+        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||''). replace(/"/g,'&quot;')}"\n            onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"\n            style="width:100%;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer;margin-bottom:.3rem">\n            📅 I want to visit\n          </button>\n        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-price="${m.listings?.price||0}"
           onclick="showNegotiationModal(this.dataset.lid,this.dataset.name,this.dataset.oid,parseFloat(this.dataset.price))"
           style="width:100%;background:var(--terra);color:white;border:none;border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer">
           🏠 I want to rent this property →
@@ -1159,15 +1156,21 @@ async function loadMessages(){
 }
 
 async function openMsg(threadKey, titleEnc, subtitleEnc, listingId, receiverId, threadId){
+  // Aller sur la page chat
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
+  document.getElementById('page-chat').classList.add('act');
+  document.getElementById('tbt').textContent='Messages';
+  document.getElementById('chat-title').textContent=decodeURIComponent(titleEnc);
+  document.getElementById('chat-sub').textContent=decodeURIComponent(subtitleEnc||'');
   tenantChatListingId=listingId;
   tenantChatReceiverId=receiverId;
   tenantChatThreadId=threadId||makeThreadId(listingId,U.id,receiverId||'');
-  document.getElementById('mm-title').textContent=decodeURIComponent(titleEnc);
+  
   document.getElementById('mm-sub').textContent=decodeURIComponent(subtitleEnc);
-  document.getElementById('msg-modal').classList.add('open');
+  
 
   // Load history
-  const thread=document.getElementById('mm-thread');
+  const thread=document.getElementById('chat-thread');
   thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--stone-l)">Loading...</div>';
   // Charger les messages du thread spécifique (thread_id ou listing_id+participants)
   let threadData=[];
@@ -1611,13 +1614,14 @@ function filterContactData(text){
   return text;
 }
 
+async function sendChatReply(){await sendReply();}
 async function sendReply(){
-  const reply=document.getElementById('mm-reply').value.trim();
+  const reply=document.getElementById('chat-reply').value.trim();
   if(!reply||!tenantChatListingId)return;
-  document.getElementById('mm-reply').value='';
+  document.getElementById('chat-reply').value='';
 
   // Show message immediately in UI
-  const thread=document.getElementById('mm-thread');
+  const thread=document.getElementById('chat-thread');
   const div=document.createElement('div');
   div.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;animation:fi .2s ease';
   div.innerHTML=`<div class="bm">${reply}</div><div style="font-size:.6rem;color:var(--td)">${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
