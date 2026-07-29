@@ -3112,6 +3112,13 @@ async function loadMaintenance(){
     tenantTickets=tt||[];
   }
   const allTickets=[...(data||[]),...tenantTickets.filter(t=>!(data||[]).find(d=>d.id===t.id))];
+
+  const tenantIds=[...new Set(allTickets.map(t=>t.tenant_id).filter(Boolean))];
+  const tenantNames={};
+  if(tenantIds.length){
+    const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name').in('clerk_id',tenantIds);
+    (profiles||[]).forEach(p=>tenantNames[p.clerk_id]=p.full_name);
+  }
   const open=allTickets.filter(t=>t.status==='open').length;
   const prog=allTickets.filter(t=>t.status==='in_progress').length;
   const res=allTickets.filter(t=>t.status==='resolved').length;
@@ -3133,7 +3140,7 @@ async function loadMaintenance(){
         <div style="flex:1">
           <div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">${t.title}</div>
           <div style="font-size:.72rem;color:var(--tm);line-height:1.4">${t.description||''}</div>
-          <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${t.tenant_id?`👤 ${t.tenant_name||'Tenant'} · `:'🏠 Reported by you · '}${listingTitles[t.listing_id]||'No property linked'} · ${new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+          <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${t.tenant_id?`👤 ${tenantNames[t.tenant_id]||'Tenant'} · `:'🏠 Reported by you · '}${listingTitles[t.listing_id]||'No property linked'} · ${new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
         </div>
         <span class="tst ${sc[t.status]||'to'}">${sl[t.status]||'Open'}</span>
       </div>
