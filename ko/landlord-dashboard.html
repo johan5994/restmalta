@@ -3103,8 +3103,9 @@ async function sendModalReply(){
 async function loadMaintenance(){
   const{data}=await sb.from('tickets').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   // Also load tickets from tenants for this landlord's listings
-  const{data:listings}=await sb.from('listings').select('id').eq('landlord_id',U.id);
+  const{data:listings}=await sb.from('listings').select('id,title').eq('landlord_id',U.id);
   const listingIds=(listings||[]).map(l=>l.id);
+  const listingTitles={};(listings||[]).forEach(l=>listingTitles[l.id]=l.title);
   let tenantTickets=[];
   if(listingIds.length){
     const{data:tt}=await sb.from('tickets').select('*').in('listing_id',listingIds).order('created_at',{ascending:false});
@@ -3132,7 +3133,7 @@ async function loadMaintenance(){
         <div style="flex:1">
           <div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">${t.title}</div>
           <div style="font-size:.72rem;color:var(--tm);line-height:1.4">${t.description||''}</div>
-          <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+          <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${t.tenant_id?`👤 ${t.tenant_name||'Tenant'} · `:'🏠 Reported by you · '}${listingTitles[t.listing_id]||'No property linked'} · ${new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
         </div>
         <span class="tst ${sc[t.status]||'to'}">${sl[t.status]||'Open'}</span>
       </div>
