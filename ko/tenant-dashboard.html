@@ -1644,11 +1644,12 @@ async function sendReply(){
 async function loadTickets(){
   const wrap=document.getElementById('tickets-list');
 
-  // Check if tenant has active lease
+  // Check if tenant has an active booking (same model as the rest of the app)
   let hasLease=false;
   try{
-    const{data:leases}=await sb.from('leases').select('id,status').eq('tenant_id',U.id).eq('status','signed');
-    hasLease=(leases&&leases.length>0);
+    const activeStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
+    const{data:bks}=await sb.from('bookings').select('id').eq('tenant_id',U.id).in('status',activeStatuses).limit(1);
+    hasLease=(bks&&bks.length>0);
   }catch(e){}
 
   if(!hasLease){
