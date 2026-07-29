@@ -943,30 +943,10 @@ async function createListing(data){
       created_at:new Date().toISOString()
     }).select().single();
     if(error)throw new Error(error.message);
-    if(l) notifyMatchingAlertsAgency(l).catch(()=>{});
     toast('🚀 Listing published successfully!');
     document.getElementById('import-preview').style.display='none';
     sp('listings',null);
   }catch(e){toast('❌ '+e.message);}
-}
-
-async function notifyMatchingAlertsAgency(listing){
-  const{data:alerts}=await sb.from('alerts').select('*').eq('active',true);
-  if(!alerts||!alerts.length)return;
-  const matches=alerts.filter(a=>
-    (!a.zone||a.zone===listing.zone)&&
-    (!a.max_budget||listing.price<=a.max_budget)&&
-    (!a.type||a.type===listing.lease_type)&&
-    (!a.min_rooms||(listing.beds||0)+1>=a.min_rooms)
-  );
-  if(!matches.length)return;
-  const content=`🔔 New listing matching your alert!\n\n${listing.title}\n📍 ${listing.zone} · €${listing.price}/mo\n\nCheck it out before it's gone!`;
-  await Promise.all(matches.map(a=>
-    sb.from('messages').insert({
-      listing_id:listing.id,sender_id:'system',receiver_id:a.tenant_id,
-      content,type:'alert_match'
-    }).catch(()=>{})
-  ));
 }
 
 function initManualForm(){
