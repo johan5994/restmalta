@@ -204,8 +204,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My listings</button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits-ll" style="display:none">0</span></button>
 
-
-    <button class="ni" onclick="sp('sublet',this)"><span class="nico">🔑</span>Subletting<span class="nbadge gold" id="nb-sublet" style="display:none">0</span></button>
     <div class="nl">Finance</div>
     <button class="ni" onclick="sp('payments',this)"><span class="nico">💶</span>Payments<span class="nbadge" id="nb-pay" style="display:none">0</span></button>
     <div class="nl">Communication</div>
@@ -395,8 +393,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </select>
         </div>
         <table class="tbl">
-          <thead><tr><th>Tenant</th><th>Amount</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody id="pay-tbody"><tr><td colspan="5"><div class="ld"><div class="sp"></div></div></td></tr></tbody>
+          <thead><tr><th>Tenant</th><th>Property</th><th>Amount</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="pay-tbody"><tr><td colspan="6"><div class="ld"><div class="sp"></div></div></td></tr></tbody>
         </table>
       </div>
 
@@ -468,39 +466,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <!-- INVENTORY -->
-    <div class="page" id="page-sublet">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">Subletting</div>
-        <button class="btn bp bsm" onclick="openNewSublet()">+ Post sublet vacancy</button>
-      </div>
-
-      <!-- Legal info box - updated per point 3 -->
-      <div style="background:var(--sdim);border:1px solid rgba(58,143,181,.2);border-radius:14px;padding:1.5rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:1rem">
-        <div style="font-size:2rem;flex-shrink:0">⚖️</div>
-        <div>
-          <div style="font-size:.95rem;font-weight:700;margin-bottom:.3rem;color:var(--sea)">Maltase Law — Subletting rules</div>
-          <div style="font-size:.82rem;color:var(--tm);line-height:1.6">Subletting is only permitted with the landlord's <strong style="color:var(--txt)">written consent</strong>. RestMalta generates the sub-lease agreement and the landlord consent document automatically.</div>
-        </div>
-      </div>
-
-      <!-- Housing Authority notice - point 3 -->
-      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.5rem;display:flex;gap:.75rem;align-items:flex-start">
-        <div style="font-size:1.3rem;flex-shrink:0">🏛️</div>
-        <div>
-          <div style="font-size:.83rem;font-weight:700;color:var(--gold);margin-bottom:.3rem">Housing Authority registration — tenant's responsibility</div>
-          <div style="font-size:.78rem;color:var(--tm);line-height:1.6">RestMalta's role ends with the signed sub-lease. <strong style="color:var(--txt)">It is the tenant's legal obligation</strong> to register the sub-lease with the Housing Authority of Malta. RestMalta is not responsible for this registration. For more information: <strong style="color:var(--sea)">housingauthority.org.mt</strong></div>
-        </div>
-      </div>
-
-      <div class="sflow">
-        <div class="sstep"><div style="font-size:1.5rem;margin-bottom:.5rem">📩</div><div style="font-size:.78rem;font-weight:700;margin-bottom:.25rem">Tenant requests</div><div style="font-size:.68rem;color:var(--tm)">Submits dates + subtenant info</div></div>
-        <div class="sstep"><div style="font-size:1.5rem;margin-bottom:.5rem">✅</div><div style="font-size:.78rem;font-weight:700;margin-bottom:.25rem">You approve</div><div style="font-size:.68rem;color:var(--tm)">One click — written consent generated</div></div>
-        <div class="sstep"><div style="font-size:1.5rem;margin-bottom:.5rem">📄</div><div style="font-size:.78rem;font-weight:700;margin-bottom:.25rem">Sub-lease signed</div><div style="font-size:.68rem;color:var(--tm)">Both parties sign via DocuSeal</div></div>
-        <div class="sstep"><div style="font-size:1.5rem;margin-bottom:.5rem">👤</div><div style="font-size:.78rem;font-weight:700;margin-bottom:.25rem">Tenant registers</div><div style="font-size:.68rem;color:var(--tm)">Tenant's duty to register at Housing Authority</div></div>
-      </div>
-      <div style="font-size:.9rem;font-weight:700;margin-bottom:1rem">Pending requests</div>
-      <div id="sublet-requests"><div class="ld"><div class="sp"></div></div></div>
-    </div>
 
     <!-- REVIEWS -->
     <div class="page" id="page-reviews">
@@ -922,6 +887,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   </div>
 </div>
 
+<!-- RENT ENTRY MODAL -->
+<div class="mover" id="rent-modal" onclick="if(event.target.id==='rent-modal')this.classList.remove('open')">
+  <div class="modal">
+    <button class="mclose" onclick="document.getElementById('rent-modal').classList.remove('open')">✕</button>
+    <div class="mt">Add a rent entry</div>
+    <div class="ms">Rent schedules are created automatically once move-in is complete. Use this only for exceptions (missed month, adjustment, etc).</div>
+    <div class="fg"><label class="fl">Tenant</label><select class="fsel" id="rent-tenant-select"><option value="">Loading tenants...</option></select></div>
+    <div class="fg"><label class="fl">Amount (€)</label><input class="fi" type="number" id="rent-amount"></div>
+    <div class="fg"><label class="fl">Due date</label><input class="fi" type="date" id="rent-due-date"></div>
+    <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" onclick="submitRentEntry()">Add rent entry →</button>
+  </div>
+</div>
+
 <!-- TICKET MODAL -->
 <div class="mover" id="tick-modal" onclick="if(event.target.id==='tick-modal')this.classList.remove('open')">
   <div class="modal">
@@ -985,7 +963,7 @@ function initUI(){
 }
 
 async function loadAll(){
-  await Promise.all([loadDash(),loadListings(),loadMessages(),loadMaintenance(),loadPaymentsData(),loadSublets(),loadReviews(),loadProfilee()]);
+  await Promise.all([loadDash(),loadListings(),loadMessages(),loadMaintenance(),loadPaymentsData(),loadReviews(),loadProfilee()]);
 }
 
 function sp(id,btn){
@@ -993,7 +971,7 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',visits:'Visits',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',sublet:'Subletting',reviews:'Reviews',profile:'Profile & Settings'};
+  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',visits:'Visits',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',reviews:'Reviews',profile:'Profile & Settings'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
@@ -2357,6 +2335,10 @@ function saveLeaseDraft(){toast('💾 Draft saved!');}
 /* PAYMENTS — Full rent flow */
 async function loadPaymentsData(){
   const{data}=await sb.from('payments').select('*').eq('landlord_id',U.id);
+  if(!window._llListingTitles){
+    const{data:listings}=await sb.from('listings').select('id,title').eq('landlord_id',U.id);
+    window._llListingTitles={};(listings||[]).forEach(l=>window._llListingTitles[l.id]=l.title);
+  }
   const thisMonth=new Date();thisMonth.setDate(1);
   const collected=(data||[]).filter(p=>p.status==='paid'&&new Date(p.paid_at||p.created_at)>=thisMonth).reduce((s,p)=>s+(p.amount||0),0);
   const declared=(data||[]).filter(p=>p.status==='declared').length;
@@ -2515,12 +2497,62 @@ Landlord signature: ${P?.full_name||''}`;
 }
 
 async function addRentEntry(){
-  const tenantName=prompt('Tenant name:');if(!tenantName)return;
-  const amount=prompt('Monthly rent (€):');if(!amount)return;
-  const dueDate=new Date();dueDate.setDate(1);dueDate.setMonth(dueDate.getMonth()+1);
-  const{error}=await sb.from('payments').insert({landlord_id:U.id,tenant_name:tenantName,amount:parseInt(amount),type:'rent',status:'pending',due_date:dueDate.toISOString().split('T')[0]});
+  const sel=document.getElementById('rent-tenant-select');
+  sel.innerHTML='<option value="">Loading tenants...</option>';
+  document.getElementById('rent-modal').classList.add('open');
+
+  const{data:listings}=await sb.from('listings').select('id,title').eq('landlord_id',U.id);
+  const listingIds=(listings||[]).map(l=>l.id);
+  const listingTitles={};(listings||[]).forEach(l=>listingTitles[l.id]=l.title);
+
+  if(!listingIds.length){sel.innerHTML='<option value="">No properties yet</option>';return;}
+
+  const{data:bookings}=await sb.from('bookings').select('id,tenant_id,listing_id,monthly_rent').in('listing_id',listingIds).eq('status','move_in_ready');
+  if(!bookings||!bookings.length){
+    sel.innerHTML='<option value="">No active tenants — schedules are created automatically at move-in</option>';
+    return;
+  }
+
+  const tenantIds=[...new Set(bookings.map(b=>b.tenant_id))];
+  const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name,email').in('clerk_id',tenantIds);
+  const profileMap={};(profiles||[]).forEach(p=>profileMap[p.clerk_id]=p);
+
+  window._rentBookings=bookings;
+  sel.innerHTML='<option value="">Select tenant...</option>'+bookings.map((b,i)=>{
+    const prof=profileMap[b.tenant_id];
+    return `<option value="${i}">${prof?.full_name||'Tenant'} — ${listingTitles[b.listing_id]||'Property'}</option>`;
+  }).join('');
+  sel.onchange=()=>{
+    const b=window._rentBookings[sel.value];
+    document.getElementById('rent-amount').value=b?.monthly_rent||'';
+  };
+}
+
+async function submitRentEntry(){
+  const sel=document.getElementById('rent-tenant-select');
+  const idx=sel.value;
+  if(idx===''){toast('❌ Select a tenant');return;}
+  const b=window._rentBookings[idx];
+  const amount=document.getElementById('rent-amount').value;
+  const dueDate=document.getElementById('rent-due-date').value;
+  if(!amount||!dueDate){toast('❌ Amount and due date required');return;}
+
+  const{data:profiles}=await sb.from('profiles').select('full_name,email').eq('clerk_id',b.tenant_id).maybeSingle();
+
+  const{error}=await sb.from('payments').insert({
+    landlord_id:U.id,
+    tenant_id:b.tenant_id,
+    listing_id:b.listing_id,
+    tenant_name:profiles?.full_name||null,
+    tenant_email:profiles?.email||null,
+    amount:parseInt(amount),
+    type:'rent',
+    status:'pending',
+    due_date:dueDate
+  });
   if(error){toast('❌ '+error.message);return;}
-  toast('✅ Rent entry added! Reminders will be sent automatically.');
+  document.getElementById('rent-modal').classList.remove('open');
+  toast('✅ Rent entry added — your tenant will see it and can declare payment.');
   loadPaymentsData();
 }
 
@@ -2530,9 +2562,12 @@ async function loadPayments(filter){
   if(filter&&filter!=='all')filtered=filtered.filter(p=>p.status===filter);
   const sc={paid:'b-green',declared:'b-gold',pending:'b-dim',late:'b-red'};
   const sl={paid:'✅ Confirmed',declared:'💬 Declared paid',pending:'⏳ Pending',late:'⚠️ Overdue'};
+  const tl={deposit:'🔐 Security deposit',first_rent:'🏁 First month rent',rent:'🏠 Monthly rent'};
+  const titles=window._llListingTitles||{};
   const tb=document.getElementById('pay-tbody');
   tb.innerHTML=filtered.map(p=>`<tr>
-    <td style="color:var(--txt);font-weight:500">${p.tenant_name||p.tenant_id?.substring(0,8)||'—'}</td>
+    <td style="color:var(--txt);font-weight:500">${p.tenant_name||p.tenant_id?.substring(0,8)||'—'}<div style="font-size:.68rem;color:var(--td);font-weight:400;margin-top:.1rem">${tl[p.type]||p.type||''}</div></td>
+    <td style="font-size:.78rem;color:var(--tm)">${titles[p.listing_id]||'—'}</td>
     <td style="color:var(--txt);font-weight:600">€${(p.amount||0).toLocaleString()}</td>
     <td style="font-size:.75rem;color:var(--td)">${p.due_date?new Date(p.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</td>
     <td><span class="badge ${sc[p.status]||'b-dim'}">${sl[p.status]||p.status}</span></td>
@@ -2541,7 +2576,7 @@ async function loadPayments(filter){
       ${p.status==='pending'||p.status==='late'?`<button class="btn bg bsm" onclick="sendReminder('${p.id}')">📧 Remind</button>`:''}
       ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadReceipt('${p.id}')">🧾 Receipt</button>`:''}
     </td>
-  </tr>`).join('')||`<tr><td colspan="5"><div class="empty"><div class="em">💶</div><p>No payments yet. Add a tenant rent entry to get started.</p></div></td></tr>`;
+  </tr>`).join('')||`<tr><td colspan="6"><div class="empty"><div class="em">💶</div><p>No payments yet. Rent schedules are created automatically once move-in is complete.</p></div></td></tr>`;
 }
 
 function loadDeposits(pays){
@@ -2552,7 +2587,11 @@ function loadDeposits(pays){
 }
 
 async function sendReminder(id){toast('📧 Rent reminder sent to tenant!');}
-function downloadReceipt(id){toast('🧾 Receipt downloaded!');}
+async function downloadReceipt(id){
+  const{data:pay}=await sb.from('payments').select('*').eq('id',id).single();
+  if(!pay){toast('❌ Payment not found');return;}
+  generateQuittance(pay);
+}
 function sendAllReminders(){toast('📧 Reminders sent to all tenants with pending payments!');}
 function generateAllReceipts(){toast('🧾 Receipts generated!');}
 function exportPayments(){toast('📥 CSV export downloaded!');}
@@ -3238,29 +3277,6 @@ function bookAgentInventory(type){
 }
 function exportInventory(){toast('📥 Inventory PDF generated!');}
 
-/* SUBLETS */
-async function loadSublets(){
-  let data=[];
-  try{
-    const res=await sb.from('sublets').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-    data=res.data||[];
-  }catch(e){return;} // Table peut ne pas exister
-  const pending=(data||[]).filter(s=>s.status==='pending').length;
-  if(pending>0){document.getElementById('nb-sublet').textContent=pending;document.getElementById('nb-sublet').style.display='inline';}
-  const wrap=document.getElementById('sublet-requests');
-  wrap.innerHTML=(data||[]).map(s=>`<div class="card" style="margin-bottom:1rem"><div class="cb"><div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap"><div class="mav">${s.subtenant_name?s.subtenant_name[0].toUpperCase():'S'}</div><div style="flex:1"><div style="font-size:.95rem;font-weight:700">Sublet request — ${s.subtenant_name||'Unknown subtenant'}</div><div style="font-size:.78rem;color:var(--tm);margin-top:.3rem">${s.start_date?`From ${new Date(s.start_date).toLocaleDateString('en-GB')} to ${new Date(s.end_date).toLocaleDateString('en-GB')}`:''} · Price: €${s.price||'—'}/mo</div></div><span class="badge ${s.status==='pending'?'b-gold':s.status==='approved'?'b-green':'b-red'}">${s.status}</span>${s.status==='pending'?`<div style="display:flex;flex-direction:column;gap:.5rem"><button class="btn bp bsm" onclick="approveSublet('${s.id}')">✓ Approve & generate sub-lease</button><button class="btn bdanger bsm" onclick="rejectSublet('${s.id}')">✗ Decline</button></div>`:''}</div></div></div>`).join('')||'<div class="empty"><div class="em">🔑</div><p>No sublet requests yet</p></div>';
-}
-
-async function approveSublet(id){
-  await sb.from('sublets').update({status:'approved'}).eq('id',id);
-  toast('✅ Sublet approved! Sub-lease generated and sent to both parties.');loadSublets();
-}
-async function rejectSublet(id){
-  await sb.from('sublets').update({status:'rejected'}).eq('id',id);
-  toast('❌ Sublet declined. Tenant notified.');loadSublets();
-}
-function openNewSublet(){toast('📋 New sublet vacancy form opened');}
-
 /* REVIEWS */
 async function loadReviews(){
   const{data}=await sb.from('reviews').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
@@ -3460,7 +3476,7 @@ async function loadReport(){
   document.getElementById('rep-occ').textContent=active>0?Math.round(occupied/active*100)+'%':'—';
   document.getElementById('rep-tick').textContent=(tickets||[]).length;
   document.getElementById('rep-total').textContent='€'+collected.toLocaleString();
-  document.getElementById('rep-longlet').textContent='€'+(pays||[]).filter(p=>p.type==='rent'&&p.status==='paid').reduce((s,p)=>s+(p.amount||0),0).toLocaleString();
+  document.getElementById('rep-longlet').textContent='€'+(pays||[]).filter(p=>(p.type==='rent'||p.type==='first_rent')&&p.status==='paid').reduce((s,p)=>s+(p.amount||0),0).toLocaleString();
   document.getElementById('rep-shortlet').textContent='€0';
   document.getElementById('rep-deposits').textContent='€'+(pays||[]).filter(p=>p.type==='deposit').reduce((s,p)=>s+(p.amount||0),0).toLocaleString();
   // Props
@@ -4284,6 +4300,8 @@ async function generateAnnexAndCompleteLL(){
     }).eq('id',ctx.bookingId);
   }catch(e){console.warn('DB update:',e);}
 
+  try{await generateRentScheduleLL(ctx);}catch(e){console.warn('Rent schedule:',e);}
+
   const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 Remember to submit Form H to ARMS within 30 days.\n📋 Register your lease at rentregistration.mt within 30 days.';
   try{
     if(ctx.booking?.tenant_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.tenant_id,content:notif,type:'move_in_complete'}).catch(()=>{});
@@ -4293,13 +4311,96 @@ async function generateAnnexAndCompleteLL(){
   toast('🎉 Move-in complete!');
 }
 
+// Auto-generates the recurring monthly rent schedule once move-in is confirmed.
+// First month's rent was already collected at signing (declareTenantPayment/
+// confirmTenantPayment) — this schedules the following months, correctly
+// linked to the tenant so they actually see and can pay them.
+async function generateRentScheduleLL(ctx,monthsAhead=12){
+  const bk=ctx.booking;
+  if(!bk?.tenant_id||!bk?.listing_id||!bk?.monthly_rent)return;
+
+  // Avoid duplicating the schedule if this runs more than once for the same booking
+  const{data:existing}=await sb.from('payments').select('id').eq('tenant_id',bk.tenant_id).eq('listing_id',bk.listing_id).eq('type','rent').limit(1);
+  if(existing&&existing.length)return;
+
+  const rows=[];
+  const base=bk.start_date?new Date(bk.start_date):new Date();
+  for(let i=1;i<=monthsAhead;i++){
+    const due=new Date(base.getFullYear(),base.getMonth()+i,1);
+    rows.push({
+      landlord_id:U.id,
+      tenant_id:bk.tenant_id,
+      listing_id:bk.listing_id,
+      tenant_name:ctx.tenant?.full_name||null,
+      tenant_email:ctx.tenant?.email||null,
+      amount:bk.monthly_rent,
+      type:'rent',
+      status:'pending',
+      due_date:due.toISOString().split('T')[0]
+    });
+  }
+  await sb.from('payments').insert(rows);
+}
+
 async function confirmTenantPayment(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
   if(!confirm('Confirm you received the tenant\'s payment?')) return;
+
+  let bk=null,listing=null,tenantProfile=null;
+  try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();bk=b;}catch(e){}
+  if(bk?.listing_id){try{const{data:l}=await sb.from('listings').select('title').eq('id',bk.listing_id).single();listing=l;}catch(e){}}
+  if(bk?.tenant_id){try{const{data:t}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenantProfile=t;}catch(e){}}
+
   const{error}=await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
   if(error){toast('❌ '+error.message);return;}
+
+  // Record the deposit and first month's rent as clearly labeled payments —
+  // 'first_rent' (not 'rent') so it doesn't get counted twice by the
+  // recurring monthly schedule generator, which only looks for 'rent'.
+  if(bk?.tenant_id&&bk?.listing_id&&bk?.monthly_rent){
+    const today=new Date().toISOString().split('T')[0];
+    try{
+      await sb.from('payments').insert([
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
+      ]);
+    }catch(e){console.warn('Payments record:',e);}
+  }
+
   toast('✅ Payment confirmed!');
+  if(bk)generateFirstPaymentReceiptLL(bk,listing?.title,tenantProfile?.full_name);
   loadVisitsPage();
+}
+
+function generateFirstPaymentReceiptLL(bk,listingTitle,tenantName){
+  const today=new Date();
+  const rent=bk.monthly_rent||0;
+  const holding=bk.holding_amount||0;
+  const total=rent*2-holding;
+  const text=`PAYMENT RECEIPT — REÇU DE PAIEMENT
+RestMalta Platform
+
+Date: ${today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+
+Landlord: ${P?.full_name||'Landlord'}
+Tenant: ${tenantName||'Tenant'}
+Property: ${listingTitle||''}
+
+I confirm receipt of the following, paid in full:
+  Security deposit ............... €${rent.toLocaleString()}
+  First month rent ................ €${rent.toLocaleString()}
+  ${holding?`Holding deposit (already paid) . -€${holding.toLocaleString()}\n  `:''}Total received today ............ €${total.toLocaleString()}
+
+This receipt serves as proof of payment.
+Generated automatically by RestMalta — restmalta.com`;
+  const blob=new Blob([text],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`Receipt_first_payment_${(tenantName||'tenant').replace(/\s+/g,'_')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  setTimeout(()=>toast('🧾 Receipt downloaded automatically!'),1200);
 }
 
 async function acceptDirectBooking(listingId, tenantId){
