@@ -2183,27 +2183,7 @@ async function doPost(){
   if(listing&&document.getElementById('p-exclusif')?.checked){
     await generateMandatExclusif(listing);
   }
-  if(listing) notifyMatchingAlerts(listing).catch(()=>{});
   sA(ok,"🎉 Listing published! It's now live on RestMalta.");updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
-}
-
-async function notifyMatchingAlerts(listing){
-  const{data:alerts}=await sb.from('alerts').select('*').eq('active',true);
-  if(!alerts||!alerts.length)return;
-  const matches=alerts.filter(a=>
-    (!a.zone||a.zone===listing.zone)&&
-    (!a.max_budget||listing.price<=a.max_budget)&&
-    (!a.type||a.type===listing.type)&&
-    (!a.min_rooms||(listing.spots||1)>=a.min_rooms)
-  );
-  if(!matches.length)return;
-  const content=`🔔 New listing matching your alert!\n\n${listing.title}\n📍 ${listing.zone} · €${listing.price}/mo\n\nCheck it out before it's gone!`;
-  await Promise.all(matches.map(a=>
-    sb.from('messages').insert({
-      listing_id:listing.id,sender_id:'system',receiver_id:a.tenant_id,
-      content,type:'alert_match'
-    }).catch(()=>{})
-  ));
 }
 
 async function generateMandatExclusif(listing){
