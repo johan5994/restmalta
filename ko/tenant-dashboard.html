@@ -691,57 +691,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
       </div>
     <div class="page" id="page-search">
-      <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
-        <div>
-          <!-- Alerts -->
-          <div class="card" style="margin-bottom:1rem">
-            <div class="ch"><div class="ct">🔔 Instant alerts</div><span class="badge b-green">Active</span></div>
-            <div class="cb">
-              <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Get notified instantly when a new listing matching your criteria is posted.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
-                <div class="fg"><label class="fl">Zone</label>
-                  <select class="fsel" id="alert-zone"><option value="">Any zone</option><option>St. Julian's</option><option>Sliema</option><option>Valletta</option><option>Msida</option><option>Gzira</option><option>Gozo</option><option>Bugibba</option><option>Mellieha</option></select>
-                </div>
-                <div class="fg"><label class="fl">Max budget (€/mo)</label><input class="fi" id="alert-budget" type="number" placeholder="800"></div>
-                <div class="fg"><label class="fl">Type</label>
-                  <select class="fsel" id="alert-type"><option value="">Any type</option><option value="short">Short-let</option><option value="sublet">Sublet</option><option value="long">Long-let</option></select>
-                </div>
-                <div class="fg"><label class="fl">Min rooms</label>
-                  <select class="fsel" id="alert-rooms"><option value="">Any</option><option value="1">Studio / 1BR</option><option value="2">2+ rooms</option><option value="3">3+ rooms</option></select>
-                </div>
+      <div style="max-width:640px;margin:0 auto">
+        <!-- Alerts -->
+        <div class="card">
+          <div class="ch"><div class="ct">🔔 Instant alerts</div><span class="badge b-dim" id="alert-status-badge">Not active</span></div>
+          <div class="cb">
+            <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Get notified instantly when a new listing matching your criteria is posted.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+              <div class="fg"><label class="fl">Zone</label>
+                <select class="fsel" id="alert-zone"><option value="">Any zone</option><option>St. Julian's</option><option>Sliema</option><option>Valletta</option><option>Msida</option><option>Gzira</option><option>Gozo</option><option>Bugibba</option><option>Mellieha</option></select>
               </div>
-              <button class="btn bp" style="width:100%;justify-content:center" onclick="saveAlert()">🔔 Activate alert →</button>
+              <div class="fg"><label class="fl">Max budget (€/mo)</label><input class="fi" id="alert-budget" type="number" placeholder="800"></div>
+              <div class="fg"><label class="fl">Type</label>
+                <select class="fsel" id="alert-type"><option value="">Any type</option><option value="short">Short-let</option><option value="sublet">Sublet</option><option value="long">Long-let</option></select>
+              </div>
+              <div class="fg"><label class="fl">Min rooms</label>
+                <select class="fsel" id="alert-rooms"><option value="">Any</option><option value="1">Studio / 1BR</option><option value="2">2+ rooms</option><option value="3">3+ rooms</option></select>
+              </div>
             </div>
-          </div>
-
-          <!-- Compatible listings -->
-          <div class="card">
-            <div class="ch"><div class="ct">🎯 Best matches for you</div><span class="badge b-sea" id="match-count">Loading...</span></div>
-            <div class="cb" id="match-listings"><div class="empty"><div class="em">🔍</div><p>Loading listings...</p></div></div>
-          </div>
-        </div>
-
-        <!-- Score panel -->
-        <div>
-          <div class="card">
-            <div class="ch"><div class="ct">🏅 Tenant score</div></div>
-            <div class="cb" style="text-align:center">
-              <div style="width:80px;height:80px;position:relative;margin:0 auto 1rem">
-                <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(107,95,82,.15)" stroke-width="8"/>
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--terra)" stroke-width="8" stroke-dasharray="213.6" id="score-arc" stroke-dashoffset="106.8" stroke-linecap="round"/>
-                </svg>
-                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--terra)" id="score-val">5.0</div>
-              </div>
-              <div style="font-size:.82rem;color:var(--stone);margin-bottom:1rem">Your tenant score</div>
-              <div style="display:flex;flex-direction:column;gap:.5rem;text-align:left">
-                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Profilee complete</span><span id="sc-profile" style="color:var(--terra)">—</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">ID verified</span><span id="sc-id" style="color:var(--terra)">❌</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0;border-bottom:1px solid var(--b)"><span style="color:var(--tm)">Reviews received</span><span id="sc-reviews">0</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.4rem 0"><span style="color:var(--tm)">Member since</span><span id="sc-since">Today</span></div>
-              </div>
-              <button class="btn bp" style="width:100%;justify-content:center;margin-top:1rem" onclick="sp('profile',document.querySelectorAll('.ni')[7])">Complete profile →</button>
-            </div>
+            <button class="btn bp" style="width:100%;justify-content:center" id="alert-btn" onclick="saveAlert()">🔔 Activate alert →</button>
+            <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem;display:none" id="alert-deactivate-btn" onclick="deactivateAlert()">🔕 Deactivate alert</button>
           </div>
         </div>
       </div>
@@ -1032,7 +1001,7 @@ function initUI(){
   if(!P?.full_name||!P?.passport_number)setTimeout(()=>toast('⚠️ Complete your profile to unlock automatic lease generation!'),1000);
 }
 
-async function loadAll(){await Promise.all([loadOverview(),loadPaymentsData(),loadMyReviews()]);}
+async function loadAll(){await Promise.all([loadOverview(),loadPaymentsData(),loadMyReviews(),loadAlertState()]);}
 
 function sp(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
@@ -1046,6 +1015,7 @@ function sp(id,btn){
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')loadMessages();
   if(id==='mylocation')loadMyLocation();
+  if(id==='search')loadAlertState();
   if(id==='deposit')loadDeposit();
   if(id==='visits'){loadTenantVisits();initStripeCard();}
   if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
@@ -2652,7 +2622,6 @@ async function saveProfilee(){
   const{error}=await sb.from('profiles').update(updates).eq('clerk_id',U.id);
   if(error){toast('Error: '+error.message);return;}
   Object.assign(P,updates);
-  updateScore();
   updateProfileeCompleteness();
   const ok=document.getElementById('prof-ok');ok.style.display='inline';setTimeout(()=>ok.style.display='none',3000);
   toast('✅ Profilee saved!');
@@ -2669,56 +2638,50 @@ async function uploadID(input){
 }
 
 // ── SEARCH & SCORE ────────────────────────────────────────────
-async function loadMatchListings(){
-  const{data}=await sb.from('listings').select('*').eq('active',true).order('created_at',{ascending:false}).limit(20);
-  const listings=data||[];
-  document.getElementById('match-count').textContent=`${listings.length} listings found`;
-  const w=document.getElementById('match-listings');
-  if(!listings.length){w.innerHTML='<div class="empty"><div class="em">🔍</div><p>No listings found</p></div>';return;}
-  const types={short:'Short-let',sublet:'Sublet',long:'Long-let'};
-  w.innerHTML=listings.map(l=>{
-    const score=Math.floor(60+Math.random()*40);
-    const color=score>=80?'var(--green)':score>=60?'var(--gold)':'var(--terra)';
-    return`<div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
-      <div style="width:48px;height:48px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;overflow:hidden">${l.photos&&l.photos[0]?`<img src="${l.photos[0]}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:'🏠'}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div>
-        <div style="font-size:.72rem;color:var(--tm)">📍 ${l.zone} · €${l.price}/mo · ${types[l.type]||l.type}</div>
-      </div>
-      <div style="text-align:center;flex-shrink:0">
-        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:${color}">${score}%</div>
-        <div style="font-size:.65rem;color:var(--td)">match</div>
-      </div>
-      <button class="btn bp bsm" onclick="window.location.href='/'">View</button>
-    </div>`;
-  }).join('');
-}
+async function saveAlert(){
+  const zone=document.getElementById('alert-zone').value||null;
+  const budget=document.getElementById('alert-budget').value?parseInt(document.getElementById('alert-budget').value):null;
+  const type=document.getElementById('alert-type').value||null;
+  const rooms=document.getElementById('alert-rooms').value?parseInt(document.getElementById('alert-rooms').value):null;
 
-async function updateScore(){
-  if(!P)return;
-  // Score is based on real reviews from landlords, not profile completeness
-  const{data:reviews}=await sb.from('reviews').select('rating').eq('reviewer_id',U.id);
-  const hasReviews=reviews&&reviews.length>0;
-  const avgScore=hasReviews?(reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length).toFixed(1):'—';
-  const scoreNum=hasReviews?parseFloat(avgScore):0;
+  const{error}=await sb.from('alerts').upsert({
+    tenant_id:U.id,
+    zone,max_budget:budget,type,min_rooms:rooms,
+    active:true
+  },{onConflict:'tenant_id'});
 
-  document.getElementById('score-val').textContent=hasReviews?avgScore:'New';
-  const offset=213.6-(213.6*(scoreNum/5));
-  document.getElementById('score-arc').setAttribute('stroke-dashoffset',Math.max(0,offset));
-
-  // Profilee completeness bar
-  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address,P.place_of_birth,P.father_name,P.mother_name];
-  const filled=fields.filter(Boolean).length;
-  const pct=Math.round(filled/fields.length*100);
-  const scEl=document.getElementById('sc-profile');
-  if(scEl)scEl.textContent=pct+'%';
-}
-
-function saveAlert(){
-  const zone=document.getElementById('alert-zone').value;
-  const budget=document.getElementById('alert-budget').value;
+  if(error){toast('❌ '+error.message);return;}
   toast(`🔔 Alert activated! ${zone?'Zone: '+zone+' · ':''}${budget?'Max €'+budget+'/mo':''}`);
   document.getElementById('nb-alerts').style.display='inline';
+  loadAlertState();
+}
+
+async function deactivateAlert(){
+  const{error}=await sb.from('alerts').update({active:false}).eq('tenant_id',U.id);
+  if(error){toast('❌ '+error.message);return;}
+  toast('🔕 Alert deactivated');
+  document.getElementById('nb-alerts').style.display='none';
+  loadAlertState();
+}
+
+async function loadAlertState(){
+  const badge=document.getElementById('alert-status-badge');
+  const activateBtn=document.getElementById('alert-btn');
+  const deactivateBtn=document.getElementById('alert-deactivate-btn');
+  let data=null;
+  try{const{data:d}=await sb.from('alerts').select('*').eq('tenant_id',U.id).maybeSingle();data=d;}catch(e){}
+
+  if(data){
+    document.getElementById('alert-zone').value=data.zone||'';
+    document.getElementById('alert-budget').value=data.max_budget||'';
+    document.getElementById('alert-type').value=data.type||'';
+    document.getElementById('alert-rooms').value=data.min_rooms||'';
+  }
+  const isActive=data?.active;
+  if(badge){badge.textContent=isActive?'Active':'Not active';badge.className='badge '+(isActive?'b-green':'b-dim');}
+  if(activateBtn)activateBtn.textContent=isActive?'🔔 Update alert →':'🔔 Activate alert →';
+  if(deactivateBtn)deactivateBtn.style.display=isActive?'block':'none';
+  if(document.getElementById('nb-alerts'))document.getElementById('nb-alerts').style.display=isActive?'inline':'none';
 }
 
 async function uploadDocument(input, docType){
@@ -3757,11 +3720,7 @@ async function doLogout(){await clerk.signOut();window.location.href='/';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
 setRating(5);
 
-// Load extra data after init
-setTimeout(()=>{
-  loadMatchListings();
-  updateScore();
-},1000);
+
 </script>
 </body>
 </html>
