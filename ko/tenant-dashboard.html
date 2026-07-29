@@ -2405,7 +2405,7 @@ async function loadPaymentsData(){
     ?'<div style="padding:0 1.2rem">'+payments.map(p=>`
       <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
         <div style="flex:1">
-          <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='rent'?'(rent)':''}</div>
+          <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='first_rent'?'(1er mois de loyer)':p.type==='rent'?'(loyer)':''}</div>
           <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">Échéance : ${p.due_date?new Date(p.due_date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—'}</div>
           ${p.paid_at?`<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Confirmed le ${new Date(p.paid_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
         </div>
@@ -2414,6 +2414,30 @@ async function loadPaymentsData(){
         ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Receipt</button>`:''}
       </div>`).join('')+'</div>'
     :'<div class="empty"><div class="em">💶</div><p>None paiement enregistré</p></div>';
+}
+
+function downloadTenantReceipt(paymentId,amount,date){
+  const d=date?new Date(date):new Date();
+  const month=d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const text=`RENT RECEIPT — QUITTANCE DE LOYER
+RestMalta Platform
+
+Date: ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+
+Tenant: ${P?.full_name||'Tenant'}
+
+I confirm payment of the sum of €${(parseFloat(amount)||0).toLocaleString()}
+for rent payment for the period of ${month}.
+
+This receipt was generated automatically by RestMalta — restmalta.com`;
+  const blob=new Blob([text],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`Quittance_rent_${month.replace(' ','_')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('🧾 Receipt downloaded!');
 }
 
 async function declarePaid(paymentId){
