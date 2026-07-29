@@ -4053,7 +4053,7 @@ async function setSigningDay(bookingId){
 async function confirmTenantPayment(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
   if(!confirm('Confirm you received the tenant\'s payment?')) return;
-  const{error}=await sb.from('bookings').update({first_payment_confirmed:true,first_payment_confirmed_at:new Date().toISOString()}).eq('id',bookingId);
+  const{error}=await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
   if(error){toast('❌ '+error.message);return;}
   toast('✅ Payment confirmed!');
   loadVisitsPage();
