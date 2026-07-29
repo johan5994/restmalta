@@ -1668,12 +1668,17 @@ async function loadTickets(){
 }
 
 async function openTicketModal(){
-  let leases=null;
-  try{const{data:d}=await sb.from('leases').select('id').eq('tenant_id',U.id).eq('status','signed').limit(1);leases=d;}catch(e){leases=null;}
-  if(!leases||!leases.length){
-    toast('⚠️ You need a signed lease to report maintenance issues.');
+  const activeStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
+  let bk=null;
+  try{
+    const{data:d}=await sb.from('bookings').select('listing_id,landlord_id').eq('tenant_id',U.id).in('status',activeStatuses).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    bk=d;
+  }catch(e){bk=null;}
+  if(!bk){
+    toast('⚠️ You need an active lease to report maintenance issues.');
     return;
   }
+  window._activeTicketBooking=bk;
   document.getElementById('tick-modal').classList.add('open');
 }
 
@@ -1704,8 +1709,12 @@ async function submitTicket(){
   if(document.getElementById('tq-temp')?.checked)diag.push('Intermittent');
   const fullDesc=desc+(diag.length?`\n\nInfos supplémentaires: ${diag.join(', ')}`:''
   );
+  const bk=window._activeTicketBooking;
   const{data:ticket,error}=await sb.from('tickets').insert({
     tenant_id:U.id,
+    landlord_id:bk?.landlord_id||null,
+    listing_id:bk?.listing_id||null,
+    tenant_name:P?.full_name||null,
     title,
     description:fullDesc,
     priority,
@@ -1719,6 +1728,13 @@ async function submitTicket(){
       const ext=f.name.split('.').pop();
       await sb.storage.from('listings').upload(`tickets/${ticket.id}/photo_${i}.${ext}`,f,{upsert:true});
     }
+  }
+  if(bk?.landlord_id){
+    try{await sb.from('messages').insert({
+      listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
+      content:`🔧 New maintenance ticket from ${P?.full_name||'your tenant'}\n\n${title}\n${desc}\n\nCheck your Maintenance page to respond.`,
+      type:'maintenance_new'
+    });}catch(e){}
   }
   document.getElementById('tick-modal').classList.remove('open');
   document.getElementById('tick-desc').value='';
