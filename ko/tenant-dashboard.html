@@ -2094,7 +2094,7 @@ async function tenantNotInterested(visitId){
 
 async function declareTenantPayment(bookingId){
   if(!confirm('Confirm you have transferred the payment to the landlord?')) return;
-  const{error}=await sb.from('bookings').update({first_payment_sent:true,first_payment_sent_at:new Date().toISOString()}).eq('id',bookingId);
+  const{error}=await sb.from('bookings').update({first_payment_sent:true}).eq('id',bookingId);
   if(error){toast('❌ '+error.message);return;}
   toast('✅ Payment declared! Landlord will confirm.');
   loadTenantVisits();
