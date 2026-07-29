@@ -124,7 +124,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni act" onclick="sp('overview',this)"><span class="nico">🏠</span>My rentals</button>
     <button class="ni" onclick="sp('search',this)"><span class="nico">🔍</span>Find a flat<span class="nbadge" id="nb-alerts" style="display:none;background:var(--green)">!</span></button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>My visits<span class="nbadge" id="nb-visits-t" style="display:none">0</span></button>
-    <button class="ni" onclick="sp('dossier',this)"><span class="nico">📋</span>My dossier</button>
     <div class="nl">Communication</div>
     <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-msg" style="display:none">0</span></button>
     <button class="ni" onclick="sp('maintenance',this)"><span class="nico">🔧</span>Maintenance</button>
@@ -729,47 +728,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <!-- MY DOSSIER -->
-    <div class="page" id="page-dossier">
-      <div class="card" style="max-width:640px">
-        <div class="ch"><div class="ct">📋 My rental dossier</div><button class="btn bp bsm" onclick="downloadDossier()">⬇ Download PDF</button></div>
-        <div class="cb">
-          <p style="font-size:.85rem;color:var(--tm);margin-bottom:1.5rem;line-height:1.6">Your dossier is automatically filled from your profile. Send it to any landlord in one click to apply for a flat.</p>
-          
-          <div style="background:var(--s2);border-radius:12px;padding:1.5rem;margin-bottom:1rem;border:1px solid var(--b)">
-            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;padding-bottom:1.2rem;border-bottom:1px solid var(--b)">
-              <div style="width:50px;height:50px;border-radius:50%;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--terra)" id="dos-av">?</div>
-              <div>
-                <div style="font-size:.95rem;font-weight:700" id="dos-name">—</div>
-                <div style="font-size:.75rem;color:var(--tm)" id="dos-role">Tenant</div>
-              </div>
-              <div style="margin-left:auto"><span class="badge b-dim" id="dos-verified">Not verified</span></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Nationality</div><div style="font-size:.85rem" id="dos-nat">—</div></div>
-              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Email</div><div style="font-size:.85rem" id="dos-email">—</div></div>
-              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Phone</div><div style="font-size:.85rem" id="dos-phone">—</div></div>
-              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Emprent</div><div style="font-size:.85rem" id="dos-emprent">—</div></div>
-              <div><div style="font-size:.68nm;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Reason for stay</div><div style="font-size:.85rem" id="dos-reason">—</div></div>
-              <div><div style="font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--td);margin-bottom:.25rem">Tenant score</div><div style="font-size:.85rem;color:var(--terra);font-weight:700" id="dos-score">—</div></div>
-            </div>
-          </div>
-
-          <!-- DOCUMENTS -->
-          <div style="border:1px solid var(--b);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem;background:rgba(58,143,181,.04)">
-            <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">📄 Your documents</div>
-            <div style="font-size:.78rem;color:var(--tm);margin-bottom:.75rem">Upload your ID (required) and supporting documents to strengthen your application.</div>
-            <button class="btn bp" style="width:100%;justify-content:center" onclick="sp('overview',document.querySelectorAll('.ni')[0])">📄 Manage my documents →</button>
-          </div>
-
-
-          <div style="display:flex;gap:.75rem">
-            <button class="btn bp" style="flex:1;justify-content:center" onclick="copyDossierLink()">📋 Copy dossier link</button>
-            <button class="btn bg" style="flex:1;justify-content:center" onclick="sp('profile',document.querySelectorAll('.ni')[7])">✏️ Edit profile</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </main>
 
@@ -1064,7 +1022,7 @@ function sp(id,btn){
   // Afficher docs seulement sur profile
   const docsSection=document.getElementById('docs-section');
   if(docsSection) docsSection.style.display=id==='profile'?'block':'none';
-  const titles={overview:'My Rentals',messages:'Messages',maintenance:'Maintenance',documents:'My Leases',payments:'Payments',deposit:'My Deposit',reviews:'Reviews',profile:'My Profile',search:'Find a Flat',dossier:'My Dossier',visits:'My Visits'};
+  const titles={overview:'My Rentals',messages:'Messages',maintenance:'Maintenance',documents:'My Leases',payments:'Payments',deposit:'My Deposit',reviews:'Reviews',profile:'My Profile',search:'Find a Flat',visits:'My Visits'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')loadMessages();
   if(id==='maintenance')loadTickets();
@@ -2702,27 +2660,6 @@ function saveAlert(){
   document.getElementById('nb-alerts').style.display='inline';
 }
 
-function loadDossier(){
-  if(!P)return;
-  const n=P.full_name||'—';
-  document.getElementById('dos-av').textContent=n[0]||'?';
-  document.getElementById('dos-name').textContent=n;
-  document.getElementById('dos-role').textContent=P.reason_for_stay||'Tenant';
-  document.getElementById('dos-nat').textContent=P.nationality||'—';
-  document.getElementById('dos-email').textContent=P.email||U.email||'—';
-  document.getElementById('dos-phone').textContent=P.phone||'—';
-  document.getElementById('dos-emprent').textContent=P.emprent||'—';
-  document.getElementById('dos-reason').textContent=P.reason_for_stay||'—';
-  const fields=[P.full_name,P.phone,P.nationality,P.passport_number,P.date_of_birth,P.home_address];
-  const score=((fields.filter(Boolean).length/fields.length)*5+2.5).toFixed(1);
-  document.getElementById('dos-score').textContent=score+'/10';
-}
-
-function copyDossierLink(){
-  navigator.clipboard.writeText(window.location.origin+'/dossier/'+U.id);
-  toast('📋 Dossier link copied!');
-}
-
 async function uploadDocument(input, docType){
   const file=input.files[0];
   if(!file)return;
@@ -2834,11 +2771,6 @@ async function confirmTenantPayment(bookingId){
   }catch(e){toast('❌ '+e.message);}
 }
 
-
-function downloadDossier(){
-  toast('📥 Generating PDF dossier...');
-  setTimeout(()=>toast('✅ PDF ready — check your downloads'),2000);
-}
 
 async function requestReference(){
   const email=prompt('Enter your previous landlord\'s email:');
@@ -3767,7 +3699,6 @@ setRating(5);
 // Load extra data after init
 setTimeout(()=>{
   loadMatchListings();
-  loadDossier();
   updateScore();
 },1000);
 </script>
