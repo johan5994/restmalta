@@ -691,9 +691,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
       </div>
     <div class="page" id="page-search">
-      <div style="max-width:640px;margin:0 auto">
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">🔍 Find a flat</div>
+      <div class="card" style="max-width:640px">
         <!-- Alerts -->
-        <div class="card">
           <div class="ch"><div class="ct">🔔 Instant alerts</div><span class="badge b-dim" id="alert-status-badge">Not active</span></div>
           <div class="cb">
             <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Get notified instantly when a new listing matching your criteria is posted.</p>
@@ -712,7 +712,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <button class="btn bp" style="width:100%;justify-content:center" id="alert-btn" onclick="saveAlert()">🔔 Activate alert →</button>
             <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem;display:none" id="alert-deactivate-btn" onclick="deactivateAlert()">🔕 Deactivate alert</button>
           </div>
-        </div>
+      </div>
+
+      <div class="card" style="max-width:640px;margin-top:1rem;display:none" id="alert-matches-card">
+        <div class="ch"><div class="ct">🏠 Listings matching your alert</div><span class="badge b-sea" id="alert-matches-count"></span></div>
+        <div class="cb" id="alert-matches-list"></div>
       </div>
     </div>
 
@@ -2682,6 +2686,40 @@ async function loadAlertState(){
   if(activateBtn)activateBtn.textContent=isActive?'🔔 Update alert →':'🔔 Activate alert →';
   if(deactivateBtn)deactivateBtn.style.display=isActive?'block':'none';
   if(document.getElementById('nb-alerts'))document.getElementById('nb-alerts').style.display=isActive?'inline':'none';
+  loadAlertMatches(data);
+}
+
+async function loadAlertMatches(alert){
+  const card=document.getElementById('alert-matches-card');
+  const countEl=document.getElementById('alert-matches-count');
+  const listEl=document.getElementById('alert-matches-list');
+  if(!card)return;
+
+  if(!alert||!alert.active){card.style.display='none';return;}
+
+  let query=sb.from('listings').select('*').eq('active',true);
+  if(alert.zone)query=query.eq('zone',alert.zone);
+  if(alert.max_budget)query=query.lte('price',alert.max_budget);
+  if(alert.type)query=query.eq('type',alert.type);
+  const{data:listings}=await query.order('created_at',{ascending:false}).limit(30);
+  let results=listings||[];
+  if(alert.min_rooms)results=results.filter(l=>(l.spots||1)>=alert.min_rooms);
+
+  card.style.display='block';
+  countEl.textContent=`${results.length} match${results.length===1?'':'es'}`;
+  if(!results.length){
+    listEl.innerHTML='<div class="empty"><div class="em">🔍</div><p>No listings match your alert yet.<br>You\'ll see them here as soon as one is posted.</p></div>';
+    return;
+  }
+  const types={short:'Short-let',sublet:'Sublet',long:'Long-let'};
+  listEl.innerHTML=results.map(l=>`<div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
+    <div style="width:48px;height:48px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;overflow:hidden">${l.photos&&l.photos[0]?`<img src="${l.photos[0]}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:'🏠'}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title}</div>
+      <div style="font-size:.72rem;color:var(--tm)">📍 ${l.zone} · €${l.price}/mo · ${types[l.type]||l.type}</div>
+    </div>
+    <button class="btn bp bsm" onclick="window.location.href='/'">View</button>
+  </div>`).join('');
 }
 
 async function uploadDocument(input, docType){
