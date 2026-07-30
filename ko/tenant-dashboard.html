@@ -3175,11 +3175,13 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       if(bookingError)throw new Error(bookingError.message);
 
       try{await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId);}catch(e){}
-      await sb.from('messages').insert({
-        listing_id:listingId,sender_id:'system',receiver_id:landlordId,
-        content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have paid the holding deposit + commission authorization. Check your visits page to review their dossier and accept or decline.',
-        type:'wants_to_rent'
-      }).catch(()=>{});
+      try{
+        await sb.from('messages').insert({
+          listing_id:listingId,sender_id:'system',receiver_id:landlordId,
+          content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have paid the holding deposit + commission authorization. Check your visits page to review their dossier and accept or decline.',
+          type:'wants_to_rent'
+        });
+      }catch(e){}
 
       modal.remove();
       toast('✅ Application sent! Track it in My Visits.');
