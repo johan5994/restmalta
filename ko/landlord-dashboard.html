@@ -1660,14 +1660,19 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
 <p style="font-size:8pt;color:#888;text-align:center;margin-top:20px">This agreement is drawn up in accordance with the Private Residential Leases Act, Chapter 604 of the Laws of Malta.<br>Must be registered at rentregistration.mt within 30 days.</p>
 </body></html>`;
 
+      // Co-locataires ajoutés par le tenant lors de sa candidature
+      let coTenants=[];
+      try{coTenants=booking?.co_tenants_data?JSON.parse(booking.co_tenants_data):[];}catch(e){}
+
       // Envoyer via Netlify function (pas d'appel direct DocuSeal — CORS bloqué depuis le browser)
       const docuRes=await fetch('/.netlify/functions/generate-lease',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:leaseType,
-          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
-          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||'',father_name:landlordProfile?.father_name||'',mother_name:landlordProfile?.mother_name||'',mother_maiden:landlordProfile?.mother_maiden||'',place_of_birth:landlordProfile?.place_of_birth||''},
+          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||'',father_name:tenantProfile?.father_name||'',mother_name:tenantProfile?.mother_name||'',mother_maiden:tenantProfile?.mother_maiden||'',place_of_birth:tenantProfile?.place_of_birth||''},
+          coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||'',address:ct.address||'',father_name:ct.father_name||'',mother_name:ct.mother_name||'',mother_maiden:ct.mother_maiden||'',place_of_birth:ct.place_of_birth||''})),
           listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
           start_date:startDate,end_date:endDate
         })
@@ -2255,7 +2260,11 @@ async function generateAndSendLease(){
           passport:P.passport_number||'',
           address:P.malta_address||'',
           phone:P.phone||'',
-          iban:P.iban||''
+          iban:P.iban||'',
+          father_name:P.father_name||'',
+          mother_name:P.mother_name||'',
+          mother_maiden:P.mother_maiden||'',
+          place_of_birth:P.place_of_birth||''
         },
         tenant:{
           email:selectedTenant.email||'',
@@ -2264,7 +2273,11 @@ async function generateAndSendLease(){
           nationality:selectedTenant.nationality||'',
           dob:selectedTenant.date_of_birth||'',
           address:selectedTenant.home_address||'',
-          phone:selectedTenant.phone||''
+          phone:selectedTenant.phone||'',
+          father_name:selectedTenant.father_name||'',
+          mother_name:selectedTenant.mother_name||'',
+          mother_maiden:selectedTenant.mother_maiden||'',
+          place_of_birth:selectedTenant.place_of_birth||''
         },
         coTenants:coTenants.map((ct,i)=>({
           name:ct.full_name||'',
@@ -2936,8 +2949,8 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing.type==='short'?'short':'long',
-        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||'',father_name:landlordProfile.father_name||'',mother_name:landlordProfile.mother_name||'',mother_maiden:landlordProfile.mother_maiden||'',place_of_birth:landlordProfile.place_of_birth||''},
+        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||'',father_name:tenantProfile.father_name||'',mother_name:tenantProfile.mother_name||'',mother_maiden:tenantProfile.mother_maiden||'',place_of_birth:tenantProfile.place_of_birth||''},
         coTenants:[],
         listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
         start_date:startDate,end_date:endDate
@@ -3031,8 +3044,8 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:listing.type==='short'?'short':'long',
-          landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-          tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+          landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||'',father_name:landlordProfile.father_name||'',mother_name:landlordProfile.mother_name||'',mother_maiden:landlordProfile.mother_maiden||'',place_of_birth:landlordProfile.place_of_birth||''},
+          tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||'',father_name:tenantProfile.father_name||'',mother_name:tenantProfile.mother_name||'',mother_maiden:tenantProfile.mother_maiden||'',place_of_birth:tenantProfile.place_of_birth||''},
           coTenants:[],
           listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
           start_date:startDate,
@@ -3699,8 +3712,8 @@ async function regenLease(bookingId, listingId, tenantId){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing?.type==='short'?'short':'long',
-        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
-        tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||'',father_name:landlordProfile?.father_name||'',mother_name:landlordProfile?.mother_name||'',mother_maiden:landlordProfile?.mother_maiden||'',place_of_birth:landlordProfile?.place_of_birth||''},
+        tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||'',father_name:tenantProfile?.father_name||'',mother_name:tenantProfile?.mother_name||'',mother_maiden:tenantProfile?.mother_maiden||'',place_of_birth:tenantProfile?.place_of_birth||''},
         listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:listing?.payment_due_day||1},
         start_date:startDate,end_date:endDate
       })
