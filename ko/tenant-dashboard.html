@@ -226,8 +226,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
         <!-- Sub-tab: Bail & EDL -->
         <div id="ml-tab-lease">
-          <div class="ai">📄 Your signed lease agreements appear here. Generated automatically, compliant with Maltese law (PRL Act), and e-signed by both parties via DocuSeal.</div>
-          <div class="card"><div class="cb" id="docs-list"><div class="ld"><div class="sp"></div></div></div></div>
+          <div id="ml-lease-doc"></div>
         </div>
 
         <!-- Sub-tab: Payments -->
@@ -855,9 +854,29 @@ async function loadMyLocation(){
   const progressEl=document.getElementById('ml-lease-progress');
   if(progressEl)progressEl.innerHTML=renderTenantLeaseSection({},bk);
 
+  const docEl=document.getElementById('ml-lease-doc');
+  if(docEl)docEl.innerHTML=renderLeaseDocCard(bk,listing);
+
+  loadPaymentsData();
   showMlTab('lease');
-  loadDocuments();
   loadTickets();
+}
+
+function renderLeaseDocCard(bk,listing){
+  if(!bk.lease_tenant_embed&&!bk.lease_landlord_embed){
+    return`<div class="card"><div class="cb"><div class="empty"><div class="em">📄</div><p>Your lease is being prepared.<br>It will appear here as soon as it's ready to sign.</p></div></div></div>`;
+  }
+  const bothSigned=bk.lease_signed_landlord&&bk.lease_signed_tenant;
+  return`<div class="card">
+    <div class="ch"><div class="ct">📄 ${listing?.type==='short'?'Short-let':'Long-let'} Private Residential Lease</div>${bothSigned?'<span class="badge b-green">✅ Fully signed</span>':'<span class="badge b-gold">⏳ In progress</span>'}</div>
+    <div class="cb">
+      <div style="font-size:.8rem;color:var(--tm);margin-bottom:.75rem">${listing?.title||'Your property'} · ${listing?.full_address||listing?.zone||'Malta'}</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        ${bk.lease_tenant_embed?`<a href="${bk.lease_tenant_embed}" target="_blank" class="btn ${bk.lease_signed_tenant?'bg':'bp'} bsm">${bk.lease_signed_tenant?'📄 View my copy':'✍️ Sign now'}</a>`:''}
+      </div>
+      ${bothSigned?`<div style="margin-top:.75rem;font-size:.72rem;color:var(--td)">📝 Remember to register this lease at <strong>rentregistration.mt</strong> within 30 days of the start date.</div>`:''}
+    </div>
+  </div>`;
 }
 
 async function loadOverview(){
@@ -2181,57 +2200,6 @@ async function registerCard(){
     toast('✅ Card saved!');
   }catch(e){toast('❌ '+e.message);}
 }
-async function loadDocuments(){
-  const wrap=document.getElementById('docs-list');
-  wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
-  let data=null;
-  try{const{data:d}=await sb.from('leases').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});data=d;}catch(e){data=null;}
-  if(!data||!data.length){
-    wrap.innerHTML='<div class="empty"><div class="em">📄</div><p>No leases yet.<br>When your landlord generates a lease it will appear here for signature.</p></div>';
-    return;
-  }
-  const typeLabels={long:'Long-let',short:'Short-let',sublet:'Subletting',both:'Lease'};
-
-  // Load commission status for each lease
-  const commissions={};
-  for(const l of data){
-    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).maybeSingle();
-    if(comm)commissions[l.id]=comm;
-  }
-
-  wrap.innerHTML=data.map(l=>{
-    const comm=commissions[l.id];
-    const commHtml=l.status==='signed'
-      ?comm
-        ?comm.tenant_paid
-          ?'<span style="font-size:.72rem;color:var(--green)">✅ Commission paid</span>'
-          :`<a href="${comm.tenant_payment_url}" target="_blank" class="btn bp bsm" style="margin-top:.4rem">💳 Pay commission €${comm.tenant_amount} →</a>`
-        :'<span style="font-size:.72rem;color:var(--gold)">⏳ Commission payment pending</span>'
-      :'';
-    return`<div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
-      <div style="width:40px;height:40px;border-radius:10px;background:${l.status==='signed'?'rgba(76,175,125,.15)':'var(--tdim)'};display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">${l.status==='signed'?'✅':'📜'}</div>
-      <div style="flex:1">
-        <div style="font-size:.85rem;font-weight:600">${typeLabels[l.type]||'Lease'} — ${l.listing_title||'Your property'}</div>
-        <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">
-          ${l.start_date?new Date(l.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}
-          ${l.end_date?'→ '+new Date(l.end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}
-        </div>
-        ${l.status==='signed'?'<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Fully signed — legally binding</div>':''}
-        ${l.status!=='signed'?'<div style="font-size:.68rem;color:var(--gold);margin-top:.1rem">⏳ Awaiting signatures — check your email</div>':''}
-        ${commHtml}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end">
-        ${l.status==='signed'&&l.pdf_url
-          ?`<a href="${l.pdf_url}" target="_blank" class="btn bp bsm">📄 Download signed lease</a>`
-          :l.pdf_url
-            ?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View draft</a>`
-            :''}
-        <span class="badge ${l.status==='signed'?'b-green':l.status==='pending'?'b-gold':'b-dim'}">${l.status==='signed'?'✅ Signed':l.status==='pending'?'⏳ Pending':'📤 Sent'}</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-
 async function loadPaymentsData(){
   // Try by tenant_id (clerk_id) or by email match
   let data=[];
@@ -2274,7 +2242,7 @@ async function loadPaymentsData(){
     ?'<div style="padding:0 1.2rem">'+payments.map(p=>`
       <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
         <div style="flex:1">
-          <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='first_rent'?'(1er mois de loyer)':p.type==='rent'?'(loyer)':''}</div>
+          <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='first_rent'?'(1er mois de loyer)':p.type==='rent'?'(loyer)':p.type==='commission'?'(commission RestMalta)':''}</div>
           <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">Échéance : ${p.due_date?new Date(p.due_date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—'}</div>
           ${p.paid_at?`<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Confirmed le ${new Date(p.paid_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
         </div>
