@@ -1344,8 +1344,8 @@ async function openDet(id){
 
   // Coût total pour le tenant
   const hasAgent=AL.wants_agent&&AL.agent_service==='full';
-  const commission=hasAgent?Math.round(l.price*0.40):Math.round(l.price*0.10);
-  const commissionLabel=hasAgent?'RestMalta fee (40% — with agent)':'RestMalta fee (10%)';
+  const commission=hasAgent?Math.round(l.price*0.40):Math.round(l.price*0.15);
+  const commissionLabel=hasAgent?'RestMalta fee (40% — with agent)':'RestMalta fee (15%)';
   document.getElementById('dcost-inner').innerHTML=`
     <div class="crow"><span>First month rent</span><span style="font-weight:700">€${l.price}</span></div>
     <div class="crow"><span>Security deposit</span><span style="font-weight:700">${l.deposit?'€'+l.deposit:'None'}</span></div>
@@ -1615,9 +1615,9 @@ async function payHoldingDeposit(){
   try{
     const monthly_rent=AL.price||0;
     const holding_amount=Math.round(monthly_rent/2);
-    const commission_amount=Math.round(monthly_rent*0.40);
+    const commission_amount=Math.round(monthly_rent*0.10); // 10% TTC, que ce soit avec ou sans agent
 
-    // 1 — Créer le PaymentIntent
+    // 1 — Créer la pré-autorisation du Holding Deposit
     const res=await fetch('/.netlify/functions/holding-deposit',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -1634,13 +1634,29 @@ async function payHoldingDeposit(){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Payment failed');
 
-    // 2 — Confirm payment with Stripe card
+    // 2 — Confirmer le holding avec la carte (gère 3DS/SCA)
     const{error,paymentIntent}=await window._reserveStripe.confirmCardPayment(data.client_secret,{
       payment_method:{card:window._reserveCardEl}
     });
     if(error)throw new Error(error.message);
 
-    // 3 — Sauvegarder la réservation dans Supabase
+    // 3 — Créer la 2e pré-autorisation (commission 10%), même carte, sans ressaisie
+    const commRes=await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'create_commission_intent',
+        customer_id:data.customer_id,
+        payment_method_id:paymentIntent.payment_method,
+        monthly_rent,
+        has_agent:AL.wants_agent&&AL.agent_service==='full',
+        listing_id:AL.id,
+        tenant_id:U.id
+      })
+    });
+    const commData=await commRes.json();
+    if(!commData.success)throw new Error(commData.error||'Commission authorization failed');
+
+    // 4 — Sauvegarder la réservation avec les DEUX intentions
     const{data:booking,error:bookErr}=await sb.from('bookings').insert({
       listing_id:AL.id,
       tenant_id:U.id,
@@ -1648,6 +1664,7 @@ async function payHoldingDeposit(){
       tenant_name:P.full_name,
       tenant_email:P.email||'',
       payment_intent_id:paymentIntent.id,
+      commission_payment_intent_id:commData.commission_payment_intent_id,
       stripe_customer_id:data.customer_id,
       holding_amount,
       commission_amount,
@@ -1659,7 +1676,7 @@ async function payHoldingDeposit(){
 
     const bookingId=booking?.id||paymentIntent.id;
 
-    // 4 — Passer le listing en "reserved"
+    // 5 — Passer le listing en "reserved"
     await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',AL.id);
 
     // 5 — Générer le reçu DocuSeal
