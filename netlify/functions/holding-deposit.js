@@ -96,6 +96,7 @@ exports.handler = async (event) => {
         capture_method: 'manual', // Fonds bloqués, capturés uniquement si "tenant disparu"
         customer: customerId,
         payment_method_types: ['card'],
+        setup_future_usage: 'off_session', // Sauvegarde la carte pour create_commission_intent juste après
         metadata: {
           type: 'holding_deposit',
           listing_id,
