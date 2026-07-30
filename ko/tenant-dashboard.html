@@ -3091,6 +3091,77 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
 // Modal de paiement autonome (holding + commission) — utilisable depuis n'importe quelle
 // page (Messages, listing, etc.), contrairement à showHoldingDeposit qui dépend d'un
 // élément DOM propre à la page "My Visits".
+async function requestVisitFromContact(listingId, landlordId, listingTitle){
+  if(!listingId||!landlordId){toast('❌ Missing listing info');return;}
+
+  const missing=[];
+  if(!P?.full_name)missing.push('Full name');
+  if(!P?.passport_number)missing.push('Passport/ID');
+  if(!P?.nationality)missing.push('Nationality');
+  if(!P?.date_of_birth)missing.push('Date of birth');
+  if(!P?.home_address)missing.push('Home address');
+  if(missing.length>0){
+    toast('❌ Complete your profile before requesting a visit');
+    alert(`Please complete your profile first.\n\nMissing: ${missing.join(', ')}`);
+    return;
+  }
+
+  const modal=document.createElement('div');
+  modal.id='visit-request-modal-overlay';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:20px;padding:1.5rem;width:100%;max-width:400px">
+      <div style="font-size:1rem;font-weight:800;margin-bottom:1rem">📅 Request a visit</div>
+      <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">${listingTitle||'This property'}</div>
+      <div class="fg"><label class="fl">Preferred date</label><input class="fi" type="date" id="vr-date"></div>
+      <div class="fg"><label class="fl">Preferred time</label><input class="fi" type="time" id="vr-time" value="14:00"></div>
+      <div style="display:flex;gap:.5rem;margin-top:1rem">
+        <button id="vr-send-btn" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">Send request →</button>
+        <button onclick="document.getElementById('visit-request-modal-overlay').remove()" style="background:var(--s2);color:var(--tm);border:1px solid var(--b);border-radius:10px;padding:.7rem .9rem;font-size:.82rem;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('vr-send-btn').onclick=async()=>{
+    const visitDate=document.getElementById('vr-date')?.value;
+    const visitTime=document.getElementById('vr-time')?.value||'14:00';
+    if(!visitDate){toast('⚠️ Please select a date');return;}
+    const today=new Date();today.setHours(0,0,0,0);
+    if(new Date(visitDate)<today){toast('⚠️ Please select a future date');return;}
+
+    let listing=null;
+    try{const{data:l}=await sb.from('listings').select('zone,title').eq('id',listingId).single();listing=l;}catch(e){}
+
+    try{
+      await sb.from('visits').insert({
+        listing_id:listingId,
+        tenant_id:U.id,
+        landlord_id:landlordId,
+        tenant_name:P?.full_name||'',
+        tenant_email:P?.email||'',
+        visit_date:visitDate,
+        visit_time:visitTime,
+        zone:listing?.zone||'',
+        status:'awaiting_landlord'
+      });
+    }catch(e){toast('❌ '+e.message);return;}
+
+    try{
+      const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:landlordId,
+        content:'📅 '+(P?.full_name||'A tenant')+' requested a visit\n\n'+(listing?.title||listingTitle||'Property')+'\nDate: '+visitDateStr+' at '+visitTime+'\n\nCheck your visits page to confirm.',
+        type:'visit_request'
+      });
+    }catch(e){}
+
+    modal.remove();
+    toast('✅ Visit request sent!');
+    sp('visits',document.querySelector('.ni[onclick*="visits"]'));
+    loadTenantVisits();
+  };
+}
+
 async function openDirectRentPayment(listingId, listingTitle, landlordId, price, negotiationNote='', extras=[], moveIn=null){
   let listing=null,hasAgent=false;
   try{
