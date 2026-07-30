@@ -894,8 +894,8 @@ async function loadMessages(){
   const wrap=document.getElementById('messages-list');
   try{
     const[{data:sent},{data:received}]=await Promise.all([
-      sb.from('messages').select('*,listings(title,zone)').eq('sender_id',U.id).neq('type','visit_request').order('created_at',{ascending:false}),
-      sb.from('messages').select('*,listings(title,zone)').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false})
+      sb.from('messages').select('*,listings(title,zone,price)').eq('sender_id',U.id).neq('type','visit_request').order('created_at',{ascending:false}),
+      sb.from('messages').select('*,listings(title,zone,price)').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false})
     ]);
     const all=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
@@ -3091,6 +3091,8 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
     listing=l;
     hasAgent=l?.wants_agent&&l?.agent_service==='full';
   }catch(e){}
+  price=listing?.price||price||0; // toujours faire confiance au prix réel en base, pas à ce qui a été passé
+  if(!price){toast('❌ This listing has no price set — contact RestMalta support.');return;}
 
   const tenantRate=0.10;
   const holding=Math.round(price/2);
