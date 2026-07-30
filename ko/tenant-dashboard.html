@@ -1806,8 +1806,8 @@ function renderTenantLeaseSection(v, bk){
   const tSigned=bk.lease_signed_tenant;
   const payDeclared=bk.first_payment_sent;
   const payConfirmed=bk.first_payment_confirmed;
-  const moveIn=bk.start_date||v.move_in_date||null;
-  const edlDate=bk.edl_date||null;
+  const moveIn=bk.move_in_date||v.move_in_date||null;
+  const edlDate=bk.edl_date||moveIn||null;
   const rent=bk.monthly_rent||0;
   const deposit=rent;
   const holding=bk.holding_amount||0;
