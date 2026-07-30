@@ -1502,14 +1502,16 @@ async function sendMsg(){
     const{data:agents}=await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
     if(!agents?.length){toast('⚠️ No agents available right now.');return;}
     for(const agent of agents){
-      await sb.from('messages').insert({
-        listing_id:AL.id,
-        sender_id:U.id,
-        receiver_id:agent.clerk_id,
-        content:c,
-        type:'tenant_contact',
-        read:false
-      }).catch(()=>{});
+      try{
+        await sb.from('messages').insert({
+          listing_id:AL.id,
+          sender_id:U.id,
+          receiver_id:agent.clerk_id,
+          content:c,
+          type:'tenant_contact',
+          read:false
+        });
+      }catch(e){}
     }
     document.getElementById('dmsg').value='';
     toast('✅ Message sent to available agents!');
@@ -1691,17 +1693,19 @@ async function payHoldingDeposit(){
     }).catch(()=>{});
 
     // 6 — Notifier le landlord
-    await sb.from('messages').insert({
-      listing_id:AL.id,
-      sender_id:'system',
-      receiver_id:AL.landlord_id,
-      content:`🔒 New reservation request!\n\n👤 Tenant: ${P.full_name}\n📞 Phone: ${P.phone||'—'}\n🌍 Nationality: ${P.nationality||'—'}\n📋 Passport: ${P.passport_number||'—'}\n💼 Employer: ${P.emprent||'—'}\n\n💰 Monthly rent: €${monthly_rent}\n🔐 Holding deposit paid: €${holding_amount}\n\nGo to your dashboard → Visits to accept or decline within 48 hours.\n\n⚠️ If you decline, the tenant is fully refunded automatically.`,
-      type:'booking_request'
-    }).catch(()=>{});
+    try{
+      await sb.from('messages').insert({
+        listing_id:AL.id,
+        sender_id:'system',
+        receiver_id:AL.landlord_id,
+        content:`🔒 New reservation request!\n\n👤 Tenant: ${P.full_name}\n📞 Phone: ${P.phone||'—'}\n🌍 Nationality: ${P.nationality||'—'}\n📋 Passport: ${P.passport_number||'—'}\n💼 Employer: ${P.emprent||'—'}\n\n💰 Monthly rent: €${monthly_rent}\n🔐 Holding deposit paid: €${holding_amount}\n\nGo to your dashboard → Visits to accept or decline within 48 hours.\n\n⚠️ If you decline, the tenant is fully refunded automatically.`,
+        type:'booking_request'
+      });
+    }catch(e){}
 
     // 7 — Sauvegarder stripe_customer_id sur le profil tenant
     if(data.customer_id&&!P.stripe_customer_id){
-      await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id).catch(()=>{});
+      try{await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id);}catch(e){}
     }
 
     // Afficher confirmation
@@ -2467,12 +2471,14 @@ async function requestReference(){
   const email=prompt('Enter your previous landlord\'s email to request a reference:');
   if(!email||!email.includes('@')){toast('Invalid email');return;}
   // Store reference request in Supabase
-  const{error}=await sb.from('references').insert({
-    tenant_id:U.id,
-    landlord_email:email,
-    status:'pending',
-    created_at:new Date().toISOString()
-  }).catch(()=>({error:null}));
+  try{
+    await sb.from('references').insert({
+      tenant_id:U.id,
+      landlord_email:email,
+      status:'pending',
+      created_at:new Date().toISOString()
+    });
+  }catch(e){}
   toast('✅ Reference request sent to '+email+'! They\'ll receive an email to confirm.');
 }
 
