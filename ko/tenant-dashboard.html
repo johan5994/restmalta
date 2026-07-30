@@ -3162,6 +3162,95 @@ async function requestVisitFromContact(listingId, landlordId, listingTitle){
   };
 }
 
+// ── Co-tenants (added from the rent payment modal) ─────────────────────
+let coTenantSlotCount=0;
+
+function addCoTenantSlot(){
+  if(coTenantSlotCount>=2){toast('⚠️ Maximum 2 co-tenants');return;}
+  const slotId=coTenantSlotCount++;
+  window._coTenantsData[slotId]=null;
+  const list=document.getElementById('cotenants-list');
+  const card=document.createElement('div');
+  card.id='cotenant-slot-'+slotId;
+  card.style.cssText='background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:.85rem;margin-bottom:.6rem';
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div style="font-size:.78rem;font-weight:700">👤 Co-tenant ${slotId+1}</div>
+      <button type="button" onclick="removeCoTenantSlot(${slotId})" style="background:none;border:none;color:var(--red);font-size:.8rem;cursor:pointer">✕ Remove</button>
+    </div>
+    <div style="display:flex;gap:.4rem;margin-bottom:.4rem">
+      <input type="email" id="ct-email-${slotId}" placeholder="Their email address" style="flex:1;background:var(--s);border:1px solid var(--b2);border-radius:8px;padding:.5rem .6rem;color:var(--txt);font-size:.8rem">
+      <button type="button" onclick="lookupCoTenant(${slotId})" style="background:var(--sea);color:white;border:none;border-radius:8px;padding:.5rem .8rem;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap">Find account</button>
+    </div>
+    <div id="ct-result-${slotId}" style="font-size:.75rem"></div>
+    <div id="ct-manual-${slotId}" style="display:none;margin-top:.5rem"></div>`;
+  list.appendChild(card);
+}
+
+function removeCoTenantSlot(slotId){
+  window._coTenantsData[slotId]=null;
+  document.getElementById('cotenant-slot-'+slotId)?.remove();
+}
+
+async function lookupCoTenant(slotId){
+  const email=document.getElementById(`ct-email-${slotId}`)?.value.trim();
+  if(!email||!email.includes('@')){toast('⚠️ Enter a valid email');return;}
+  const resultEl=document.getElementById(`ct-result-${slotId}`);
+  const manualEl=document.getElementById(`ct-manual-${slotId}`);
+  resultEl.innerHTML='⏳ Searching...';
+
+  let profile=null;
+  try{
+    const{data}=await sb.from('profiles').select('*').eq('email',email).maybeSingle();
+    profile=data;
+  }catch(e){}
+
+  if(profile){
+    resultEl.innerHTML=`<span style="color:#4CAF7D">✅ Found: <strong>${profile.full_name||'RestMalta account'}</strong> — their profile will be used for the lease.</span>`;
+    manualEl.style.display='none';
+    manualEl.innerHTML='';
+    window._coTenantsData[slotId]={
+      hasAccount:true,tenant_id:profile.clerk_id,
+      name:profile.full_name||'',email:profile.email||email,
+      passport:profile.passport_number||'',nationality:profile.nationality||'',
+      address:profile.home_address||'',father_name:profile.father_name||'',
+      mother_name:profile.mother_name||'',mother_maiden:profile.mother_maiden||'',
+      place_of_birth:profile.place_of_birth||''
+    };
+  }else{
+    resultEl.innerHTML=`<span style="color:var(--gold)">⚠️ No RestMalta account found for this email — please fill in their details below.</span>`;
+    manualEl.style.display='block';
+    manualEl.innerHTML=`
+      <div class="fg"><label class="fl">Full name</label><input class="fi" id="ct-name-${slotId}" type="text"></div>
+      <div class="fg"><label class="fl">Passport / ID number</label><input class="fi" id="ct-passport-${slotId}" type="text"></div>
+      <div class="fg"><label class="fl">Nationality</label><input class="fi" id="ct-nat-${slotId}" type="text"></div>
+      <div class="fg"><label class="fl">Home address</label><input class="fi" id="ct-addr-${slotId}" type="text"></div>
+      <div class="fg"><label class="fl">Place of birth</label><input class="fi" id="ct-pob-${slotId}" type="text"></div>
+      <div class="fg"><label class="fl">Father's name</label><input class="fi" id="ct-father-${slotId}" type="text"></div>
+      <div class="fg"><label class="fl">Mother's name</label><input class="fi" id="ct-mother-${slotId}" type="text"></div>
+      <div class="fg"><label class="fl">Mother's maiden name</label><input class="fi" id="ct-maiden-${slotId}" type="text"></div>`;
+    window._coTenantsData[slotId]={hasAccount:false,manual:true,email};
+  }
+}
+
+// Reads back whatever manual fields the user typed (called right before submit)
+function collectCoTenantManualFields(slotId){
+  const d=window._coTenantsData[slotId];
+  if(!d||d.hasAccount)return d;
+  return{
+    hasAccount:false,tenant_id:null,
+    name:document.getElementById(`ct-name-${slotId}`)?.value.trim()||'',
+    email:d.email||'',
+    passport:document.getElementById(`ct-passport-${slotId}`)?.value.trim()||'',
+    nationality:document.getElementById(`ct-nat-${slotId}`)?.value.trim()||'',
+    address:document.getElementById(`ct-addr-${slotId}`)?.value.trim()||'',
+    place_of_birth:document.getElementById(`ct-pob-${slotId}`)?.value.trim()||'',
+    father_name:document.getElementById(`ct-father-${slotId}`)?.value.trim()||'',
+    mother_name:document.getElementById(`ct-mother-${slotId}`)?.value.trim()||'',
+    mother_maiden:document.getElementById(`ct-maiden-${slotId}`)?.value.trim()||''
+  };
+}
+
 async function openDirectRentPayment(listingId, listingTitle, landlordId, price, negotiationNote='', extras=[], moveIn=null){
   let listing=null,hasAgent=false;
   try{
@@ -3190,6 +3279,9 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
         <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total today</span><span>€${total}</span></div>
         <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 Holding Deposit is a pre-authorization only, not charged. Released automatically once the landlord responds — you then pay deposit + first month directly to the landlord. RestMalta Fee is only charged if accepted.</div>
       </div>
+      <div id="cotenants-list"></div>
+      <button type="button" id="cotenant-add-btn" onclick="addCoTenantSlot()" style="width:100%;background:none;border:1px dashed var(--b2);color:var(--tm);border-radius:10px;padding:.55rem;font-size:.78rem;font-weight:600;cursor:pointer;margin-bottom:.85rem">+ Add a co-tenant</button>
+
       <div id="rent-pay-card" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:1rem;margin-bottom:.75rem"></div>
       <div id="rent-pay-error" style="color:var(--red);font-size:.78rem;margin-bottom:.5rem;display:none"></div>
       <div style="display:flex;gap:.5rem">
@@ -3198,6 +3290,7 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       </div>
     </div>`;
   document.body.appendChild(modal);
+  window._coTenantsData=[];
 
   if(!stripeInstance)stripeInstance=Stripe(STRIPE_PK);
   const elements=stripeInstance.elements();
@@ -3238,6 +3331,12 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       const commData=await commRes.json();
       if(!commData.success)throw new Error(commData.error||'Commission authorization failed');
 
+      // Collecter les co-locataires (comptes trouvés + saisis manuellement)
+      const coTenantsFull=(window._coTenantsData||[])
+        .map((d,i)=>d&&!d.hasAccount?collectCoTenantManualFields(i):d)
+        .filter(Boolean);
+      const coTenantIds=coTenantsFull.filter(c=>c.hasAccount&&c.tenant_id).map(c=>c.tenant_id);
+
       const{error:bookingError}=await sb.from('bookings').insert({
         listing_id:listingId,tenant_id:U.id,landlord_id:landlordId,
         tenant_name:P?.full_name||'',tenant_email:P?.email||'',
@@ -3248,7 +3347,9 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
         monthly_rent:price,status:'pending',has_agent:hasAgent,
         move_in_date:moveIn||null,
         negotiation_note:negotiationNote||null,
-        requested_extras:extras.length?JSON.stringify(extras):null
+        requested_extras:extras.length?JSON.stringify(extras):null,
+        co_tenant_ids:coTenantIds.length?JSON.stringify(coTenantIds):null,
+        co_tenants_data:coTenantsFull.length?JSON.stringify(coTenantsFull):null
       });
       if(bookingError)throw new Error(bookingError.message);
 
