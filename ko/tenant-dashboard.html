@@ -2978,7 +2978,7 @@ async function uploadIDToStorage(){
 
 async function showNegotiationModal(listingId, listingTitle, contactId, price){
   const hasCard=!!(P?.stripe_customer_id);
-  const commission=Math.round((price||0)*0.15);
+  const commission=Math.round((price||0)*0.10);
   const modal=document.createElement('div');
   modal.id='nego-modal-overlay';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
@@ -3038,7 +3038,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
         </div>
       </div>
         <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">💳 Platform fee authorization</div>
-        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (15%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
+        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (10%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
         ${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}
       </div>
       <div style="display:flex;gap:.5rem">
@@ -3069,77 +3069,126 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
   if(extras.length) negotiationNote+=`🎁 Requested extras: ${extras.join(', ')}\n`;
   if(duration) negotiationNote+=`📅 Desired stay: ${duration.replace(/_/g,' ')}\n`;
   if(message) negotiationNote+=`💬 "${message}"`;
-  await wantToRentDirect(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras, moveIn);
-}
 
-async function wantToRentDirect(listingId, listingTitle, contactId, price, negotiationNote='', extras=[], moveIn=null){
-  // Créer un booking direct (sans agent) et afficher le paiement
-  toast('⏳ Loading...');
-  try{
-    // Vérifier si booking existe déjà
-    const{data:existing}=await sb.from('bookings').select('id,status').eq('tenant_id',U.id).eq('listing_id',listingId).maybeSingle();
-    if(existing){
-      toast('⚠️ You already have a request for this listing.');
-      sp('visits',document.querySelector('.ni[onclick*="visits"]'));
-      return;
-    }
-
-    // Créer le booking
-    const{data:booking,error}=await sb.from('bookings').insert({
-      negotiation_note:negotiationNote||null,
-      requested_extras:extras.length?JSON.stringify(extras):null,
-      tenant_id:U.id,
-      tenant_name:P?.full_name||'Tenant',
-      listing_id:listingId,
-      landlord_id:contactId,
-      monthly_rent:price,
-      status:'pending',
-      has_agent:false,
-      move_in_date:moveIn||null
-    }).select().single();
-    if(error)throw new Error(error.message);
-
-    // Notifier landlord
-    await sb.from('messages').insert({
-      listing_id:listingId,
-      sender_id:'system',
-      receiver_id:contactId,
-      content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have paid the holding deposit + commission. Check your visits page to review their dossier and accept or decline.',
-      type:'wants_to_rent'
-    }).catch(()=>{});
-
-    toast('✅ Request created! Now pay to confirm.');
-    // Ouvrir le paiement
+  // Vérifier qu'il n'y a pas déjà une demande pour ce listing
+  const{data:existing}=await sb.from('bookings').select('id,status').eq('tenant_id',U.id).eq('listing_id',listingId).maybeSingle();
+  if(existing){
+    toast('⚠️ You already have a request for this listing.');
     sp('visits',document.querySelector('.ni[onclick*="visits"]'));
-    setTimeout(()=>showHoldingDeposit(booking.id, listingId, price), 600);
-  }catch(e){toast('❌ '+e.message);}
+    return;
+  }
+
+  openDirectRentPayment(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras, moveIn);
 }
 
-
-async function chooseDepositMethod(bookingId, method){
+// Modal de paiement autonome (holding + commission) — utilisable depuis n'importe quelle
+// page (Messages, listing, etc.), contrairement à showHoldingDeposit qui dépend d'un
+// élément DOM propre à la page "My Visits".
+async function openDirectRentPayment(listingId, listingTitle, landlordId, price, negotiationNote='', extras=[], moveIn=null){
+  let listing=null,hasAgent=false;
   try{
-    await sb.from('bookings').update({deposit_choice:method}).eq('id',bookingId);
-    const{data:b}=await sb.from('bookings').select('landlord_id,listing_id,deposit').eq('id',bookingId).single().catch(()=>({data:null}));
+    const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();
+    listing=l;
+    hasAgent=l?.wants_agent&&l?.agent_service==='full';
+  }catch(e){}
 
-    if(method==='escrow'){
-      // Payer le dépôt via Stripe — sera libéré après EDL
-      toast('🔒 Deposit secured via RestMalta — will be released after move-in inventory.');
+  const tenantRate=0.10;
+  const holding=Math.round(price/2);
+  const commission=Math.round(price*tenantRate);
+  const total=holding+commission;
+
+  const modal=document.createElement('div');
+  modal.id='rent-pay-modal-overlay';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:20px;padding:1.5rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto">
+      <div style="font-size:1rem;font-weight:800;margin-bottom:.3rem">🏠 Confirm your request</div>
+      <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem"><strong style="color:var(--txt)">€${price}/mo</strong> · ${listingTitle||''}</div>
+      <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.78rem">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding Deposit (½ month)</span><span>€${holding}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (10%)</span><span>€${commission}</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total today</span><span>€${total}</span></div>
+        <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 Holding Deposit is a pre-authorization only, not charged. Released automatically once the landlord responds — you then pay deposit + first month directly to the landlord. RestMalta Fee is only charged if accepted.</div>
+      </div>
+      <div id="rent-pay-card" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:1rem;margin-bottom:.75rem"></div>
+      <div id="rent-pay-error" style="color:var(--red);font-size:.78rem;margin-bottom:.5rem;display:none"></div>
+      <div style="display:flex;gap:.5rem">
+        <button id="rent-pay-btn" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">🔒 Pay & send application →</button>
+        <button onclick="document.getElementById('rent-pay-modal-overlay').remove()" style="background:var(--s2);color:var(--tm);border:1px solid var(--b);border-radius:10px;padding:.7rem .9rem;font-size:.82rem;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  if(!stripeInstance)stripeInstance=Stripe(STRIPE_PK);
+  const elements=stripeInstance.elements();
+  const card=elements.create('card',{style:{base:{color:'var(--txt)',fontFamily:'"DM Sans",sans-serif',fontSize:'14px'}}});
+  card.mount('#rent-pay-card');
+
+  document.getElementById('rent-pay-btn').onclick=async()=>{
+    const btn=document.getElementById('rent-pay-btn');
+    const errEl=document.getElementById('rent-pay-error');
+    errEl.style.display='none';
+    btn.textContent='Processing...';btn.disabled=true;
+
+    try{
+      const res=await fetch('/.netlify/functions/holding-deposit',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          action:'create_holding',
+          listing_id:listingId,tenant_id:U.id,
+          tenant_email:P?.email||'',tenant_name:P?.full_name||'',
+          tenant_stripe_customer_id:P?.stripe_customer_id||null,
+          monthly_rent:price,has_agent:hasAgent
+        })
+      });
+      const data=await res.json();
+      if(!data.success)throw new Error(data.error||'Payment failed');
+
+      const{error,paymentIntent}=await stripeInstance.confirmCardPayment(data.client_secret,{payment_method:{card}});
+      if(error)throw new Error(error.message);
+
+      const commRes=await fetch('/.netlify/functions/holding-deposit',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          action:'create_commission_intent',
+          customer_id:data.customer_id,payment_method_id:paymentIntent.payment_method,
+          monthly_rent:price,has_agent:hasAgent,listing_id:listingId,tenant_id:U.id
+        })
+      });
+      const commData=await commRes.json();
+      if(!commData.success)throw new Error(commData.error||'Commission authorization failed');
+
+      const{error:bookingError}=await sb.from('bookings').insert({
+        listing_id:listingId,tenant_id:U.id,landlord_id:landlordId,
+        tenant_name:P?.full_name||'',tenant_email:P?.email||'',
+        payment_intent_id:paymentIntent.id,
+        commission_payment_intent_id:commData.commission_payment_intent_id,
+        stripe_customer_id:data.customer_id,
+        holding_amount:holding,commission_amount:commission,total_amount:total,
+        monthly_rent:price,status:'pending',has_agent:hasAgent,
+        move_in_date:moveIn||null,
+        negotiation_note:negotiationNote||null,
+        requested_extras:extras.length?JSON.stringify(extras):null
+      });
+      if(bookingError)throw new Error(bookingError.message);
+
+      try{await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId);}catch(e){}
       await sb.from('messages').insert({
-        listing_id:b?.listing_id,sender_id:'system',receiver_id:b?.landlord_id,
-        content:'🔐 Tenant chose to secure the deposit via RestMalta escrow.\n\nThe deposit will be released to you after the entry inventory is signed by both parties.',
-        type:'deposit_escrow'
+        listing_id:listingId,sender_id:'system',receiver_id:landlordId,
+        content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have paid the holding deposit + commission authorization. Check your visits page to review their dossier and accept or decline.',
+        type:'wants_to_rent'
       }).catch(()=>{});
-    } else {
-      // Envoyer direct — afficher l'IBAN
-      toast('➡️ Please transfer the deposit directly to the landlord IBAN.');
-      await sb.from('messages').insert({
-        listing_id:b?.listing_id,sender_id:'system',receiver_id:b?.landlord_id,
-        content:'💶 Tenant will transfer the deposit directly to your IBAN.\n\nAmount: €'+(b?.deposit||0),
-        type:'deposit_direct'
-      }).catch(()=>{});
+
+      modal.remove();
+      toast('✅ Application sent! Track it in My Visits.');
+      sp('visits',document.querySelector('.ni[onclick*="visits"]'));
+      loadTenantVisits();
+    }catch(e){
+      errEl.textContent='❌ '+e.message;
+      errEl.style.display='block';
+      btn.textContent='🔒 Pay & send application →';btn.disabled=false;
     }
-    loadTenantVisits();
-  }catch(e){toast('❌ '+e.message);}
+  };
 }
 
 
