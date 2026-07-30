@@ -3873,8 +3873,8 @@ function renderLeaseSection(g){
   const tSigned=bk?.lease_signed_tenant;
   const payDeclared=bk?.first_payment_sent;
   const payConfirmed=bk?.first_payment_confirmed;
-  const edlDate=bk?.edl_date||g.edl_date||g.visit_date||null; // Date de visite = date EDL par défaut
-  const moveIn=bk?.start_date||g.move_in_date||null;
+  const moveIn=bk?.move_in_date||g.move_in_date||null; // date choisie par le tenant à la candidature
+  const edlDate=bk?.edl_date||moveIn||g.visit_date||null; // par défaut, même date que le move-in — le proprio peut la changer
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
     <div style="background:rgba(76,175,125,.12);padding:.55rem .85rem">
