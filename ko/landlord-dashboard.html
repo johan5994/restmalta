@@ -3816,6 +3816,64 @@ function openSigningDocLL(embedSrc,title,bookingId){
   }
 }
 
+async function openLandlordEdlDoc(bookingId){
+  const{data:bk}=await sb.from('bookings').select('edl_landlord_embed,id,listing_id,tenant_id').eq('id',bookingId).single();
+  if(!bk?.edl_landlord_embed){toast('❌ Document not ready yet');return;}
+  doOpenLandlordDoc(bk,bookingId,bk.edl_landlord_embed,'edl_signed_landlord','📋 Move-in Inventory (Annex A)');
+}
+
+async function openLandlordFormHDoc(bookingId){
+  const{data:bk}=await sb.from('bookings').select('formh_landlord_embed,id,listing_id,tenant_id').eq('id',bookingId).single();
+  if(!bk?.formh_landlord_embed){toast('❌ Document not ready yet');return;}
+  doOpenLandlordDoc(bk,bookingId,bk.formh_landlord_embed,'formh_signed_landlord','📝 Form H (ARMS)');
+}
+
+function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
+  const open=()=>{
+    const modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+    const header=document.createElement('div');
+    header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
+    header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ '+title+'</div>';
+    const closeBtn=document.createElement('button');
+    closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
+    closeBtn.textContent='✕';
+    closeBtn.onclick=()=>{modal.remove();loadVisitsPage();};
+    header.appendChild(closeBtn);
+    const body=document.createElement('div');
+    body.style.cssText='flex:1;overflow:auto;background:white';
+    const form=document.createElement('docuseal-form');
+    form.setAttribute('data-src',embedSrc);
+    form.setAttribute('data-send-copy-email','false');
+    form.style.cssText='width:100%;display:block;min-height:100vh';
+    form.addEventListener('completed',async()=>{
+      toast('✅ Signed!');
+      try{
+        await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
+        if(bk.tenant_id){
+          await sb.from('messages').insert({
+            listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
+            content:'✅ Landlord signed '+title,type:dbField
+          });
+        }
+      }catch(e){}
+      setTimeout(()=>{modal.remove();loadVisitsPage();},1200);
+    });
+    body.appendChild(form);
+    modal.appendChild(header);
+    modal.appendChild(body);
+    document.body.appendChild(modal);
+  };
+
+  if(window.docusealLoaded){open();}
+  else{
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;open();};
+    document.head.appendChild(s);
+  }
+}
+
 async function confirmFirstPaymentReceived(bookingId,received){
   try{
     if(received){
@@ -3942,7 +4000,24 @@ function renderLeaseSection(g){
       <div style="margin-top:.6rem">
         <button onclick="openLandlordEDL('${bk?.id||''}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>
       </div>`:bk?.status==='move_in_ready'?`
-      <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✅ Move-in inventory completed — tenant has the keys</div>`:''}
+      <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.5rem">✅ Move-in inventory completed — tenant has the keys</div>
+      ${bk.edl_landlord_embed||bk.formh_landlord_embed?`
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        ${bk.edl_landlord_embed?`
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.76rem">📋 Move-in Inventory (Annex A)</span>
+          ${bk.edl_signed_landlord
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+            :`<button onclick="openLandlordEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.7rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+        </div>`:''}
+        ${bk.formh_landlord_embed?`
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.76rem">📝 Form H (ARMS)</span>
+          ${bk.formh_signed_landlord
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.formh_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+            :`<button onclick="openLandlordFormHDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.7rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+        </div>`:''}
+      </div>`:''}`:''}
 
     </div>
   </div>`;
@@ -4135,6 +4210,24 @@ async function openLandlordEDL(bookingId){
   try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',booking.tenant_id).single();tenant=tp;}catch(e){}
 
   window._llEdl={bookingId,booking,listing,tenant,landlord:P};
+
+  // Marquer le début de l'état des lieux tout de suite — la fiche du locataire
+  // (My Visits + Ma Location) doit refléter que ça a commencé, pas attendre la fin.
+  if(booking?.status!=='move_in_ready'&&booking?.status!=='edl_scheduled'){
+    try{
+      await sb.from('bookings').update({status:'edl_scheduled'}).eq('id',bookingId);
+      booking.status='edl_scheduled';
+    }catch(e){}
+    if(booking?.tenant_id){
+      try{
+        await sb.from('messages').insert({
+          listing_id:booking.listing_id,sender_id:U.id,receiver_id:booking.tenant_id,
+          content:'📋 Your landlord has started the move-in inventory (EDL). You\'ll be notified once it\'s ready to sign.',
+          type:'edl_started'
+        });
+      }catch(e){}
+    }
+  }
 
   const rooms=[
     {name:'Exterior',items:['Mailbox','Fences & Gates','Pool/Spa','Lawn & Garden','Roof','Water tank','Garage']},
