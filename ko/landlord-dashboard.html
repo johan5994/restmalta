@@ -1171,9 +1171,17 @@ async function loadVisitsPage(){
       return !visitKeys.has(key)&&!['declined','cancelled'].includes(b.status);
     }).map(b=>{
       const listing=lMap[b.listing_id]||null;
+      // Même traduction statut que pour les visites enrichies (ligne ~1154) —
+      // sinon un booking accepté reste affiché comme "pending" pour toujours.
+      let displayStatus='booking_pending';
+      if(b.status==='pending'||b.status==='booking_pending') displayStatus='booking_pending';
+      else if(['accepted','lease_pending','edl_scheduled','signing_day'].includes(b.status)) displayStatus='lease_pending';
+      else if(b.status==='move_in_ready') displayStatus='move_in_ready';
+      else if(b.status==='tenant_ghosted') displayStatus='tenant_ghosted';
+      else displayStatus=b.status;
       return{
         id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:b.tenant_id,
-        tenant_name:b.tenant_name,status:'booking_pending',booking:b,landlord_id:U.id,
+        tenant_name:b.tenant_name,status:displayStatus,booking:b,landlord_id:U.id,
         listing_title:listing?.title||null,zone:listing?.zone||null,
         listing_price:listing?.price||null,has_agent:!!(listing?.wants_agent&&listing?.agent_service==='full')
       };
