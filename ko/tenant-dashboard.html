@@ -1827,6 +1827,24 @@ function renderTenantLeaseSection(v, bk){
               :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
         </div>
       </div>
+      ${bk.status==='move_in_ready'&&(bk.edl_tenant_embed||bk.formh_tenant_embed)?`
+      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
+        ${bk.edl_tenant_embed?`
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">📋 Move-in Inventory (Annex A)</span>
+          ${bk.edl_signed_tenant
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+            :`<button onclick="openTenantEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+        </div>`:''}
+        ${bk.formh_tenant_embed?`
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">📝 Form H (ARMS)</span>
+          ${bk.formh_signed_tenant
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.formh_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+            :`<button onclick="openTenantFormHDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+        </div>`:''}
+      </div>`:''}
 
       <!-- Paiement -->
       ${!payConfirmed?`
@@ -1849,6 +1867,65 @@ function renderTenantLeaseSection(v, bk){
       `:`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✅ Payment confirmed by landlord</div>`}
     </div>
   </div>`;
+}
+
+async function openTenantEdlDoc(bookingId){
+  const{data:bk}=await sb.from('bookings').select('edl_tenant_embed,id,listing_id,landlord_id').eq('id',bookingId).single();
+  if(!bk?.edl_tenant_embed){toast('❌ Document not ready yet');return;}
+  if(window.docusealLoaded){doOpenTenantDoc(bk,bookingId,bk.edl_tenant_embed,'edl_signed_tenant','📋 Move-in Inventory (Annex A)');}
+  else{
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;doOpenTenantDoc(bk,bookingId,bk.edl_tenant_embed,'edl_signed_tenant','📋 Move-in Inventory (Annex A)');};
+    document.head.appendChild(s);
+  }
+}
+
+async function openTenantFormHDoc(bookingId){
+  const{data:bk}=await sb.from('bookings').select('formh_tenant_embed,id,listing_id,landlord_id').eq('id',bookingId).single();
+  if(!bk?.formh_tenant_embed){toast('❌ Document not ready yet');return;}
+  if(window.docusealLoaded){doOpenTenantDoc(bk,bookingId,bk.formh_tenant_embed,'formh_signed_tenant','📝 Form H (ARMS)');}
+  else{
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;doOpenTenantDoc(bk,bookingId,bk.formh_tenant_embed,'formh_signed_tenant','📝 Form H (ARMS)');};
+    document.head.appendChild(s);
+  }
+}
+
+function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  const header=document.createElement('div');
+  header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">'+title+'</div>';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
+  closeBtn.textContent='✕';
+  closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
+  header.appendChild(closeBtn);
+  const body=document.createElement('div');
+  body.style.cssText='flex:1;overflow:auto;background:white';
+  const form=document.createElement('docuseal-form');
+  form.setAttribute('data-src',embedSrc);
+  form.setAttribute('data-send-copy-email','false');
+  form.style.cssText='width:100%;display:block;min-height:100vh';
+  form.addEventListener('completed',async()=>{
+    toast('✅ Signed!');
+    try{
+      await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        content:'✅ Tenant signed '+title,type:dbField
+      });
+    }catch(e){}
+    modal.remove();
+    loadTenantVisits();
+  });
+  body.appendChild(form);
+  modal.appendChild(header);
+  modal.appendChild(body);
+  document.body.appendChild(modal);
 }
 
 async function confirmTenantPresence(visitId){
@@ -3166,7 +3243,7 @@ async function requestVisitFromContact(listingId, landlordId, listingTitle){
 let coTenantSlotCount=0;
 
 function addCoTenantSlot(){
-  if(coTenantSlotCount>=2){toast('⚠️ Maximum 2 co-tenants');return;}
+  if(coTenantSlotCount>=5){toast('⚠️ Maximum 5 co-tenants');return;}
   const slotId=coTenantSlotCount++;
   window._coTenantsData[slotId]=null;
   const list=document.getElementById('cotenants-list');
