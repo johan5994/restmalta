@@ -256,13 +256,15 @@ async function rejectTenant(clerkId){
   const reason = prompt('Reason for rejection (will be sent to tenant):');
   if(!reason) return;
   await sb.from('profiles').update({id_submitted:false}).eq('clerk_id',clerkId);
-  await sb.from('messages').insert({
-    listing_id:'00000000-0000-0000-0000-000000000000',
-    sender_id:'system',
-    receiver_id:clerkId,
-    content:'⚠️ Your identity verification was not approved.\n\nReason: '+reason+'\n\nPlease re-upload your documents in your profile.',
-    type:'verify_rejected'
-  }).catch(()=>{});
+  try{
+    await sb.from('messages').insert({
+      listing_id:'00000000-0000-0000-0000-000000000000',
+      sender_id:'system',
+      receiver_id:clerkId,
+      content:'⚠️ Your identity verification was not approved.\n\nReason: '+reason+'\n\nPlease re-upload your documents in your profile.',
+      type:'verify_rejected'
+    });
+  }catch(e){}
   toast('Tenant notified of rejection.');
   loadAll();
 }
