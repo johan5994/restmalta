@@ -1290,7 +1290,7 @@ function toast(msg){
   if(!P||P.role!=='agency'){
     // Créer le profil agency si pas encore fait
     if(!P){
-      await sb.from('profiles').insert({clerk_id:U.id,role:'agency',full_name:clerk.user.fullName||'Agency'}).catch(()=>{});
+      try{await sb.from('profiles').insert({clerk_id:U.id,role:'agency',full_name:clerk.user.fullName||'Agency'});}catch(e){}
     }
   }
   
