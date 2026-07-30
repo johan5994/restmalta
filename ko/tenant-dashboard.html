@@ -128,7 +128,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-msg" style="display:none">0</span></button>
     <div class="nl">Documents & Finance</div>
     <button class="ni" onclick="sp('mylocation',this)"><span class="nico">🏠</span>Ma Location</button>
-    <button class="ni" onclick="sp('deposit',this)"><span class="nico">🔐</span>My deposit</button>
     <div class="nl">Reviews & Profilee</div>
     <button class="ni" onclick="sp('reviews',this)"><span class="nico">⭐</span>Leave a review</button>
     <button class="ni" onclick="sp('profile',this)"><span class="nico">👤</span>My profile</button>
@@ -169,8 +168,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('mylocation',document.querySelectorAll('.ni')[4]);setTimeout(()=>{showMlTab('maintenance');openTicketModal();},300)">🔧 Report a problem</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('messages',document.querySelectorAll('.ni')[3])">💬 My messages</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('mylocation',document.querySelectorAll('.ni')[4])">📄 My leases</button>
-            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('deposit',document.querySelectorAll('.ni')[5])">🔐 My deposit status</button>
-            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('profile',document.querySelectorAll('.ni')[7])">👤 Complete my profile</button>
+            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('profile',document.querySelectorAll('.ni')[6])">👤 Complete my profile</button>
           </div>
         </div>
       </div>
@@ -277,43 +275,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <!-- DEPOSIT -->
-    <div class="page" id="page-deposit">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My deposit de garantie</div>
-
-      <!-- Escrow status -->
-      <div id="escrow-status-card"></div>
-
-      <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">🔐 Comment fonctionne l'escrow RestMalta</div></div>
-        <div class="cb">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.5rem">
-            <div style="background:var(--tdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">💶</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">1. You pay</div><div style="font-size:.62rem;color:var(--tm)">Deposit to RestMalta</div></div>
-            <div style="background:var(--gdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🔒</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">2. Sécurisé</div><div style="font-size:.62rem;color:var(--tm)">RestMalta retient</div></div>
-            <div style="background:var(--sdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">⏰</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">3. 24h for confirmer</div><div style="font-size:.62rem;color:var(--tm)">À your arrivée</div></div>
-            <div style="background:var(--grdim);border-radius:12px;padding:1rem;text-align:center"><div style="font-size:1.3rem;margin-bottom:.4rem">🏠</div><div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">4. Libéré</div><div style="font-size:.62rem;color:var(--tm)">Au owner si OK</div></div>
-          </div>
-          <div id="deposit-info"><div class="ld"><div class="sp"></div></div></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="ch"><div class="ct">✅ Confirm mon entrée dans le logement</div></div>
-        <div class="cb">
-          <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-            ⏰ <strong>You have 24h after move-in</strong> to confirm the property correspond à l'listing. After this period, the deposit is automatically released to the landlord.
-          </div>
-          <div class="fg"><label class="fl">Tout est conforme ? Des remarques ?</label><textarea class="fta" id="entry-notes" rows="2" placeholder="Everything is fine — no issues (or describe any problems found)"></textarea></div>
-          <div style="display:flex;gap:.75rem">
-            <button class="btn bp" onclick="confirmEntry()">✅ Everything OK — release deposit</button>
-            <button class="btn bg" onclick="sp('mylocation',document.querySelectorAll('.ni')[4]);setTimeout(()=>{showMlTab('maintenance');openTicketModal();},300)">⚠️ Signaler un problème</button>
-          </div>
-          <div style="margin-top:.75rem;font-size:.72rem;color:var(--td);line-height:1.5">
-            En cas de problème grave (logement inexistant, état très différent de l'listing), your deposit will be fully refunded after RestMalta reviews your report.
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- REVIEWS -->
     <div class="page" id="page-reviews">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Leave a review</div>
@@ -797,27 +758,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 </div>
 
 <!-- STRIPE PAYMENT MODAL -->
-<div class="mover" id="stripe-modal" onclick="if(event.target.id==='stripe-modal')closeStripeModal()">
-  <div class="modal" style="max-width:440px">
-    <button class="mclose" onclick="closeStripeModal()">✕</button>
-    <div class="mt">🔐 Secure my deposit</div>
-    <div class="ms" id="stripe-modal-sub">Paiement sécurisé via Stripe</div>
-    <div style="background:rgba(76,175,125,.07);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--tm);line-height:1.5">
-      ✅ Your argent est <strong>bloqué</strong> — RestMalta only releases it to the landlord after'après your confirmation d'entrée dans les 24h.<br>
-      ⚠️ Serious issues → full refund.
-    </div>
-    <div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:1rem">
-      <div style="font-size:.75rem;color:var(--td);margin-bottom:.5rem">Deposit amount</div>
-      <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--sea)" id="stripe-amount-display">€0</div>
-    </div>
-    <div id="stripe-card-element" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:1rem;margin-bottom:1rem"></div>
-    <div id="stripe-error" style="color:var(--terra);font-size:.8rem;margin-bottom:.75rem;display:none"></div>
-    <button class="btn bp" style="width:100%;justify-content:center" id="stripe-pay-btn" onclick="confirmStripePayment()">
-      🔒 Pay & secure deposit →
-    </button>
-    <p style="font-size:.65rem;color:var(--td);text-align:center;margin-top:.5rem">Paiement sécurisé SSL · Powered by Stripe</p>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -826,152 +766,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 // ── Stripe ────────────────────────────────────────────────────
 const STRIPE_PK = 'pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ';
 let stripeInstance = null;
-let stripeCardElement = null;
-let stripeClientSecret = null;
-let currentEscrowData = null;
-
-function initStripe() {
-  if (!stripeInstance) {
-    stripeInstance = Stripe(STRIPE_PK);
-  }
-}
-
-async function openStripeModal(escrowData) {
-  initStripe();
-  currentEscrowData = escrowData;
-  document.getElementById('stripe-modal-sub').textContent = `Deposit for: ${escrowData.listing_title}`;
-  document.getElementById('stripe-amount-display').textContent = `€${(escrowData.amount||0).toLocaleString()}`;
-  document.getElementById('stripe-modal').classList.add('open');
-
-  // Create card element
-  const elements = stripeInstance.elements();
-  stripeCardElement = elements.create('card', {
-    style: {
-      base: {
-        fontSize: '16px',
-        color: '#1a1410',
-        fontFamily: "'DM Sans', sans-serif",
-        '::placeholder': { color: '#9b8e82' }
-      }
-    }
-  });
-  stripeCardElement.mount('#stripe-card-element');
-
-  // Create PaymentIntent on server
-  try {
-    const res = await fetch('/.netlify/functions/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount: escrowData.amount,
-        currency: 'eur',
-        metadata: {
-          tenant_id: U.id,
-          landlord_id: escrowData.landlord_id || '',
-          listing_id: escrowData.listing_id || '',
-          listing_title: escrowData.listing_title || ''
-        }
-      })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    stripeClientSecret = data.clientSecret;
-    // Save paymentIntentId to escrow record
-    if (escrowData.escrow_id) {
-      await sb.from('escrow_requests').update({
-        stripe_payment_intent_id: data.paymentIntentId,
-        status: 'payment_pending'
-      }).eq('id', escrowData.escrow_id);
-    }
-  } catch (e) {
-    document.getElementById('stripe-error').textContent = '❌ ' + e.message;
-    document.getElementById('stripe-error').style.display = 'block';
-  }
-}
-
-function closeStripeModal() {
-  document.getElementById('stripe-modal').classList.remove('open');
-  if (stripeCardElement) { stripeCardElement.unmount(); stripeCardElement = null; }
-  stripeClientSecret = null;
-}
-
-async function confirmStripePayment() {
-  if (!stripeClientSecret || !stripeCardElement) return;
-  const btn = document.getElementById('stripe-pay-btn');
-  btn.textContent = '⏳ Traitement...';
-  btn.disabled = true;
-  const errEl = document.getElementById('stripe-error');
-  errEl.style.display = 'none';
-
-  const { error, paymentIntent } = await stripeInstance.confirmCardPayment(stripeClientSecret, {
-    payment_method: {
-      card: stripeCardElement,
-      billing_details: {
-        name: P?.full_name || 'Tenant',
-        email: U?.email || ''
-      }
-    }
-  });
-
-  if (error) {
-    errEl.textContent = '❌ ' + error.message;
-    errEl.style.display = 'block';
-    btn.textContent = '🔒 Pay & secure deposit →';
-    btn.disabled = false;
-    return;
-  }
-
-  // Payment succeeded — update escrow status
-  if (currentEscrowData?.escrow_id) {
-    await sb.from('escrow_requests').update({
-      status: 'paid',
-      stripe_payment_intent_id: paymentIntent.id
-    }).eq('id', currentEscrowData.escrow_id);
-  }
-
-  closeStripeModal();
-  toast('✅ Deposit secured! You have 24h from move-in to confirm.');
-  loadDeposit();
-}
-
-// Update confirmEntry to use Stripe capture
-async function confirmEntryStripe(escrowId, paymentIntentId) {
-  try {
-    const res = await fetch('/.netlify/functions/handle-deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentIntentId, action: 'capture' })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    await sb.from('escrow_requests').update({
-      status: 'confirmed',
-      confirmed_at: new Date().toISOString()
-    }).eq('id', escrowId);
-    toast('✅ Deposit released to landlord!');
-    loadDeposit();
-  } catch (e) {
-    toast('❌ Error: ' + e.message);
-  }
-}
-
-async function refundDeposit(escrowId, paymentIntentId) {
-  if (!confirm('Confirm deposit refund request?')) return;
-  try {
-    const res = await fetch('/.netlify/functions/handle-deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentIntentId, action: 'cancel' })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    await sb.from('escrow_requests').update({ status: 'refunded' }).eq('id', escrowId);
-    toast('↩ Refund initiated — you will receive your deposit within 5-10 business days.');
-    loadDeposit();
-  } catch (e) {
-    toast('❌ Error: ' + e.message);
-  }
-}
 
 const SU='https://clfqftbvohwybkrtvylo.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsZnFmdGJ2b2h3eWJrcnR2eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTYwMTYsImV4cCI6MjA5MTMzMjAxNn0.vT1yDiZDPwtw37UgRuynGMKg13FZ1JcpGmTLWvztC0g';
@@ -1020,7 +814,6 @@ function sp(id,btn){
   if(id==='messages')loadMessages();
   if(id==='mylocation')loadMyLocation();
   if(id==='search')loadAlertState();
-  if(id==='deposit')loadDeposit();
   if(id==='visits'){loadTenantVisits();initStripeCard();}
   if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
 }
@@ -1351,11 +1144,11 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
   if(!section)return;
   section.style.display='block';
 
-  const tenantRate=hasAgent?0.40:0.10;
-  const holding=Math.round(price/2); // 50% bonne foi — pré-auth remboursée après réponse landlord
+  const tenantRate=0.10; // 10% TTC, que ce soit avec ou sans agent
+  const holding=Math.round(price/2); // 50% bonne foi — pré-auth relâchée si tout se passe bien
   const commission=Math.round(price*tenantRate);
   const total=holding+commission;
-  const rateLabel=hasAgent?'40% TTC (with agent)':'15% TTC (direct)';
+  const rateLabel='10% TTC (RestMalta fee)';
 
   // Générer un aperçu du bail complet
   let leasePreview='';
@@ -1454,8 +1247,8 @@ async function payHoldingDepositFromVisits(visitId, listingId){
   try{
     const price=cardWrap._price||0;
     const hasAgent=cardWrap._hasAgent||false;
-    const tenantRate=hasAgent?0.40:0.10;
-    const holding=Math.round(price/2); // 50% bonne foi — pré-auth remboursée après réponse landlord
+    const tenantRate=0.10; // 10% TTC, que ce soit avec ou sans agent
+    const holding=Math.round(price/2); // 50% bonne foi — pré-auth relâchée si tout se passe bien
     const commission=Math.round(price*tenantRate);
 
     // Récupérer la date souhaitée
@@ -1487,7 +1280,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
       }catch(e){console.warn('landlord lookup failed:',e);}
     }
 
-    // 2 — Créer PaymentIntent
+    // 2 — Créer la pré-autorisation du Holding Deposit
     const res=await fetch('/.netlify/functions/holding-deposit',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -1504,13 +1297,29 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Payment failed');
 
-    // 3 — Confirmer le paiement
+    // 3 — Confirmer le holding avec la carte (gère 3DS/SCA)
     const{error,paymentIntent}=await stripeInstance.confirmCardPayment(data.client_secret,{
       payment_method:{card:cardWrap._cardEl}
     });
     if(error)throw new Error(error.message);
 
-    // 4 — Sauvegarder la réservation
+    // 4 — Créer la 2e pré-autorisation (commission 10%), même carte, sans ressaisie
+    const commRes=await fetch('/.netlify/functions/holding-deposit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'create_commission_intent',
+        customer_id:data.customer_id,
+        payment_method_id:paymentIntent.payment_method,
+        monthly_rent:price,
+        has_agent:listing.wants_agent&&listing.agent_service==='full',
+        listing_id:listingId,
+        tenant_id:U.id
+      })
+    });
+    const commData=await commRes.json();
+    if(!commData.success)throw new Error(commData.error||'Commission authorization failed');
+
+    // 5 — Sauvegarder la réservation avec les DEUX intentions
     const{data:booking,error:bookingError}=await sb.from('bookings').insert({
       listing_id:listingId,
       tenant_id:U.id,
@@ -1518,6 +1327,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
       tenant_name:P?.full_name||'',
       tenant_email:P?.email||'',
       payment_intent_id:paymentIntent.id,
+      commission_payment_intent_id:commData.commission_payment_intent_id,
       stripe_customer_id:data.customer_id,
       holding_amount:holding,
       commission_amount:commission,
@@ -1530,7 +1340,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     if(bookingError)console.error('❌ Booking insert error:',bookingError.message,bookingError.details);
     else console.log('✅ Booking created:',booking?.id);
 
-    // 5 — Mettre le listing en reserved
+    // 6 — Mettre le listing en reserved
     try{await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId);}catch(e){}
 
     // 6 — Marquer la visite
@@ -1805,14 +1615,7 @@ async function loadTenantVisits(){
   const badge=document.getElementById('nb-visits-t');
   if(badge){badge.textContent=actionCount||'';badge.style.display=actionCount>0?'inline':'none';}
 
-  // Charger les visites remote
-  let remoteVisits=[];
-  try{
-    const{data:rv}=await sb.from('visits').select('*').eq('tenant_id',U.id).eq('visit_type','remote').order('created_at',{ascending:false});
-    remoteVisits=rv||[];
-  }catch(e){}
-
-  if(!visits.length&&!bookings.length&&!remoteVisits.length){
+  if(!visits.length&&!bookings.length){
     wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>';
     return;
   }
@@ -1859,33 +1662,6 @@ async function loadTenantVisits(){
   const doneBookings=[];
 
   let html='';
-
-  // ── Section Remote Visits ────────────────────────────────────────────────
-  if(remoteVisits.length){
-    html+='<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--sea);margin-bottom:.6rem;letter-spacing:.5px">🌍 Remote Rental Requests</div>';
-    html+=remoteVisits.map(rv=>{
-      const statusConfig={
-        'remote_pending':      {label:'⏳ Waiting for agent',  color:'var(--gold)'},
-        'remote_accepted':     {label:'✅ Agent assigned',     color:'#4CAF7D'},
-        'remote_wants_to_rent':{label:'🔒 Awaiting landlord',  color:'var(--sea)'},
-        'accepted':            {label:'🎉 Accepted!',          color:'#4CAF7D'},
-        'declined':            {label:'❌ Declined',           color:'var(--red)'},
-      };
-      const sc=statusConfig[rv.status]||{label:rv.status,color:'var(--td)'};
-      return `<div style="background:var(--s2);border:1px solid rgba(58,143,181,.2);border-radius:12px;padding:.85rem;margin-bottom:.6rem">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-          <div style="font-size:.88rem;font-weight:700">🏠 ${rv.listing_title||'—'}</div>
-          <span style="font-size:.68rem;font-weight:700;color:${sc.color};background:rgba(255,255,255,.06);padding:.2rem .5rem;border-radius:100px">${sc.label}</span>
-        </div>
-        ${rv.remote_accepted_by?`<div style="font-size:.73rem;color:var(--tm);margin-bottom:.35rem">🏆 Agent: <strong>${rv.agent_name||'Assigned'}</strong></div>`:''}
-        <div style="display:flex;gap:.4rem;margin-top:.5rem">
-          <button onclick="openRemoteChat('${rv.id}','${(rv.listing_title||'').replace(/'/g,"\\'")}','${rv.listing_id}')" style="flex:1;background:rgba(58,143,181,.15);color:var(--sea);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.45rem;font-size:.75rem;font-weight:600;cursor:pointer">💬 Chat</button>
-          ${rv.status==='remote_accepted'?`<button onclick="wantToRentRemote('${rv.id}','${rv.listing_id}','${(rv.listing_title||'').replace(/'/g,"\\'")}',${rv.listing_price||0})" style="flex:2;background:var(--terra);color:white;border:none;border-radius:8px;padding:.45rem;font-size:.75rem;font-weight:700;cursor:pointer">🏠 I want to rent this →</button>`:''}
-        </div>
-      </div>`;
-    }).join('');
-    if(visits.length||bookings.length) html+='<div style="height:1px;background:var(--b);margin:.75rem 0"></div>';
-  }
 
   // Bookings actifs maintenant fusionnés dans les visites
   // Visites actives
@@ -2471,83 +2247,6 @@ async function declarePaid(paymentId){
   }
   toast('✅ Payment declared! Your landlord will confirm receipt.');
   loadPaymentsData();
-}
-
-async function loadDeposit(){
-  // Load escrow requests
-  const{data:escrows}=await sb.from('escrow_requests').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
-  const wrap=document.getElementById('deposit-info');
-  const statusCard=document.getElementById('escrow-status-card');
-
-  if(escrows&&escrows.length){
-    const e=escrows[0];
-    const statusLabels={pending:'⏳ Awaiting payment',paid:'🔒 Sécurisé par RestMalta',confirmed:'✅ Released to landlord',disputed:'⚠️ Dispute in progress',refunded:'↩ Refunded'};
-    const statusColors={pending:'var(--gold)',paid:'var(--sea)',confirmed:'var(--green)',disputed:'var(--terra)',refunded:'var(--stone)'};
-    if(statusCard){
-      statusCard.innerHTML=`
-        <div class="card" style="margin-bottom:1rem;border:1px solid ${e.status==='paid'?'rgba(46,107,138,.3)':e.status==='confirmed'?'rgba(76,175,125,.3)':'rgba(212,168,71,.3)'}">
-          <div class="cb">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-              <div>
-                <div style="font-size:.9rem;font-weight:700">${e.listing_title||'Your logement'}</div>
-                <div style="font-size:.75rem;color:var(--tm);margin-top:.15rem">Dépôt escrow RestMalta</div>
-              </div>
-              <div style="text-align:right">
-                <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--sea)">€${(e.amount||0).toLocaleString()}</div>
-                <span style="font-size:.75rem;font-weight:700;color:${statusColors[e.status]||'var(--gold)'}">${statusLabels[e.status]||e.status}</span>
-              </div>
-            </div>
-            ${e.status==='pending'?`
-            <button class="btn bp" style="width:100%" onclick="openStripeModal({escrow_id:'${e.id}',listing_title:'${e.listing_title||''}',amount:${e.amount||0},landlord_id:'${e.landlord_id||''}',listing_id:'${e.listing_id||''}'})">
-              💳 Pay deposit now →
-            </button>`:''}
-            ${e.status==='paid'?`
-            <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--tm);margin-bottom:.75rem">
-              ⏰ You have <strong>24h after move-in</strong> to confirm. Allez dans "Confirm mon entrée" ci-dessous.
-            </div>
-            <div style="display:flex;gap:.5rem">
-              <button class="btn bp bsm" onclick="confirmEntryStripe('${e.id}','${e.stripe_payment_intent_id||''}')">✅ Tout est OK</button>
-              <button class="btn bg bsm" onclick="refundDeposit('${e.id}','${e.stripe_payment_intent_id||''}')">⚠️ Problème — rembourser</button>
-            </div>`:''}
-            ${e.status==='confirmed'?`<div style="font-size:.78rem;color:var(--green)">✅ Deposit released to landlord on ${new Date(e.confirmed_at||e.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
-            ${e.status==='refunded'?`<div style="font-size:.78rem;color:var(--sea)">↩ Refund in progress — 5-10 jours ouvrés</div>`:''}
-          </div>
-        </div>`;
-    }
-    if(wrap)wrap.innerHTML='';
-  } else {
-    // Also check payments table for backward compat
-    const{data}=await sb.from('payments').select('*').eq('tenant_id',U.id).eq('type','deposit');
-    if(!data||!data.length){
-      if(wrap)wrap.innerHTML='<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">None dépôt escrow. Activez l\'option lors de your prochaine demande de logement.</div>';
-      if(statusCard)statusCard.innerHTML='';
-      return;
-    }
-    const dep=data[0];
-    if(wrap)wrap.innerHTML=`<div style="background:var(--sdim);border:1px solid rgba(46,107,138,.2);border-radius:12px;padding:1.2rem;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:.9rem;font-weight:700">Your dépôt</div><div style="font-size:.82rem;color:var(--tm)">Since ${new Date(dep.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div></div><div style="text-align:right"><div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--sea)">€${(dep.amount||0).toLocaleString()}</div><span class="badge b-sea">En escrow</span></div></div>`;
-  }
-}
-
-async function confirmEntry(){
-  const notes=document.getElementById('entry-notes')?.value.trim();
-  // Update escrow request to confirmed
-  const{data:escrows}=await sb.from('escrow_requests').select('*').eq('tenant_id',U.id).eq('status','paid').limit(1);
-  if(escrows&&escrows[0]){
-    await sb.from('escrow_requests').update({
-      status:'confirmed',
-      confirmation_notes:notes||'Tout est conforme',
-      confirmed_at:new Date().toISOString()
-    }).eq('id',escrows[0].id);
-    // Notify landlord
-    await sb.from('messages').insert({
-      listing_id:escrows[0].listing_id,
-      sender_id:U.id,
-      receiver_id:escrows[0].landlord_id,
-      content:`✅ ${P?.full_name||'The tenant'} has confirmed move-in. The deposit of €${(escrows[0].amount||0).toLocaleString()} will be released within 24h.${notes?'\n\nNote : '+notes:''}`
-    });
-  }
-  toast('✅ Entry confirmed! The deposit will be released to the landlord within 24h.');
-  loadDeposit();
 }
 
 function setRating(r){
@@ -3276,287 +2975,10 @@ async function uploadIDToStorage(){
   }catch(e){}
 }
 
-// ── REMOTE FLOW ─────────────────────────────────────────────────────────────
-let activeRemoteVisitId = null;
-
-async function rentRemotely(listingId, listingTitle, zone, price){
-  // Créer une visite remote dans Supabase
-  toast('⏳ Sending request to agents...');
-  try{
-    // Vérifier si une demande remote existe déjà pour ce listing
-    const{data:existing}=await sb.from('visits').select('id,status').eq('tenant_id',U.id).eq('listing_id',listingId).eq('visit_type','remote').maybeSingle();
-    if(existing){toast('⚠️ You already have a remote request for this listing.');openRemoteChat(existing.id,listingTitle,listingId);return;}
-    
-    // Créer la visite remote
-    const{data:visit,error}=await sb.from('visits').insert({
-      tenant_id:U.id,
-      tenant_name:P?.full_name||'Tenant',
-      listing_id:listingId,
-      listing_title:listingTitle,
-      status:'remote_pending',
-      visit_type:'remote',
-      listing_price:price
-    }).select().single();
-    if(error)throw new Error(error.message);
-
-    // Notifier tous les agents
-    const{data:agents}=await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
-    for(const agent of (agents||[])){
-      await sb.from('messages').insert({
-        listing_id:listingId,
-        sender_id:'system',
-        receiver_id:agent.clerk_id,
-        visit_id:visit.id,
-        content:'🌍 NEW REMOTE REQUEST\n\n🏠 '+listingTitle+' · '+zone+'\n💶 €'+price+'/mo\n👤 Tenant: '+(P?.full_name||'—')+'\n\nFirst agent to accept gets the client!',
-        type:'remote_request'
-      }).catch(()=>{});
-    }
-
-    toast('✅ Request sent! Waiting for an agent to accept...');
-    sp('visits', document.querySelector('.ni[onclick*="visits"]'));
-    setTimeout(loadTenantVisits, 500);
-  }catch(e){toast('❌ '+e.message);}
-}
-
-function openRemoteChat(visitId, listingTitle, listingId){
-  activeRemoteVisitId = visitId;
-  // Ouvrir modal chat
-  const modal = document.createElement('div');
-  modal.id = 'remote-chat-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
-  modal.innerHTML = `
-    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;width:100%;max-width:480px;height:70vh;display:flex;flex-direction:column;overflow:hidden">
-      <div style="padding:.85rem 1.1rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-        <div>
-          <div style="font-size:.9rem;font-weight:700">💬 ${listingTitle}</div>
-          <div id="remote-chat-agent" style="font-size:.72rem;color:var(--td)">Waiting for agent...</div>
-        </div>
-        <button onclick="document.getElementById('remote-chat-modal').remove()" style="background:none;border:none;color:var(--tm);font-size:1.2rem;cursor:pointer">✕</button>
-      </div>
-      <div id="remote-chat-body" style="flex:1;overflow-y:auto;padding:.85rem;display:flex;flex-direction:column;gap:.5rem"></div>
-      <div style="padding:.6rem;border-top:1px solid var(--b);display:flex;gap:.4rem;flex-shrink:0">
-        <textarea id="remote-chat-input" rows="2" placeholder="Write a message..." style="flex:1;padding:.5rem;background:var(--s2);border:1px solid var(--b2);border-radius:8px;color:var(--txt);font-family:inherit;font-size:.83rem;resize:none"></textarea>
-        <button onclick="sendRemoteMessage('${visitId}','${listingId}')" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem .85rem;font-weight:700;cursor:pointer">➤</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-  loadRemoteMessages(visitId, listingId);
-}
-
-async function loadRemoteMessages(visitId, listingId){
-  const body = document.getElementById('remote-chat-body');
-  if(!body) return;
-  const{data:msgs} = await sb.from('messages').select('*').eq('visit_id',visitId).order('created_at',{ascending:true}).catch(()=>({data:[]}));
-  body.innerHTML = '';
-  for(const m of (msgs||[])){
-    const isMe = m.sender_id === U.id;
-    const div = document.createElement('div');
-    div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}`;
-    div.innerHTML = `<div style="background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--tm)'};padding:.5rem .75rem;border-radius:${isMe?'12px 4px 12px 12px':'4px 12px 12px 12px'};font-size:.82rem;max-width:80%;word-wrap:break-word">${m.content}</div>
-    <div style="font-size:.6rem;color:var(--td);margin-top:.15rem">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
-    body.appendChild(div);
-  }
-  body.scrollTop = body.scrollHeight;
-}
-
-async function sendRemoteMessage(visitId, listingId){
-  const input = document.getElementById('remote-chat-input');
-  const content = input?.value.trim();
-  if(!content) return;
-  input.value = '';
-  // Trouver le receiver (agent assigné ou landlord)
-  const{data:visit} = await sb.from('visits').select('remote_accepted_by,landlord_id').eq('id',visitId).single().catch(()=>({data:null}));
-  const receiverId = visit?.remote_accepted_by || visit?.landlord_id || null;
-  await sb.from('messages').insert({
-    listing_id:listingId,
-    visit_id:visitId,
-    sender_id:U.id,
-    receiver_id:receiverId,
-    content,
-    type:'remote_chat'
-  }).catch(()=>{});
-  loadRemoteMessages(visitId, listingId);
-}
-
-async function wantToRentRemote(visitId, listingId, listingTitle, price){
-  // Tenant clique "Je veux louer" dans le flow remote
-  // Ouvrir modal paiement commission + holding
-  const modal = document.createElement('div');
-  modal.id = 'want-rent-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
-  modal.innerHTML = `
-    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
-      <div style="font-size:1.1rem;font-weight:800;font-family:'Playfair Display',serif;margin-bottom:.4rem">🏠 I want to rent this property</div>
-      <div style="font-size:.82rem;color:var(--tm);margin-bottom:1.2rem">${listingTitle}</div>
-      
-      <!-- Co-tenants section -->
-      <div style="margin-bottom:1rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--tm);margin-bottom:.5rem">👥 Co-tenants (optional)</div>
-        <div id="cotenants-list" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.4rem"></div>
-        <button onclick="addCoTenantField()" style="width:100%;background:rgba(255,255,255,.06);color:var(--tm);border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:.45rem;font-size:.78rem;cursor:pointer">+ Add a co-tenant</button>
-      </div>
-
-      <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem">
-        <div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:.4rem"><span>Holding deposit (50% rent)</span><strong style="color:var(--gold)">€${Math.round(price*0.5)}</strong></div>
-        <div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:.4rem"><span>RestMalta commission (15%)</span><strong style="color:var(--gold)">€${Math.round(price*0.15)}</strong></div>
-        <div style="border-top:1px solid var(--b);padding-top:.5rem;display:flex;justify-content:space-between;font-size:.9rem;font-weight:700"><span>Total</span><span style="color:var(--terra)">€${Math.round(price*0.65)}</span></div>
-      </div>
-      <div id="want-rent-card" style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.85rem"></div>
-      <button onclick="confirmWantToRent('${visitId}','${listingId}',${price})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">💳 Pay & Confirm →</button>
-      <button onclick="document.getElementById('want-rent-modal').remove()" style="width:100%;background:none;color:var(--td);border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
-    </div>`;
-  document.body.appendChild(modal);
-  // Monter Stripe
-  if(!window.stripe) window.stripe = Stripe('pk_live_51REGsRFMCFDGaDhJdVNDOON4D9G2XDJ0UilPtR5SBSqG34s5f3HjpVJFMwXBrqb0WJ7l9JC3MMmGEJv47pAhLKWP00fv04VHp7');
-  const elements = window.stripe.elements();
-  const card = elements.create('card',{style:{base:{color:'#fff',fontSize:'14px'}}});
-  card.mount('#want-rent-card');
-  window._remoteCard = card;
-}
-
-async function confirmWantToRent(visitId, listingId, price){
-  // Vérifier que tous les co-tenants sont validés
-  const validCoTenants = coTenantsData.filter(Boolean);
-  const invalidCoTenants = coTenantsData.filter(ct => ct === null);
-  if(invalidCoTenants.length > 0){
-    toast('❌ Fix co-tenant issues before paying');
-    return;
-  }
-
-  toast('⏳ Processing payment...');
-  try{
-    const amount = Math.round(price * 100); // holding + commission
-    const res = await fetch('/.netlify/functions/holding-deposit',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'create_intent',listing_id:listingId,tenant_id:U.id,amount_cents:amount,visit_id:visitId})
-    });
-    const data = await res.json();
-    if(!data.client_secret) throw new Error(data.error||'Payment init failed');
-    const{error,paymentIntent} = await window.stripe.confirmCardPayment(data.client_secret,{payment_method:{card:window._remoteCard}});
-    if(error) throw new Error(error.message);
-    // Sauvegarder les co-tenants dans le booking
-    const coTenantIds = coTenantsData.filter(ct=>ct?.profile).map(ct=>ct.profile.clerk_id);
-    const coTenantEmails = coTenantsData.filter(ct=>ct?.invited).map(ct=>ct.email);
-    if(coTenantIds.length || coTenantEmails.length){
-      await sb.from('bookings').update({
-        co_tenant_ids: coTenantIds.length ? JSON.stringify(coTenantIds) : null,
-        co_tenant_emails_invited: coTenantEmails.length ? JSON.stringify(coTenantEmails) : null
-      }).eq('listing_id',listingId).eq('tenant_id',U.id).order('created_at',{ascending:false}).limit(1);
-    }
-    coTenantsData = []; // Reset
-
-    // Mettre à jour la visite
-    await sb.from('visits').update({status:'remote_wants_to_rent',holding_paid:true}).eq('id',visitId);
-    // Notifier landlord
-    const{data:visit} = await sb.from('visits').select('landlord_id,listing_title,remote_accepted_by').eq('id',visitId).single().catch(()=>({data:null}));
-    if(visit?.landlord_id){
-      await sb.from('messages').insert({
-        listing_id:listingId,sender_id:'system',receiver_id:visit.landlord_id,
-        content:'🏠 A remote tenant wants to rent your property!\n\n'+listingTitle+'\n\nHolding deposit + commission paid. Check your visits page.',
-        type:'remote_wants_rent'
-      }).catch(()=>{});
-    }
-    document.getElementById('want-rent-modal')?.remove();
-    toast('✅ Payment confirmed! Waiting for landlord approval.');
-    loadTenantVisits();
-  }catch(e){toast('❌ '+e.message);}
-}
-
-async function requestVisitFromContact(listingId, agentOrLandlordId, listingTitle){
-  // Ouvrir modal pour choisir date + heure
-  const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
-  modal.innerHTML = `
-    <div style="background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:1.5rem;width:100%;max-width:380px">
-      <div style="font-size:1.1rem;font-weight:800;font-family:'Playfair Display',serif;margin-bottom:.3rem">📅 Request a visit</div>
-      <div style="font-size:.82rem;color:var(--tm);margin-bottom:1rem">${listingTitle}</div>
-      <div style="margin-bottom:.75rem">
-        <label style="font-size:.75rem;font-weight:600;color:var(--tm);display:block;margin-bottom:.3rem">Preferred date *</label>
-        <input type="date" id="visit-req-date" class="fi" style="width:100%" min="${new Date().toISOString().split('T')[0]}">
-      </div>
-      <div style="margin-bottom:1rem">
-        <label style="font-size:.75rem;font-weight:600;color:var(--tm);display:block;margin-bottom:.3rem">Preferred time</label>
-        <select id="visit-req-time" class="fsel" style="width:100%">
-          <option value="09:00">09:00 AM</option>
-          <option value="10:00">10:00 AM</option>
-          <option value="11:00">11:00 AM</option>
-          <option value="14:00" selected>02:00 PM</option>
-          <option value="15:00">03:00 PM</option>
-          <option value="16:00">04:00 PM</option>
-          <option value="17:00">05:00 PM</option>
-        </select>
-      </div>
-      <button onclick="confirmVisitRequest('${listingId}','${agentOrLandlordId}','${(listingTitle||'').replace(/'/g,"\\'")}',this)" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer">📅 Send visit request →</button>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:none;color:var(--td);border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
-    </div>`;
-  document.body.appendChild(modal);
-}
-
-async function confirmVisitRequest(listingId, contactId, listingTitle, btn){
-  const date = document.getElementById('visit-req-date')?.value;
-  const time = document.getElementById('visit-req-time')?.value || '14:00';
-  if(!date){toast('⚠️ Please select a date');return;}
-  btn.disabled = true;
-  btn.textContent = '⏳ Sending...';
-  try{
-    // Vérifier si cet interlocuteur est un agent
-    const{data:contactProfile} = await sb.from('profiles').select('role,clerk_id,full_name').eq('clerk_id',contactId).maybeSingle();
-    const isAgent = contactProfile?.role === 'agent' || contactProfile?.role === 'Agent';
-
-    // Créer la visite
-    const{data:visit,error} = await sb.from('visits').insert({
-      tenant_id: U.id,
-      tenant_name: P?.full_name||'Tenant',
-      listing_id: listingId,
-      listing_title: listingTitle,
-      visit_date: date,
-      visit_time: time,
-      status: isAgent ? 'agent_assigned' : 'awaiting_landlord',
-      visit_type: 'physical',
-      agent_id: isAgent ? contactId : null,
-      agent_name: isAgent ? (contactProfile?.full_name||'Agent') : null,
-      landlord_id: isAgent ? null : contactId
-    }).select().single();
-
-    if(error) throw new Error(error.message);
-
-    // Notifier l'interlocuteur
-    await sb.from('messages').insert({
-      listing_id: listingId,
-      sender_id: 'system',
-      receiver_id: contactId,
-      visit_id: visit.id,
-      content: '📅 Visit request from '+( P?.full_name||'a tenant')+'\n\n🏠 '+listingTitle+'\n📅 '+new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+time+'\n\nPlease confirm in your dashboard.',
-      type: isAgent ? 'visit_request' : 'visit_request'
-    });
-
-    // Flow direct landlord→tenant : pas d'agent impliqué
-
-    document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]')?.remove();
-    toast('✅ Visit request sent!');
-    sp('visits', document.querySelector('.ni[onclick*="visits"]'));
-    setTimeout(loadTenantVisits, 500);
-  }catch(e){
-    btn.disabled = false;
-    btn.textContent = '📅 Send visit request →';
-    toast('❌ '+e.message);
-  }
-}
-
-async function rentRemotelyFromContact(listingId, listingTitle, zone, contactId){
-  // Récupérer le prix du listing
-  let price = 0;
-  try{
-    const{data:l} = await sb.from('listings').select('price').eq('id',listingId).single();
-    price = l?.price || 0;
-  }catch(e){}
-  rentRemotely(listingId, listingTitle, zone, price);
-}
-
 
 async function showNegotiationModal(listingId, listingTitle, contactId, price){
   const hasCard=!!(P?.stripe_customer_id);
-  const commission=Math.round((price||0)*0.10);
+  const commission=Math.round((price||0)*0.15);
   const modal=document.createElement('div');
   modal.id='nego-modal-overlay';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
@@ -3616,7 +3038,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
         </div>
       </div>
         <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">💳 Platform fee authorization</div>
-        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (10%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
+        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (15%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
         ${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}
       </div>
       <div style="display:flex;gap:.5rem">
