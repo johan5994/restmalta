@@ -1846,6 +1846,8 @@ function renderTenantLeaseSection(v, bk){
               :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
         </div>
       </div>
+      ${bk.status==='edl_scheduled'?`
+      <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your landlord is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
       ${bk.status==='move_in_ready'&&(bk.edl_tenant_embed||bk.formh_tenant_embed)?`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
