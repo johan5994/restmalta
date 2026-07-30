@@ -899,11 +899,21 @@ async function loadMessages(){
     ]);
     const all=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
-    // Grouper par thread_id (ou listing_id+other si pas de thread_id)
+    // Trouver le vrai interlocuteur (non-system) pour chaque annonce, pour
+    // rattacher les messages système (sender='system') au bon thread au lieu
+    // d'en créer un fantôme séparé.
+    const listingOtherParty=new Map();
+    all.forEach(m=>{
+      const oid=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      if(oid&&oid!=='system'&&!listingOtherParty.has(m.listing_id)) listingOtherParty.set(m.listing_id,oid);
+    });
+
+    // Grouper par annonce + interlocuteur — un seul chat par annonce par personne
     const threadMap=new Map();
     all.forEach(m=>{
-      const otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
-      const key=m.thread_id||makeThreadId(m.listing_id||'',U.id,otherId||'');
+      let otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      if(otherId==='system') otherId=listingOtherParty.get(m.listing_id)||'system';
+      const key=`${m.listing_id||''}-${otherId}`;
       if(!threadMap.has(key)) threadMap.set(key,{...m,otherId,key});
     });
 
@@ -966,23 +976,11 @@ async function openMsg(threadKey, titleEnc, subtitleEnc, listingId, receiverId, 
   // Load history
   const thread=document.getElementById('chat-thread');
   thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--stone-l)">Loading...</div>';
-  // Charger les messages du thread spécifique (thread_id ou listing_id+participants)
+  // Charger tous les messages pour CETTE annonce avec cette personne
   let threadData=[];
   try{
-    const tid=tenantChatThreadId||makeThreadId(listingId,U.id,receiverId||'');
-    // D'abord essayer par thread_id
-    const{data:byThread}=await sb.from('messages').select('*').eq('thread_id',tid).order('created_at',{ascending:true});
-    if(byThread&&byThread.length){
-      threadData=byThread;
-    } else {
-      // Fallback — messages listing_id où je suis participant
-      const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).or(`sender_id.eq.${U.id},receiver_id.eq.${U.id}`).order('created_at',{ascending:true});
-      // Filtrer pour n'avoir que les messages avec cet interlocuteur
-      const otherId=receiverId;
-      threadData=(byListing||[]).filter(m=>
-        m.sender_id===otherId||m.receiver_id===otherId||m.sender_id==='system'
-      );
-    }
+    const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
+    threadData=(byListing||[]).filter(m=>m.sender_id===receiverId||m.receiver_id===receiverId||m.sender_id==='system'||m.sender_id===U.id);
   }catch(e){}
   const data=threadData;
   thread.innerHTML='';
@@ -1359,11 +1357,13 @@ async function payHoldingDepositFromVisits(visitId, listingId){
 
     // 8 — Notifier le landlord avec la date souhaitée
     const moveInFormatted=new Date(moveInDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    await sb.from('messages').insert({
-      listing_id:listingId,sender_id:'system',receiver_id:landlordClerkId,
-      content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n🌍 ${P?.nationality||'—'} | 📋 ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n📅 Desired move-in date: ${moveInFormatted}\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept this date, propose another, or decline.\nGo to your dashboard → Visits to respond.`,
-      type:'booking_request'
-    }).then(()=>{}).catch(()=>{});
+    try{
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:'system',receiver_id:landlordClerkId,
+        content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n🌍 ${P?.nationality||'—'} | 📋 ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n📅 Desired move-in date: ${moveInFormatted}\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept this date, propose another, or decline.\nGo to your dashboard → Visits to respond.`,
+        type:'booking_request'
+      });
+    }catch(e){}
 
     // 9 — Sauvegarder stripe_customer_id
     if(data.customer_id&&!P?.stripe_customer_id){
@@ -2526,13 +2526,16 @@ function openSigningDoc(embedSrc, title, bookingId){
       if(bookingId){
         try{
           await sb.from('bookings').update({lease_signed_tenant:true}).eq('id',bookingId);
-          const{data:bk}=await sb.from('bookings').select('landlord_id,listing_id').eq('id',bookingId).single().catch(()=>({data:null}));
+          let bk=null;
+          try{const{data:d}=await sb.from('bookings').select('landlord_id,listing_id').eq('id',bookingId).single();bk=d;}catch(e){}
           if(bk?.landlord_id){
-            await sb.from('messages').insert({
-              listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
-              content:'✍️ The tenant has signed the lease!\n\nBoth parties signed. Waiting for first payment.',
-              type:'lease_signed_tenant'
-            }).catch(()=>{});
+            try{
+              await sb.from('messages').insert({
+                listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
+                content:'✍️ The tenant has signed the lease!\n\nBoth parties signed. Waiting for first payment.',
+                type:'lease_signed_tenant'
+              });
+            }catch(e){}
           }
         }catch(e){console.warn(e);}
       }
@@ -2576,11 +2579,15 @@ async function confirmTenantPayment(bookingId){
 async function requestReference(){
   const email=prompt('Enter your previous landlord\'s email:');
   if(!email||!email.includes('@')){if(email!==null)toast('❌ Invalid email');return;}
-  const{error}=await sb.from('references').insert({
-    tenant_id:U.id,
-    landlord_email:email,
-    status:'pending'
-  }).catch(()=>({error:{message:'Table may not exist yet'}}));
+  let error=null;
+  try{
+    const res=await sb.from('references').insert({
+      tenant_id:U.id,
+      landlord_email:email,
+      status:'pending'
+    });
+    error=res.error;
+  }catch(e){error={message:'Table may not exist yet'};}
   if(error){toast('⏳ Reference request saved! (Table setup needed in Supabase)');return;}
   toast('✅ Reference request sent to '+email);
   loadReferences();
