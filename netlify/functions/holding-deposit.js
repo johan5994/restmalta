@@ -175,14 +175,16 @@ exports.handler = async (event) => {
       if (!booking) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Booking not found' }) };
 
       let captureResult = 'skipped';
+      let commissionAmountEur = 0;
 
       if (booking.commission_payment_intent_id) {
         // Nouveau flow : intentions séparées — capture propre de la commission uniquement
         try {
           const intent = await stripe.paymentIntents.retrieve(booking.commission_payment_intent_id);
           if (intent.status === 'requires_capture') {
-            await stripe.paymentIntents.capture(booking.commission_payment_intent_id);
+            const captured = await stripe.paymentIntents.capture(booking.commission_payment_intent_id);
             captureResult = 'commission_captured';
+            commissionAmountEur = (captured.amount_received || captured.amount || 0) / 100;
           } else {
             captureResult = `commission_already_${intent.status}`;
           }
@@ -200,12 +202,30 @@ exports.handler = async (event) => {
           if (intent.status === 'requires_capture' && commissionCents > 0) {
             await stripe.paymentIntents.capture(booking.payment_intent_id, { amount_to_capture: commissionCents });
             captureResult = 'legacy_commission_captured_holding_released';
+            commissionAmountEur = commissionCents / 100;
           } else {
             captureResult = 'legacy_skipped';
           }
         } catch(e) {
           captureResult = 'error: ' + e.message;
         }
+      }
+
+      // Tracer la commission dans 'payments' pour qu'elle soit visible côté locataire
+      if (commissionAmountEur > 0 && booking.tenant_id) {
+        try {
+          await sb.from('payments').insert({
+            tenant_id: booking.tenant_id,
+            listing_id: booking.listing_id || null,
+            tenant_name: booking.tenant_name || null,
+            tenant_email: booking.tenant_email || null,
+            amount: commissionAmountEur,
+            type: 'commission',
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+            due_date: new Date().toISOString().split('T')[0]
+          });
+        } catch(e) { console.warn('Commission payment record error (non-blocking):', e.message); }
       }
 
       return {
