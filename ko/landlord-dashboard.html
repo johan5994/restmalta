@@ -1612,10 +1612,20 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
       const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
       const startFmt=startDate?new Date(startDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):today;
       const endFmt=endDate?new Date(endDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
-      const price=listing?.price||0;
+      const price=booking?.monthly_rent||listing?.price||0; // prix réellement convenu (négocié ou non), pas juste le prix affiché sur l'annonce
       const deposit=listing?.deposit||price;
       const dueDay=listing?.payment_due_day||1;
       const dueSuffix=dueDay===1?'st':dueDay===2?'nd':dueDay===3?'rd':'th';
+
+      // Fix 2 — les extras/négociation demandés par le locataire deviennent une clause visible dans le bail
+      let negotiationClause='';
+      if(booking?.negotiation_note)negotiationClause+=booking.negotiation_note.replace(/\n/g,'<br>');
+      if(booking?.requested_extras){
+        try{
+          const extras=JSON.parse(booking.requested_extras);
+          if(extras.length)negotiationClause+=(negotiationClause?'<br>':'')+'🎁 Additional items/services agreed: '+extras.join(', ');
+        }catch(e){}
+      }
 
       const leaseHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>body{font-family:"Times New Roman",serif;font-size:11pt;line-height:1.7;margin:2cm;color:#000}h1{text-align:center;font-size:13pt;text-transform:uppercase;font-weight:bold;margin-bottom:20px}h2{font-size:11pt;font-weight:bold;margin-top:18px;margin-bottom:6px}p{margin:8px 0}ol{margin:8px 0;padding-left:20px}li{margin-bottom:6px}.sig-block{display:flex;justify-content:space-between;margin-top:40px}.sig-box{width:45%}.sig-line{border-top:1px solid #000;margin-top:60px}</style>
@@ -1674,7 +1684,8 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
           tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||'',father_name:tenantProfile?.father_name||'',mother_name:tenantProfile?.mother_name||'',mother_maiden:tenantProfile?.mother_maiden||'',place_of_birth:tenantProfile?.place_of_birth||''},
           coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||'',address:ct.address||'',father_name:ct.father_name||'',mother_name:ct.mother_name||'',mother_maiden:ct.mother_maiden||'',place_of_birth:ct.place_of_birth||''})),
           listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
-          start_date:startDate,end_date:endDate
+          start_date:startDate,end_date:endDate,
+          inventory_notes:negotiationClause||undefined
         })
       });
       if(docuRes.ok){
@@ -4316,21 +4327,29 @@ async function generateAnnexAndCompleteLL(){
   const tenant={name:ctx.tenant?.full_name||'',email:ctx.tenant?.email||'',passport:ctx.tenant?.passport_number||'',nationality:ctx.tenant?.nationality||''};
   const listing={address:ctx.listing?.full_address||ctx.listing?.zone||'',price:ctx.listing?.price||0};
 
+  let edlLandlordEmbed=null,edlTenantEmbed=null,edlSubmissionId=null;
   try{
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({landlord,tenant,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
     });
-    await res.json();
+    const edlData=await res.json();
+    edlLandlordEmbed=edlData?.lessor_embed_src||null;
+    edlTenantEmbed=edlData?.lessee_embed_src||null;
+    edlSubmissionId=edlData?.submission_id||null;
     if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent! Generating Form H...';
   }catch(e){console.warn('EDL:',e);}
 
+  let formhLandlordEmbed=null,formhTenantEmbed=null,formhSubmissionId=null;
   try{
     const res=await fetch('/.netlify/functions/generate-form-h',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({landlord,tenant,listing,arms_account:armsAccount,residents:parseInt(armsResidents)||1,meter_water:meterWater,meter_electricity:meterElec})
     });
-    await res.json();
+    const formhData=await res.json();
+    formhLandlordEmbed=formhData?.owner_embed_src||null;
+    formhTenantEmbed=formhData?.resident_embed_src||null;
+    formhSubmissionId=formhData?.submission_id||null;
     if(statusEl)statusEl.textContent='✅ Annex A + Form H sent for signature!';
   }catch(e){console.warn('Form H:',e);}
 
@@ -4338,7 +4357,13 @@ async function generateAnnexAndCompleteLL(){
     await sb.from('bookings').update({
       meter_water:meterWater,
       meter_electricity:meterElec,
-      status:'move_in_ready'
+      status:'move_in_ready',
+      edl_landlord_embed:edlLandlordEmbed,
+      edl_tenant_embed:edlTenantEmbed,
+      edl_submission_id:edlSubmissionId?String(edlSubmissionId):null,
+      formh_landlord_embed:formhLandlordEmbed,
+      formh_tenant_embed:formhTenantEmbed,
+      formh_submission_id:formhSubmissionId?String(formhSubmissionId):null
     }).eq('id',ctx.bookingId);
   }catch(e){console.warn('DB update:',e);}
 
