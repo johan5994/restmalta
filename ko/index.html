@@ -1336,6 +1336,13 @@ async function openDet(id){
     l.wants_agent&&l.agent_service!=='none'?'🏆 Agent-managed visits':null,
     l.accepts_attestation?'📋 Attestation accepted':null,
   ].filter(Boolean);
+  // Fusionner avec les features cochées côté agence (tableau JSON libre)
+  try{
+    if(l.features){
+      const extra=JSON.parse(l.features);
+      extra.forEach(f=>{if(!fe.some(x=>x.includes(f)))fe.push('✅ '+f);});
+    }
+  }catch(e){}
   document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
 
   // Infos bail
