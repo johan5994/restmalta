@@ -1134,11 +1134,28 @@ async function loadAnalytics(){
     const{data:visits}=await sb.from('visits').select('listing_id,listing_title,status,created_at').eq('landlord_id',U.id);
     const v=visits||[];const l=listings||[];
 
-    document.getElementById('a-views').textContent=v.length*12+Math.round(Math.random()*50);
-    document.getElementById('a-contact-rate').textContent=v.length>0?Math.round(v.length/(v.length*12)*100)+'':'0';
-    document.getElementById('a-time-let').textContent='14';
+    const totalViews=l.reduce((s,x)=>s+(x.views||0),0);
+    const contactRate=totalViews>0?Math.round(v.length/totalViews*100):0;
+
+    // Avg. time to let — vrai calcul : jours entre la création de l'annonce et
+    // la réservation aboutie (move_in_ready), uniquement sur les annonces louées.
+    let avgTimeToLet='—';
+    try{
+      const{data:rentedBookings}=await sb.from('bookings').select('listing_id,created_at').eq('landlord_id',U.id).eq('status','move_in_ready');
+      const durations=(rentedBookings||[]).map(b=>{
+        const listing=l.find(x=>x.id===b.listing_id);
+        if(!listing?.created_at)return null;
+        const days=(new Date(b.created_at)-new Date(listing.created_at))/(1000*60*60*24);
+        return days>=0?days:null;
+      }).filter(d=>d!==null);
+      if(durations.length)avgTimeToLet=Math.round(durations.reduce((s,d)=>s+d,0)/durations.length);
+    }catch(e){}
+
+    document.getElementById('a-views').textContent=totalViews;
+    document.getElementById('a-contact-rate').textContent=contactRate;
+    document.getElementById('a-time-let').textContent=avgTimeToLet;
     document.getElementById('a-clients').textContent=v.filter(x=>!['declined','tenant_declined','cancelled'].includes(x.status)).length;
-    document.getElementById('f-views').textContent=v.length*12;
+    document.getElementById('f-views').textContent=totalViews;
     document.getElementById('f-contacts').textContent=v.length;
     document.getElementById('f-visits').textContent=v.filter(x=>x.status==='confirmed').length;
 
@@ -1277,7 +1294,7 @@ async function saveAgencyProfile(){
   };
   if(!data.agency_name){toast('Agency name required');return;}
   try{
-    const{error}=await sb.from('agency_profiles').upsert({...data,clerk_id:U.id}).eq('clerk_id',U.id);
+    const{error}=await sb.from('agency_profiles').upsert({...data,clerk_id:U.id},{onConflict:'clerk_id'});
     if(error)throw new Error(error.message);
     agencyData={...agencyData,...data};
     document.getElementById('agency-name').textContent=data.agency_name;
