@@ -1080,10 +1080,13 @@ async function createListing(data){
       sqm:data.sqm||null,
       deposit:data.deposit||data.price||0,
       available_from:data.available_from||null,
+      payment_due_day:null,
+      accepts_attestation:false,
       features:data.features&&data.features.length?JSON.stringify(data.features):null,
       photos:data.photos&&data.photos.length?data.photos:null,
       wants_agent:true,agent_service:'full',
       agent_id:U.id,agency_listing:true,
+      agency_logo_url:agencyData?.logo_url||null,
       status:'active',
       created_at:new Date().toISOString()
     }).select().single();
