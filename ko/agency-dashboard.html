@@ -754,8 +754,9 @@ async function addAndSelectTeamMember(){
   const members=getTeamMembers();
   if(!members.includes(name))members.push(name);
   try{
-    const{error}=await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    const{data:updated,error}=await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id).select();
     if(error){toast('❌ Could not save: '+error.message);return;}
+    if(!updated||!updated.length){toast('⚠️ Save blocked (0 rows updated) — likely a database permissions issue (RLS). Tell your developer.');return;}
     agencyData={...agencyData,team_members:JSON.stringify(members)};
   }catch(e){toast('❌ '+e.message);return;}
   selectTeamMember(name);
