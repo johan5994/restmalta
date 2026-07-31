@@ -404,7 +404,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Monthly Rent (€) *</label><input class="fi" type="number" id="nl-price" placeholder="850"></div>
             <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="nl-beds"><option value="0">Studio</option><option value="1">1 Bedroom</option><option value="2">2 Bedrooms</option><option value="3">3 Bedrooms</option><option value="4">4+ Bedrooms</option></select></div>
             <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="nl-baths"><option value="1">1 Bathroom</option><option value="2">2 Bathrooms</option><option value="3">3+ Bathrooms</option></select></div>
-            <div class="fg"><label class="fl">Lease Type</label><select class="fsel" id="nl-lease"><option value="long">Long-let (6 months+)</option><option value="short">Short-let (1-6 months)</option></select></div>
+            <div class="fg"><label class="fl">Lease Type</label><select class="fsel" id="nl-lease"><option value="long">🏛️ Long-let (1 year+)</option><option value="short">🏠 Short-let (1-6 months)</option><option value="room_rental">🔑 Room rental</option></select></div>
             <div class="fg"><label class="fl">Bills</label><select class="fsel" id="nl-bills"><option value="included">All bills included</option><option value="excluded">Bills not included</option></select></div>
           </div>
           <div class="fg"><label class="fl">Description</label><textarea class="fi" id="nl-desc" rows="4" placeholder="Describe the property — furnished, amenities, transport links..."></textarea></div>
@@ -414,10 +414,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="fg">
             <label class="fl">Features & Amenities</label>
             <div id="nl-features" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .75rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.85rem">
-              ${['Air Conditioning','Furnished','Pet Friendly','Balcony','Sea View','Valley View','Dishwasher','Washing Machine','Parking','Pool','Elevator / Lift','Garden','Terrace','WiFi','Walk-In Wardrobe','Storage Room','CCTV / Security','Gym','Utility Room','Sofa Bed'].map(f=>`
-                <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer">
-                  <input type="checkbox" class="nl-feature-cb" value="${f}" style="accent-color:var(--agencybright)">${f}
-                </label>`).join('')}
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Air Conditioning" style="accent-color:var(--agencybright)">Air Conditioning</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Furnished" style="accent-color:var(--agencybright)">Furnished</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Pet Friendly" style="accent-color:var(--agencybright)">Pet Friendly</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Balcony" style="accent-color:var(--agencybright)">Balcony</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Sea View" style="accent-color:var(--agencybright)">Sea View</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Valley View" style="accent-color:var(--agencybright)">Valley View</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Dishwasher" style="accent-color:var(--agencybright)">Dishwasher</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Washing Machine" style="accent-color:var(--agencybright)">Washing Machine</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Parking" style="accent-color:var(--agencybright)">Parking</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Pool" style="accent-color:var(--agencybright)">Pool</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Elevator / Lift" style="accent-color:var(--agencybright)">Elevator / Lift</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Garden" style="accent-color:var(--agencybright)">Garden</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Terrace" style="accent-color:var(--agencybright)">Terrace</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="WiFi" style="accent-color:var(--agencybright)">WiFi</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Walk-In Wardrobe" style="accent-color:var(--agencybright)">Walk-In Wardrobe</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Storage Room" style="accent-color:var(--agencybright)">Storage Room</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="CCTV / Security" style="accent-color:var(--agencybright)">CCTV / Security</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Gym" style="accent-color:var(--agencybright)">Gym</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Utility Room" style="accent-color:var(--agencybright)">Utility Room</label>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Sofa Bed" style="accent-color:var(--agencybright)">Sofa Bed</label>
             </div>
           </div>
 
@@ -738,9 +754,10 @@ async function addAndSelectTeamMember(){
   const members=getTeamMembers();
   if(!members.includes(name))members.push(name);
   try{
-    await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    const{error}=await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    if(error){toast('❌ Could not save: '+error.message);return;}
     agencyData={...agencyData,team_members:JSON.stringify(members)};
-  }catch(e){}
+  }catch(e){toast('❌ '+e.message);return;}
   selectTeamMember(name);
 }
 
@@ -773,7 +790,8 @@ async function addTeamMemberFromSettings(){
   if(members.includes(name)){toast('⚠️ Already added');return;}
   members.push(name);
   try{
-    await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    const{error}=await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    if(error){toast('❌ Could not save: '+error.message);return;}
     agencyData={...agencyData,team_members:JSON.stringify(members)};
     if(input)input.value='';
     renderTeamMembersSettings();
@@ -976,6 +994,7 @@ async function importFromURL(){
 
 function showImportPreview(data){
   document.getElementById('import-preview').style.display='block';
+  const photos=Array.isArray(data.photos)?data.photos:[];
   document.getElementById('import-preview-content').innerHTML=`
     <div class="fgrid2" style="gap:.5rem">
       <div class="fg"><label class="fl">Title</label><input class="fi" id="prev-title" value="${data.title||''}"></div>
@@ -984,6 +1003,19 @@ function showImportPreview(data){
       <div class="fg"><label class="fl">Bedrooms</label><input class="fi" type="number" id="prev-beds" value="${data.bedrooms||''}"></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="prev-desc" rows="3">${data.description||''}</textarea></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Full Address</label><input class="fi" id="prev-address" value="${data.full_address||''}"></div>
+      <div class="fg" style="grid-column:1/-1">
+        <label class="fl">Photos found${photos.length?' ('+photos.length+')':''}</label>
+        ${photos.length?`
+        <div id="prev-photos" style="display:flex;gap:.5rem;flex-wrap:wrap">
+          ${photos.map((p,i)=>`
+            <label style="position:relative;cursor:pointer">
+              <input type="checkbox" class="prev-photo-cb" value="${p}" checked style="position:absolute;top:.3rem;left:.3rem;width:18px;height:18px;accent-color:var(--agencybright)">
+              <img src="${p}" style="width:90px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--b2)" onerror="this.closest('label').style.display='none'">
+            </label>`).join('')}
+        </div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Best effort — found via the page's meta tags / HTML. Decoche celles qui ne sont pas de vraies photos du bien.</div>`
+        :`<div style="font-size:.78rem;color:var(--td)">No photos could be found automatically — you can add them after publishing, from My Listings.</div>`}
+      </div>
     </div>`;
   document.getElementById('import-preview').scrollIntoView({behavior:'smooth'});
 }
@@ -996,6 +1028,7 @@ async function publishImportedListing(){
     beds:parseInt(document.getElementById('prev-beds')?.value)||0,
     description:document.getElementById('prev-desc')?.value.trim(),
     full_address:document.getElementById('prev-address')?.value.trim(),
+    photos:[...document.querySelectorAll('.prev-photo-cb:checked')].map(cb=>cb.value),
   };
   if(!data.title||!data.zone){toast('Title and zone are required');return;}
   await createListing(data);
@@ -1011,6 +1044,7 @@ async function createListing(data){
       bills_situation:data.bills||'excluded',
       lease_type:data.lease_type||'long',
       features:data.features&&data.features.length?JSON.stringify(data.features):null,
+      photos:data.photos&&data.photos.length?data.photos:null,
       wants_agent:true,agent_service:'full',
       agent_id:U.id,agency_listing:true,
       status:'active',
