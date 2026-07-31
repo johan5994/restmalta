@@ -193,6 +193,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="logo">RestMalta</div>
     <div class="logo-sub">Agency Portal</div>
     <div class="agency-badge">🏢 <span id="agency-name">My Agency</span></div>
+    <div id="team-member-badge" style="font-size:.72rem;color:var(--td);margin-top:.35rem"></div>
   </div>
 
   <div class="sb-nav">
@@ -205,9 +206,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('import',this)"><span class="nico">⚡</span>Quick Import</button>
     <button class="ni" onclick="sp('new-listing',this)"><span class="nico">➕</span>New Listing</button>
 
-    <div class="nl">Clients & Agents</div>
+    <div class="nl">Clients</div>
     <button class="ni" onclick="sp('crm',this)"><span class="nico">👥</span>CRM Clients<span class="nbadge" id="nb-leads" style="display:none">0</span></button>
-    <button class="ni" onclick="sp('team',this)"><span class="nico">🏆</span>My Agents</button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
 
     <div class="nl">Account</div>
@@ -279,10 +279,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div style="font-size:.8rem;font-weight:700;color:var(--txt)">Import Listing</div>
             <div style="font-size:.68rem;color:var(--td);margin-top:.1rem">From your website or PDF</div>
           </button>
-          <button onclick="sp('team',null)" style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:1.2rem;cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor='var(--b2)'" onmouseout="this.style.borderColor='var(--b)'">
-            <div style="font-size:1.6rem;margin-bottom:.4rem">🏆</div>
-            <div style="font-size:.8rem;font-weight:700;color:var(--txt)">Manage Agents</div>
-            <div style="font-size:.68rem;color:var(--td);margin-top:.1rem">Assign visits to agents</div>
+          <button onclick="sp('crm',null)" style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:1.2rem;cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor='var(--b2)'" onmouseout="this.style.borderColor='var(--b)'">
+            <div style="font-size:1.6rem;margin-bottom:.4rem">👥</div>
+            <div style="font-size:.8rem;font-weight:700;color:var(--txt)">CRM Clients</div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.1rem">Manage your client pipeline</div>
           </button>
           <button onclick="sp('analytics',null)" style="background:var(--s2);border:1px solid var(--b);border-radius:12px;padding:1.2rem;cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor='var(--b2)'" onmouseout="this.style.borderColor='var(--b)'">
             <div style="font-size:1.6rem;margin-bottom:.4rem">📈</div>
@@ -507,29 +507,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div id="crm-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
-  <!-- ── TEAM ── -->
-  <div class="page" id="page-team">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-      <div style="font-size:1rem;font-weight:700">🏆 My Agents</div>
-      <button class="btn bp bsm" onclick="openInviteAgent()">+ Invite Agent</button>
-    </div>
-
-    <div id="team-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
-
-    <!-- Invite modal -->
-    <div id="invite-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center">
-      <div style="background:var(--s);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:400px">
-        <div style="font-weight:700;font-size:.95rem;margin-bottom:1rem">Invite an Agent</div>
-        <div class="fg"><label class="fl">Agent email</label><input class="fi" id="invite-email" placeholder="agent@agency.com"></div>
-        <div class="fg"><label class="fl">Message (optional)</label><textarea class="fi" id="invite-msg" rows="2" placeholder="Join our team on RestMalta!"></textarea></div>
-        <div style="display:flex;gap:.5rem;margin-top:.5rem">
-          <button class="btn bp" onclick="sendInvite()" style="flex:1;justify-content:center">Send Invite →</button>
-          <button class="btn bg bsm" onclick="document.getElementById('invite-modal').style.display='none'">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ── VISITS ── -->
   <div class="page" id="page-visits">
     <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📅 All Visits</div></div>
@@ -636,6 +613,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <button class="btn bp" onclick="saveAgencyProfile()" style="width:100%;justify-content:center">Save Profile →</button>
         </div>
       </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div class="ch"><div class="ct">👥 Team Members</div></div>
+        <div class="cb">
+          <p style="font-size:.78rem;color:var(--td);margin-bottom:.85rem">Your agency login is shared by your whole team. Add the names of everyone who uses this account so actions can be tracked to the right person when they log in.</p>
+          <div id="team-members-settings" style="margin-bottom:.75rem"></div>
+          <div style="display:flex;gap:.4rem">
+            <input id="tm-settings-new-name" placeholder="Add a team member's name..." style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .65rem;color:var(--txt);font-size:.82rem">
+            <button onclick="addTeamMemberFromSettings()" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem .8rem;font-size:.8rem;font-weight:600;cursor:pointer">+ Add</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -650,7 +639,7 @@ const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 
 const pageTitles={
   overview:'Dashboard',analytics:'Analytics',listings:'My Listings',import:'Quick Import',
-  'new-listing':'New Listing',crm:'CRM — Client Pipeline',team:'My Agents',
+  'new-listing':'New Listing',crm:'CRM — Client Pipeline',
   visits:'All Visits',subscription:'Subscription',profile:'Agency Profile'
 };
 
@@ -698,6 +687,100 @@ async function loadAgencyProfile(){
   }catch(e){console.warn('Agency profile:',e);}
 }
 
+// ── Compte partagé : "T'es qui ?" ──────────────────────────────
+// Le compte agence est un login unique partagé par toute l'équipe.
+// Pour attribuer un minimum les actions sans multiplier les comptes,
+// on demande une fois par session (par navigateur) qui est connecté.
+function getTeamMembers(){
+  try{return agencyData?.team_members?JSON.parse(agencyData.team_members):[];}catch(e){return[];}
+}
+
+function checkTeamMemberIdentity(){
+  const current=sessionStorage.getItem('rm_team_member');
+  if(current){updateTeamMemberBadge(current);return;}
+  showWhoAreYouModal();
+}
+
+function updateTeamMemberBadge(name){
+  const el=document.getElementById('team-member-badge');
+  if(el)el.innerHTML=`👤 ${name} · <span style="text-decoration:underline;cursor:pointer" onclick="showWhoAreYouModal()">Switch</span>`;
+}
+
+function showWhoAreYouModal(){
+  const members=getTeamMembers();
+  const modal=document.createElement('div');
+  modal.id='whoareyou-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:380px">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">👋 Who's using the account?</div>
+      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">This is a shared agency login — just so actions can be tracked to the right person.</div>
+      <div id="wau-list" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.85rem">
+        ${members.map(m=>`<button onclick="selectTeamMember('${m.replace(/'/g,"\\'")}')" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:.6rem .8rem;text-align:left;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--txt)">${m}</button>`).join('')||'<div style="font-size:.78rem;color:var(--td);text-align:center;padding:.5rem 0">No team members added yet — add one below.</div>'}
+      </div>
+      <div style="display:flex;gap:.4rem">
+        <input id="wau-new-name" placeholder="Add a name..." style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .65rem;color:var(--txt);font-size:.82rem">
+        <button onclick="addAndSelectTeamMember()" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem .8rem;font-size:.8rem;font-weight:600;cursor:pointer">Add</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function selectTeamMember(name){
+  sessionStorage.setItem('rm_team_member',name);
+  document.getElementById('whoareyou-modal')?.remove();
+  updateTeamMemberBadge(name);
+}
+
+async function addAndSelectTeamMember(){
+  const name=document.getElementById('wau-new-name')?.value.trim();
+  if(!name){toast('Enter a name');return;}
+  const members=getTeamMembers();
+  if(!members.includes(name))members.push(name);
+  try{
+    await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    agencyData={...agencyData,team_members:JSON.stringify(members)};
+  }catch(e){}
+  selectTeamMember(name);
+}
+
+async function removeTeamMember(name){
+  if(!confirm('Remove '+name+' from the team list?'))return;
+  const members=getTeamMembers().filter(m=>m!==name);
+  try{
+    await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    agencyData={...agencyData,team_members:JSON.stringify(members)};
+  }catch(e){}
+  renderTeamMembersSettings();
+}
+
+function renderTeamMembersSettings(){
+  const wrap=document.getElementById('team-members-settings');
+  if(!wrap)return;
+  const members=getTeamMembers();
+  wrap.innerHTML=(members.map(m=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.3rem">
+      <span style="font-size:.82rem">👤 ${m}</span>
+      <button onclick="removeTeamMember('${m.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--red);font-size:.75rem;cursor:pointer">✕ Remove</button>
+    </div>`).join(''))||'<div style="font-size:.78rem;color:var(--td)">No team members added yet.</div>';
+}
+
+async function addTeamMemberFromSettings(){
+  const input=document.getElementById('tm-settings-new-name');
+  const name=input?.value.trim();
+  if(!name){toast('Enter a name');return;}
+  const members=getTeamMembers();
+  if(members.includes(name)){toast('⚠️ Already added');return;}
+  members.push(name);
+  try{
+    await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+    agencyData={...agencyData,team_members:JSON.stringify(members)};
+    if(input)input.value='';
+    renderTeamMembersSettings();
+    toast('✅ Added');
+  }catch(e){toast('❌ '+e.message);}
+}
+
 function updatePlanBar(plan,count){
   const limits={starter:5,pro:25,enterprise:999};
   const limit=limits[plan]||5;
@@ -723,16 +806,16 @@ function sp(id, btn){
   document.getElementById('page-sub').textContent=getPageSub(id);
   if(id==='listings')loadListings();
   if(id==='crm')loadCRM();
-  if(id==='team')loadTeam();
   if(id==='visits')loadVisits();
   if(id==='analytics')loadAnalytics();
   if(id==='subscription')loadSubscription();
+  if(id==='profile')renderTeamMembersSettings();
   if(id==='import')initImport();
 }
 
 function getPageSub(id){
   const subs={overview:'Agency overview',analytics:'Performance metrics',listings:'Manage your listings',
-    import:'Add listings quickly',crm:'Client pipeline management',team:'Manage your agents',
+    import:'Add listings quickly',crm:'Client pipeline management',
     visits:'All visit requests',subscription:'Plan & billing',profile:'Agency settings'};
   return subs[id]||'';
 }
@@ -877,21 +960,12 @@ async function importFromURL(){
   const result=document.getElementById('import-url-result');
   result.innerHTML='<div style="display:flex;align-items:center;gap:.5rem;color:var(--agencybright)"><div class="sp"></div><span>🤖 AI is extracting listing details...</span></div>';
   try{
-    // Use Claude API to extract listing info from URL
-    const response=await fetch('https://api.anthropic.com/v1/messages',{
+    const response=await fetch('/.netlify/functions/extract-listing',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        messages:[{role:'user',content:`Fetch this URL and extract the property listing details: ${url}\n\nReturn ONLY valid JSON with these exact fields:\n{"title":"","zone":"","price":0,"bedrooms":0,"bathrooms":0,"description":"","full_address":"","bills":"excluded","furnished":false,"wifi":false,"lease_type":"long"}\n\nFor zone, use only Malta zones like: Sliema, St Julian's, Valletta, Msida, Gzira, Swieqi, Mellieha, etc.\nIf you cannot access the URL, return {"error":"Could not access URL"}`}]
-      })
+      body:JSON.stringify({url})
     });
-    const data=await response.json();
-    const text=data.content?.filter(c=>c.type==='text').map(c=>c.text).join('');
-    const clean=text.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(clean);
+    const parsed=await response.json();
     if(parsed.error){result.innerHTML=`<div style="color:var(--red)">❌ ${parsed.error}</div>`;return;}
     importedListing=parsed;
     result.innerHTML='';
@@ -1146,45 +1220,6 @@ function setCRMTab(tab, btn){
 
 function filterCRM(q){/* TODO: filter CRM list */}
 
-// ── Team ──────────────────────────────────────────────────────
-async function loadTeam(){
-  const wrap=document.getElementById('team-list');
-  wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
-  try{
-    const{data:agents}=await sb.from('profiles').select('*').eq('role','agent').order('created_at',{ascending:false});
-    // Filter agency agents (those who have the same agency clerk_id or agency_id)
-    if(!(agents||[]).length){
-      wrap.innerHTML=`<div class="empty"><div class="em">🏆</div><p>No agents in your team yet.<br>Invite agents to join your agency.</p>
-        <button class="btn bp bsm" onclick="openInviteAgent()" style="margin-top:.75rem">+ Invite Agent</button></div>`;
-      return;
-    }
-    wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+
-      (agents||[]).slice(0,10).map(a=>`
-        <div class="agent-row">
-          <div class="agent-av">${(a.full_name||'?')[0].toUpperCase()}</div>
-          <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600">${a.full_name||'Agent'}</div>
-            <div style="font-size:.7rem;color:var(--td)">${a.email||'—'} · ${a.languages||'Malta'}</div>
-          </div>
-          ${a.verified?'<span class="badge b-green">✅ Verified</span>':a.id_submitted?'<span class="badge b-gold">⏳ Pending</span>':'<span class="badge b-dim">Not verified</span>'}
-          <div style="display:flex;gap:.3rem;margin-left:.5rem">
-            <button class="btn bg bsm" style="font-size:.68rem">📊 Stats</button>
-          </div>
-        </div>`).join('')+
-      '</div></div>';
-  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error</div>';}
-}
-
-function openInviteAgent(){document.getElementById('invite-modal').style.display='flex';}
-
-async function sendInvite(){
-  const email=document.getElementById('invite-email').value.trim();
-  if(!email){toast('Enter an email');return;}
-  // TODO: send invite email via Resend
-  toast('✅ Invitation sent to '+email+'!');
-  document.getElementById('invite-modal').style.display='none';
-}
-
 // ── Visits ────────────────────────────────────────────────────
 async function loadVisits(){
   const wrap=document.getElementById('visits-list');
@@ -1298,6 +1333,7 @@ function toast(msg){
   document.getElementById('sidebar').style.display='flex';
   document.getElementById('main').style.display='block';
   await loadAgencyProfile();
+  checkTeamMemberIdentity();
   loadAll();
 })();
 </script>
