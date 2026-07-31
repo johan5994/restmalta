@@ -74,7 +74,7 @@ exports.handler = async (event) => {
         max_tokens: 1200,
         messages: [{
           role: 'user',
-          content: `Here is the raw HTML of a property listing page. Extract the listing details from it.\n\nReturn ONLY valid JSON with these exact fields:\n{"title":"","zone":"","price":0,"bedrooms":0,"bathrooms":0,"description":"","full_address":"","bills":"excluded","furnished":false,"wifi":false,"lease_type":"long","photo_urls":[]}\n\nFor zone, use only Malta zones like: Sliema, St Julian's, Valletta, Msida, Gzira, Swieqi, Mellieha, etc. If the property isn't in Malta, still extract what you can and set zone to the actual city/area.\nFor photo_urls: look through the HTML for <img> tags or data attributes (data-src, data-lazy-src, srcset) that point to actual PHOTOS of this property (not logos, icons, avatars, or ads). Return full absolute URLs only (starting with http). Up to 8 photos. If you can't confidently identify real property photos, return an empty array — don't guess.\nIf this page clearly isn't a property listing, return {"error":"This doesn't look like a property listing page"}\n\nHTML:\n${cleaned}`
+          content: `Here is the raw HTML of a property listing page. Extract the listing details from it.\n\nReturn ONLY valid JSON with these exact fields:\n{"title":"","zone":"","price":0,"bedrooms":0,"bathrooms":0,"description":"","full_address":"","bills":"excluded","furnished":false,"wifi":false,"lease_type":"long","photo_urls":[],"features":[]}\n\nFor zone, use only Malta zones like: Sliema, St Julian's, Valletta, Msida, Gzira, Swieqi, Mellieha, etc. If the property isn't in Malta, still extract what you can and set zone to the actual city/area.\nFor photo_urls: look through the HTML for <img> tags or data attributes (data-src, data-lazy-src, srcset) that point to actual PHOTOS of this property (not logos, icons, avatars, or ads). Return full absolute URLs only (starting with http). Up to 8 photos. If you can't confidently identify real property photos, return an empty array — don't guess.\nFor features: pick ONLY from this exact list (use the exact spelling), based on what's actually mentioned or shown on the page: ["Air Conditioning","Furnished","Pet Friendly","Balcony","Sea View","Valley View","Dishwasher","Washing Machine","Parking","Pool","Elevator / Lift","Garden","Terrace","WiFi","Walk-In Wardrobe","Storage Room","CCTV / Security","Gym","Utility Room","Sofa Bed"]. Don't include anything not on this list. If unsure, leave it out.\nIf this page clearly isn't a property listing, return {"error":"This doesn't look like a property listing page"}\n\nHTML:\n${cleaned}`
         }]
       })
     });
@@ -100,6 +100,10 @@ exports.handler = async (event) => {
     modelPhotos.forEach(p=>{if(!photos.includes(p))photos.push(p);});
     parsed.photos=photos.slice(0,8);
     delete parsed.photo_urls;
+
+    // 6 — Ne garder que des features de la liste connue (défense contre un modèle qui invente)
+    const KNOWN_FEATURES=["Air Conditioning","Furnished","Pet Friendly","Balcony","Sea View","Valley View","Dishwasher","Washing Machine","Parking","Pool","Elevator / Lift","Garden","Terrace","WiFi","Walk-In Wardrobe","Storage Room","CCTV / Security","Gym","Utility Room","Sofa Bed"];
+    parsed.features=Array.isArray(parsed.features)?parsed.features.filter(f=>KNOWN_FEATURES.includes(f)):[];
 
     return { statusCode: 200, headers, body: JSON.stringify(parsed) };
 
