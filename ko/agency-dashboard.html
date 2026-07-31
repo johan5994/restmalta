@@ -47,7 +47,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .ur{font-size:.68rem;color:var(--td)}
 
 /* ── Main ── */
-.main{margin-left:260px;flex:1;min-height:100vh;background:var(--bg)}
+.main{margin-left:260px;flex:1;min-height:100vh;background:var(--bg);overflow-x:hidden}
 .topbar{padding:1.1rem 2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:30}
 .topbar-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--txt)}
 .topbar-sub{font-size:.72rem;color:var(--td);margin-top:.1rem}
@@ -407,6 +407,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="nl-beds"><option value="0">Studio</option><option value="1">1 Bedroom</option><option value="2">2 Bedrooms</option><option value="3">3 Bedrooms</option><option value="4">4+ Bedrooms</option></select></div>
             <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="nl-baths"><option value="1">1 Bathroom</option><option value="2">2 Bathrooms</option><option value="3">3+ Bathrooms</option></select></div>
             <div class="fg"><label class="fl">Lease Type</label><select class="fsel" id="nl-lease"><option value="long">🏛️ Long-let (1 year+)</option><option value="short">🏠 Short-let (1-6 months)</option><option value="room_rental">🔑 Room rental</option></select></div>
+            <div class="fg"><label class="fl">Property Type</label><select class="fsel" id="nl-ptype"><option value="apartment">Apartment</option><option value="house">House / Terraced House</option><option value="penthouse">Penthouse</option><option value="maisonette">Maisonette</option><option value="townhouse">Townhouse</option><option value="studio">Studio</option><option value="villa">Villa</option></select></div>
+            <div class="fg"><label class="fl">Floor</label><select class="fsel" id="nl-floor"><option value="">—</option><option value="Ground floor">Ground floor</option><option value="1st floor">1st floor</option><option value="2nd floor">2nd floor</option><option value="3rd floor">3rd floor</option><option value="4th floor">4th floor</option><option value="5th floor+">5th floor+</option><option value="Penthouse level">Penthouse level</option></select></div>
+            <div class="fg"><label class="fl">Size (m²)</label><input class="fi" type="number" id="nl-sqm" placeholder="75"></div>
+            <div class="fg"><label class="fl">Deposit (€)</label><input class="fi" type="number" id="nl-deposit" placeholder="Same as monthly rent if left empty"></div>
+            <div class="fg"><label class="fl">Available From</label><input class="fi" type="date" id="nl-available"></div>
             <div class="fg"><label class="fl">Bills</label><select class="fsel" id="nl-bills"><option value="included">All bills included</option><option value="excluded">Bills not included</option></select></div>
           </div>
           <div class="fg"><label class="fl">Description</label><textarea class="fi" id="nl-desc" rows="4" placeholder="Describe the property — furnished, amenities, transport links..."></textarea></div>
@@ -814,6 +819,12 @@ function sp(id, btn){
   }
   document.getElementById('page-title').textContent=pageTitles[id]||id;
   document.getElementById('page-sub').textContent=getPageSub(id);
+  // Sécurité : remettre le scroll à zéro à chaque changement de page —
+  // une page plus large peut laisser un décalage de scroll horizontal
+  // qui donne l'impression que la page suivante est "poussée" sur le côté.
+  const mainEl=document.getElementById('main');
+  if(mainEl){mainEl.scrollLeft=0;mainEl.scrollTop=0;}
+  window.scrollTo(0,0);
   if(id==='listings')loadListings();
   if(id==='crm')loadCRM();
   if(id==='visits')loadVisits();
@@ -994,6 +1005,14 @@ function showImportPreview(data){
       <div class="fg"><label class="fl">Zone</label><input class="fi" id="prev-zone" value="${data.zone||''}"></div>
       <div class="fg"><label class="fl">Monthly Rent (€)</label><input class="fi" type="number" id="prev-price" value="${data.price||''}"></div>
       <div class="fg"><label class="fl">Bedrooms</label><input class="fi" type="number" id="prev-beds" value="${data.bedrooms||''}"></div>
+      <div class="fg"><label class="fl">Size (m²)</label><input class="fi" type="number" id="prev-sqm" value="${data.sqm||''}"></div>
+      <div class="fg"><label class="fl">Deposit (€)</label><input class="fi" type="number" id="prev-deposit" placeholder="Same as rent if left empty"></div>
+      <div class="fg"><label class="fl">Available From</label><input class="fi" type="date" id="prev-available"></div>
+      <div class="fg"><label class="fl">Property Type</label><select class="fsel" id="prev-ptype"><option value="apartment">Apartment</option><option value="house">House / Terraced House</option><option value="penthouse">Penthouse</option><option value="maisonette">Maisonette</option><option value="townhouse">Townhouse</option><option value="studio">Studio</option><option value="villa">Villa</option></select></div>
+      <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="prev-baths"><option value="1" ${(!data.bathrooms||data.bathrooms==1)?'selected':''}>1 Bathroom</option><option value="2" ${data.bathrooms==2?'selected':''}>2 Bathrooms</option><option value="3" ${data.bathrooms>=3?'selected':''}>3+ Bathrooms</option></select></div>
+      <div class="fg"><label class="fl">Lease Type</label><select class="fsel" id="prev-lease"><option value="long" ${(!data.lease_type||data.lease_type==='long')?'selected':''}>🏛️ Long-let (1 year+)</option><option value="short" ${data.lease_type==='short'?'selected':''}>🏠 Short-let (1-6 months)</option><option value="room_rental" ${data.lease_type==='room_rental'?'selected':''}>🔑 Room rental</option></select></div>
+      <div class="fg"><label class="fl">Bills</label><select class="fsel" id="prev-bills"><option value="included" ${data.bills==='included'?'selected':''}>All bills included</option><option value="excluded" ${(!data.bills||data.bills==='excluded')?'selected':''}>Bills not included</option></select></div>
+      <div class="fg"><label class="fl">Floor</label><select class="fsel" id="prev-floor"><option value="">—</option><option value="Ground floor">Ground floor</option><option value="1st floor">1st floor</option><option value="2nd floor">2nd floor</option><option value="3rd floor">3rd floor</option><option value="4th floor">4th floor</option><option value="5th floor+">5th floor+</option><option value="Penthouse level">Penthouse level</option></select></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="prev-desc" rows="3">${data.description||''}</textarea></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Full Address</label><input class="fi" id="prev-address" value="${data.full_address||''}"></div>
       <div class="fg" style="grid-column:1/-1">
@@ -1033,6 +1052,14 @@ async function publishImportedListing(){
     full_address:document.getElementById('prev-address')?.value.trim(),
     photos:[...document.querySelectorAll('.prev-photo-cb:checked')].map(cb=>cb.value),
     features:getFeatureTags('prev-features-tags'),
+    sqm:parseInt(document.getElementById('prev-sqm')?.value)||null,
+    deposit:parseFloat(document.getElementById('prev-deposit')?.value)||null,
+    available_from:document.getElementById('prev-available')?.value||null,
+    property_type:document.getElementById('prev-ptype')?.value,
+    floor:document.getElementById('prev-floor')?.value,
+    baths:parseInt(document.getElementById('prev-baths')?.value)||1,
+    lease_type:document.getElementById('prev-lease')?.value,
+    bills:document.getElementById('prev-bills')?.value,
   };
   if(!data.title||!data.zone){toast('Title and zone are required');return;}
   await createListing(data);
@@ -1047,6 +1074,11 @@ async function createListing(data){
       furnished:data.furnished||false,wifi:data.wifi||false,
       bills_situation:data.bills||'excluded',
       lease_type:data.lease_type||'long',
+      property_type:data.property_type||null,
+      floor:data.floor||null,
+      sqm:data.sqm||null,
+      deposit:data.deposit||data.price||0,
+      available_from:data.available_from||null,
       features:data.features&&data.features.length?JSON.stringify(data.features):null,
       photos:data.photos&&data.photos.length?data.photos:null,
       wants_agent:true,agent_service:'full',
@@ -1184,6 +1216,11 @@ async function publishNewListing(){
     full_address:document.getElementById('nl-address').value.trim(),
     lease_type:document.getElementById('nl-lease').value,
     bills:document.getElementById('nl-bills').value,
+    property_type:document.getElementById('nl-ptype').value,
+    floor:document.getElementById('nl-floor').value,
+    sqm:parseInt(document.getElementById('nl-sqm').value)||null,
+    deposit:parseFloat(document.getElementById('nl-deposit').value)||null,
+    available_from:document.getElementById('nl-available').value||null,
     features,
     photos:uploadedPhotos,
   });
