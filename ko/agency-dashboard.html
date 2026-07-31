@@ -1087,6 +1087,7 @@ async function createListing(data){
       wants_agent:true,agent_service:'full',
       agent_id:U.id,agency_listing:true,
       agency_logo_url:agencyData?.logo_url||null,
+      agency_name:agencyData?.agency_name||null,
       status:'active',
       created_at:new Date().toISOString()
     }).select().single();
