@@ -996,6 +996,8 @@ async function importFromURL(){
 function showImportPreview(data){
   document.getElementById('import-preview').style.display='block';
   const photos=Array.isArray(data.photos)?data.photos:[];
+  const detectedFeatures=Array.isArray(data.features)?data.features:[];
+  const ALL_FEATURES=["Air Conditioning","Furnished","Pet Friendly","Balcony","Sea View","Valley View","Dishwasher","Washing Machine","Parking","Pool","Elevator / Lift","Garden","Terrace","WiFi","Walk-In Wardrobe","Storage Room","CCTV / Security","Gym","Utility Room","Sofa Bed"];
   document.getElementById('import-preview-content').innerHTML=`
     <div class="fgrid2" style="gap:.5rem">
       <div class="fg"><label class="fl">Title</label><input class="fi" id="prev-title" value="${data.title||''}"></div>
@@ -1004,6 +1006,16 @@ function showImportPreview(data){
       <div class="fg"><label class="fl">Bedrooms</label><input class="fi" type="number" id="prev-beds" value="${data.bedrooms||''}"></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="prev-desc" rows="3">${data.description||''}</textarea></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Full Address</label><input class="fi" id="prev-address" value="${data.full_address||''}"></div>
+      <div class="fg" style="grid-column:1/-1">
+        <label class="fl">Features & Amenities${detectedFeatures.length?' ('+detectedFeatures.length+' found)':''}</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .75rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.85rem">
+          ${ALL_FEATURES.map(f=>`
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer">
+              <input type="checkbox" class="prev-feature-cb" value="${f}" ${detectedFeatures.includes(f)?'checked':''} style="accent-color:var(--agencybright)">${f}
+            </label>`).join('')}
+        </div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Pré-coché = détecté sur la page source. Ajuste si besoin.</div>
+      </div>
       <div class="fg" style="grid-column:1/-1">
         <label class="fl">Photos found${photos.length?' ('+photos.length+')':''}</label>
         ${photos.length?`
@@ -1030,6 +1042,7 @@ async function publishImportedListing(){
     description:document.getElementById('prev-desc')?.value.trim(),
     full_address:document.getElementById('prev-address')?.value.trim(),
     photos:[...document.querySelectorAll('.prev-photo-cb:checked')].map(cb=>cb.value),
+    features:[...document.querySelectorAll('.prev-feature-cb:checked')].map(cb=>cb.value),
   };
   if(!data.title||!data.zone){toast('Title and zone are required');return;}
   await createListing(data);
