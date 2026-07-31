@@ -406,7 +406,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Monthly Rent (€) *</label><input class="fi" type="number" id="nl-price" placeholder="850"></div>
             <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="nl-beds"><option value="0">Studio</option><option value="1">1 Bedroom</option><option value="2">2 Bedrooms</option><option value="3">3 Bedrooms</option><option value="4">4+ Bedrooms</option></select></div>
             <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="nl-baths"><option value="1">1 Bathroom</option><option value="2">2 Bathrooms</option><option value="3">3+ Bathrooms</option></select></div>
-            <div class="fg"><label class="fl">Lease Type</label><select class="fsel" id="nl-lease"><option value="long">🏛️ Long-let (1 year+)</option><option value="short">🏠 Short-let (1-6 months)</option><option value="room_rental">🔑 Room rental</option></select></div>
+            <div class="fg"><label class="fl">Lease Type</label><div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.65rem;font-size:.85rem;color:var(--tm)">🏛️ Long-let (1 year+) <span style="font-size:.7rem;color:var(--td)">— agences RestMalta, long-let uniquement</span></div></div>
             <div class="fg"><label class="fl">Property Type</label><select class="fsel" id="nl-ptype"><option value="apartment">Apartment</option><option value="house">House / Terraced House</option><option value="penthouse">Penthouse</option><option value="maisonette">Maisonette</option><option value="townhouse">Townhouse</option><option value="studio">Studio</option><option value="villa">Villa</option></select></div>
             <div class="fg"><label class="fl">Floor</label><select class="fsel" id="nl-floor"><option value="">—</option><option value="Ground floor">Ground floor</option><option value="1st floor">1st floor</option><option value="2nd floor">2nd floor</option><option value="3rd floor">3rd floor</option><option value="4th floor">4th floor</option><option value="5th floor+">5th floor+</option><option value="Penthouse level">Penthouse level</option></select></div>
             <div class="fg"><label class="fl">Size (m²)</label><input class="fi" type="number" id="nl-sqm" placeholder="75"></div>
@@ -1010,7 +1010,7 @@ function showImportPreview(data){
       <div class="fg"><label class="fl">Available From</label><input class="fi" type="date" id="prev-available"></div>
       <div class="fg"><label class="fl">Property Type</label><select class="fsel" id="prev-ptype"><option value="apartment">Apartment</option><option value="house">House / Terraced House</option><option value="penthouse">Penthouse</option><option value="maisonette">Maisonette</option><option value="townhouse">Townhouse</option><option value="studio">Studio</option><option value="villa">Villa</option></select></div>
       <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="prev-baths"><option value="1" ${(!data.bathrooms||data.bathrooms==1)?'selected':''}>1 Bathroom</option><option value="2" ${data.bathrooms==2?'selected':''}>2 Bathrooms</option><option value="3" ${data.bathrooms>=3?'selected':''}>3+ Bathrooms</option></select></div>
-      <div class="fg"><label class="fl">Lease Type</label><select class="fsel" id="prev-lease"><option value="long" ${(!data.lease_type||data.lease_type==='long')?'selected':''}>🏛️ Long-let (1 year+)</option><option value="short" ${data.lease_type==='short'?'selected':''}>🏠 Short-let (1-6 months)</option><option value="room_rental" ${data.lease_type==='room_rental'?'selected':''}>🔑 Room rental</option></select></div>
+      <div class="fg"><label class="fl">Lease Type</label><div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.65rem;font-size:.85rem;color:var(--tm)">🏛️ Long-let (1 year+) <span style="font-size:.7rem;color:var(--td)">— agences RestMalta, long-let uniquement</span></div></div>
       <div class="fg"><label class="fl">Bills</label><select class="fsel" id="prev-bills"><option value="included" ${data.bills==='included'?'selected':''}>All bills included</option><option value="excluded" ${(!data.bills||data.bills==='excluded')?'selected':''}>Bills not included</option></select></div>
       <div class="fg"><label class="fl">Floor</label><select class="fsel" id="prev-floor"><option value="">—</option><option value="Ground floor">Ground floor</option><option value="1st floor">1st floor</option><option value="2nd floor">2nd floor</option><option value="3rd floor">3rd floor</option><option value="4th floor">4th floor</option><option value="5th floor+">5th floor+</option><option value="Penthouse level">Penthouse level</option></select></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="prev-desc" rows="3">${data.description||''}</textarea></div>
@@ -1058,7 +1058,7 @@ async function publishImportedListing(){
     property_type:document.getElementById('prev-ptype')?.value,
     floor:document.getElementById('prev-floor')?.value,
     baths:parseInt(document.getElementById('prev-baths')?.value)||1,
-    lease_type:document.getElementById('prev-lease')?.value,
+    lease_type:'long', // agences RestMalta = long-let uniquement
     bills:document.getElementById('prev-bills')?.value,
   };
   if(!data.title||!data.zone){toast('Title and zone are required');return;}
@@ -1069,11 +1069,12 @@ async function createListing(data){
   try{
     const{data:l,error}=await sb.from('listings').insert({
       title:data.title,zone:data.zone,price:data.price||0,
-      bedrooms:data.beds||0,baths:data.baths||1,
+      spots:data.beds||0,baths:data.baths||1,
       description:data.description||'',full_address:data.full_address||'',
       furnished:data.furnished||false,wifi:data.wifi||false,
       bills_situation:data.bills||'excluded',
-      lease_type:data.lease_type||'long',
+      bills_included:data.bills==='included',
+      type:data.lease_type||'long',
       property_type:data.property_type||null,
       floor:data.floor||null,
       sqm:data.sqm||null,
@@ -1214,7 +1215,7 @@ async function publishNewListing(){
     baths:parseInt(document.getElementById('nl-baths').value)||1,
     description:document.getElementById('nl-desc').value.trim(),
     full_address:document.getElementById('nl-address').value.trim(),
-    lease_type:document.getElementById('nl-lease').value,
+    lease_type:'long', // agences RestMalta = long-let uniquement
     bills:document.getElementById('nl-bills').value,
     property_type:document.getElementById('nl-ptype').value,
     floor:document.getElementById('nl-floor').value,
