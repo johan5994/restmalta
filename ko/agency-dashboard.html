@@ -167,6 +167,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
 /* ── Responsive note ── */
 @media(max-width:900px){.kgrid{grid-template-columns:1fr 1fr}.main{margin-left:0}}
+.tag-suggest{cursor:pointer;text-decoration:underline;color:var(--agencybright)}
+.tag-suggest:hover{opacity:.8}
 </style>
 </head>
 <body>
@@ -413,28 +415,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <!-- Features / Amenities -->
           <div class="fg">
             <label class="fl">Features & Amenities</label>
-            <div id="nl-features" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .75rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.85rem">
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Air Conditioning" style="accent-color:var(--agencybright)">Air Conditioning</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Furnished" style="accent-color:var(--agencybright)">Furnished</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Pet Friendly" style="accent-color:var(--agencybright)">Pet Friendly</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Balcony" style="accent-color:var(--agencybright)">Balcony</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Sea View" style="accent-color:var(--agencybright)">Sea View</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Valley View" style="accent-color:var(--agencybright)">Valley View</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Dishwasher" style="accent-color:var(--agencybright)">Dishwasher</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Washing Machine" style="accent-color:var(--agencybright)">Washing Machine</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Parking" style="accent-color:var(--agencybright)">Parking</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Pool" style="accent-color:var(--agencybright)">Pool</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Elevator / Lift" style="accent-color:var(--agencybright)">Elevator / Lift</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Garden" style="accent-color:var(--agencybright)">Garden</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Terrace" style="accent-color:var(--agencybright)">Terrace</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="WiFi" style="accent-color:var(--agencybright)">WiFi</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Walk-In Wardrobe" style="accent-color:var(--agencybright)">Walk-In Wardrobe</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Storage Room" style="accent-color:var(--agencybright)">Storage Room</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="CCTV / Security" style="accent-color:var(--agencybright)">CCTV / Security</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Gym" style="accent-color:var(--agencybright)">Gym</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Utility Room" style="accent-color:var(--agencybright)">Utility Room</label>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer"><input type="checkbox" class="nl-feature-cb" value="Sofa Bed" style="accent-color:var(--agencybright)">Sofa Bed</label>
+            <div id="nl-features-tags" style="display:flex;flex-wrap:wrap;gap:.4rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.65rem;min-height:20px"></div>
+            <div style="display:flex;gap:.4rem;margin-top:.5rem">
+              <input type="text" id="nl-feature-input" placeholder="Type a feature and press Enter (e.g. Air Conditioning)" style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .65rem;color:var(--txt);font-size:.8rem" onkeydown="if(event.key==='Enter'){event.preventDefault();addFeatureTag('nl-features-tags',this.value);this.value='';}">
+              <button type="button" onclick="addFeatureTag('nl-features-tags',document.getElementById('nl-feature-input').value);document.getElementById('nl-feature-input').value=''" style="background:var(--agencybright);color:white;border:none;border-radius:8px;padding:.5rem .9rem;font-size:.8rem;font-weight:600;cursor:pointer">+ Add</button>
             </div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Suggestions: <span class="tag-suggest" onclick="addFeatureTag('nl-features-tags','Air Conditioning')">Air Conditioning</span> · <span class="tag-suggest" onclick="addFeatureTag('nl-features-tags','Furnished')">Furnished</span> · <span class="tag-suggest" onclick="addFeatureTag('nl-features-tags','Balcony')">Balcony</span> · <span class="tag-suggest" onclick="addFeatureTag('nl-features-tags','Sea View')">Sea View</span> · <span class="tag-suggest" onclick="addFeatureTag('nl-features-tags','Parking')">Parking</span> · <span class="tag-suggest" onclick="addFeatureTag('nl-features-tags','Pool')">Pool</span> · <span class="tag-suggest" onclick="addFeatureTag('nl-features-tags','WiFi')">WiFi</span></div>
+          </div>
           </div>
 
           <!-- Photos -->
@@ -688,6 +675,10 @@ async function loadAgencyProfile(){
       document.getElementById('ag-address').value=p.address||'';
       document.getElementById('ag-zones').value=p.zones||'';
       document.getElementById('ag-bio').value=p.bio||'';
+      if(p.logo_url){
+        const preview=document.getElementById('logo-preview');
+        if(preview)preview.innerHTML=`<img src="${p.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+      }
       updatePlanBar(p.plan||'starter',p.listing_count||0);
     } else {
       // Créer le profil agence
@@ -997,7 +988,6 @@ function showImportPreview(data){
   document.getElementById('import-preview').style.display='block';
   const photos=Array.isArray(data.photos)?data.photos:[];
   const detectedFeatures=Array.isArray(data.features)?data.features:[];
-  const ALL_FEATURES=["Air Conditioning","Furnished","Pet Friendly","Balcony","Sea View","Valley View","Dishwasher","Washing Machine","Parking","Pool","Elevator / Lift","Garden","Terrace","WiFi","Walk-In Wardrobe","Storage Room","CCTV / Security","Gym","Utility Room","Sofa Bed"];
   document.getElementById('import-preview-content').innerHTML=`
     <div class="fgrid2" style="gap:.5rem">
       <div class="fg"><label class="fl">Title</label><input class="fi" id="prev-title" value="${data.title||''}"></div>
@@ -1007,14 +997,13 @@ function showImportPreview(data){
       <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="prev-desc" rows="3">${data.description||''}</textarea></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Full Address</label><input class="fi" id="prev-address" value="${data.full_address||''}"></div>
       <div class="fg" style="grid-column:1/-1">
-        <label class="fl">Features & Amenities${detectedFeatures.length?' ('+detectedFeatures.length+' found)':''}</label>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .75rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.85rem">
-          ${ALL_FEATURES.map(f=>`
-            <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer">
-              <input type="checkbox" class="prev-feature-cb" value="${f}" ${detectedFeatures.includes(f)?'checked':''} style="accent-color:var(--agencybright)">${f}
-            </label>`).join('')}
+        <label class="fl">Features & Amenities${detectedFeatures.length?' ('+detectedFeatures.length+' found on source page)':''}</label>
+        <div id="prev-features-tags" style="display:flex;flex-wrap:wrap;gap:.4rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.65rem;min-height:20px"></div>
+        <div style="display:flex;gap:.4rem;margin-top:.5rem">
+          <input type="text" id="prev-feature-input" placeholder="Add another feature..." style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .65rem;color:var(--txt);font-size:.8rem" onkeydown="if(event.key==='Enter'){event.preventDefault();addFeatureTag('prev-features-tags',this.value);this.value='';}">
+          <button type="button" onclick="addFeatureTag('prev-features-tags',document.getElementById('prev-feature-input').value);document.getElementById('prev-feature-input').value=''" style="background:var(--agencybright);color:white;border:none;border-radius:8px;padding:.5rem .9rem;font-size:.8rem;font-weight:600;cursor:pointer">+ Add</button>
         </div>
-        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Pré-coché = détecté sur la page source. Ajuste si besoin.</div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Exactement ce qui a été trouvé sur la page source — clique le ✕ pour retirer, ou ajoute-en d'autres.</div>
       </div>
       <div class="fg" style="grid-column:1/-1">
         <label class="fl">Photos found${photos.length?' ('+photos.length+')':''}</label>
@@ -1030,6 +1019,7 @@ function showImportPreview(data){
         :`<div style="font-size:.78rem;color:var(--td)">No photos could be found automatically — you can add them after publishing, from My Listings.</div>`}
       </div>
     </div>`;
+  setFeatureTags('prev-features-tags',detectedFeatures);
   document.getElementById('import-preview').scrollIntoView({behavior:'smooth'});
 }
 
@@ -1042,7 +1032,7 @@ async function publishImportedListing(){
     description:document.getElementById('prev-desc')?.value.trim(),
     full_address:document.getElementById('prev-address')?.value.trim(),
     photos:[...document.querySelectorAll('.prev-photo-cb:checked')].map(cb=>cb.value),
-    features:[...document.querySelectorAll('.prev-feature-cb:checked')].map(cb=>cb.value),
+    features:getFeatureTags('prev-features-tags'),
   };
   if(!data.title||!data.zone){toast('Title and zone are required');return;}
   await createListing(data);
@@ -1052,7 +1042,7 @@ async function createListing(data){
   try{
     const{data:l,error}=await sb.from('listings').insert({
       title:data.title,zone:data.zone,price:data.price||0,
-      beds:data.beds||0,baths:data.baths||1,
+      bedrooms:data.beds||0,baths:data.baths||1,
       description:data.description||'',full_address:data.full_address||'',
       furnished:data.furnished||false,wifi:data.wifi||false,
       bills_situation:data.bills||'excluded',
@@ -1066,6 +1056,7 @@ async function createListing(data){
     }).select().single();
     if(error)throw new Error(error.message);
     toast('🚀 Listing published successfully!');
+    uploadedPhotos=[];
     document.getElementById('import-preview').style.display='none';
     sp('listings',null);
   }catch(e){toast('❌ '+e.message);}
@@ -1123,17 +1114,67 @@ function handlePDFDrop(e){
 }
 
 // ── New Listing ───────────────────────────────────────────────
-function previewPhotos(input){
+async function previewPhotos(input){
   const wrap=document.getElementById('photo-previews');
-  uploadedPhotos=[...input.files];
-  wrap.innerHTML=uploadedPhotos.map((f,i)=>`<img src="${URL.createObjectURL(f)}" style="width:60px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--b2)">`).join('');
+  const files=[...input.files];
+  wrap.innerHTML=files.map(()=>`<div style="width:60px;height:50px;border-radius:6px;border:1px solid var(--b2);display:flex;align-items:center;justify-content:center"><div class="sp" style="width:14px;height:14px"></div></div>`).join('');
+  uploadedPhotos=[];
+  for(const file of files){
+    try{
+      const ext=file.name.split('.').pop();
+      const path=`listing-photos/${U.id}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
+      if(error)throw new Error(error.message);
+      const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+      uploadedPhotos.push(urlData.publicUrl);
+    }catch(e){toast('❌ Photo upload failed: '+e.message);}
+  }
+  wrap.innerHTML=uploadedPhotos.map(url=>`<img src="${url}" style="width:60px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--b2)">`).join('');
+}
+
+// ── Tags libres pour Features & Amenities (New Listing + Quick Import) ──
+window._featureTags={};
+
+function addFeatureTag(containerId,rawValue){
+  const value=(rawValue||'').trim();
+  if(!value)return;
+  if(!window._featureTags[containerId])window._featureTags[containerId]=[];
+  const list=window._featureTags[containerId];
+  if(list.some(v=>v.toLowerCase()===value.toLowerCase())){toast('⚠️ Already added');return;}
+  list.push(value);
+  renderFeatureTags(containerId);
+}
+
+function removeFeatureTag(containerId,value){
+  window._featureTags[containerId]=(window._featureTags[containerId]||[]).filter(v=>v!==value);
+  renderFeatureTags(containerId);
+}
+
+function renderFeatureTags(containerId){
+  const wrap=document.getElementById(containerId);
+  if(!wrap)return;
+  const list=window._featureTags[containerId]||[];
+  wrap.innerHTML=list.length?list.map(v=>`
+    <span style="display:inline-flex;align-items:center;gap:.35rem;background:var(--agencydim);color:var(--agencybright);border:1px solid rgba(99,102,241,.3);border-radius:20px;padding:.3rem .5rem .3rem .75rem;font-size:.76rem;font-weight:600">
+      ${v}
+      <span onclick="removeFeatureTag('${containerId}','${v.replace(/'/g,"\\'")}')" style="cursor:pointer;opacity:.7;font-weight:700">✕</span>
+    </span>`).join(''):`<span style="font-size:.76rem;color:var(--td)">No features added yet.</span>`;
+}
+
+function getFeatureTags(containerId){
+  return window._featureTags[containerId]||[];
+}
+
+function setFeatureTags(containerId,list){
+  window._featureTags[containerId]=[...new Set((list||[]).filter(Boolean))];
+  renderFeatureTags(containerId);
 }
 
 async function publishNewListing(){
   const title=document.getElementById('nl-title').value.trim();
   const zone=document.getElementById('nl-zone').value;
   if(!title||!zone){toast('Title and zone required');return;}
-  const features=[...document.querySelectorAll('.nl-feature-cb:checked')].map(cb=>cb.value);
+  const features=getFeatureTags('nl-features-tags');
   await createListing({
     title,zone,
     price:parseFloat(document.getElementById('nl-price').value)||0,
@@ -1144,6 +1185,7 @@ async function publishNewListing(){
     lease_type:document.getElementById('nl-lease').value,
     bills:document.getElementById('nl-bills').value,
     features,
+    photos:uploadedPhotos,
   });
 }
 
@@ -1325,11 +1367,26 @@ async function saveAgencyProfile(){
   }catch(e){toast('❌ '+e.message);}
 }
 
-function previewLogo(input){
+async function previewLogo(input){
   const file=input.files[0];
   if(!file)return;
   const preview=document.getElementById('logo-preview');
-  preview.innerHTML=`<img src="${URL.createObjectURL(file)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+  preview.innerHTML=`<div class="sp"></div>`;
+  try{
+    const ext=file.name.split('.').pop();
+    const path=`agency-logos/${U.id}/logo.${ext}`;
+    const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
+    if(error)throw new Error(error.message);
+    const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+    const logoUrl=urlData.publicUrl+'?t='+Date.now(); // cache-bust pour voir le nouveau logo tout de suite
+    preview.innerHTML=`<img src="${logoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    await sb.from('agency_profiles').update({logo_url:logoUrl}).eq('clerk_id',U.id);
+    agencyData={...agencyData,logo_url:logoUrl};
+    toast('✅ Logo uploaded!');
+  }catch(e){
+    preview.innerHTML='🏢';
+    toast('❌ Logo upload failed: '+e.message);
+  }
 }
 
 // ── Utils ─────────────────────────────────────────────────────
