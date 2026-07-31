@@ -325,7 +325,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="tabs">
         <button class="tab act" onclick="setImportTab('url',this)">🔗 From URL</button>
         <button class="tab" onclick="setImportTab('pdf',this)">📄 From PDF</button>
-        <button class="tab" onclick="setImportTab('manual',this)">✏️ Manual</button>
         <button class="tab" onclick="setImportTab('bulk',this)">📦 Bulk CSV</button>
       </div>
 
@@ -357,16 +356,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <input type="file" id="pdf-file" accept=".pdf,image/*" style="display:none" onchange="handlePDFFile(this)">
             </div>
             <div id="import-pdf-result" style="margin-top:.75rem"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Manual -->
-      <div id="import-manual" style="display:none">
-        <div class="card">
-          <div class="ch"><div class="ct">✏️ Create listing manually</div></div>
-          <div class="cb" id="manual-form-wrap">
-            <div style="text-align:center;padding:1rem;color:var(--td)">Loading form...</div>
           </div>
         </div>
       </div>
@@ -420,6 +409,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
           <div class="fg"><label class="fl">Description</label><textarea class="fi" id="nl-desc" rows="4" placeholder="Describe the property — furnished, amenities, transport links..."></textarea></div>
           <div class="fg"><label class="fl">Full Address</label><input class="fi" id="nl-address" placeholder="12 Triq il-Kbira, Sliema SLM 1234, Malta"></div>
+
+          <!-- Features / Amenities -->
+          <div class="fg">
+            <label class="fl">Features & Amenities</label>
+            <div id="nl-features" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .75rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.85rem">
+              ${['Air Conditioning','Furnished','Pet Friendly','Balcony','Sea View','Valley View','Dishwasher','Washing Machine','Parking','Pool','Elevator / Lift','Garden','Terrace','WiFi','Walk-In Wardrobe','Storage Room','CCTV / Security','Gym','Utility Room','Sofa Bed'].map(f=>`
+                <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--tm);cursor:pointer">
+                  <input type="checkbox" class="nl-feature-cb" value="${f}" style="accent-color:var(--agencybright)">${f}
+                </label>`).join('')}
+            </div>
+          </div>
 
           <!-- Photos -->
           <div class="fg">
@@ -945,9 +945,8 @@ async function deleteListing(id, title, btn){
 function setImportTab(tab, btn){
   document.querySelectorAll('#page-import .tab').forEach(t=>t.classList.remove('act'));
   btn.classList.add('act');
-  ['url','pdf','manual','bulk'].forEach(t=>document.getElementById('import-'+t).style.display='none');
+  ['url','pdf','bulk'].forEach(t=>document.getElementById('import-'+t).style.display='none');
   document.getElementById('import-'+tab).style.display='block';
-  if(tab==='manual')initManualForm();
 }
 
 function initImport(){
@@ -971,7 +970,7 @@ async function importFromURL(){
     result.innerHTML='';
     showImportPreview(parsed);
   }catch(e){
-    result.innerHTML='<div style="color:var(--red)">❌ Could not extract listing. Try the Manual form instead.</div>';
+    result.innerHTML='<div style="color:var(--red)">❌ Could not extract listing. Try New Listing instead.</div>';
   }
 }
 
@@ -1011,6 +1010,7 @@ async function createListing(data){
       furnished:data.furnished||false,wifi:data.wifi||false,
       bills_situation:data.bills||'excluded',
       lease_type:data.lease_type||'long',
+      features:data.features&&data.features.length?JSON.stringify(data.features):null,
       wants_agent:true,agent_service:'full',
       agent_id:U.id,agency_listing:true,
       status:'active',
@@ -1021,34 +1021,6 @@ async function createListing(data){
     document.getElementById('import-preview').style.display='none';
     sp('listings',null);
   }catch(e){toast('❌ '+e.message);}
-}
-
-function initManualForm(){
-  document.getElementById('manual-form-wrap').innerHTML=`
-    <div class="fgrid2">
-      <div class="fg" style="grid-column:1/-1"><label class="fl">Title *</label><input class="fi" id="m-title" placeholder="Modern 2BR in Sliema"></div>
-      <div class="fg"><label class="fl">Zone *</label><select class="fsel" id="m-zone"><option value="">Select...</option><option>Valletta</option><option>Sliema</option><option>St Julian's</option><option>Msida</option><option>Gzira</option><option>Swieqi</option><option>Pembroke</option><option>St Paul's Bay</option><option>Mellieha</option><option>Bugibba</option></select></div>
-      <div class="fg"><label class="fl">Rent (€/mo) *</label><input class="fi" type="number" id="m-price" placeholder="850"></div>
-      <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="m-beds"><option value="0">Studio</option><option value="1">1BR</option><option value="2">2BR</option><option value="3">3BR</option><option value="4">4BR+</option></select></div>
-      <div class="fg"><label class="fl">Furnished</label><select class="fsel" id="m-furnished"><option value="true">Yes</option><option value="false">No</option></select></div>
-      <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="m-desc" rows="3" placeholder="Describe the property..."></textarea></div>
-      <div class="fg" style="grid-column:1/-1"><label class="fl">Address</label><input class="fi" id="m-address" placeholder="12 Triq il-Kbira, Sliema"></div>
-    </div>
-    <button class="btn bp" onclick="publishManual()" style="width:100%;justify-content:center;margin-top:.5rem">🚀 Publish Listing →</button>`;
-}
-
-async function publishManual(){
-  const title=document.getElementById('m-title')?.value.trim();
-  const zone=document.getElementById('m-zone')?.value;
-  if(!title||!zone){toast('Title and zone required');return;}
-  await createListing({
-    title,zone,
-    price:parseFloat(document.getElementById('m-price')?.value)||0,
-    beds:parseInt(document.getElementById('m-beds')?.value)||0,
-    description:document.getElementById('m-desc')?.value.trim(),
-    full_address:document.getElementById('m-address')?.value.trim(),
-    furnished:document.getElementById('m-furnished')?.value==='true'
-  });
 }
 
 function downloadCSVTemplate(){
@@ -1113,6 +1085,7 @@ async function publishNewListing(){
   const title=document.getElementById('nl-title').value.trim();
   const zone=document.getElementById('nl-zone').value;
   if(!title||!zone){toast('Title and zone required');return;}
+  const features=[...document.querySelectorAll('.nl-feature-cb:checked')].map(cb=>cb.value);
   await createListing({
     title,zone,
     price:parseFloat(document.getElementById('nl-price').value)||0,
@@ -1122,6 +1095,7 @@ async function publishNewListing(){
     full_address:document.getElementById('nl-address').value.trim(),
     lease_type:document.getElementById('nl-lease').value,
     bills:document.getElementById('nl-bills').value,
+    features,
   });
 }
 
