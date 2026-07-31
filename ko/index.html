@@ -1233,7 +1233,7 @@ function rCard(l){
   // Agent service badge
   const agentLabels={visit:'🏆 Agent visits',full:'🏆 Agent full service',attestation:'🏆 Agent + Att.'};
   const agentBadge=l.agency_listing?
-    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏢 Real Estate Agency</span>`:
+    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏢 ${l.agency_name||'Real Estate Agency'}</span>`:
     l.wants_agent&&l.agent_service&&l.agent_service!=='none'?
     `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">${agentLabels[l.agent_service]||'🏆 Agent'}</span>`:
     `<span style="position:absolute;top:.5rem;left:.5rem;background:rgba(76,175,125,.9);color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏠 Direct from owner</span>`;
@@ -1245,11 +1245,15 @@ function rCard(l){
       ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'🏠'}</span>`}
       <span style="position:absolute;top:.5rem;right:.5rem;background:${lbColor[l.type]||'#C9553A'};color:white;font-size:.65rem;font-weight:700;padding:.25rem .6rem;border-radius:100px">${lb[l.type]||'Listing'}</span>
       ${agentBadge}${attBadge}
-      ${l.agency_logo_url?`<img src="${l.agency_logo_url}" style="position:absolute;bottom:.5rem;left:.5rem;width:28px;height:28px;object-fit:cover;border-radius:6px;border:1.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3)">`:''}
     </div>
     <div class="lbody">
-      <div class="lzone">📍 ${l.zone}</div>
-      <div class="ltitle">${l.title}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+        <div style="min-width:0">
+          <div class="lzone">📍 ${l.zone}</div>
+          <div class="ltitle">${l.title}</div>
+        </div>
+        ${l.agency_logo_url?`<img src="${l.agency_logo_url}" style="width:32px;height:32px;object-fit:cover;border-radius:7px;border:1px solid var(--stone-xl);flex-shrink:0" alt="${l.agency_name||'Agency'}">`:''}
+      </div>
       <div class="ltags">${tags.map(t=>`<span class="ltag">${t}</span>`).join('')}</div>
       <div class="lfoot"><div><span class="lprice">€${l.price}</span><span class="lper"> /month</span></div><span style="font-size:.7rem;color:var(--stone-l)">${fr}</span></div>
     </div>
