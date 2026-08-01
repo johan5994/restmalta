@@ -1497,11 +1497,11 @@ async function showCommissionPayment(bookingId, listingId, tenantId, monthlyRent
 
   // Calculer la commission
   let listing=null;
-  try{const{data:l}=await sb.from('listings').select('price,type,wants_agent,agent_service').eq('id',listingId).single();listing=l;}catch(e){}
+  try{const{data:l}=await sb.from('listings').select('price,type,wants_agent,agent_service,agent_must_create').eq('id',listingId).single();listing=l;}catch(e){}
   const price=listing?.price||monthlyRent||0;
   const hasAgent=listing?.wants_agent&&listing?.agent_service==='full';
-  const rate=hasAgent?0.05:0.00; // part RestMalta uniquement — 30% supplémentaires vont directement à l'agent, hors Stripe
-  const agentDirectAmount=hasAgent?Math.round(price*0.30):0;
+  const rate=hasAgent?0.05:0.00; // part RestMalta uniquement — le reste va directement à l'agent, hors Stripe
+  const agentDirectAmount=hasAgent?Math.round(price*(listing?.agent_must_create?0.35:0.30)):0;
   const commission=Math.round(price*rate);
 
   if(commission===0){
@@ -3641,11 +3641,11 @@ async function showCommissionPayment(bookingId,listingId,tenantId,monthlyRent){
   if(!wrap)return;
   if(wrap._mounted){wrap.style.display=wrap.style.display==='none'?'block':'none';return;}
   let listing=null;
-  try{const{data:l}=await sb.from('listings').select('price,type,wants_agent,agent_service').eq('id',listingId).single();listing=l;}catch(e){}
+  try{const{data:l}=await sb.from('listings').select('price,type,wants_agent,agent_service,agent_must_create').eq('id',listingId).single();listing=l;}catch(e){}
   const price=listing?.price||monthlyRent||0;
   const hasAgent=listing?.wants_agent&&listing?.agent_service==='full';
-  const rate=hasAgent?0.05:0.00; // part RestMalta uniquement — 30% supplémentaires vont directement à l'agent, hors Stripe
-  const agentDirectAmount=hasAgent?Math.round(price*0.30):0;
+  const rate=hasAgent?0.05:0.00; // part RestMalta uniquement — le reste va directement à l'agent, hors Stripe
+  const agentDirectAmount=hasAgent?Math.round(price*(listing?.agent_must_create?0.35:0.30)):0;
   const commission=Math.round(price*rate);
   if(commission===0){toast('✅ No commission required — generating lease...');await generateLeaseFromBooking(bookingId,listingId,tenantId);return;}
   if(!window.stripe)window.stripe=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
