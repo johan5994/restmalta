@@ -1268,7 +1268,12 @@ async function openDet(id){
     const seenKey='rm_viewed_'+id;
     if(!sessionStorage.getItem(seenKey)){
       sessionStorage.setItem(seenKey,'1');
-      (async()=>{try{await sb.from('listings').update({views:(l.views||0)+1}).eq('id',id);}catch(e){}})();
+      (async()=>{
+        try{
+          const{error}=await sb.from('listings').update({views:(l.views||0)+1}).eq('id',id);
+          if(error)console.error('View count update failed:',error.message);
+        }catch(e){console.error('View count update failed:',e.message);}
+      })();
     }
   }catch(e){}
   const ic={short:'🏠',room_rental:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
