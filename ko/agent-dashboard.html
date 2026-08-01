@@ -179,36 +179,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
         <div>
           <div class="card">
-            <div class="ch">
-              <span class="ct">📅 Calendar</span>
-              <div style="display:flex;gap:.5rem;align-items:center">
-                <button class="btn bg bsm" onclick="prevMonth()">‹</button>
-                <span style="font-size:.85rem;font-weight:600;min-width:120px;text-align:center" id="cal-month">May 2026</span>
-                <button class="btn bg bsm" onclick="nextMonth()">›</button>
-              </div>
-            </div>
-            <div class="cb">
-              <div class="cal-header"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
-              <div class="cal-grid" id="cal-grid"></div>
-            </div>
-          </div>
-          <div class="card">
             <div class="ch"><span class="ct">All visits</span></div>
             <div class="cb" id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
           </div>
         </div>
         <div>
-          <div class="card">
-            <div class="ch"><span class="ct">🗺️ Today's route</span></div>
-            <div class="cb">
-              <div style="background:var(--s2);border-radius:10px;padding:1.2rem;text-align:center;margin-bottom:.75rem">
-                <div style="font-size:2rem;margin-bottom:.4rem">🗺️</div>
-                <div style="font-size:.82rem;color:var(--tm)">GPS route optimized</div>
-                <div style="font-size:.7rem;color:var(--td);margin-top:.2rem">3 stops · ~45 min</div>
-              </div>
-              <button class="btn bp" style="width:100%;justify-content:center" onclick="toast('🗺️ Opening GPS...')">Open GPS route</button>
-            </div>
-          </div>
           <div class="card">
             <div class="ch"><span class="ct">📬 Visit requests</span><span class="badge b-gold" id="req-count">0 pending</span></div>
             <div class="cb" id="visit-requests"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests</p></div></div>
@@ -218,14 +193,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
     <div class="page" id="page-messages">
       <div class="card"><div class="ch"><div class="ct">💬 My conversations</div></div><div class="cb" id="agent-messages-wrap"><div class="empty"><div class="em">💬</div><p>Loading...</p></div></div></div>
-      <div class="card">
-        <div class="ch">
-          <div class="ct">💬 My conversations</div>
-        </div>
-        <div class="cb" id="agent-msg-list" style="padding:0">
-          <div style="text-align:center;padding:2rem;color:var(--td);font-size:.83rem">Loading...</div>
-        </div>
-      </div>
 
       <!-- Modal chat -->
       <div class="modal" id="agent-msg-modal" onclick="if(event.target.id==='agent-msg-modal')closeAgentMsg()">
@@ -780,7 +747,7 @@ async function loadScore(){
 
 async function loadZoneStats(zones){
   try{
-    const{count:lCount}=await sb.from('listings').select('id',{count:'exact',head:true}).in('zone',zones||[]);
+    const{count:lCount}=await sb.from('listings').select('id',{count:'exact',head:true}).in('zone',zones||[]).eq('active',true);
     const{count:vCount}=await sb.from('visits').select('id',{count:'exact',head:true}).eq('agent_id',U.id);
     document.getElementById('zone-listings-count').textContent=lCount||0;
     document.getElementById('zone-visits-count').textContent=vCount||0;
@@ -1543,7 +1510,7 @@ async function loadVisits(){
 
   // Render pending visit requests
   const rw=document.getElementById('visit-requests');
-  if(!rw){renderUpcoming();renderAllVisitsDirect();renderCalendar();return;}
+  if(!rw){renderUpcoming();renderAllVisitsDirect();return;}
   if(!pendingRequests.length){
     rw.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests — you will be notified when tenants request visits</p></div>';
   } else {
@@ -1628,7 +1595,6 @@ async function loadVisits(){
   document.getElementById('req-count').textContent=`${pending} pending`;
   renderUpcoming();
   renderAllVisitsDirect();
-  renderCalendar();
 }
 
 function startTimerDisplay(visitId, endTime){
@@ -1967,24 +1933,7 @@ async function loadLandlordInfo(landlordId, visitId){
 }
 
 
-function renderCalendar(){
-  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month').textContent=`${monthNames[currentMonth]} ${currentYear}`;
-  const firstDay=(new Date(currentYear,currentMonth,1).getDay()+6)%7;
-  const days=new Date(currentYear,currentMonth+1,0).getDate();
-  const today=new Date();
-  const visitDays=new Set(visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===currentMonth&&d.getFullYear()===currentYear;}).map(v=>new Date(v.visit_date||Date.now()).getDate()));
-  let html='';
-  for(let i=0;i<firstDay;i++)html+=`<div class="cal-day empty"></div>`;
-  for(let d=1;d<=days;d++){
-    const isToday=d===today.getDate()&&currentMonth===today.getMonth()&&currentYear===today.getFullYear();
-    html+=`<div class="cal-day ${isToday?'today':''} ${visitDays.has(d)?'has-visit':''}" onclick="toast('📅 ${d} ${monthNames[currentMonth]}')">${d}</div>`;
-  }
-  document.getElementById('cal-grid').innerHTML=html;
-}
 
-function prevMonth(){currentMonth--;if(currentMonth<0){currentMonth=11;currentYear--;}renderCalendar();}
-function nextMonth(){currentMonth++;if(currentMonth>11){currentMonth=0;currentYear++;}renderCalendar();}
 
 function openVisitModal(){document.getElementById('visit-modal').classList.add('open');document.getElementById('vm-date').value=new Date().toISOString().split('T')[0];}
 function closeVisitModal(){document.getElementById('visit-modal').classList.remove('open');}
@@ -1997,7 +1946,7 @@ function scheduleVisit(){
   if(!listing.value||!date||!tenant){toast('❌ Please fill required fields');return;}
   visits.push({id:Date.now(),listing:listing.selectedOptions[0].text.split(' —')[0],time,date,tenant,tenant_email:document.getElementById('vm-temail').value,status:'confirmed'});
   closeVisitModal();toast('✅ Visit scheduled!');
-  renderAllVisitsDirect();renderCalendar();renderUpcoming();
+  renderAllVisitsDirect();renderUpcoming();
   document.getElementById('vm-tenant').value='';document.getElementById('vm-temail').value='';document.getElementById('vm-notes').value='';
 }
 
