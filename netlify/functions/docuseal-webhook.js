@@ -131,6 +131,7 @@ exports.handler = async (event) => {
                   property_address: listing.full_address || listing.zone || '',
                   has_agent: listing.wants_agent && listing.agent_service === 'full',
                   exclusive_mandate: listing.exclusive_mandate || false,
+                  agent_must_create: listing.agent_must_create || false,
                   has_escrow: listing.escrow_enabled || false,
                   agent_email: '',
                   agent_name: ''
