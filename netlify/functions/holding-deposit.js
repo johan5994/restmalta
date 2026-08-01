@@ -5,8 +5,10 @@ const SUPABASE_URL = 'https://clfqftbvohwybkrtvylo.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Commission RestMalta côté LOCATAIRE : 10% TTC d'un mois de loyer, que ce soit
-// avec ou sans agent. (Le 40%/35% côté PROPRIÉTAIRE avec agent est géré séparément
-// dans create-commission.js — inchangé.)
+// avec ou sans agent. Côté PROPRIÉTAIRE avec agent (action ci-dessous), le montant
+// exact (amount_cents) est calculé et transmis par le frontend
+// (landlord-dashboard.html) — cette fonction ne fait que créer le PaymentIntent
+// Stripe pour le montant donné, elle ne connaît pas le taux elle-même.
 const TENANT_FEE_RATE = 0.10;
 
 exports.handler = async (event) => {
