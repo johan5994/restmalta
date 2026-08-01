@@ -1803,10 +1803,13 @@ async function requestVisit(){
     const keyInfo=keyTypeLabels[AL.key_type]||'Contact landlord';
     const keyDetail=AL.key_location?`\nKey details: ${AL.key_location}`:'';
 
+    console.log('[visit_request] found',agents.length,'agent(s) to notify:',agents.map(a=>a.full_name));
+    if(!agents.length)console.warn('[visit_request] no agents found with role=agent/Agent — nobody will be notified of this request');
+    let notifiedCount=0;
     for(const agent of agents){
       if(!agent.clerk_id)continue;
       try{
-        await sb.from('messages').insert({
+        const{error}=await sb.from('messages').insert({
           listing_id:AL.id,
           sender_id:'system',
           receiver_id:agent.clerk_id,
@@ -1814,8 +1817,11 @@ async function requestVisit(){
           visit_id:visitId,
           type:'visit_request'
         });
-      }catch(e){}
+        if(error)console.error('[visit_request] failed to notify agent',agent.full_name,error.message);
+        else notifiedCount++;
+      }catch(e){console.error('[visit_request] exception notifying agent',agent.full_name,e.message);}
     }
+    console.log('[visit_request] successfully notified',notifiedCount,'of',agents.length,'agents');
 
     // 3 — Notify landlord with 3 action buttons (handled in landlord dashboard)
     try{
@@ -2172,7 +2178,7 @@ async function doPost(){
     furnished:document.getElementById('pfu').checked,
     wifi:document.getElementById('pwi').checked,
     bills_included:document.getElementById('pbi')?.checked||false,
-    active:true,
+    active:!wants_agent, // reste caché tant qu'aucun agent n'a accepté de s'en occuper
     wants_agent,
     agent_service,
     accepts_attestation,
@@ -2228,7 +2234,26 @@ async function doPost(){
   if(listing&&document.getElementById('p-exclusif')?.checked){
     await generateMandatExclusif(listing);
   }
-  sA(ok,"🎉 Listing published! It's now live on RestMalta.");updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
+  if(wants_agent&&listing){
+    // L'annonce reste cachée tant qu'aucun agent n'a accepté — on prévient tous les agents
+    try{
+      const{data:agents}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
+      for(const agent of (agents||[])){
+        if(!agent.clerk_id)continue;
+        try{
+          await sb.from('messages').insert({
+            listing_id:listing.id,sender_id:'system',receiver_id:agent.clerk_id,
+            content:`🏠 NEW PROPERTY NEEDS AN AGENT\n\n${listing.title}\n📍 ${listing.zone}\n💶 €${listing.price}/mo\n\nA landlord is looking for an agent to handle this property (visits, EDL, negotiation). Accept to take it on — the listing goes live once you do.`,
+            type:'property_needs_agent'
+          });
+        }catch(e){}
+      }
+    }catch(e){}
+    sA(ok,"✅ Listing saved! It'll go live as soon as an agent accepts to handle it.");
+  }else{
+    sA(ok,"🎉 Listing published! It's now live on RestMalta.");
+  }
+  updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
 }
 
 async function generateMandatExclusif(listing){
