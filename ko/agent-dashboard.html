@@ -614,7 +614,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 let clerk,U=null,P=null;
 let currentMonth=new Date().getMonth(),currentYear=new Date().getFullYear();
-let visits=[],listings=[],visitMsgs=[],appliedIds=new Set();
+let visits=[],listings=[],visitMsgs=[];
 
 // ── Zone & Map ────────────────────────────────────────────────
 let agentMap=null,agentMarker=null,agentLat=null,agentLng=null;
@@ -1307,7 +1307,6 @@ async function loadNotifications(){
 async function loadVisits(){
   visitMsgs=[];
   let confirmedVisits=[];
-  let appliedIds=new Set();
 
   // ── Charger les remote requests ──────────────────────────────────────────
   try{
@@ -1370,10 +1369,6 @@ async function loadVisits(){
               doneIds.add(v.id);
             }
           });
-        }catch(e){}
-        try{
-          const{data:myApps}=await sb.from('messages').select('visit_id').eq('sender_id',U.id).in('type',['agent_application']).in('visit_id',visitIds);
-          appliedIds=new Set((myApps||[]).map(d=>d.visit_id).filter(Boolean));
         }catch(e){}
         try{
           const{data:myDeclines}=await sb.from('messages').select('visit_id').eq('sender_id',U.id).in('type',['agent_declined']).in('visit_id',visitIds);
@@ -1531,9 +1526,6 @@ async function loadVisits(){
 
       const isAwaitingLandlord=m.content?.includes('Awaiting landlord confirmation')||m.content?.includes('awaiting_landlord');
       const isConfirmed=m.content?.includes('Landlord confirmed');
-      const isApplied=m.visit_id&&appliedIds&&appliedIds.has&&appliedIds.has(m.visit_id);
-      const timerEnd=m.visit_id?localStorage.getItem('timer_'+m.visit_id):null;
-      const timerActive=timerEnd&&Date.now()<parseInt(timerEnd);
 
       return`<div style="padding:.85rem;background:var(--s2);border-radius:12px;margin-bottom:.75rem;border:1px solid ${isConfirmed?'rgba(76,175,125,.3)':isAwaitingLandlord?'rgba(212,168,71,.3)':'var(--b)'}" data-visit-id="${m.visit_id||''}">
         <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">🏠 ${property}</div>
@@ -1545,51 +1537,27 @@ async function loadVisits(){
             <div style="color:var(--td)">Rent</div>
             <div style="font-weight:700">${m.listing_price?'€'+m.listing_price+'/mo':'—'}</div>
           </div>
-          <div style="background:rgba(76,175,125,.15);border-radius:6px;padding:.3rem .5rem;flex:1.5;text-align:center;font-size:.7rem">
-            <div style="color:var(--td)">Your commission (70%)</div>
-            <div style="font-weight:700;color:#4CAF7D">${m.listing_price?'€'+Math.round(m.listing_price*0.80*0.70):' Check listing'}</div>
-          </div>
         </div>
         ${keyLine&&keyLine!=='Contact landlord'?`<div style="background:rgba(58,143,181,.08);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem">
           <div>🔑 <strong>Keys:</strong> ${keyLine}</div>
           ${keyDetail?`<div style="color:var(--tm);margin-top:.2rem">└ ${keyDetail}</div>`:''}
           ${ownerLine?`<div style="margin-top:.2rem">👤 <strong>Owner:</strong> ${ownerLine}</div>`:''}
         </div>`:''}
-        ${isAwaitingLandlord&&!isConfirmed?`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--gold)">⏳ Waiting for landlord to confirm — you can already apply below</div>`:''}
-        ${isConfirmed?`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem;color:var(--green)">✅ Landlord confirmed — apply now! Best rated agent selected in 5 minutes.</div>`:''}
         <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">
-          ${timerActive||isApplied
-            ?`<div style="width:100%;background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.3);border-radius:8px;padding:.6rem .85rem;text-align:center">
-                <div style="font-size:.75rem;color:var(--sea);font-weight:600;margin-bottom:.3rem">⏳ Applied! Agent being selected in:</div>
-                ${timerActive
-                  ?`<div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--terra)" id="timer-${m.visit_id}">...</div>`
-                  :`<div style="font-size:.82rem;font-weight:600;color:var(--terra)">⏳ Selection in progress...</div>`
-                }
-                <div style="font-size:.65rem;color:var(--td);margin-top:.2rem">Best rated agent auto-selected after 5 minutes</div>
+          ${isAwaitingLandlord&&!isConfirmed
+            ?`<div style="width:100%;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.5rem .7rem;text-align:center">
+                <div style="font-size:.73rem;color:var(--gold);font-weight:600">⏳ Waiting for landlord to confirm...</div>
+                <div style="font-size:.65rem;color:var(--td)">You'll be notified as soon as they do.</div>
               </div>`
-            :isAwaitingLandlord&&!isConfirmed
-            ?`<div style="width:100%;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.5rem .7rem;text-align:center;margin-bottom:.3rem">
-                <div style="font-size:.73rem;color:var(--gold);font-weight:600">⏳ Waiting for landlord...</div>
-                <div style="font-size:.65rem;color:var(--td)">You'll be notified when confirmed.</div>
-              </div>
-              <button class="btn bsm" style="flex:1;justify-content:center;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);font-size:.72rem" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Not available</button>`
             :`<div style="width:100%;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .65rem;margin-bottom:.3rem;text-align:center">
-                <div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Landlord confirmed — apply now!</div>
+                <div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Landlord confirmed — this visit is yours</div>
               </div>
-              <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="applyForVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ I want this visit</button>
-              <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Not available</button>`
+              <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="confirmMyVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ Confirm visit</button>
+              <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Can't make it</button>`
           }
         </div>
       </div>`;
     }).join('');
-    // Lancer les timers actifs
-    pendingRequests.forEach(m=>{
-      if(!m.visit_id)return;
-      const timerEnd=localStorage.getItem('timer_'+m.visit_id);
-      if(timerEnd&&Date.now()<parseInt(timerEnd)){
-        startTimerDisplay(m.visit_id, parseInt(timerEnd));
-      }
-    });
   }
 
   document.getElementById('req-count').textContent=`${pending} pending`;
@@ -1597,51 +1565,16 @@ async function loadVisits(){
   renderAllVisitsDirect();
 }
 
-function startTimerDisplay(visitId, endTime){
-  const interval=setInterval(()=>{
-    const remaining=endTime-Date.now();
-    const timerEl=document.getElementById(`timer-${visitId}`);
-    if(!timerEl){clearInterval(interval);return;}
-    if(remaining<=0){
-      clearInterval(interval);
-      localStorage.removeItem('timer_'+visitId);
-      loadVisits();
-    } else {
-      const m=Math.floor(remaining/60000);
-      const s=Math.floor((remaining%60000)/1000);
-      timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;
-    }
-  },1000);
-}
 
-
-async function applyForVisit(msgId, listingId, visitId){
+async function confirmMyVisit(msgId, listingId, visitId){
   try{await sb.from('messages').update({read:true}).eq('id',msgId);}catch(e){}
 
   try{
-    await sb.from('messages').insert({
-      listing_id:listingId, sender_id:U.id, receiver_id:'system',
-      content:`🏆 Agent available: ${P?.full_name||'Agent'}`,
-      type:'agent_application', visit_id:visitId
-    });
-  }catch(e){}
-
-  try{
-    const{data:current}=await sb.from('visits').select('status,agent_id').eq('id',visitId).single();
-    
-    // Vérifier qu'aucun autre agent n'a été assigné
-    if(current?.agent_id){
-      toast('⚠️ Another agent was just assigned. Better luck next time!');
-      await loadVisits();
-      return;
-    }
-
     await sb.from('visits').update({
       agent_id:U.id,
       agent_name:P?.full_name||'Agent',
-      status:'agent_assigned',
-      agents_applying_since:new Date().toISOString()
-    }).eq('id',visitId).in('status',['agents_applying','awaiting_landlord','pending']);
+      status:'agent_assigned'
+    }).eq('id',visitId);
 
     let visit=null;try{const{data:_v}=await sb.from('visits').select('*').eq('id',visitId).single();visit=_v;}catch(e){}
     let listing=null;try{const{data:_l}=await sb.from('listings').select('*').eq('id',listingId).single();listing=_l;}catch(e){}
@@ -1664,7 +1597,7 @@ Address: ${listing?.full_address||listing?.zone||'—'}
 
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:visit?.landlord_id,
-      content:`✅ Visit assigned!
+      content:`✅ Visit confirmed!
 
 Agent: ${P?.full_name||'Agent'}
 Date: ${visitDateStr}
@@ -1672,11 +1605,10 @@ Tenant: ${visit?.tenant_name||'—'}`,
       type:'visit_info'
     });}catch(e){}
 
-    appliedIds.add(visitId);
-    toast('🎉 You got the visit! Check All visits.');
+    toast('✅ Visit confirmed! Check All visits.');
   }catch(e){
-    console.error('applyForVisit error:',e);
-    toast('❌ Could not apply: '+e.message);
+    console.error('confirmMyVisit error:',e);
+    toast('❌ Could not confirm: '+e.message);
   }
 
   await loadVisits();
