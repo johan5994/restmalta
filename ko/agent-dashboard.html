@@ -147,9 +147,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="page act" id="page-dash">
       <div class="kgrid">
         <div class="kcard"><div class="kico">📅</div><div class="klabel">Visits this month</div><div class="kval" id="k-visits">—</div><div class="ksub">Scheduled & completed</div></div>
-        <div class="kcard"><div class="kico">💰</div><div class="klabel">Revenue this month</div><div class="kval" id="k-rev">—</div><div class="ksub">25% tenant + 25% landlord</div></div>
+        <div class="kcard"><div class="kico">💰</div><div class="klabel">Revenue this month</div><div class="kval" id="k-rev">—</div><div class="ksub">30% tenant + 30% landlord, direct</div></div>
         <div class="kcard"><div class="kico">⭐</div><div class="klabel">Conversion rate</div><div class="kval" id="k-conv">—</div><div class="ksub">Visits → signed leases</div></div>
         <div class="kcard"><div class="kico">🏠</div><div class="klabel">Active listings</div><div class="kval" id="k-list">—</div><div class="ksub">In your zone</div></div>
+      </div>
+      <div class="card" id="property-requests-card" style="display:none;margin-bottom:1rem">
+        <div class="ch"><span class="ct">🏠 Properties needing an agent</span><span class="badge b-gold" id="property-requests-count">0</span></div>
+        <div class="cb" id="property-requests-list"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
         <div class="card">
@@ -719,6 +723,61 @@ async function saveZone(){
   loadZoneStats(selectedZones);
 }
 
+async function renderRevChart(){
+  // NOTE: aucune donnée ne trace aujourd'hui la part de commission qui revient
+  // spécifiquement à cet agent (create-commission.js envoie tout à RestMalta,
+  // sans découpage par agent) — donc honnêtement à "—" plutôt que d'inventer
+  // un chiffre, en attendant qu'on décide comment ça se calcule.
+  const totalEl=document.getElementById('rev-total'),monthEl=document.getElementById('rev-month'),pendingEl=document.getElementById('rev-pending');
+  if(totalEl)totalEl.textContent='—';
+  if(monthEl)monthEl.textContent='—';
+  if(pendingEl)pendingEl.textContent='—';
+  const chartEl=document.getElementById('rev-chart'),labelsEl=document.getElementById('rev-labels');
+  if(chartEl)chartEl.innerHTML='<div style="width:100%;text-align:center;color:var(--td);font-size:.78rem;align-self:center">Commission tracking not set up yet</div>';
+  if(labelsEl)labelsEl.innerHTML='';
+}
+
+async function loadScore(){
+  // Complétude du profil — le seul composant qu'on peut vraiment calculer aujourd'hui
+  const fields=[P?.full_name,P?.phone,P?.languages,P?.zones,(P?.agent_lat&&P?.agent_lng)?'ok':null];
+  const filled=fields.filter(Boolean).length;
+  const profilePct=Math.round(filled/fields.length*100);
+  const bar=document.getElementById('sbar-profile'),val=document.getElementById('sval-profile');
+  if(bar)bar.style.width=profilePct+'%';
+  if(val)val.textContent=profilePct+'%';
+
+  // Reviews reçues — le système de review agent n'existe pas encore, donc honnêtement vide pour l'instant
+  let reviews=[];
+  try{
+    const{data}=await sb.from('reviews').select('*').eq('target_id',U.id).eq('type','tenant_to_agent').order('created_at',{ascending:false}).limit(10);
+    reviews=data||[];
+  }catch(e){}
+
+  const scoreValEl=document.getElementById('score-val');
+  const scoreBadge=document.getElementById('score-badge');
+  const scoreReviewsEl=document.getElementById('score-reviews');
+  if(reviews.length){
+    const avg=(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length);
+    if(scoreValEl)scoreValEl.textContent=avg.toFixed(1);
+    if(scoreBadge){scoreBadge.textContent=avg>=4?'⭐ Great':avg>=3?'Good':'Needs improvement';scoreBadge.className='badge '+(avg>=4?'b-green':avg>=3?'b-gold':'b-dim');}
+    if(scoreReviewsEl)scoreReviewsEl.textContent=reviews.length+' review'+(reviews.length>1?'s':'');
+    const arc=document.getElementById('score-arc');
+    if(arc){const pct=avg/5;arc.style.strokeDashoffset=(213.6*(1-pct)).toFixed(1);}
+  }else{
+    if(scoreValEl)scoreValEl.textContent='—';
+    if(scoreReviewsEl)scoreReviewsEl.textContent='No reviews yet — tenant/agent reviews coming soon';
+  }
+  const reviewsWrap=document.getElementById('reviews-list');
+  if(reviewsWrap){
+    reviewsWrap.innerHTML=reviews.length?reviews.map(r=>`<div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem"><div style="color:var(--gold);font-size:.9rem">${'⭐'.repeat(r.rating)}</div><div style="font-size:.8rem;color:var(--tm);margin-top:.3rem">${r.comment||''}</div></div>`).join(''):'<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">⭐</div><p style="font-size:.78rem">No reviews yet — complete visits to receive reviews</p></div>';
+  }
+
+  // Le reste (temps de réponse, satisfaction, ponctualité, classement de zone)
+  // demande un vrai suivi qu'on n'a pas encore construit — laissé à "—" plutôt que d'inventer.
+  const zoneNameEl=document.getElementById('zone-name-2');
+  if(zoneNameEl)zoneNameEl.textContent=P?.zones?P.zones.split(',')[0]:'Not set';
+}
+
 async function loadZoneStats(zones){
   try{
     const{count:lCount}=await sb.from('listings').select('id',{count:'exact',head:true}).in('zone',zones||[]);
@@ -738,6 +797,7 @@ function sp(id,btn){
   if(id==='visits')loadVisits();
   if(id==='messages')loadAgentMessages();
   if(id==='revenue')renderRevChart().catch(()=>{});
+  if(id==='score')loadScore();
   if(id==='zone'){
     setTimeout(()=>{
       initAgentMap();
@@ -801,14 +861,87 @@ async function loadAll(){
   try{await loadListings();}catch(e){}
   try{await renderRevChart();}catch(e){}
   try{await loadNotifications();}catch(e){}
+  try{await loadPropertyRequests();}catch(e){}
+}
+
+async function loadPropertyRequests(){
+  const card=document.getElementById('property-requests-card');
+  const wrap=document.getElementById('property-requests-list');
+  const countEl=document.getElementById('property-requests-count');
+  if(!wrap||!card)return;
+  try{
+    const{data:msgs}=await sb.from('messages').select('*').eq('receiver_id',U.id).eq('type','property_needs_agent').order('created_at',{ascending:false});
+    const listingIds=[...new Set((msgs||[]).map(m=>m.listing_id).filter(Boolean))];
+    if(!listingIds.length){card.style.display='none';return;}
+    // Ne garder que les annonces encore réellement en attente (pas déjà prises par quelqu'un d'autre)
+    const{data:pendingListings}=await sb.from('listings').select('id,title,zone,price').in('id',listingIds).eq('active',false);
+    const stillPending=(pendingListings||[]);
+    if(!stillPending.length){card.style.display='none';return;}
+    card.style.display='block';
+    if(countEl)countEl.textContent=stillPending.length;
+    wrap.innerHTML=stillPending.map(l=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:.6rem">
+        <div>
+          <div style="font-size:.85rem;font-weight:600">${l.title||'—'}</div>
+          <div style="font-size:.75rem;color:var(--td)">📍 ${l.zone||'—'} · €${l.price||0}/mo</div>
+        </div>
+        <button onclick="acceptPropertyRequest('${l.id}')" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer">✅ Accept</button>
+      </div>`).join('');
+  }catch(e){card.style.display='none';}
+}
+
+async function acceptPropertyRequest(listingId){
+  try{
+    const{data:listing,error:checkErr}=await sb.from('listings').select('id,title,active,landlord_id,zone,price').eq('id',listingId).single();
+    if(checkErr||!listing){toast('❌ Property not found');return;}
+    if(listing.active){toast('⚠️ Another agent already took this one');loadPropertyRequests();return;}
+
+    const{error}=await sb.from('listings').update({active:true,agent_id:U.id}).eq('id',listingId).eq('active',false);
+    if(error){toast('❌ '+error.message);return;}
+
+    try{
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:U.id,receiver_id:listing.landlord_id,
+        content:`🎉 ${P?.full_name||'An agent'} accepted to handle your property "${listing.title}"!\n\nIt's now live on RestMalta. They'll take care of visits, negotiation and the move-in inventory.`,
+        type:'agent_accepted_property'
+      });
+    }catch(e){}
+
+    toast('✅ Property accepted — it\'s now live!');
+    loadPropertyRequests();
+    loadListings();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function loadListings(){
   try{
-    const{data:ls}=await sb.from('listings').select('id,title,zone').eq('agent_id',U.id).limit(20);
+    const{data:ls}=await sb.from('listings').select('id,title,zone,price,bedrooms,spots,type,status,photos').eq('agent_id',U.id).order('created_at',{ascending:false}).limit(50);
     listings=ls||[];
     const sel=document.getElementById('vm-listing');
     if(sel){sel.innerHTML='<option value="">Select listing</option>'+(listings.map(l=>`<option value="${l.id}">${l.title||'—'} — ${l.zone||''}</option>`).join(''));}
+
+    // Rendu réel de la page "Listings" — jamais fait avant, la fonction ne remplissait que le menu déroulant
+    const wrap=document.getElementById('agent-listings');
+    const countBadge=document.getElementById('listing-count');
+    const activeCount=listings.filter(l=>l.status==='active'||!l.status).length;
+    if(countBadge)countBadge.textContent=activeCount+' active';
+    if(wrap){
+      if(!listings.length){
+        wrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>No listings in your zone yet.</p></div>';
+      }else{
+        wrap.innerHTML=listings.map(l=>`
+          <div style="display:flex;align-items:center;gap:.85rem;padding:.75rem 0;border-bottom:1px solid var(--b)">
+            <div style="width:52px;height:44px;border-radius:8px;background:var(--s2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.2rem">
+              ${l.photos&&l.photos.length?`<img src="${l.photos[0]}" style="width:100%;height:100%;object-fit:cover">`:'🏠'}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title||'—'}</div>
+              <div style="font-size:.72rem;color:var(--td)">📍 ${l.zone||'—'} · ${l.bedrooms||l.spots||0} bed · €${l.price||0}/mo</div>
+            </div>
+            <span class="badge ${l.status==='active'||!l.status?'b-green':'b-dim'}">${l.status==='active'||!l.status?'Active':l.status||'—'}</span>
+          </div>`).join('');
+      }
+    }
   }catch(e){}
 }
 
@@ -1375,6 +1508,33 @@ async function loadVisits(){
   const todayV=visits.filter(v=>v.visit_date===today);
 
   document.getElementById('k-visits').textContent=visits.length+pendingRequests.length;
+
+  // Active listings — vrai calcul (déjà chargées ailleurs, mais recompté ici au cas où loadListings n'a pas encore tourné)
+  try{
+    const{data:myListings}=await sb.from('listings').select('id,status').eq('agent_id',U.id);
+    const activeCount=(myListings||[]).filter(l=>l.status==='active'||!l.status).length;
+    const klEl=document.getElementById('k-list');
+    if(klEl)klEl.textContent=activeCount;
+  }catch(e){}
+
+  // Conversion rate — vraies visites confirmées → bail signé (move_in_ready)
+  try{
+    const kConvEl=document.getElementById('k-conv');
+    if(kConvEl){
+      const confirmedCount=visits.filter(v=>v.status==='confirmed').length;
+      if(!confirmedCount){
+        kConvEl.textContent='—';
+      }else{
+        const listingIds=[...new Set(visits.map(v=>v.listing_id).filter(Boolean))];
+        let signedCount=0;
+        if(listingIds.length){
+          const{data:signedBookings}=await sb.from('bookings').select('listing_id').in('listing_id',listingIds).eq('status','move_in_ready');
+          signedCount=new Set((signedBookings||[]).map(b=>b.listing_id)).size;
+        }
+        kConvEl.textContent=Math.round(signedCount/confirmedCount*100)+'%';
+      }
+    }
+  }catch(e){}
   document.getElementById('today-count').textContent=`${todayV.length} today`;
 
   const pending=pendingRequests.length;
