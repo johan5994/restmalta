@@ -1791,37 +1791,27 @@ async function requestVisit(){
     const visitId=visit?.id||null;
     const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
-    // 2 — Notify ALL agents with status "awaiting landlord confirmation"
-    let agents=[];
-    try{
-      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
-      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name').eq('role','Agent');
-      agents=[...(a1||[]),...(a2||[])];
-    }catch(e){}
-
+    // 2 — Notifier l'agent déjà assigné à ce bien (plus de diffusion à tous
+    // les agents / candidature par visite — l'agent gère le bien en entier
+    // depuis qu'il l'a accepté, donc c'est directement à lui que revient
+    // cette nouvelle demande de visite).
     const keyTypeLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
     const keyInfo=keyTypeLabels[AL.key_type]||'Contact landlord';
     const keyDetail=AL.key_location?`\nKey details: ${AL.key_location}`:'';
 
-    console.log('[visit_request] found',agents.length,'agent(s) to notify:',agents.map(a=>a.full_name));
-    if(!agents.length)console.warn('[visit_request] no agents found with role=agent/Agent — nobody will be notified of this request');
-    let notifiedCount=0;
-    for(const agent of agents){
-      if(!agent.clerk_id)continue;
+    if(AL.agent_id){
       try{
         const{error}=await sb.from('messages').insert({
           listing_id:AL.id,
           sender_id:'system',
-          receiver_id:agent.clerk_id,
-          content:`🏠 NEW VISIT REQUEST — ⏳ Awaiting landlord confirmation\n\nProperty: ${AL.title||'Listing'}\nAddress: ${AL.full_address||AL.zone||'Malta'}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\nThe landlord must confirm availability first. You can already indicate your interest below.\nIf landlord confirms → best rated agent among applicants is auto-selected.`,
+          receiver_id:AL.agent_id,
+          content:`🏠 NEW VISIT REQUEST — ⏳ Awaiting landlord confirmation\n\nProperty: ${AL.title||'Listing'}\nAddress: ${AL.full_address||AL.zone||'Malta'}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\nThe landlord must confirm availability first — you'll be able to proceed once they do.`,
           visit_id:visitId,
           type:'visit_request'
         });
-        if(error)console.error('[visit_request] failed to notify agent',agent.full_name,error.message);
-        else notifiedCount++;
-      }catch(e){console.error('[visit_request] exception notifying agent',agent.full_name,e.message);}
+        if(error)console.error('[visit_request] failed to notify assigned agent',error.message);
+      }catch(e){console.error('[visit_request] exception notifying assigned agent',e.message);}
     }
-    console.log('[visit_request] successfully notified',notifiedCount,'of',agents.length,'agents');
 
     // 3 — Notify landlord with 3 action buttons (handled in landlord dashboard)
     try{
