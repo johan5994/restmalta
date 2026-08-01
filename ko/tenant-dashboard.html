@@ -3331,10 +3331,11 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
   price=listing?.price||price||0; // toujours faire confiance au prix réel en base, pas à ce qui a été passé
   if(!price){toast('❌ This listing has no price set — contact RestMalta support.');return;}
 
-  const tenantRate=0.10;
+  const agentMustCreate=listing?.agent_must_create||false;
+  const tenantRate=agentMustCreate?0.00:0.10; // l'agent construit tout → RestMalta ne prend rien côté locataire ici, tout va à l'agent
   const holding=Math.round(price/2);
   const commission=Math.round(price*tenantRate);
-  const agentDirectAmount=hasAgent?Math.round(price*0.30):0;
+  const agentDirectAmount=hasAgent?Math.round(price*(agentMustCreate?0.40:0.30)):0;
   const total=holding+commission;
 
   const modal=document.createElement('div');
@@ -3346,9 +3347,9 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem"><strong style="color:var(--txt)">€${price}/mo</strong> · ${listingTitle||''}</div>
       <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.78rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding Deposit (½ month)</span><span>€${holding}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (10%)</span><span>€${commission}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (${Math.round(tenantRate*100)}%)</span><span>€${commission}</span></div>
         <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total today</span><span>€${total}</span></div>
-        ${agentDirectAmount?`<div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--b)"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--tm)"><span>🤝 Agent fee (30%) — paid directly to your agent, not here</span><span>€${agentDirectAmount}</span></div></div>`:''}
+        ${agentDirectAmount?`<div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--b)"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--tm)"><span>🤝 Agent fee (${agentMustCreate?40:30}%) — paid directly to your agent, not here</span><span>€${agentDirectAmount}</span></div></div>`:''}
         <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 Holding Deposit is a pre-authorization only, not charged. Released automatically once the landlord responds — you then pay deposit + first month directly to the landlord. RestMalta Fee is only charged if accepted.</div>
       </div>
       <div id="cotenants-list"></div>
