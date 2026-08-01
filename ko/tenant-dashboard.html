@@ -300,6 +300,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><div class="ct">Reviews I submitted</div></div>
         <div class="cb" id="my-reviews"><div class="ld"><div class="sp"></div></div></div>
       </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="ch"><div class="ct">⭐ Reviews about me</div></div>
+        <div class="cb" id="reviews-about-me"><div class="ld"><div class="sp"></div></div></div>
+      </div>
     </div>
 
     <!-- PROFILE -->
@@ -2303,17 +2307,42 @@ function setRating(r){
 }
 
 async function submitReview(){
+  const email=document.getElementById('rev-landlord')?.value.trim();
   const comment=document.getElementById('rev-comment').value.trim();
+  if(!email||!email.includes('@')){toast('⚠️ Enter your landlord\'s email');return;}
   if(!comment){toast('Please write a comment');return;}
-  await sb.from('reviews').insert({reviewer_id:U.id,rating:selectedRating,comment,type:'tenant_to_landlord'});
-  toast('✅ Review submitted! Thank you.');
+  if(!selectedRating){toast('⚠️ Select a rating');return;}
+
+  let landlordId=null;
+  try{
+    const{data:lp}=await sb.from('profiles').select('clerk_id').eq('email',email).maybeSingle();
+    landlordId=lp?.clerk_id||null;
+  }catch(e){}
+
+  const{error}=await sb.from('reviews').insert({
+    reviewer_id:U.id,rating:selectedRating,comment,type:'tenant_to_landlord',
+    landlord_id:landlordId,landlord_email:email,target_id:landlordId
+  });
+  if(error){toast('❌ '+error.message);return;}
+  toast(landlordId?'✅ Review submitted! Thank you.':'✅ Review saved — will link once they create a RestMalta account.');
   document.getElementById('rev-comment').value='';
+  document.getElementById('rev-landlord').value='';
+  selectedRating=0;
+  document.querySelectorAll('.star-btn').forEach(s=>s.classList.remove('active'));
   loadMyReviews();
 }
 
 async function loadMyReviews(){
   const{data}=await sb.from('reviews').select('*').eq('reviewer_id',U.id).order('created_at',{ascending:false});
   document.getElementById('my-reviews').innerHTML=(data||[]).map(r=>'<div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem"><div style="color:var(--gold);font-size:1rem;letter-spacing:2px">'+'⭐'.repeat(r.rating)+'</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">'+r.comment+'</div><div style="font-size:.72rem;color:var(--td);margin-top:.3rem">'+new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</div></div>').join('')||'<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">No reviews submitted yet</div>';
+  loadReviewsAboutMe();
+}
+
+async function loadReviewsAboutMe(){
+  const wrap=document.getElementById('reviews-about-me');
+  if(!wrap)return;
+  const{data}=await sb.from('reviews').select('*').eq('tenant_id',U.id).eq('type','landlord_to_tenant').order('created_at',{ascending:false});
+  wrap.innerHTML=(data||[]).map(r=>'<div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem"><div style="color:var(--gold);font-size:1rem;letter-spacing:2px">'+'⭐'.repeat(r.rating)+'</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">'+(r.comment||'No comment')+'</div><div style="font-size:.72rem;color:var(--td);margin-top:.3rem">'+new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</div></div>').join('')||'<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">No reviews yet</div>';
 }
 
 async function loadProfilee(){
