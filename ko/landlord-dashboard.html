@@ -1792,8 +1792,8 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     // Vérifier si le listing veut un agent
     const{data:listing}=await sb.from('listings').select('wants_agent,agent_service').eq('id',listingId).maybeSingle();
     const wantsAgent=listing?.wants_agent&&listing?.agent_service==='full';
-    const newStatus=wantsAgent?'agents_applying':'confirmed';
-    await sb.from('visits').update({status:newStatus, agents_applying_since:wantsAgent?new Date().toISOString():null}).eq('id',visitId);
+    const newStatus=wantsAgent?'agent_assigned':'confirmed';
+    await sb.from('visits').update({status:newStatus}).eq('id',visitId);
     
     // Si pas d'agent — notifier directement le tenant
     if(!wantsAgent){
@@ -1814,74 +1814,37 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     const{data:visit}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
     const{data:listingFull}=await sb.from('listings').select('*').eq('id',listingId).maybeSingle();
 
-    // Get all agents and send them updated notification
-    let agents=[];
-    try{
-      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','agent');
-      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name,email').eq('role','Agent');
-      agents=[...(a1||[]),...(a2||[])];
-    }catch(e){}
-
+    // Notifier directement l'agent déjà assigné à ce bien — plus de diffusion
+    // à tous les agents ni de "meilleur candidat" : un seul agent gère le
+    // bien en entier depuis qu'il l'a accepté.
     const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
     const keyInfo=keyLabels[listingFull?.key_type]||'Contact landlord';
     const keyDetail=listingFull?.key_location?`\nKey details: ${listingFull.key_location}`:'';
     const visitDateStr=visit?.visit_date?new Date(visit.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+(visit?.visit_time||'TBD'):'TBD';
 
-    for(const agent of agents){
-      if(!agent.clerk_id)continue;
+    if(listingFull?.agent_id){
       try{
-        // Mettre à jour le message existant au lieu d'en créer un nouveau
         const{data:existing}=await sb.from('messages')
           .select('id')
-          .eq('receiver_id',agent.clerk_id)
+          .eq('receiver_id',listingFull.agent_id)
           .eq('visit_id',visitId)
           .eq('type','visit_request')
           .maybeSingle();
 
-        const newContent=`✅ LANDLORD CONFIRMED — Apply now!\n\nProperty: ${listingFull?.title||'Listing'}\nAddress: ${listingFull?.full_address||listingFull?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\n⏱ You have 5 minutes to apply. Best rated agent will be automatically selected.`;
+        const newContent=`✅ LANDLORD CONFIRMED — this visit is yours\n\nProperty: ${listingFull?.title||'Listing'}\nAddress: ${listingFull?.full_address||listingFull?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}`;
 
         if(existing?.id){
-          // Update le message existant
-          await sb.from('messages').update({
-            content:newContent,
-            read:false
-          }).eq('id',existing.id);
+          await sb.from('messages').update({content:newContent,read:false}).eq('id',existing.id);
         } else {
-          // Créer seulement si n'existe pas
           await sb.from('messages').insert({
-            listing_id:listingId,
-            sender_id:'system',
-            receiver_id:agent.clerk_id,
-            content:newContent,
-            visit_id:visitId,
-            type:'visit_request'
+            listing_id:listingId,sender_id:'system',receiver_id:listingFull.agent_id,
+            content:newContent,visit_id:visitId,type:'visit_request'
           });
         }
       }catch(e){}
     }
 
-    // Call select-best-agent after 5 minutes via a background fetch
-    // We use a delayed Netlify function call
-    try{
-      await fetch('/.netlify/functions/schedule-selection',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({visit_id:visitId,delay_minutes:5})
-      });
-    }catch(e){
-      // Fallback — call immediately if schedule function not available
-      setTimeout(async()=>{
-        try{
-          await fetch('/.netlify/functions/select-best-agent',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({visit_id:visitId})
-          });
-        }catch(e){}
-      },5*60*1000);
-    }
-
-    toast('✅ Confirmed! All agents notified — best rated will be selected in 5 minutes.');
+    toast('✅ Confirmed! Your agent has been notified.');
     loadVisitsPage();
 
   } else if(response==='wrong_date'){
@@ -4058,7 +4021,7 @@ function renderLeasePayStatus(bk){
 function renderVisitGroup(g, isPast){
   const statusConfig={
     'awaiting_landlord':{label:'⏳ Awaiting your confirmation',cls:'b-gold'},
-    'agents_applying':{label:g.has_agent?'🏆 Searching for agent...':'⏳ Visit pending',cls:'b-sea'},
+    'agents_applying':{label:'✅ Visit confirmed',cls:'b-sea'},
     'agent_assigned':{label:'✅ Agent assigned',cls:'b-green'},
     'confirmed':{label:'✅ Visit confirmed',cls:'b-green'},
     'done':{label:'🏁 Visit done',cls:'b-dim'},
