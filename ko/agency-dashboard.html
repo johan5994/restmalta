@@ -48,7 +48,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
 /* ── Main ── */
 .main{margin-left:260px;flex:1;min-height:100vh;background:var(--bg);overflow-x:hidden}
-.topbar{padding:1.1rem 2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:30}
+.topbar{padding:1.1rem 2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;position:sticky;top:0;background:var(--bg);z-index:30}
 .topbar-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--txt)}
 .topbar-sub{font-size:.72rem;color:var(--td);margin-top:.1rem}
 .page{display:none;padding:1.5rem 2rem}
@@ -238,11 +238,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 <!-- Main -->
 <div class="main" id="main" style="display:none">
   <div class="topbar">
-    <div>
+    <div style="min-width:0;flex:1">
       <div class="topbar-title" id="page-title">Dashboard</div>
       <div class="topbar-sub" id="page-sub">Welcome back</div>
     </div>
-    <div style="display:flex;gap:.5rem">
+    <div style="display:flex;gap:.5rem;flex-shrink:0">
       <button class="btn bg bsm" onclick="sp('import',null)">⚡ Quick Import</button>
       <button class="btn bterr bsm" onclick="sp('new-listing',null)">➕ New Listing</button>
     </div>
