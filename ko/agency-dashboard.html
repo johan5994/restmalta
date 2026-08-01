@@ -1235,7 +1235,7 @@ function saveDraft(){toast('💾 Draft saved locally — publish when ready.');}
 // ── Analytics ─────────────────────────────────────────────────
 async function loadAnalytics(){
   try{
-    const{data:listings}=await sb.from('listings').select('id,title,zone,price').eq('agent_id',U.id);
+    const{data:listings}=await sb.from('listings').select('id,title,zone,price,views,created_at').eq('agent_id',U.id);
     const{data:visits}=await sb.from('visits').select('listing_id,listing_title,status,created_at').eq('landlord_id',U.id);
     const v=visits||[];const l=listings||[];
 
