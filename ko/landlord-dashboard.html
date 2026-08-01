@@ -3320,7 +3320,7 @@ function exportInventory(){toast('📥 Inventory PDF generated!');}
 
 /* REVIEWS */
 async function loadReviews(){
-  const{data}=await sb.from('reviews').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+  const{data}=await sb.from('reviews').select('*').eq('landlord_id',U.id).eq('type','tenant_to_landlord').order('created_at',{ascending:false});
   const avg=(data||[]).length?((data||[]).reduce((s,r)=>s+r.rating,0)/(data||[]).length).toFixed(1):0;
   document.getElementById('my-rating').textContent=avg?`${avg} ⭐`:'—';
   document.getElementById('total-reviews').textContent=(data||[]).length;
@@ -3329,12 +3329,27 @@ async function loadReviews(){
 }
 
 async function submitReview(){
+  const email=document.getElementById('rev-tenant')?.value.trim();
   const rating=parseInt(document.getElementById('rev-rating').value);
   const comment=document.getElementById('rev-comment').value.trim();
+  if(!email||!email.includes('@')){toast('⚠️ Enter the tenant\'s email');return;}
   if(!comment){toast('Please write a comment');return;}
-  await sb.from('reviews').insert({reviewer_id:U.id,rating,comment,type:'landlord_to_tenant'});
-  toast('✅ Review submitted!');loadReviews();
+
+  let tenantId=null;
+  try{
+    const{data:tp}=await sb.from('profiles').select('clerk_id').eq('email',email).maybeSingle();
+    tenantId=tp?.clerk_id||null;
+  }catch(e){}
+
+  const{error}=await sb.from('reviews').insert({
+    reviewer_id:U.id,rating,comment,type:'landlord_to_tenant',
+    landlord_id:U.id,tenant_id:tenantId,tenant_email:email,target_id:tenantId
+  });
+  if(error){toast('❌ '+error.message);return;}
+  toast(tenantId?'✅ Review submitted!':'✅ Review saved — will link once they create a RestMalta account.');
   document.getElementById('rev-comment').value='';
+  document.getElementById('rev-tenant').value='';
+  loadReviews();
 }
 
 /* PROFILE */
