@@ -211,7 +211,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- COMPLETE LISTING (agent_must_create) -->
     <div class="modal" id="complete-listing-modal" onclick="if(event.target.id==='complete-listing-modal')closeCompleteListingModal()">
-      <div class="modal" style="max-width:600px;width:95%;max-height:85vh;overflow-y:auto">
+      <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto;position:relative">
         <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
           <div>
             <div style="font-weight:700;font-size:1rem">🏠 Complete this listing</div>
@@ -244,13 +244,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- LISTINGS -->
     <div class="page" id="page-listings">
-      <div class="card" id="property-requests-card" style="display:none;margin-bottom:1rem">
-        <div class="ch"><span class="ct">🏠 Properties needing an agent</span><span class="badge b-gold" id="property-requests-count">0</span></div>
+      <div class="card" id="property-requests-card" style="display:none">
+        <div class="ch"><span class="ct">🤝 Requests to manage a property</span><span class="badge b-gold" id="property-requests-count">0</span></div>
         <div class="cb" id="property-requests-list"></div>
-      </div>
-      <div class="card">
-        <div class="ch"><span class="ct">🏠 Listings in my zone</span><span class="badge b-green" id="listing-count">0 active</span></div>
-        <div class="cb" id="agent-listings"><div class="empty"><div class="em">🏠</div><p>No listings in your zone yet.</p></div></div>
       </div>
     </div>
 
