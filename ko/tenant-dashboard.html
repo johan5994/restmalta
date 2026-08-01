@@ -1698,7 +1698,7 @@ async function loadTenantVisits(){
     };
     const statusLabels={
       'awaiting_landlord':'⏳ Awaiting landlord confirmation',
-      'agents_applying':v.has_agent?'🏆 Agent being selected':'⏳ Visit confirmed by landlord',
+      'agents_applying':'✅ Visit confirmed by landlord',
       'agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by landlord',
       'confirmed':v.has_agent?'✅ You confirmed':'✅ Visit confirmed',
       'completed':'🏁 Visit done',
@@ -1732,12 +1732,6 @@ async function loadTenantVisits(){
       ${v.status==='awaiting_landlord'?`
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--gold)">
         ⏳ Waiting for the landlord to confirm the date is available.
-      </div>`:''} 
-
-      <!-- ÉTAPE 2 : Agent sélection (avec agent) -->
-      ${v.status==='agents_applying'&&v.has_agent?`
-      <div style="background:rgba(58,143,181,.08);border:1px solid rgba(58,143,181,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--sea)">
-        ✅ Landlord confirmed — an agent is being assigned to your visit.
       </div>`:''} 
 
       <!-- ÉTAPE 3 : Visite confirmée -->
