@@ -1263,19 +1263,22 @@ function rCard(l){
 async function openDet(id){
   const{data:l}=await sb.from('listings').select('*').eq('id',id).single();if(!l)return;AL=l;
 
-  // Vrai comptage de vues — une seule fois par visiteur par session pour ne pas gonfler le chiffre
+  // Vrai comptage de vues — une seule fois par visiteur par session pour ne pas gonfler le chiffre.
+  // Passe par une fonction serveur (pas d'update direct côté client) pour éviter
+  // tout blocage de permissions/RLS sur un visiteur non-propriétaire de l'annonce.
   try{
     const seenKey='rm_viewed_'+id;
     if(!sessionStorage.getItem(seenKey)){
       sessionStorage.setItem(seenKey,'1');
-      (async()=>{
-        try{
-          const{error}=await sb.from('listings').update({views:(l.views||0)+1}).eq('id',id);
-          if(error)console.error('View count update failed:',error.message);
-        }catch(e){console.error('View count update failed:',e.message);}
-      })();
+      fetch('/.netlify/functions/track-view',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({listingId:id})
+      }).then(r=>r.json()).then(d=>{
+        if(d.error)console.error('[views] server-side tracking failed:',d.error);
+        else console.log('[views] tracked, new total:',d.views);
+      }).catch(e=>console.error('[views] fetch failed:',e.message));
     }
-  }catch(e){}
+  }catch(e){console.error('[views] outer error:',e.message);}
   const ic={short:'🏠',room_rental:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
   // Photos carousel
   const photos=l.photos&&l.photos.length>0?l.photos:[];
