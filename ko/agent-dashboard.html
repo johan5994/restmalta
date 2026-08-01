@@ -151,10 +151,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="kcard"><div class="kico">⭐</div><div class="klabel">Conversion rate</div><div class="kval" id="k-conv">—</div><div class="ksub">Visits → signed leases</div></div>
         <div class="kcard"><div class="kico">🏠</div><div class="klabel">Active listings</div><div class="kval" id="k-list">—</div><div class="ksub">In your zone</div></div>
       </div>
-      <div class="card" id="property-requests-card" style="display:none;margin-bottom:1rem">
-        <div class="ch"><span class="ct">🏠 Properties needing an agent</span><span class="badge b-gold" id="property-requests-count">0</span></div>
-        <div class="cb" id="property-requests-list"></div>
-      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
         <div class="card">
           <div class="ch"><span class="ct">📅 Today's visits</span><span class="badge b-sea" id="today-count">0 visits</span></div>
@@ -248,6 +244,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- LISTINGS -->
     <div class="page" id="page-listings">
+      <div class="card" id="property-requests-card" style="display:none;margin-bottom:1rem">
+        <div class="ch"><span class="ct">🏠 Properties needing an agent</span><span class="badge b-gold" id="property-requests-count">0</span></div>
+        <div class="cb" id="property-requests-list"></div>
+      </div>
       <div class="card">
         <div class="ch"><span class="ct">🏠 Listings in my zone</span><span class="badge b-green" id="listing-count">0 active</span></div>
         <div class="cb" id="agent-listings"><div class="empty"><div class="em">🏠</div><p>No listings in your zone yet.</p></div></div>
@@ -796,6 +796,7 @@ function sp(id,btn){
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='visits')loadVisits();
   if(id==='messages')loadAgentMessages();
+  if(id==='listings'){loadListings();loadPropertyRequests();}
   if(id==='revenue')renderRevChart().catch(()=>{});
   if(id==='score')loadScore();
   if(id==='zone'){
@@ -1384,6 +1385,7 @@ async function loadAgentMessages(){
       .select('*')
       .eq('receiver_id',U.id)
       .not('type','eq','visit_request')
+      .not('type','eq','property_needs_agent')
       .order('created_at',{ascending:false})
       .limit(50);
     
