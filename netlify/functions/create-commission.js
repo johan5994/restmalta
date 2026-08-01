@@ -21,9 +21,15 @@ exports.handler = async (event) => {
 
     const rent = parseFloat(monthly_rent) || 0;
 
-    // Taux
-    const landlordRate = has_agent ? (exclusive_mandate ? 0.35 : 0.40) : 0.00;
+    // Taux — toujours 35% total quand il y a un agent (fini la distinction 35/40
+    // selon mandat exclusif). Sur ces 35% : seuls 5% (part RestMalta) sont
+    // capturés ici via Stripe. Les 30% restants (part de l'agent) sont à payer
+    // directement à l'agent, hors du circuit RestMalta — jamais capturés ici.
+    const RESTMALTA_SHARE = 0.05;
+    const AGENT_SHARE = 0.30;
+    const landlordRate = has_agent ? RESTMALTA_SHARE : 0.00;
     const landlordAmountCents = Math.round(rent * landlordRate * 100);
+    const agentDirectAmount = has_agent ? Math.round(rent * AGENT_SHARE * 100) / 100 : 0;
 
     let landlordResult = { amount: 0, method: 'none', payment_url: null };
 
@@ -82,6 +88,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         success: true,
         landlord: landlordResult,
+        agent_direct_amount: agentDirectAmount, // à payer directement à l'agent, hors Stripe RestMalta
         tenant: { amount: 0, method: 'already_paid' }
       })
     };
