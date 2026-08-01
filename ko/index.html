@@ -513,7 +513,38 @@ footer ul a:hover{color:var(--terra)}
   <div class="pwrap">
     <div class="ptitle">Post your listing</div>
     <div class="psub">Reach verified tenants across Malta — interns, expats, nomads. Free to post.</div>
-    <div class="fcard">
+
+    <!-- Choix : je remplis moi-même vs laisser un agent tout gérer -->
+    <div class="fcard" id="post-choice-screen">
+      <h3>How would you like to list your property?</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
+        <div onclick="document.getElementById('post-choice-screen').style.display='none';document.getElementById('post-self-form').style.display='block'" style="cursor:pointer;background:var(--stone-xl);border:2px solid var(--b2);border-radius:12px;padding:1.25rem;text-align:center;transition:border-color .15s" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='var(--b2)'">
+          <div style="font-size:2rem;margin-bottom:.5rem">✍️</div>
+          <div style="font-weight:700;margin-bottom:.4rem">I'll fill in the details myself</div>
+          <div style="font-size:.78rem;color:var(--stone-l)">Title, photos, price — you're in control. Optionally add an agent for visits & negotiation.</div>
+        </div>
+        <div onclick="document.getElementById('post-choice-screen').style.display='none';document.getElementById('post-agent-form').style.display='block'" style="cursor:pointer;background:var(--stone-xl);border:2px solid var(--b2);border-radius:12px;padding:1.25rem;text-align:center;transition:border-color .15s" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='var(--b2)'">
+          <div style="font-size:2rem;margin-bottom:.5rem">🤝</div>
+          <div style="font-weight:700;margin-bottom:.4rem">Let an agent handle everything</div>
+          <div style="font-size:.78rem;color:var(--stone-l)">Just tell us about your property — an agent builds the full listing, does the visits, and negotiates for you.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulaire minimal : demande de prise en charge complète par un agent -->
+    <div class="fcard" id="post-agent-form" style="display:none">
+      <h3>🤝 Let an agent handle everything</h3>
+      <div class="psub" style="margin:.3rem 0 1rem">Give us the basics — an agent will contact you, visit the property if needed, and create the full listing on your behalf. Commission: 40% landlord + 40% tenant, split with the agent.</div>
+      <div class="fg2"><label>Zone *</label><input class="fi" id="paf-zone" list="zonesList" placeholder="e.g. Sliema"></div>
+      <div class="fg2"><label>Full address</label><input class="fi" id="paf-address" placeholder="12 Triq il-Kbira, Sliema"></div>
+      <div class="fg2"><label>Estimated monthly rent (€)</label><input class="fi" type="number" id="paf-price" placeholder="850"></div>
+      <div class="fg2"><label>Your phone *</label><input class="fi" id="paf-phone" placeholder="+356 ..."></div>
+      <div class="fg2"><label>Notes for the agent</label><textarea class="fta" id="paf-notes" rows="3" placeholder="Number of bedrooms, furnished or not, available from when, anything the agent should know..."></textarea></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="submitAgentManagedRequest()">Submit request →</button>
+      <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById('post-agent-form').style.display='none';document.getElementById('post-choice-screen').style.display='block'">← Back</button>
+    </div>
+
+    <div class="fcard" id="post-self-form" style="display:none">
       <h3>📋 Listing details</h3>
 
       <!-- Lease type -->
@@ -2126,6 +2157,56 @@ async function uploadPhotos(listingId) {
   return urls;
 }
 
+async function submitAgentManagedRequest(){
+  const zone=document.getElementById('paf-zone')?.value.trim();
+  const phone=document.getElementById('paf-phone')?.value.trim();
+  if(!zone){toast('⚠️ Zone is required');return;}
+  if(!phone){toast('⚠️ Phone is required so the agent can reach you');return;}
+
+  const address=document.getElementById('paf-address')?.value.trim()||'';
+  const price=parseFloat(document.getElementById('paf-price')?.value)||0;
+  const notes=document.getElementById('paf-notes')?.value.trim()||'';
+
+  try{
+    const{data:listing,error}=await sb.from('listings').insert({
+      title:`Property in ${zone}`,
+      zone,full_address:address,price,
+      landlord_id:U.id,
+      landlord_phone:phone,
+      description:notes,
+      type:'long',
+      wants_agent:true,agent_service:'full',
+      agent_must_create:true, // l'agent doit construire la fiche complète, pas juste gérer visites/négociation
+      active:false,
+      status:'active',
+      created_at:new Date().toISOString()
+    }).select().single();
+
+    if(error){toast('❌ '+error.message);return;}
+
+    // Notifier tous les agents
+    try{
+      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
+      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name').eq('role','Agent');
+      const agents=[...(a1||[]),...(a2||[])];
+      for(const agent of agents){
+        if(!agent.clerk_id)continue;
+        try{
+          await sb.from('messages').insert({
+            listing_id:listing.id,sender_id:'system',receiver_id:agent.clerk_id,
+            content:`🤝 FULL PROPERTY MANAGEMENT REQUEST\n\n📍 ${zone}${address?' — '+address:''}\n💶 Estimated rent: ${price?'€'+price+'/mo':'Not specified'}\n📞 Landlord phone: ${phone}\n\n${notes?'Notes: '+notes+'\\n\\n':''}This landlord wants an agent to build the ENTIRE listing (photos, description, price) and manage it end to end. Accept to create the listing yourself.`,
+            type:'property_needs_agent'
+          });
+        }catch(e){}
+      }
+    }catch(e){console.error('[agent_managed_request] notify error',e.message);}
+
+    document.getElementById('post-agent-form').style.display='none';
+    toast('✅ Request sent! An agent will contact you soon.');
+    go('dash');loadDash();
+  }catch(e){toast('❌ '+e.message);}
+}
+
 async function doPost(){
   const err=document.getElementById('poer'),ok=document.getElementById('pook');err.style.display='none';ok.style.display='none';
   const ti=document.getElementById('pti').value.trim(),pr=document.getElementById('ppr').value;
@@ -2227,18 +2308,22 @@ async function doPost(){
   if(wants_agent&&listing){
     // L'annonce reste cachée tant qu'aucun agent n'a accepté — on prévient tous les agents
     try{
-      const{data:agents}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
-      for(const agent of (agents||[])){
+      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
+      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name').eq('role','Agent');
+      const agents=[...(a1||[]),...(a2||[])];
+      console.log('[property_needs_agent] found',agents.length,'agent(s) to notify');
+      for(const agent of agents){
         if(!agent.clerk_id)continue;
         try{
-          await sb.from('messages').insert({
+          const{error}=await sb.from('messages').insert({
             listing_id:listing.id,sender_id:'system',receiver_id:agent.clerk_id,
             content:`🏠 NEW PROPERTY NEEDS AN AGENT\n\n${listing.title}\n📍 ${listing.zone}\n💶 €${listing.price}/mo\n\nA landlord is looking for an agent to handle this property (visits, EDL, negotiation). Accept to take it on — the listing goes live once you do.`,
             type:'property_needs_agent'
           });
-        }catch(e){}
+          if(error)console.error('[property_needs_agent] failed to notify',agent.full_name,error.message);
+        }catch(e){console.error('[property_needs_agent] exception',e.message);}
       }
-    }catch(e){}
+    }catch(e){console.error('[property_needs_agent] outer error',e.message);}
     sA(ok,"✅ Listing saved! It'll go live as soon as an agent accepts to handle it.");
   }else{
     sA(ok,"🎉 Listing published! It's now live on RestMalta.");
@@ -2308,7 +2393,15 @@ async function loadML(){
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo">📋</div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
   const ic={short:'🏠',room_rental:'🔑',long:'🏛️'};
-  w.innerHTML=data.map(l=>`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">€${l.price}/mo · ${l.zone} · <span class="dot ${l.active?'dg':'dr'}"></span>${l.active?'Active':'Paused'}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button><button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button></div></div>`).join('');
+  w.innerHTML=data.map(l=>{
+    const pendingAgent=!l.active&&l.wants_agent&&l.agent_service==='full'&&!l.agent_id;
+    const statusLabel=pendingAgent?'⏳ Waiting for an agent to accept':l.active?'Active':'Paused';
+    const dotClass=pendingAgent?'dg':l.active?'dg':'dr';
+    const actionBtn=pendingAgent
+      ?`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="An agent needs to accept this property first">⏳ Pending</button>`
+      :`<button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>`;
+    return`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">€${l.price}/mo · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}</div></div>`;
+  }).join('');
 }
 
 async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'✅ Listing activated');loadML();updC();}
