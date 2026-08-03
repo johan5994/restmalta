@@ -1025,7 +1025,6 @@ async function initClerk() {
   if (initialUser) {
     // Au chargement initial — montrer le picker si pas de rôle
     await sU(initialUser, true);
-    checkCompleteListingParam();
   }
   loadL(); updC();
 
@@ -1088,46 +1087,6 @@ async function geocodeAddress(){
     statusEl.textContent='⚠️ Could not check this address right now';
     mapEl.style.display='none';
   }
-}
-
-window._completingListingId=null;
-
-async function checkCompleteListingParam(){
-  const params=new URLSearchParams(window.location.search);
-  const id=params.get('complete_listing');
-  if(!id||!U)return;
-
-  const{data:listing,error}=await sb.from('listings').select('*').eq('id',id).single();
-  if(error||!listing){toast('❌ Listing not found');return;}
-  if(listing.agent_id!==U.id){toast('❌ This listing is not assigned to you');return;}
-
-  window._completingListingId=id;
-  go('post');
-  document.getElementById('post-choice-screen').style.display='none';
-  document.getElementById('post-agent-form').style.display='none';
-  document.getElementById('post-self-form').style.display='block';
-
-  // Pré-remplir avec ce que le propriétaire a déjà donné
-  const titleEl=document.getElementById('pti');
-  if(titleEl&&listing.title&&!listing.title.startsWith('Property in '))titleEl.value=listing.title;
-  const zoneEl=document.getElementById('pz');
-  if(zoneEl&&listing.zone)zoneEl.value=listing.zone;
-  const priceEl=document.getElementById('ppr');
-  if(priceEl&&listing.price)priceEl.value=listing.price;
-  const addrEl=document.getElementById('p-full-address');
-  if(addrEl&&listing.full_address)addrEl.value=listing.full_address;
-  const descEl=document.getElementById('pde');
-  if(descEl&&listing.description)descEl.value=listing.description;
-  if(addrEl&&addrEl.value)setTimeout(geocodeAddress,200);
-
-  // Déjà géré par un agent — pas besoin de reproposer le choix
-  const agentSection=document.getElementById('section-agent');
-  if(agentSection)agentSection.style.display='none';
-
-  const publishBtn=document.querySelector('#post-self-form button[onclick="doPost()"]');
-  if(publishBtn)publishBtn.textContent='🚀 Complete & publish this listing →';
-
-  toast('📋 Complete the details below to publish this listing');
 }
 
 function showRolePicker(name) {
@@ -2350,7 +2309,7 @@ async function doPost(){
     return;
   }
 
-  sA(ok,window._completingListingId?'⏳ Publishing your listing…':'⏳ Publishing your listing…');
+  sA(ok,'⏳ Publishing your listing…');
   ok.style.background='rgba(46,107,138,0.08)';
   ok.style.color='var(--sea)';
   const agent_service=document.querySelector('input[name="agent-service"]:checked')?.value||'none';
@@ -2373,6 +2332,11 @@ async function doPost(){
     furnished:document.getElementById('pfu').checked,
     wifi:document.getElementById('pwi').checked,
     bills_included:document.getElementById('pbi')?.checked||false,
+    landlord_id:U.id,
+    wants_agent,
+    agent_service,
+    mandat_exclusif:document.getElementById('p-exclusif')?.checked||false,
+    active:!wants_agent, // reste caché tant qu'aucun agent n'a accepté de s'en occuper
     // Lease fields
     full_address:document.getElementById('p-full-address')?.value.trim()||null,
     payment_due_day:document.getElementById('p-pay-day')?.value||null,
@@ -2395,23 +2359,7 @@ async function doPost(){
     tenant_availability:document.getElementById('p-tenant-availability')?.value||'vacant'
   };
 
-  let listing,error;
-  if(window._completingListingId){
-    // Mode "compléter une annonce déjà acceptée par un agent" — UPDATE, pas
-    // INSERT. landlord_id/agent_id/wants_agent/agent_service restent ceux
-    // déjà en place, on ne touche pas au choix d'agent (déjà fait).
-    fields.active=true;
-    const r=await sb.from('listings').update(fields).eq('id',window._completingListingId).select().single();
-    listing=r.data;error=r.error;
-  }else{
-    fields.landlord_id=U.id;
-    fields.wants_agent=wants_agent;
-    fields.agent_service=agent_service;
-    fields.mandat_exclusif=document.getElementById('p-exclusif')?.checked||false;
-    fields.active=!wants_agent; // reste caché tant qu'aucun agent n'a accepté de s'en occuper
-    const r=await sb.from('listings').insert(fields).select().single();
-    listing=r.data;error=r.error;
-  }
+  const{data:listing,error}=await sb.from('listings').insert(fields).select().single();
   if(error){sA(err,error.message);ok.style.display='none';return;}
   // Save extra amenities
   const extraData = {
@@ -2438,14 +2386,9 @@ async function doPost(){
   }
   uploadedPhotos=[];document.getElementById('photo-previews').innerHTML='';
   document.getElementById('video-preview').innerHTML='';
-  // Generate mandat exclusif contract if selected (n/a en mode "compléter", section masquée)
-  if(!window._completingListingId&&listing&&document.getElementById('p-exclusif')?.checked){
+  // Generate mandat exclusif contract if selected
+  if(listing&&document.getElementById('p-exclusif')?.checked){
     await generateMandatExclusif(listing);
-  }
-  if(window._completingListingId){
-    sA(ok,"🚀 Listing published! Redirecting you back...");
-    setTimeout(()=>{window.location.href='agent-dashboard.html';},1500);
-    return;
   }
   if(wants_agent&&listing){
     // L'annonce reste cachée tant qu'aucun agent n'a accepté — on prévient
