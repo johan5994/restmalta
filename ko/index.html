@@ -535,12 +535,13 @@ footer ul a:hover{color:var(--terra)}
     <div class="fcard" id="post-agent-form" style="display:none">
       <h3>🤝 Let an agent handle everything</h3>
       <div class="psub" style="margin:.3rem 0 1rem">Give us the basics — an agent will contact you, visit the property if needed, and create the full listing on your behalf. Commission: 40% landlord + 40% tenant, split with the agent.</div>
-      <div class="fg2"><label>Zone *</label><input class="fi" id="paf-zone" list="zonesList" placeholder="e.g. Sliema"></div>
+      <div class="fg2"><label>Zone *</label><input class="fi" id="paf-zone" list="zonesList" placeholder="e.g. Sliema" onblur="checkZoneAvailability()"></div>
+      <div id="paf-zone-status" style="font-size:.8rem;margin:-.6rem 0 .6rem"></div>
       <div class="fg2"><label>Full address</label><input class="fi" id="paf-address" placeholder="12 Triq il-Kbira, Sliema"></div>
       <div class="fg2"><label>Estimated monthly rent (€)</label><input class="fi" type="number" id="paf-price" placeholder="850"></div>
       <div class="fg2"><label>Your phone *</label><input class="fi" id="paf-phone" placeholder="+356 ..."></div>
       <div class="fg2"><label>Notes for the agent</label><textarea class="fta" id="paf-notes" rows="3" placeholder="Number of bedrooms, furnished or not, available from when, anything the agent should know..."></textarea></div>
-      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="submitAgentManagedRequest()">Submit request →</button>
+      <button class="btn btn-p" id="paf-submit-btn" style="width:100%;justify-content:center" onclick="submitAgentManagedRequest()">Submit request →</button>
       <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById('post-agent-form').style.display='none';document.getElementById('post-choice-screen').style.display='block'">← Back</button>
     </div>
 
@@ -2163,6 +2164,15 @@ async function submitAgentManagedRequest(){
   if(!zone){toast('⚠️ Zone is required');return;}
   if(!phone){toast('⚠️ Phone is required so the agent can reach you');return;}
 
+  const btn=document.getElementById('paf-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Checking availability...';}
+  const matchingAgents=await findAgentsCoveringZone(zone);
+  if(btn){btn.disabled=false;btn.textContent='Submit request →';}
+  if(!matchingAgents.length){
+    toast('❌ No agent currently covers this zone — try again later or list it yourself');
+    return;
+  }
+
   const address=document.getElementById('paf-address')?.value.trim()||'';
   const price=parseFloat(document.getElementById('paf-price')?.value)||0;
   const notes=document.getElementById('paf-notes')?.value.trim()||'';
@@ -2184,27 +2194,63 @@ async function submitAgentManagedRequest(){
 
     if(error){toast('❌ '+error.message);return;}
 
-    // Notifier tous les agents
-    try{
-      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
-      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name').eq('role','Agent');
-      const agents=[...(a1||[]),...(a2||[])];
-      for(const agent of agents){
-        if(!agent.clerk_id)continue;
-        try{
-          await sb.from('messages').insert({
-            listing_id:listing.id,sender_id:'system',receiver_id:agent.clerk_id,
-            content:`🤝 FULL PROPERTY MANAGEMENT REQUEST\n\n📍 ${zone}${address?' — '+address:''}\n💶 Estimated rent: ${price?'€'+price+'/mo':'Not specified'}\n📞 Landlord phone: ${phone}\n\n${notes?'Notes: '+notes+'\\n\\n':''}This landlord wants an agent to build the ENTIRE listing (photos, description, price) and manage it end to end. Accept to create the listing yourself.`,
-            type:'property_needs_agent'
-          });
-        }catch(e){}
-      }
-    }catch(e){console.error('[agent_managed_request] notify error',e.message);}
+    // Notifier uniquement les agents qui couvrent vraiment cette zone
+    for(const agent of matchingAgents){
+      if(!agent.clerk_id)continue;
+      try{
+        await sb.from('messages').insert({
+          listing_id:listing.id,sender_id:'system',receiver_id:agent.clerk_id,
+          content:`🤝 FULL PROPERTY MANAGEMENT REQUEST\n\n📍 ${zone}${address?' — '+address:''}\n💶 Estimated rent: ${price?'€'+price+'/mo':'Not specified'}\n📞 Landlord phone: ${phone}\n\n${notes?'Notes: '+notes+'\\n\\n':''}This landlord wants an agent to build the ENTIRE listing (photos, description, price) and manage it end to end. Accept to create the listing yourself.`,
+          type:'property_needs_agent'
+        });
+      }catch(e){}
+    }
 
     document.getElementById('post-agent-form').style.display='none';
     toast('✅ Request sent! An agent will contact you soon.');
     go('dash');loadDash();
   }catch(e){toast('❌ '+e.message);}
+}
+
+async function checkZoneAvailability(){
+  const zone=document.getElementById('paf-zone')?.value.trim();
+  const statusEl=document.getElementById('paf-zone-status');
+  const submitBtn=document.getElementById('paf-submit-btn');
+  if(!statusEl)return;
+  if(!zone){statusEl.innerHTML='';if(submitBtn)submitBtn.disabled=false;return;}
+  statusEl.innerHTML='<span style="color:var(--stone-l)">Checking...</span>';
+  const agents=await findAgentsCoveringZone(zone);
+  if(agents.length){
+    statusEl.innerHTML=`<span style="color:#4CAF7D">✅ ${agents.length} agent${agents.length>1?'s':''} available in this zone</span>`;
+    if(submitBtn)submitBtn.disabled=false;
+  }else{
+    statusEl.innerHTML='<span style="color:var(--terra)">❌ No agent currently covers this zone — try a nearby zone or list it yourself</span>';
+    if(submitBtn)submitBtn.disabled=true;
+  }
+}
+
+// ── Correspondance de zone agent ↔ annonce (gère Gozo comme un tout) ──
+const GOZO_VILLAGES=['gozo','victoria','rabat gozo','xaghra','nadur','xewkija','munxar','sannat','qala','ghajnsielem','ghasri','kercem','san lawrenz','zebbug gozo','fontana','gharb','xlendi','marsalforn'];
+
+function normalizeZone(z){
+  return (z||'').toLowerCase().replace(/['.]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function zoneMatchesCoverage(listingZone,agentZonesCsv){
+  if(!listingZone||!agentZonesCsv)return false;
+  const nl=normalizeZone(listingZone);
+  const agentZones=agentZonesCsv.split(',').map(z=>normalizeZone(z)).filter(Boolean);
+  if(agentZones.some(az=>az===nl||nl.includes(az)||az.includes(nl)))return true;
+  const isGozoListing=GOZO_VILLAGES.some(v=>nl.includes(v));
+  if(isGozoListing&&agentZones.includes('gozo'))return true;
+  return false;
+}
+
+async function findAgentsCoveringZone(zone){
+  const{data:a1}=await sb.from('profiles').select('clerk_id,full_name,zones').eq('role','agent');
+  const{data:a2}=await sb.from('profiles').select('clerk_id,full_name,zones').eq('role','Agent');
+  const agents=[...(a1||[]),...(a2||[])];
+  return agents.filter(a=>zoneMatchesCoverage(zone,a.zones));
 }
 
 async function doPost(){
@@ -2306,12 +2352,11 @@ async function doPost(){
     await generateMandatExclusif(listing);
   }
   if(wants_agent&&listing){
-    // L'annonce reste cachée tant qu'aucun agent n'a accepté — on prévient tous les agents
+    // L'annonce reste cachée tant qu'aucun agent n'a accepté — on prévient
+    // uniquement les agents qui couvrent vraiment la zone de ce bien.
     try{
-      const{data:a1}=await sb.from('profiles').select('clerk_id,full_name').eq('role','agent');
-      const{data:a2}=await sb.from('profiles').select('clerk_id,full_name').eq('role','Agent');
-      const agents=[...(a1||[]),...(a2||[])];
-      console.log('[property_needs_agent] found',agents.length,'agent(s) to notify');
+      const agents=await findAgentsCoveringZone(listing.zone);
+      console.log('[property_needs_agent] found',agents.length,'agent(s) covering zone',listing.zone);
       for(const agent of agents){
         if(!agent.clerk_id)continue;
         try{
