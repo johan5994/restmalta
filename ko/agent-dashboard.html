@@ -180,19 +180,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- VISITS -->
     <div class="page" id="page-visits">
       <div id="visit-groups-agent"></div>
-      <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem">
-        <div>
-          <div class="card">
-            <div class="ch"><span class="ct">All visits</span></div>
-            <div class="cb" id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
-          </div>
-        </div>
-        <div>
-          <div class="card">
-            <div class="ch"><span class="ct">📬 Visit requests</span><span class="badge b-gold" id="req-count">0 pending</span></div>
-            <div class="cb" id="visit-requests"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests</p></div></div>
-          </div>
-        </div>
+      <div class="card">
+        <div class="ch"><span class="ct">All visits</span><span class="badge b-gold" id="req-count" style="display:none">0 pending</span></div>
+        <div class="cb" id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
       </div>
     </div>
     <div class="page" id="page-messages">
@@ -200,7 +190,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
       <!-- Modal chat -->
       <div class="modal" id="agent-msg-modal" onclick="if(event.target.id==='agent-msg-modal')closeAgentMsg()">
-        <div class="modal" style="max-width:520px;width:95%;height:80vh;display:flex;flex-direction:column">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;max-width:520px;width:95%;height:80vh;display:flex;flex-direction:column">
           <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
             <div>
               <div style="font-weight:700;font-size:.95rem" id="agent-msg-title">—</div>
@@ -398,9 +388,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- REVENUE -->
     <div class="page" id="page-revenue">
       <div class="kgrid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kcard"><div class="kico">💰</div><div class="klabel">Total earned</div><div class="kval" id="rev-total">—</div><div class="ksub">All time</div></div>
-        <div class="kcard"><div class="kico">📅</div><div class="klabel">This month</div><div class="kval" id="rev-month">—</div><div class="ksub">Commission on leases</div></div>
-        <div class="kcard"><div class="kico">⏳</div><div class="klabel">Pending</div><div class="kval" id="rev-pending">—</div><div class="ksub">Awaiting signature</div></div>
+        <div class="kcard"><div class="kico">💰</div><div class="klabel">Total earned</div><div class="kval" id="rev-total">—</div><div class="ksub">All time (self-declared)</div></div>
+        <div class="kcard"><div class="kico">📅</div><div class="klabel">This month</div><div class="kval" id="rev-month">—</div><div class="ksub">Commission received</div></div>
+        <div class="kcard"><div class="kico">🏠</div><div class="klabel">Properties</div><div class="kval" id="rev-count">—</div><div class="ksub">Commissions declared</div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">✍️ Declare a commission you received</span></div>
+        <div class="cb">
+          <div style="font-size:.75rem;color:var(--td);margin-bottom:.75rem">Commission is paid to you directly by the landlord/tenant — RestMalta never sees this money. This is just your own record.</div>
+          <div class="frow">
+            <div class="fg2"><label>Property</label><input class="fi" id="cd-property" placeholder="e.g. Modern 2BR apartment in Sliema"></div>
+            <div class="fg2"><label>Amount received (€) *</label><input class="fi" type="number" id="cd-amount" placeholder="300"></div>
+          </div>
+          <div class="frow">
+            <div class="fg2"><label>Date received *</label><input class="fi" type="date" id="cd-date"></div>
+            <div class="fg2"><label>Note <span style="font-weight:400;color:var(--td)">(optional)</span></label><input class="fi" id="cd-note" placeholder="e.g. Landlord commission, paid by bank transfer"></div>
+          </div>
+          <button class="btn bp" onclick="submitCommissionDeclaration()">💾 Save declaration</button>
+        </div>
       </div>
       <div class="card">
         <div class="ch"><span class="ct">📊 Revenue — last 6 months</span></div>
@@ -413,10 +418,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><span class="ct">💳 Commission history</span></div>
         <div class="cb">
           <table class="tbl">
-            <thead><tr><th>Property</th><th>Tenant</th><th>Lease</th><th>Commission</th><th>Status</th><th>Date</th></tr></thead>
+            <thead><tr><th>Property</th><th>Amount</th><th>Date</th><th>Note</th><th></th></tr></thead>
             <tbody id="comm-table">
-              <tr><td colspan="6" style="text-align:center;color:var(--td);font-size:.82rem;padding:.75rem">No earnings yet — complete visits to earn commissions</td></tr>
-              
+              <tr><td colspan="5" style="text-align:center;color:var(--td);font-size:.82rem;padding:.75rem">No declarations yet</td></tr>
             </tbody>
           </table>
         </div>
@@ -990,17 +994,89 @@ async function saveZone(){
 }
 
 async function renderRevChart(){
-  // NOTE: aucune donnée ne trace aujourd'hui la part de commission qui revient
-  // spécifiquement à cet agent (create-commission.js envoie tout à RestMalta,
-  // sans découpage par agent) — donc honnêtement à "—" plutôt que d'inventer
-  // un chiffre, en attendant qu'on décide comment ça se calcule.
-  const totalEl=document.getElementById('rev-total'),monthEl=document.getElementById('rev-month'),pendingEl=document.getElementById('rev-pending');
-  if(totalEl)totalEl.textContent='—';
-  if(monthEl)monthEl.textContent='—';
-  if(pendingEl)pendingEl.textContent='—';
+  let declarations=[];
+  try{
+    const{data}=await sb.from('agent_commission_declarations').select('*').eq('agent_id',U.id).order('received_date',{ascending:false});
+    declarations=data||[];
+  }catch(e){console.error('[revenue] load error',e.message);}
+
+  const totalEl=document.getElementById('rev-total'),monthEl=document.getElementById('rev-month'),countEl=document.getElementById('rev-count');
+  const total=declarations.reduce((s,d)=>s+parseFloat(d.amount||0),0);
+  const now=new Date();
+  const thisMonth=declarations.filter(d=>{
+    const dd=new Date(d.received_date);
+    return dd.getMonth()===now.getMonth()&&dd.getFullYear()===now.getFullYear();
+  }).reduce((s,d)=>s+parseFloat(d.amount||0),0);
+
+  if(totalEl)totalEl.textContent=declarations.length?'€'+Math.round(total):'—';
+  if(monthEl)monthEl.textContent=declarations.length?'€'+Math.round(thisMonth):'—';
+  if(countEl)countEl.textContent=declarations.length||'—';
+
+  // Graphique — 6 derniers mois
   const chartEl=document.getElementById('rev-chart'),labelsEl=document.getElementById('rev-labels');
-  if(chartEl)chartEl.innerHTML='<div style="width:100%;text-align:center;color:var(--td);font-size:.78rem;align-self:center">Commission tracking not set up yet</div>';
-  if(labelsEl)labelsEl.innerHTML='';
+  if(chartEl&&labelsEl){
+    if(!declarations.length){
+      chartEl.innerHTML='<div style="width:100%;text-align:center;color:var(--td);font-size:.78rem;align-self:center">No declarations yet — add one above</div>';
+      labelsEl.innerHTML='';
+    }else{
+      const months=[];
+      for(let i=5;i>=0;i--){
+        const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+        months.push({label:d.toLocaleDateString('en-GB',{month:'short'}),year:d.getFullYear(),month:d.getMonth()});
+      }
+      const totals=months.map(m=>declarations.filter(d=>{
+        const dd=new Date(d.received_date);
+        return dd.getMonth()===m.month&&dd.getFullYear()===m.year;
+      }).reduce((s,d)=>s+parseFloat(d.amount||0),0));
+      const maxVal=Math.max(...totals,1);
+      chartEl.innerHTML=totals.map(v=>`<div style="flex:1;background:var(--terra);border-radius:4px 4px 0 0;height:${Math.max(4,(v/maxVal*100))}%;opacity:${v?1:.15}" title="€${Math.round(v)}"></div>`).join('');
+      labelsEl.innerHTML=months.map(m=>`<div style="text-align:center;font-size:.68rem;color:var(--td)">${m.label}</div>`).join('');
+    }
+  }
+
+  // Historique
+  const tbody=document.getElementById('comm-table');
+  if(tbody){
+    tbody.innerHTML=declarations.length?declarations.map(d=>`
+      <tr>
+        <td>${d.property_title||'—'}</td>
+        <td>€${Math.round(d.amount)}</td>
+        <td>${new Date(d.received_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</td>
+        <td style="color:var(--td);font-size:.78rem">${d.note||'—'}</td>
+        <td><button onclick="deleteCommissionDeclaration('${d.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.78rem">✕</button></td>
+      </tr>`).join('')
+      :'<tr><td colspan="5" style="text-align:center;color:var(--td);font-size:.82rem;padding:.75rem">No declarations yet</td></tr>';
+  }
+}
+
+async function submitCommissionDeclaration(){
+  const property=document.getElementById('cd-property')?.value.trim()||null;
+  const amount=parseFloat(document.getElementById('cd-amount')?.value);
+  const date=document.getElementById('cd-date')?.value;
+  const note=document.getElementById('cd-note')?.value.trim()||null;
+  if(!amount||amount<=0){toast('⚠️ Enter a valid amount');return;}
+  if(!date){toast('⚠️ Select the date you received it');return;}
+
+  try{
+    const{error}=await sb.from('agent_commission_declarations').insert({
+      agent_id:U.id,property_title:property,amount,received_date:date,note
+    });
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Declaration saved');
+    document.getElementById('cd-property').value='';
+    document.getElementById('cd-amount').value='';
+    document.getElementById('cd-date').value='';
+    document.getElementById('cd-note').value='';
+    renderRevChart();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function deleteCommissionDeclaration(id){
+  try{
+    await sb.from('agent_commission_declarations').delete().eq('id',id).eq('agent_id',U.id);
+    toast('Deleted');
+    renderRevChart();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function loadScore(){
@@ -1864,13 +1940,15 @@ async function loadAgentMessages(){
       const label=typeLabels[m.type]||m.type||'Message';
       const lines=m.content.split('\n');
       const preview=lines[0]||'';
-      return`<div style="padding:.75rem 1rem;background:${m.read?'var(--s2)':'rgba(76,175,125,.06)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="toggleMessage(this)">
+      const otherParty=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      const canReply=otherParty&&otherParty!=='system';
+      return`<div style="padding:.75rem 1rem;background:${m.read?'var(--s2)':'rgba(76,175,125,.06)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="${canReply?`openAgentMsg('${m.listing_id||''}','${otherParty}','${label.replace(/'/g,"\\'")}')`:`toggleMessage(this)`}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
           <span style="font-size:.75rem;font-weight:700;color:${m.read?'var(--td)':'#4CAF7D'}">${label}</span>
           <span style="font-size:.65rem;color:var(--td)">${date}</span>
         </div>
         <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
-        <div class="msg-full" style="display:none;margin-top:.5rem;font-size:.75rem;color:var(--tm);white-space:pre-wrap;line-height:1.7">${m.content}</div>
+        ${canReply?'':`<div class="msg-full" style="display:none;margin-top:.5rem;font-size:.75rem;color:var(--tm);white-space:pre-wrap;line-height:1.7">${m.content}</div>`}
       </div>`;
     }).join('');
 
@@ -1885,6 +1963,65 @@ async function loadAgentMessages(){
 function toggleMessage(el){
   const full=el.querySelector('.msg-full');
   if(full)full.style.display=full.style.display==='none'?'block':'none';
+}
+
+let agentChatListingId=null,agentChatOtherId=null;
+
+async function openAgentMsg(listingId,otherPartyId,title){
+  agentChatListingId=listingId||null;
+  agentChatOtherId=otherPartyId;
+  document.getElementById('agent-msg-title').textContent=title||'Conversation';
+  document.getElementById('agent-msg-sub').textContent='';
+  const thread=document.getElementById('agent-msg-thread');
+  thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td)">Loading...</div>';
+  document.getElementById('agent-msg-modal').style.display='flex';
+
+  try{
+    let query=sb.from('messages').select('*').order('created_at',{ascending:true});
+    query=listingId?query.eq('listing_id',listingId):query.is('listing_id',null);
+    const{data}=await query;
+    const history=(data||[]).filter(m=>
+      (m.sender_id===U.id&&m.receiver_id===otherPartyId)||
+      (m.sender_id===otherPartyId&&m.receiver_id===U.id)
+    );
+
+    if(!history.length){
+      thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td);padding:1rem">No messages yet — say hello 👋</div>';
+    }else{
+      thread.innerHTML=history.map(m=>{
+        const isMe=m.sender_id===U.id;
+        return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+          <div style="max-width:80%;background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--txt)'};border-radius:12px;padding:.55rem .8rem;font-size:.83rem;white-space:pre-wrap;line-height:1.5">${m.content}</div>
+          <div style="font-size:.62rem;color:var(--td);margin-top:.2rem">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>`;
+      }).join('');
+      thread.scrollTop=thread.scrollHeight;
+    }
+  }catch(e){
+    thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--red)">Could not load messages</div>';
+  }
+
+  try{await sb.from('messages').update({read:true}).eq('receiver_id',U.id).eq('sender_id',otherPartyId).eq('read',false);}catch(e){}
+}
+
+function closeAgentMsg(){
+  document.getElementById('agent-msg-modal').style.display='none';
+  agentChatListingId=null;agentChatOtherId=null;
+}
+
+async function sendAgentMsg(){
+  const input=document.getElementById('agent-msg-input');
+  const content=input?.value.trim();
+  if(!content||!agentChatOtherId)return;
+  input.value='';
+  try{
+    const{error}=await sb.from('messages').insert({
+      listing_id:agentChatListingId,sender_id:U.id,receiver_id:agentChatOtherId,
+      content,type:'message'
+    });
+    if(error){toast('❌ '+error.message);return;}
+    openAgentMsg(agentChatListingId,agentChatOtherId,document.getElementById('agent-msg-title').textContent);
+  }catch(e){toast('❌ '+e.message);}
 }
 
 
@@ -2101,65 +2238,9 @@ async function loadVisits(){
   const pending=pendingRequests.length;
   const nbBadge=document.getElementById('nb-visits');
   if(nbBadge){nbBadge.textContent=pending||'';nbBadge.style.display=pending>0?'inline':'none';}
+  const reqCountBadge=document.getElementById('req-count');
+  if(reqCountBadge){reqCountBadge.style.display=pending>0?'inline-block':'none';reqCountBadge.textContent=`${pending} pending`;}
 
-  // Render pending visit requests
-  const rw=document.getElementById('visit-requests');
-  if(!rw){renderUpcoming();renderAllVisitsDirect();return;}
-  if(!pendingRequests.length){
-    rw.innerHTML='<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">📬</div><p style="font-size:.78rem">No pending requests — you will be notified when tenants request visits</p></div>';
-  } else {
-    rw.innerHTML=pendingRequests.map(m=>{
-      const lines=m.content.split('\n');
-      const extract=(key)=>{
-        const line=lines.find(l=>l.includes(key+':'));
-        if(!line)return null;
-        return line.substring(line.indexOf(key+':')+key.length+1).trim()||null;
-      };
-      const property=extract('Property')||m.listings?.title||'Property';
-      const address=extract('Address')||m.listings?.zone||'Malta';
-      const dateTime=extract('Date')||'TBD';
-      const tenant=extract('Tenant')||'Tenant';
-      const keyLine=extract('Key access')||'Contact landlord';
-      const keyDetail=extract('Key details')||'';
-      const ownerLine=extract('Owner')||'';
-
-      const isAwaitingLandlord=m.content?.includes('Awaiting landlord confirmation')||m.content?.includes('awaiting_landlord');
-      const isConfirmed=m.content?.includes('Landlord confirmed');
-
-      return`<div style="padding:.85rem;background:var(--s2);border-radius:12px;margin-bottom:.75rem;border:1px solid ${isConfirmed?'rgba(76,175,125,.3)':isAwaitingLandlord?'rgba(212,168,71,.3)':'var(--b)'}" data-visit-id="${m.visit_id||''}">
-        <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">🏠 ${property}</div>
-        <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
-        <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
-        <div style="font-size:.75rem;color:var(--td);margin-bottom:.3rem">👤 ${tenant}</div>
-        <div style="display:flex;gap:.35rem;margin-bottom:.4rem">
-          <div style="background:rgba(76,175,125,.1);border-radius:6px;padding:.3rem .5rem;flex:1;text-align:center;font-size:.7rem">
-            <div style="color:var(--td)">Rent</div>
-            <div style="font-weight:700">${m.listing_price?'€'+m.listing_price+'/mo':'—'}</div>
-          </div>
-        </div>
-        ${keyLine&&keyLine!=='Contact landlord'?`<div style="background:rgba(58,143,181,.08);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem">
-          <div>🔑 <strong>Keys:</strong> ${keyLine}</div>
-          ${keyDetail?`<div style="color:var(--tm);margin-top:.2rem">└ ${keyDetail}</div>`:''}
-          ${ownerLine?`<div style="margin-top:.2rem">👤 <strong>Owner:</strong> ${ownerLine}</div>`:''}
-        </div>`:''}
-        <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">
-          ${isAwaitingLandlord&&!isConfirmed
-            ?`<div style="width:100%;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.5rem .7rem;text-align:center">
-                <div style="font-size:.73rem;color:var(--gold);font-weight:600">⏳ Waiting for landlord to confirm...</div>
-                <div style="font-size:.65rem;color:var(--td)">You'll be notified as soon as they do.</div>
-              </div>`
-            :`<div style="width:100%;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .65rem;margin-bottom:.3rem;text-align:center">
-                <div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Landlord confirmed — this visit is yours</div>
-              </div>
-              <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="confirmMyVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ Confirm visit</button>
-              <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Can't make it</button>`
-          }
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  document.getElementById('req-count').textContent=`${pending} pending`;
   renderUpcoming();
   renderAllVisitsDirect();
 }
@@ -2296,15 +2377,68 @@ function renderAllVisitsDirect(){
   const w=document.getElementById('all-visits-list');
   if(!w)return;
 
+  // Demandes en attente — fusionnées directement dans la même carte "All visits"
+  let pendingHtml='';
+  (visitMsgs||[]).forEach(m=>{
+    const lines=m.content.split('\n');
+    const extract=(key)=>{
+      const line=lines.find(l=>l.includes(key+':'));
+      if(!line)return null;
+      return line.substring(line.indexOf(key+':')+key.length+1).trim()||null;
+    };
+    const property=extract('Property')||m.listings?.title||'Property';
+    const address=extract('Address')||m.listings?.zone||'Malta';
+    const dateTime=extract('Date')||'TBD';
+    const tenant=extract('Tenant')||'Tenant';
+    const keyLine=extract('Key access')||'Contact landlord';
+    const keyDetail=extract('Key details')||'';
+    const ownerLine=extract('Owner')||'';
+
+    const isAwaitingLandlord=m.content?.includes('Awaiting landlord confirmation')||m.content?.includes('awaiting_landlord');
+    const isConfirmed=m.content?.includes('Landlord confirmed');
+
+    pendingHtml+=`<div style="padding:.85rem;background:var(--s2);border-radius:12px;margin-bottom:.75rem;border:1px solid ${isConfirmed?'rgba(76,175,125,.3)':isAwaitingLandlord?'rgba(212,168,71,.3)':'var(--b)'}" data-visit-id="${m.visit_id||''}">
+      <div style="font-size:.7rem;font-weight:700;color:var(--gold);margin-bottom:.4rem">📬 NEW REQUEST</div>
+      <div style="font-size:.88rem;font-weight:700;margin-bottom:.4rem">🏠 ${property}</div>
+      <div style="font-size:.75rem;color:var(--tm);margin-bottom:.2rem">📍 ${address}</div>
+      <div style="font-size:.78rem;color:var(--sea);font-weight:600;margin-bottom:.2rem">📅 ${dateTime}</div>
+      <div style="font-size:.75rem;color:var(--td);margin-bottom:.3rem">👤 ${tenant}</div>
+      <div style="display:flex;gap:.35rem;margin-bottom:.4rem">
+        <div style="background:rgba(76,175,125,.1);border-radius:6px;padding:.3rem .5rem;flex:1;text-align:center;font-size:.7rem">
+          <div style="color:var(--td)">Rent</div>
+          <div style="font-weight:700">${m.listing_price?'€'+m.listing_price+'/mo':'—'}</div>
+        </div>
+      </div>
+      ${keyLine&&keyLine!=='Contact landlord'?`<div style="background:rgba(58,143,181,.08);border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;font-size:.73rem">
+        <div>🔑 <strong>Keys:</strong> ${keyLine}</div>
+        ${keyDetail?`<div style="color:var(--tm);margin-top:.2rem">└ ${keyDetail}</div>`:''}
+        ${ownerLine?`<div style="margin-top:.2rem">👤 <strong>Owner:</strong> ${ownerLine}</div>`:''}
+      </div>`:''}
+      <div class="visit-actions" style="display:flex;gap:.4rem;flex-wrap:wrap">
+        ${isAwaitingLandlord&&!isConfirmed
+          ?`<div style="width:100%;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.5rem .7rem;text-align:center">
+              <div style="font-size:.73rem;color:var(--gold);font-weight:600">⏳ Waiting for landlord to confirm...</div>
+              <div style="font-size:.65rem;color:var(--td)">You'll be notified as soon as they do.</div>
+            </div>`
+          :`<div style="width:100%;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .65rem;margin-bottom:.3rem;text-align:center">
+              <div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Landlord confirmed — this visit is yours</div>
+            </div>
+            <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="confirmMyVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ Confirm visit</button>
+            <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Can't make it</button>`
+        }
+      </div>
+    </div>`;
+  });
+
   const assigned=(visits||[]).filter(v=>!['cancelled','no_show','move_in_ready','done','completed'].includes(v.status));
   const past=(visits||[]).filter(v=>['cancelled','done','no_show','move_in_ready','completed'].includes(v.status));
 
-  if(!assigned.length&&!past.length){
+  if(!assigned.length&&!past.length&&!pendingHtml){
     w.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits assigned yet</p></div>';
     return;
   }
 
-  let html='';
+  let html=pendingHtml;
 
   assigned.forEach(v=>{
     const keyL={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour',agent:'🏆 Agent has keys',landlord:'📞 Call landlord'};
