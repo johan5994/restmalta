@@ -278,6 +278,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="page" id="page-reviews">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Leave a review</div>
       <div class="ai">⭐ Your reviews help the RestMalta community. Landlords with great reviews get more visibility — honest feedback makes the platform better for everyone.</div>
+      <div class="card" id="rate-agent-card" style="display:none;margin-bottom:1rem">
+        <div class="ch"><div class="ct">⭐ Rate your agent</div></div>
+        <div class="cb" id="rate-agent-list"></div>
+      </div>
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">Review your landlord</div></div>
         <div class="cb">
@@ -2330,6 +2334,68 @@ async function loadMyReviews(){
   const{data}=await sb.from('reviews').select('*').eq('reviewer_id',U.id).order('created_at',{ascending:false});
   document.getElementById('my-reviews').innerHTML=(data||[]).map(r=>'<div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem"><div style="color:var(--gold);font-size:1rem;letter-spacing:2px">'+'⭐'.repeat(r.rating)+'</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">'+r.comment+'</div><div style="font-size:.72rem;color:var(--td);margin-top:.3rem">'+new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</div></div>').join('')||'<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">No reviews submitted yet</div>';
   loadReviewsAboutMe();
+  loadRateAgentCard();
+}
+
+async function loadRateAgentCard(){
+  const card=document.getElementById('rate-agent-card');
+  const wrap=document.getElementById('rate-agent-list');
+  if(!card||!wrap)return;
+  try{
+    const{data:visits}=await sb.from('visits').select('id,agent_id,listing_id').eq('tenant_id',U.id).eq('status','completed').not('agent_id','is',null);
+    if(!visits||!visits.length){card.style.display='none';return;}
+
+    const agentIds=[...new Set(visits.map(v=>v.agent_id))];
+    const{data:already}=await sb.from('reviews').select('target_id').eq('reviewer_id',U.id).eq('type','tenant_to_agent').in('target_id',agentIds);
+    const reviewedIds=new Set((already||[]).map(r=>r.target_id));
+    // Un seul rappel par agent, même si plusieurs visites avec le même agent
+    const seen=new Set();
+    const pending=visits.filter(v=>{
+      if(reviewedIds.has(v.agent_id)||seen.has(v.agent_id))return false;
+      seen.add(v.agent_id);return true;
+    });
+    if(!pending.length){card.style.display='none';return;}
+
+    card.style.display='block';
+    const{data:agentProfiles}=await sb.from('profiles').select('clerk_id,full_name').in('clerk_id',agentIds);
+    const agentNames={};(agentProfiles||[]).forEach(a=>agentNames[a.clerk_id]=a.full_name);
+    const listingIds=[...new Set(pending.map(v=>v.listing_id).filter(Boolean))];
+    const{data:listings}=await sb.from('listings').select('id,title').in('id',listingIds);
+    const listingTitles={};(listings||[]).forEach(l=>listingTitles[l.id]=l.title);
+
+    wrap.innerHTML=pending.map(v=>`
+      <div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem">
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:.5rem">${agentNames[v.agent_id]||'Your agent'} — <span style="font-weight:400;color:var(--tm)">${listingTitles[v.listing_id]||'your visit'}</span></div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem" id="ta-stars-${v.id}">
+          ${[1,2,3,4,5].map(n=>`<span onclick="setTenantAgentRating('${v.id}',${n})" style="cursor:pointer;font-size:1.3rem;opacity:.3" data-star="${n}">⭐</span>`).join('')}
+        </div>
+        <textarea class="fta" id="ta-comment-${v.id}" rows="2" placeholder="How was the visit with this agent? (optional)" style="margin-bottom:.5rem"></textarea>
+        <button class="btn bp" onclick="submitTenantAgentReview('${v.id}','${v.agent_id}')">Submit rating →</button>
+      </div>`).join('');
+  }catch(e){card.style.display='none';}
+}
+
+const tenantAgentRatings={};
+function setTenantAgentRating(visitId,n){
+  tenantAgentRatings[visitId]=n;
+  document.querySelectorAll(`#ta-stars-${visitId} span`).forEach(s=>{
+    s.style.opacity=parseInt(s.dataset.star)<=n?'1':'.3';
+  });
+}
+
+async function submitTenantAgentReview(visitId,agentId){
+  const rating=tenantAgentRatings[visitId];
+  if(!rating){toast('⚠️ Select a star rating');return;}
+  const comment=document.getElementById(`ta-comment-${visitId}`)?.value.trim()||'';
+  try{
+    const{error}=await sb.from('reviews').insert({
+      reviewer_id:U.id,rating,comment,type:'tenant_to_agent',
+      target_id:agentId,tenant_id:U.id
+    });
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Thanks for the feedback!');
+    loadRateAgentCard();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function loadReviewsAboutMe(){
