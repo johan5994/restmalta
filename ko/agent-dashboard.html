@@ -318,66 +318,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
           </div>
 
-          <!-- Visit & Inventory presence -->
-          <div style="background:var(--grdim);border:1px solid rgba(76,175,125,.2);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-            <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.5rem">🏠 Landlord availability during visits & inventory</div>
-            <div class="frow">
-              <div class="fg2">
-                <label>During property visits</label>
-                <select class="fi" id="p-visit-presence" style="cursor:pointer">
-                  <option value="if_possible">👋 If possible</option>
-                  <option value="not_needed">❌ Not needed</option>
-                </select>
-              </div>
-              <div class="fg2">
-                <label>During entry inventory (EDL)</label>
-                <select class="fi" id="p-inventory-presence" style="cursor:pointer" onchange="toggleSignAuth(this.value)">
-                  <option value="mandatory">✅ Landlord will be there</option>
-                  <option value="if_possible">👋 If possible (agent signs otherwise)</option>
-                  <option value="not_needed">❌ Not needed</option>
-                </select>
-              </div>
-            </div>
-            <div id="sign-auth-notice" style="display:none;margin-top:.5rem;background:var(--gdim);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;font-size:.72rem;color:var(--gold)">
-              ⚠️ This authorizes you (the agent) to sign the entry inventory on the landlord's behalf. The lease itself must always be signed by the landlord personally.
-            </div>
-            <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b)">
-              <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">🔑 Key access</div>
-              <div class="frow">
-                <div class="fg2">
-                  <label>How do you access the property?</label>
-                  <select class="fi" id="p-key-type" style="cursor:pointer" onchange="toggleKeyDetail(this.value)">
-                    <option value="keysafe">🔐 Key safe on site</option>
-                    <option value="neighbor">🏘️ With neighbour / concierge</option>
-                    <option value="landlord">📞 Landlord hands keys personally</option>
-                    <option value="current_tenant">🏠 Current tenant has the keys</option>
-                  </select>
-                </div>
-                <div class="fg2">
-                  <div id="key-detail-wrap">
-                    <label>Key access details</label>
-                    <input class="fi" id="p-key-location" placeholder="E.g. Key safe code 1234, left of main entrance">
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b)">
-              <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;margin-bottom:.5rem">
-                <input type="checkbox" id="p-is-occupied" onchange="toggleOccupied(this.checked)" style="width:16px;height:16px;accent-color:var(--terra);cursor:pointer;flex-shrink:0">
-                <div>
-                  <div style="font-size:.78rem;font-weight:700;color:var(--gold)">👤 Property is currently occupied</div>
-                  <div style="font-size:.7rem;color:var(--td);margin-top:.1rem">Check this if a tenant is still living there</div>
-                </div>
-              </label>
-              <div id="occupied-details" style="display:none;background:var(--gdim);border:1px solid rgba(212,168,71,.15);border-radius:8px;padding:.75rem">
-                <div class="frow">
-                  <div class="fg2"><label>Current tenant's phone number</label><input class="fi" id="p-current-tenant-phone" placeholder="+356 9999 1234"></div>
-                  <div class="fg2"><label>Lease end date (when property is free)</label><input class="fi" type="date" id="p-lease-end-date"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div class="fg2" style="margin-top:.75rem"><label>Description</label><textarea class="fta" id="pde" rows="4" placeholder="Describe the flat — furnished, WiFi, near transport, bills included, house rules…"></textarea></div>
 
           <!-- Lease conditions -->
@@ -485,49 +425,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- SCORE -->
     <div class="page" id="page-score">
-      <div style="display:grid;grid-template-columns:280px 1fr;gap:1.5rem">
-        <div>
-          <div class="card">
-            <div class="ch"><span class="ct">⭐ Performance score</span></div>
-            <div class="cb" style="text-align:center">
-              <div class="score-ring" style="margin-bottom:1rem">
-                <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="8"/>
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--terra)" stroke-width="8" stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" id="score-arc"/>
-                </svg>
-                <div class="score-val" id="score-val">—</div>
-              </div>
-              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.5rem">Overall score / 10</div><div class="badge b-dim" style="display:inline-block" id="score-badge">No reviews yet</div><div style="font-size:.72rem;color:var(--td);margin-top:.75rem" id="score-reviews">Complete visits to get reviews</div>
-            </div>
+      <div class="card">
+        <div class="ch"><span class="ct">⭐ Performance score</span></div>
+        <div class="cb" style="text-align:center">
+          <div class="score-ring" style="margin-bottom:1rem">
+            <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="8"/>
+              <circle cx="40" cy="40" r="34" fill="none" stroke="var(--terra)" stroke-width="8" stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" id="score-arc"/>
+            </svg>
+            <div class="score-val" id="score-val">—</div>
           </div>
-          <div class="card">
-            <div class="ch"><span class="ct">🏅 Zone ranking</span></div>
-            <div class="cb">
-              <div style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem">Zone: <strong style="color:var(--terra)" id="zone-name-2">Not set</strong></div>
-              <div style="background:var(--s2);border-radius:10px;padding:1rem;display:flex;align-items:center;justify-content:space-between">
-                <span style="font-size:.82rem;color:var(--tm)">Your rank</span>
-                <span style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--gold)" id="zone-rank">—</span>
-              </div>
-            </div>
-          </div>
+          <div style="font-size:.82rem;color:var(--tm);margin-bottom:.5rem">Overall score / 10</div><div class="badge b-dim" style="display:inline-block" id="score-badge">No reviews yet</div><div style="font-size:.72rem;color:var(--td);margin-top:.75rem" id="score-reviews">Complete visits to get reviews</div>
         </div>
-        <div>
-          <div class="card">
-            <div class="ch"><span class="ct">📊 Score breakdown</span></div>
-            <div class="cb">
-              <div class="sbar-row"><span class="sbar-label">Response time</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-response"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-response">—</span></div>
-              <div class="sbar-row"><span class="sbar-label">Tenant satisfaction</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-satisfaction"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-satisfaction">—</span></div>
-              <div class="sbar-row"><span class="sbar-label">Conversion rate</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-conversion"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-conversion">—</span></div>
-              <div class="sbar-row"><span class="sbar-label">Punctuality</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-punctuality"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-punctuality">—</span></div>
-              <div class="sbar-row"><span class="sbar-label">Profile completeness</span><div class="sbar-track"><div class="sbar-fill" style="width:0%" id="sbar-profile"></div></div><span style="font-size:.75rem;color:var(--terra);width:30px;text-align:right" id="sval-profile">—</span></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="ch"><span class="ct">💬 Recent reviews</span></div>
-            <div class="cb">
-              <div id="reviews-list"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">⭐</div><p style="font-size:.78rem">No reviews yet — complete visits to receive reviews</p></div></div>
-            </div>
-          </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">💬 Recent reviews</span></div>
+        <div class="cb">
+          <div id="reviews-list"><div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">⭐</div><p style="font-size:.78rem">No reviews yet — complete visits to receive reviews</p></div></div>
         </div>
       </div>
     </div>
@@ -1090,18 +1004,10 @@ async function renderRevChart(){
 }
 
 async function loadScore(){
-  // Complétude du profil — le seul composant qu'on peut vraiment calculer aujourd'hui
-  const fields=[P?.full_name,P?.phone,P?.languages,P?.zones,(P?.agent_lat&&P?.agent_lng)?'ok':null];
-  const filled=fields.filter(Boolean).length;
-  const profilePct=Math.round(filled/fields.length*100);
-  const bar=document.getElementById('sbar-profile'),val=document.getElementById('sval-profile');
-  if(bar)bar.style.width=profilePct+'%';
-  if(val)val.textContent=profilePct+'%';
-
-  // Reviews reçues — le système de review agent n'existe pas encore, donc honnêtement vide pour l'instant
+  // Reviews reçues — des locataires (après visite) et des propriétaires (après acceptation du bien)
   let reviews=[];
   try{
-    const{data}=await sb.from('reviews').select('*').eq('target_id',U.id).eq('type','tenant_to_agent').order('created_at',{ascending:false}).limit(10);
+    const{data}=await sb.from('reviews').select('*').eq('target_id',U.id).in('type',['tenant_to_agent','landlord_to_agent']).order('created_at',{ascending:false}).limit(10);
     reviews=data||[];
   }catch(e){}
 
@@ -1117,17 +1023,12 @@ async function loadScore(){
     if(arc){const pct=avg/5;arc.style.strokeDashoffset=(213.6*(1-pct)).toFixed(1);}
   }else{
     if(scoreValEl)scoreValEl.textContent='—';
-    if(scoreReviewsEl)scoreReviewsEl.textContent='No reviews yet — tenant/agent reviews coming soon';
+    if(scoreReviewsEl)scoreReviewsEl.textContent='No reviews yet';
   }
   const reviewsWrap=document.getElementById('reviews-list');
   if(reviewsWrap){
-    reviewsWrap.innerHTML=reviews.length?reviews.map(r=>`<div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem"><div style="color:var(--gold);font-size:.9rem">${'⭐'.repeat(r.rating)}</div><div style="font-size:.8rem;color:var(--tm);margin-top:.3rem">${r.comment||''}</div></div>`).join(''):'<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">⭐</div><p style="font-size:.78rem">No reviews yet — complete visits to receive reviews</p></div>';
+    reviewsWrap.innerHTML=reviews.length?reviews.map(r=>`<div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem"><div style="color:var(--gold);font-size:.9rem">${'⭐'.repeat(r.rating)}</div><div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${r.type==='landlord_to_agent'?'From a landlord':'From a tenant'}</div><div style="font-size:.8rem;color:var(--tm);margin-top:.3rem">${r.comment||''}</div></div>`).join(''):'<div class="empty" style="padding:1.5rem"><div class="em" style="font-size:1.5rem">⭐</div><p style="font-size:.78rem">No reviews yet — complete visits to receive reviews</p></div>';
   }
-
-  // Le reste (temps de réponse, satisfaction, ponctualité, classement de zone)
-  // demande un vrai suivi qu'on n'a pas encore construit — laissé à "—" plutôt que d'inventer.
-  const zoneNameEl=document.getElementById('zone-name-2');
-  if(zoneNameEl)zoneNameEl.textContent=P?.zones?P.zones.split(',')[0]:'Not set';
 }
 
 async function loadZoneStats(zones){
@@ -1396,26 +1297,6 @@ function setT(el,t){
 
 function onAvailableFromChange(val){}
 
-function toggleOccupied(checked){
-  document.getElementById('occupied-details').style.display=checked?'block':'none';
-  if(!checked){document.getElementById('p-current-tenant-phone').value='';document.getElementById('p-lease-end-date').value='';}
-}
-
-function toggleSignAuth(val){
-  const notice=document.getElementById('sign-auth-notice');
-  if(notice)notice.style.display=(val==='if_possible'||val==='not_needed')?'block':'none';
-}
-
-function toggleKeyDetail(val){
-  const wrap=document.getElementById('key-detail-wrap');
-  const input=document.getElementById('p-key-location');
-  if(!wrap||!input)return;
-  if(val==='keysafe'){input.placeholder='Key safe code and exact location';wrap.style.display='block';}
-  else if(val==='neighbor'){input.placeholder='Neighbour name and flat number / concierge details';wrap.style.display='block';}
-  else if(val==='landlord'){input.placeholder='Phone / how to coordinate key handover';wrap.style.display='block';}
-  else{wrap.style.display='none';}
-}
-
 function updatePhotoArea(){
   const area=document.getElementById('photo-upload-area');
   const msg=document.getElementById('photo-required-msg');
@@ -1555,13 +1436,6 @@ async function publishAgentListing(){
     full_address:document.getElementById('p-full-address')?.value.trim()||null,
     payment_due_day:document.getElementById('p-pay-day')?.value||null,
     bills_situation:document.getElementById('p-bills')?.value||null,
-    landlord_present:document.getElementById('p-visit-presence')?.value||'not_needed',
-    inventory_presence:document.getElementById('p-inventory-presence')?.value||'mandatory',
-    agent_sign_auth:(document.getElementById('p-inventory-presence')?.value==='if_possible'||document.getElementById('p-inventory-presence')?.value==='not_needed'),
-    key_type:document.getElementById('p-key-type')?.value||'landlord',
-    key_location:document.getElementById('p-key-location')?.value?.trim()||null,
-    current_tenant_phone:document.getElementById('p-current-tenant-phone')?.value?.trim()||null,
-    lease_end_date:document.getElementById('p-lease-end-date')?.value||null,
     active:true
   };
 
