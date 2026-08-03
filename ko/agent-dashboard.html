@@ -210,38 +210,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <!-- COMPLETE LISTING (agent_must_create) -->
-    <div class="modal" id="complete-listing-modal" onclick="if(event.target.id==='complete-listing-modal')closeCompleteListingModal()">
-      <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto;position:relative">
-        <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-weight:700;font-size:1rem">🏠 Complete this listing</div>
-            <div style="font-size:.75rem;color:var(--td);margin-top:.2rem">Fill in the details — it goes live once published.</div>
-          </div>
-          <button onclick="closeCompleteListingModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
-        </div>
-        <div style="padding:1.2rem">
-          <input type="hidden" id="cl-id">
-          <div class="fg"><label class="fl">Property Title *</label><input class="fi" id="cl-title" placeholder="Modern 2BR apartment in Sliema"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.6rem">
-            <div class="fg"><label class="fl">Zone *</label><input class="fi" id="cl-zone"></div>
-            <div class="fg"><label class="fl">Monthly Rent (€) *</label><input class="fi" type="number" id="cl-price"></div>
-          </div>
-          <div class="fg" style="margin-top:.6rem"><label class="fl">Full Address</label><input class="fi" id="cl-address"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.6rem">
-            <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="cl-beds"><option value="0">Studio</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div>
-            <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="cl-baths"><option value="1" selected>1</option><option value="2">2</option><option value="3">3+</option></select></div>
-          </div>
-          <div class="fg" style="margin-top:.6rem"><label class="fl">Description</label><textarea class="fta" id="cl-desc" rows="4" placeholder="Furnished, amenities, transport links..."></textarea></div>
-          <div class="fg" style="margin-top:.6rem"><label class="fl">Photos</label>
-            <input type="file" id="cl-photos" accept="image/*" multiple style="display:none" onchange="previewCLPhotos(this)">
-            <button class="btn bg bsm" onclick="document.getElementById('cl-photos').click()" style="width:100%;justify-content:center">📷 Add photos</button>
-            <div id="cl-photo-previews" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem"></div>
-          </div>
-          <button class="btn bp" style="width:100%;justify-content:center;margin-top:1rem" onclick="publishCompleteListing()">🚀 Publish listing →</button>
-        </div>
-      </div>
-    </div>
-
     <!-- LISTINGS -->
     <div class="page" id="page-listings">
       <div class="card" id="property-requests-card" style="display:none">
@@ -1000,7 +968,7 @@ async function loadPropertyRequests(){
         <div style="font-size:.78rem;color:var(--tm);margin-bottom:.3rem">📍 ${listing.full_address||listing.zone||'—'}</div>
         ${listing.landlord_phone?`<div style="font-size:.78rem;color:var(--tm);margin-bottom:.3rem">📞 <strong>${listing.landlord_phone}</strong> — reach out to arrange a visit</div>`:''}
         ${listing.description?`<div style="font-size:.75rem;color:var(--td);margin-top:.4rem;padding-top:.4rem;border-top:1px dashed rgba(76,175,125,.25)">${listing.description}</div>`:''}
-        <button onclick="openCompleteListingModal(acceptedListingsCache['${listing.id}'])" style="width:100%;margin-top:.65rem;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Publish the listing now</button>
+        <button onclick="window.location.href='./?complete_listing=${listing.id}'" style="width:100%;margin-top:.65rem;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Publish the listing now</button>
       `;
       wrap.appendChild(box);
     });
@@ -1104,79 +1072,6 @@ async function acceptPropertyRequest(listingId){
 }
 
 let acceptedListingsCache={};
-
-let clUploadedPhotos=[];
-
-function openCompleteListingModal(listing){
-  document.getElementById('cl-id').value=listing.id;
-  document.getElementById('cl-title').value=listing.title&&!listing.title.startsWith('Property in ')?listing.title:'';
-  document.getElementById('cl-zone').value=listing.zone||'';
-  document.getElementById('cl-price').value=listing.price||'';
-  document.getElementById('cl-address').value=listing.full_address||'';
-  document.getElementById('cl-desc').value=listing.description||'';
-  clUploadedPhotos=[];
-  document.getElementById('cl-photo-previews').innerHTML='';
-  document.getElementById('complete-listing-modal').style.display='flex';
-}
-
-function closeCompleteListingModal(){
-  document.getElementById('complete-listing-modal').style.display='none';
-}
-
-async function previewCLPhotos(input){
-  const wrap=document.getElementById('cl-photo-previews');
-  const files=[...input.files];
-  wrap.innerHTML=files.map(()=>`<div style="width:60px;height:50px;border-radius:6px;border:1px solid var(--b2);display:flex;align-items:center;justify-content:center"><div class="sp" style="width:14px;height:14px"></div></div>`).join('');
-  clUploadedPhotos=[];
-  for(const file of files){
-    try{
-      const ext=file.name.split('.').pop();
-      const path=`listing-photos/${U.id}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-      const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
-      if(error)throw new Error(error.message);
-      const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
-      clUploadedPhotos.push(urlData.publicUrl);
-    }catch(e){toast('❌ Photo upload failed: '+e.message);}
-  }
-  wrap.innerHTML=clUploadedPhotos.map(url=>`<img src="${url}" style="width:60px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--b2)">`).join('');
-}
-
-async function publishCompleteListing(){
-  const id=document.getElementById('cl-id').value;
-  const title=document.getElementById('cl-title').value.trim();
-  const zone=document.getElementById('cl-zone').value.trim();
-  const price=parseFloat(document.getElementById('cl-price').value)||0;
-  if(!id||!title||!zone||!price){toast('⚠️ Title, zone and price are required');return;}
-
-  try{
-    const{data:current,error:checkErr}=await sb.from('listings').select('landlord_id').eq('id',id).single();
-    if(checkErr||!current){toast('❌ Listing not found');return;}
-
-    const{error}=await sb.from('listings').update({
-      title,zone,price,
-      full_address:document.getElementById('cl-address').value.trim(),
-      description:document.getElementById('cl-desc').value.trim(),
-      spots:parseInt(document.getElementById('cl-beds').value)||0,
-      baths:parseInt(document.getElementById('cl-baths').value)||1,
-      photos:clUploadedPhotos.length?clUploadedPhotos:null,
-      active:true
-    }).eq('id',id);
-
-    if(error){toast('❌ '+error.message);return;}
-
-    try{
-      await sb.from('messages').insert({
-        listing_id:id,sender_id:U.id,receiver_id:current.landlord_id,
-        content:`🎉 ${P?.full_name||'Your agent'} finished setting up your property "${title}"!\n\nIt's now live on RestMalta.`,
-        type:'agent_accepted_property'
-      });
-    }catch(e){}
-
-    toast('🚀 Listing published!');
-    closeCompleteListingModal();
-    loadListings();
-  }catch(e){toast('❌ '+e.message);}
-}
 
 async function loadListings(){
   try{
