@@ -481,6 +481,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><div class="ct">Reviews from tenants</div></div>
         <div class="cb" id="reviews-list"><div class="ld"><div class="sp"></div></div></div>
       </div>
+      <div class="card" id="rate-agents-card" style="display:none;margin-bottom:1rem">
+        <div class="ch"><div class="ct">⭐ Rate your agents</div></div>
+        <div class="cb" id="rate-agents-list"></div>
+      </div>
       <div class="card">
         <div class="ch"><div class="ct">Leave a review for a tenant</div></div>
         <div class="cb">
@@ -3291,6 +3295,62 @@ async function loadReviews(){
   document.getElementById('total-reviews').textContent=(data||[]).length;
   const wrap=document.getElementById('reviews-list');
   wrap.innerHTML=(data||[]).map(r=>`<div class="rcard"><div class="stars">${'⭐'.repeat(r.rating)}</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">${r.comment||'No comment'}</div><div class="rauthor">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div></div>`).join('')||'<div class="empty"><div class="em">⭐</div><p>No reviews yet</p></div>';
+  loadRateAgentsCard();
+}
+
+async function loadRateAgentsCard(){
+  const card=document.getElementById('rate-agents-card');
+  const wrap=document.getElementById('rate-agents-list');
+  if(!card||!wrap)return;
+  try{
+    // Tout bien actif géré par un agent
+    const{data:listings}=await sb.from('listings').select('id,title,agent_id').eq('landlord_id',U.id).eq('active',true).not('agent_id','is',null);
+    if(!listings||!listings.length){card.style.display='none';return;}
+
+    // Retirer ceux déjà notés
+    const agentIds=[...new Set(listings.map(l=>l.agent_id))];
+    const{data:already}=await sb.from('reviews').select('target_id').eq('reviewer_id',U.id).eq('type','landlord_to_agent').in('target_id',agentIds);
+    const reviewedIds=new Set((already||[]).map(r=>r.target_id));
+    const pending=listings.filter(l=>!reviewedIds.has(l.agent_id));
+    if(!pending.length){card.style.display='none';return;}
+
+    card.style.display='block';
+    const{data:agentProfiles}=await sb.from('profiles').select('clerk_id,full_name').in('clerk_id',agentIds);
+    const agentNames={};(agentProfiles||[]).forEach(a=>agentNames[a.clerk_id]=a.full_name);
+
+    wrap.innerHTML=pending.map(l=>`
+      <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:.6rem">
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:.5rem">${agentNames[l.agent_id]||'Your agent'} — <span style="font-weight:400;color:var(--tm)">${l.title}</span></div>
+        <div style="display:flex;gap:.3rem;margin-bottom:.5rem" id="rate-stars-${l.id}">
+          ${[1,2,3,4,5].map(n=>`<span onclick="setAgentRating('${l.id}',${n})" style="cursor:pointer;font-size:1.3rem;opacity:.3" data-star="${n}">⭐</span>`).join('')}
+        </div>
+        <textarea class="fta" id="rate-comment-${l.id}" rows="2" placeholder="How was your experience with this agent? (optional)" style="margin-bottom:.5rem"></textarea>
+        <button class="btn bp bsm" onclick="submitAgentReview('${l.id}','${l.agent_id}')">Submit rating →</button>
+      </div>`).join('');
+  }catch(e){card.style.display='none';}
+}
+
+const agentRatings={};
+function setAgentRating(listingId,n){
+  agentRatings[listingId]=n;
+  document.querySelectorAll(`#rate-stars-${listingId} span`).forEach(s=>{
+    s.style.opacity=parseInt(s.dataset.star)<=n?'1':'.3';
+  });
+}
+
+async function submitAgentReview(listingId,agentId){
+  const rating=agentRatings[listingId];
+  if(!rating){toast('⚠️ Select a star rating');return;}
+  const comment=document.getElementById(`rate-comment-${listingId}`)?.value.trim()||'';
+  try{
+    const{error}=await sb.from('reviews').insert({
+      reviewer_id:U.id,rating,comment,type:'landlord_to_agent',
+      target_id:agentId,landlord_id:U.id
+    });
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Thanks for the feedback!');
+    loadRateAgentsCard();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function submitReview(){
