@@ -1526,7 +1526,7 @@ async function publishAgentListing(){
 
 async function loadListings(){
   try{
-    const{data:ls}=await sb.from('listings').select('id,title,zone,price,bedrooms,spots,type,status,active,photos').eq('agent_id',U.id).order('created_at',{ascending:false}).limit(50);
+    const{data:ls}=await sb.from('listings').select('id,title,zone,price,bedrooms,spots,type,status,active,photos,landlord_id').eq('agent_id',U.id).order('created_at',{ascending:false}).limit(50);
     listings=ls||[];
     const sel=document.getElementById('vm-listing');
     if(sel){sel.innerHTML='<option value="">Select listing</option>'+(listings.map(l=>`<option value="${l.id}">${l.title||'—'} — ${l.zone||''}</option>`).join(''));}
@@ -1550,7 +1550,10 @@ async function loadListings(){
               <div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.title||'—'}</div>
               <div style="font-size:.72rem;color:var(--td)">📍 ${l.zone||'—'} · ${l.bedrooms||l.spots||0} bed · €${l.price||0}/mo</div>
             </div>
-            <a href="./?listing=${l.id}" target="_blank" style="background:var(--s2);color:var(--tm);border:1px solid var(--b2);border-radius:8px;padding:.4rem .7rem;font-size:.72rem;text-decoration:none;flex-shrink:0">View →</a>
+            <div style="display:flex;gap:.4rem;flex-shrink:0">
+              ${l.landlord_id?`<button onclick="openAgentMsg('${l.id}','${l.landlord_id}','Landlord')" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.4rem .7rem;font-size:.72rem;cursor:pointer">💬 Landlord</button>`:''}
+              <a href="./?listing=${l.id}" target="_blank" style="background:var(--s2);color:var(--tm);border:1px solid var(--b2);border-radius:8px;padding:.4rem .7rem;font-size:.72rem;text-decoration:none">View →</a>
+            </div>
           </div>`).join('');
       }
     }
@@ -1938,14 +1941,30 @@ function toggleMessage(el){
 
 let agentChatListingId=null,agentChatOtherId=null;
 
-async function openAgentMsg(listingId,otherPartyId,title){
+async function openAgentMsg(listingId,otherPartyId,fallbackTitle){
   agentChatListingId=listingId||null;
   agentChatOtherId=otherPartyId;
-  document.getElementById('agent-msg-title').textContent=title||'Conversation';
+  document.getElementById('agent-msg-title').textContent='Loading...';
   document.getElementById('agent-msg-sub').textContent='';
   const thread=document.getElementById('agent-msg-thread');
   thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td)">Loading...</div>';
   document.getElementById('agent-msg-modal').style.display='flex';
+
+  // Nom réel de la personne + bien concerné — pas juste un type de message
+  let personName=fallbackTitle||'Conversation';
+  try{
+    const{data:profile}=await sb.from('profiles').select('full_name,role').eq('clerk_id',otherPartyId).maybeSingle();
+    if(profile?.full_name)personName=profile.full_name+(profile.role?' ('+profile.role+')':'');
+  }catch(e){}
+  let propertyTitle='';
+  if(listingId){
+    try{
+      const{data:listing}=await sb.from('listings').select('title,zone').eq('id',listingId).maybeSingle();
+      if(listing)propertyTitle=`${listing.title||''}${listing.zone?' — '+listing.zone:''}`;
+    }catch(e){}
+  }
+  document.getElementById('agent-msg-title').textContent=personName;
+  document.getElementById('agent-msg-sub').textContent=propertyTitle;
 
   try{
     let query=sb.from('messages').select('*').order('created_at',{ascending:true});
@@ -2469,6 +2488,8 @@ function renderAllVisitsDirect(){
     }
     const issueBtn='<button class="btn bg bsm" style="font-size:.72rem" data-vid="'+v.id+'" data-lid="'+(v.listing_id||'')+'" data-tid="'+(v.tenant_id||'')+'" data-llid="'+(v.landlord_id||'')+'" onclick="showVisitIssueOptions(this.dataset.vid,this.dataset.lid,this.dataset.tid,this.dataset.llid)">⚠️ Issue</button>';
     const viewBtn=v.listing_id?'<a href="https://restmalta.netlify.app/#listing-'+v.listing_id+'" target="_blank" class="btn bg bsm" style="font-size:.72rem;text-decoration:none">👁 View listing</a>':'';
+    const msgTenantBtn=v.tenant_id?'<button class="btn bg bsm" style="font-size:.72rem" onclick="openAgentMsg(\''+(v.listing_id||'')+'\',\''+v.tenant_id+'\',\'Tenant\')">💬 Tenant</button>':'';
+    const msgLandlordBtn=v.landlord_id?'<button class="btn bg bsm" style="font-size:.72rem" onclick="openAgentMsg(\''+(v.listing_id||'')+'\',\''+v.landlord_id+'\',\'Landlord\')">💬 Landlord</button>':'';
     html+='<div style="background:'+sc+';border:1.5px solid '+bc+';border-radius:14px;overflow:hidden;margin-bottom:.85rem" id="visit-card-'+v.id+'">'
       +'<div style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">'
         +'<div><div style="font-size:.92rem;font-weight:800">'+(v.listing_title||'Property')+'</div>'
@@ -2508,7 +2529,7 @@ function renderAllVisitsDirect(){
           +'<div style="font-size:.6rem;color:var(--td)">tenant 40% + landlord 40%</div>'
         +'</div>'
       +'</div>'
-      +'<div style="padding:.65rem 1rem;display:flex;gap:.4rem">'+doneBtn+viewBtn+issueBtn+'</div>'
+      +'<div style="padding:.65rem 1rem;display:flex;gap:.4rem;flex-wrap:wrap">'+doneBtn+viewBtn+msgTenantBtn+msgLandlordBtn+issueBtn+'</div>'
       +(statusInfo?'<div style="padding:0 1rem .65rem">'+statusInfo+'</div>':'')
     +(leaseInfo?'<div style="padding:0 1rem .5rem;font-size:.73rem;color:var(--tm);line-height:1.6">'+leaseInfo+'</div>':'')
     +'</div>';
