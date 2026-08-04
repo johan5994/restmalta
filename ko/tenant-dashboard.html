@@ -1584,15 +1584,19 @@ async function loadTenantVisits(){
   }catch(e){}
 
   // Charger les baux où CE compte est co-tenant (pas le demandeur principal)
-  // — nécessaire pour lui montrer sa propre carte de signature.
+  // — dès l'envoi de la demande, pas seulement une fois le bail généré.
   let coTenantBookings=[];
   try{
-    const{data:allWithCoLessees}=await sb.from('bookings').select('*').not('co_lessees_embed_src','is',null).neq('tenant_id',U.id);
-    (allWithCoLessees||[]).forEach(b=>{
+    const{data:allWithCoTenants}=await sb.from('bookings').select('*').not('co_tenants_data','is',null).neq('tenant_id',U.id).not('status','in','("declined","cancelled_by_tenant")');
+    (allWithCoTenants||[]).forEach(b=>{
+      let coTenantsData=[];
+      try{coTenantsData=JSON.parse(b.co_tenants_data);}catch(e){}
+      const isMe=coTenantsData.find(ct=>ct.hasAccount&&ct.tenant_id===U.id);
+      if(!isMe)return;
       let coLessees=[];
-      try{coLessees=JSON.parse(b.co_lessees_embed_src);}catch(e){}
-      const myEntry=coLessees.find(cl=>cl.tenant_id===U.id);
-      if(myEntry)coTenantBookings.push({...b,_myCoTenantEntry:myEntry});
+      try{coLessees=b.co_lessees_embed_src?JSON.parse(b.co_lessees_embed_src):[];}catch(e){}
+      const myEntry=coLessees.find(cl=>cl.tenant_id===U.id)||{signed:false,embed_src:null,tenant_id:U.id};
+      coTenantBookings.push({...b,_myCoTenantEntry:myEntry});
     });
   }catch(e){}
 
@@ -1789,37 +1793,30 @@ async function loadTenantVisits(){
   }
 
   // Section dédiée : baux où ce compte est co-tenant (pas le demandeur principal)
+  // — visible dès l'envoi de la demande, pas seulement une fois le bail généré.
   if(coTenantBookings.length){
     try{
       const lIds=[...new Set(coTenantBookings.map(b=>b.listing_id).filter(Boolean))];
-      const{data:ls}=await sb.from('listings').select('id,title,zone').in('id',lIds);
+      const{data:ls}=await sb.from('listings').select('id,title,zone,price').in('id',lIds);
       const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
       html+='<div style="font-size:.78rem;font-weight:700;color:var(--tm);margin:1rem 0 .5rem">🤝 Leases you\'re a co-tenant on</div>';
       coTenantBookings.forEach(b=>{
         const listing=lMap[b.listing_id]||{};
         const entry=b._myCoTenantEntry;
-        html+=`<div style="padding:.85rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;margin-bottom:.6rem">
+        const isAccepted=['accepted','edl_scheduled','signing_day','move_in_ready'].includes(b.status);
+
+        html+=`<div style="padding:.85rem;background:${isAccepted?'rgba(76,175,125,.05)':'var(--s2)'};border:1px solid ${isAccepted?'rgba(76,175,125,.2)':'var(--b)'};border-radius:12px;margin-bottom:.6rem">
           <div style="font-size:.85rem;font-weight:700;margin-bottom:.2rem">${listing.title||'Property'}</div>
-          <div style="font-size:.72rem;color:var(--td);margin-bottom:.55rem">📍 ${listing.zone||'Malta'} · Main applicant: ${b.tenant_name||'—'}</div>
-          <div style="display:flex;flex-direction:column;gap:.3rem">
-            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-              <span style="font-size:.78rem">🏠 Landlord</span>
-              ${b.lease_signed_landlord?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-              <span style="font-size:.78rem">👤 Main tenant</span>
-              ${b.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-              <span style="font-size:.78rem">👤 You</span>
-              ${entry.signed
-                ?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>'
-                :entry.embed_src
-                  ?`<button onclick="openCoTenantLeaseDoc('${b.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
-                  :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
-            </div>
-          </div>
-        </div>`;
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">📍 ${listing.zone||'Malta'} · Main applicant: ${b.tenant_name||'—'}</div>`;
+
+        if(b.status==='pending'||b.status==='booking_pending'){
+          html+=`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--gold);font-weight:600">⏳ Waiting for the landlord to respond to ${b.tenant_name||'the main applicant'}'s request</div>`;
+        }else if(isAccepted){
+          html+=renderTenantLeaseSection({move_in_date:b.move_in_date},b,entry);
+        }else{
+          html+=`<div style="background:var(--s2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--td)">Status: ${b.status}</div>`;
+        }
+        html+=`</div>`;
       });
     }catch(e){}
   }
@@ -1827,10 +1824,15 @@ async function loadTenantVisits(){
   wrap.innerHTML=html;
 }
 
-function renderTenantLeaseSection(v, bk){
+function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   if(!bk) return '';
   const llSigned=bk.lease_signed_landlord;
-  const tSigned=bk.lease_signed_tenant;
+  // Si coTenantEntry est fourni, on affiche CETTE personne (co-tenant) dans la
+  // ligne "You" au lieu du locataire principal — même carte, juste la bonne
+  // perspective de signature.
+  const tSigned=coTenantEntry?coTenantEntry.signed:bk.lease_signed_tenant;
+  const mySignEmbed=coTenantEntry?coTenantEntry.embed_src:bk.lease_tenant_embed;
+  const mySignFn=coTenantEntry?`openCoTenantLeaseDoc('${bk.id}')`:`openTenantLeaseDoc('${bk.id}')`;
   const payDeclared=bk.first_payment_sent;
   const payConfirmed=bk.first_payment_confirmed;
   const moveIn=bk.move_in_date||v.move_in_date||null;
@@ -1864,12 +1866,16 @@ function renderTenantLeaseSection(v, bk){
           <span style="font-size:.78rem">🏠 Landlord</span>
           ${llSigned?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
+        ${coTenantEntry?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">👤 ${bk.tenant_name||'Main tenant'}</span>
+          ${bk.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 You</span>
+          <span style="font-size:.78rem">👤 ${coTenantEntry?'You (co-tenant)':'You'}</span>
           ${tSigned
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${bk.lease_tenant_embed?`<a href="${bk.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
-            :bk.lease_tenant_embed
-              ?`<button onclick="openTenantLeaseDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
+            :mySignEmbed
+              ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
               :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
         </div>
       </div>
@@ -1904,6 +1910,7 @@ function renderTenantLeaseSection(v, bk){
         ${holding?`<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#4CAF7D;margin-bottom:.15rem"><span>✅ Holding deposit deducted</span><span>-€${holding}</span></div>`:''}
         <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${deposit+rent-holding}</span></div>
       </div>
+      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main tenant'} — usually one of you sends the total and marks it as paid below.</div>`:''}
       ${bk.landlord_iban||bk.landlord_revolut?`
       <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.73rem;color:var(--tm)">
         ${bk.landlord_iban?`🏦 IBAN: <strong>${bk.landlord_iban}</strong><br>`:''}
