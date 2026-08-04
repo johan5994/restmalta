@@ -1640,7 +1640,7 @@ async function loadTenantVisits(){
   const badge=document.getElementById('nb-visits-t');
   if(badge){badge.textContent=actionCount||'';badge.style.display=actionCount>0?'inline':'none';}
 
-  if(!visits.length&&!bookings.length){
+  if(!visits.length&&!bookings.length&&!coTenantBookings.length){
     wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>';
     return;
   }
@@ -1823,7 +1823,7 @@ async function loadTenantVisits(){
         }
         html+=`</div>`;
       });
-    }catch(e){}
+    }catch(e){console.error('[co-tenant render]',e.message);}
   }
 
   wrap.innerHTML=html;
