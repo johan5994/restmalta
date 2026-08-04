@@ -1354,6 +1354,29 @@ async function loadBookingDossier(booking){
       </div>
     </div>`;
 
+  // Co-tenants ajoutés lors de la candidature — ils seront aussi sur le bail,
+  // le propriétaire doit voir leur profil comme celui du candidat principal.
+  let coTenants=[];
+  try{coTenants=booking.co_tenants_data?JSON.parse(booking.co_tenants_data):[];}catch(e){}
+  if(coTenants.length){
+    const coTenantsHtml=coTenants.map((ct,i)=>`
+      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
+        <div style="font-size:.63rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">👥 Co-tenant ${i+1}${ct.hasAccount?' — RestMalta account':' — no account yet'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.77rem">
+          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Full name</div><div style="font-weight:700">${ct.name||'—'}</div></div>
+          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Email</div><div style="font-weight:600">${ct.email||'—'}</div></div>
+          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Nationality</div><div style="font-weight:600">${ct.nationality||'—'}</div></div>
+          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Passport / ID No.</div><div style="font-weight:600">${ct.passport||'—'}</div></div>
+          ${ct.address?`<div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Home address</div><div style="font-weight:600">${ct.address}</div></div>`:''}
+        </div>
+      </div>`).join('');
+    container.insertAdjacentHTML('beforeend',`
+      <div style="margin-top:.6rem;border-top:1px solid var(--b);padding-top:.6rem">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.4rem">👥 Co-tenants (also on the lease)</div>
+        ${coTenantsHtml}
+      </div>`);
+  }
+
   // Bouton regenerate lease si booking accepted mais pas d'embed
   if(booking.status==='accepted'&&!booking.lease_landlord_embed){
     const container=document.getElementById('dossier-'+booking.id);
@@ -1612,7 +1635,7 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
     }catch(e){console.warn('Holding:',e.message);}
 
     // 2 — Générer le bail
-    let lessorEmbed=null,lesseeEmbed=null,submissionId=null;
+    let lessorEmbed=null,lesseeEmbed=null,submissionId=null,coLesseesEmbed=[];
     try{
       const leaseType=listing?.type==='short'?'short':'long';
       const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
@@ -1700,6 +1723,12 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
           lessorEmbed=docuData.lessor_embed_src||null;
           lesseeEmbed=docuData.lessee_embed_src||null;
           submissionId=docuData.submission_id||null;
+          // Enrichir chaque lien co-tenant avec son tenant_id (si compte trouvé) pour
+          // pouvoir lui afficher sa carte de signature dans SON propre dashboard.
+          coLesseesEmbed=(docuData.co_lessees_embed_src||[]).map(cl=>{
+            const match=coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
+            return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
+          });
         } else {
           console.warn('generate-lease failed:',docuData.error||docuData.message);
           toast('⚠️ Lease generation issue: '+(docuData.error||'Unknown error'));
@@ -1718,6 +1747,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
       landlord_id:U.id,
       lease_landlord_embed:lessorEmbed,
       lease_tenant_embed:lesseeEmbed,
+      co_lessees_embed_src:coLesseesEmbed.length?JSON.stringify(coLesseesEmbed):null,
       lease_submission_id:submissionId?String(submissionId):null,
       lease_start:startDate,
       lease_end:endDate,
