@@ -1587,14 +1587,10 @@ async function loadTenantVisits(){
   // — dès l'envoi de la demande, pas seulement une fois le bail généré.
   let coTenantBookings=[];
   try{
-    const{data:allWithCoTenants,error:coTenantErr}=await sb.from('bookings').select('*').not('co_tenants_data','is',null).neq('tenant_id',U.id);
-    if(coTenantErr)console.error('[co-tenant query]',coTenantErr.message);
-    console.log('[co-tenant query] bookings with co_tenants_data (excluding mine as main applicant):',(allWithCoTenants||[]).length);
+    const{data:allWithCoTenants}=await sb.from('bookings').select('*').not('co_tenants_data','is',null).neq('tenant_id',U.id).not('status','in','("declined","cancelled_by_tenant")');
     (allWithCoTenants||[]).forEach(b=>{
-      if(['declined','cancelled_by_tenant'].includes(b.status))return;
       let coTenantsData=[];
-      try{coTenantsData=JSON.parse(b.co_tenants_data);}catch(e){console.error('[co-tenant query] bad co_tenants_data JSON on booking',b.id,e.message);}
-      console.log('[co-tenant query] booking',b.id,'co_tenants_data:',coTenantsData);
+      try{coTenantsData=JSON.parse(b.co_tenants_data);}catch(e){}
       const isMe=coTenantsData.find(ct=>ct.hasAccount&&ct.tenant_id===U.id);
       if(!isMe)return;
       let coLessees=[];
@@ -1602,8 +1598,7 @@ async function loadTenantVisits(){
       const myEntry=coLessees.find(cl=>cl.tenant_id===U.id)||{signed:false,embed_src:null,tenant_id:U.id};
       coTenantBookings.push({...b,_myCoTenantEntry:myEntry});
     });
-    console.log('[co-tenant query] matched bookings for me as co-tenant:',coTenantBookings.length);
-  }catch(e){console.error('[co-tenant query] exception',e.message);}
+  }catch(e){}
 
   // Charger les bookings du tenant
   let bookings=[];
@@ -1640,7 +1635,7 @@ async function loadTenantVisits(){
   const badge=document.getElementById('nb-visits-t');
   if(badge){badge.textContent=actionCount||'';badge.style.display=actionCount>0?'inline':'none';}
 
-  if(!visits.length&&!bookings.length&&!coTenantBookings.length){
+  if(!visits.length&&!bookings.length){
     wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>';
     return;
   }
@@ -1823,7 +1818,7 @@ async function loadTenantVisits(){
         }
         html+=`</div>`;
       });
-    }catch(e){console.error('[co-tenant render]',e.message);}
+    }catch(e){}
   }
 
   wrap.innerHTML=html;
@@ -1838,10 +1833,6 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   const tSigned=coTenantEntry?coTenantEntry.signed:bk.lease_signed_tenant;
   const mySignEmbed=coTenantEntry?coTenantEntry.embed_src:bk.lease_tenant_embed;
   const mySignFn=coTenantEntry?`openCoTenantLeaseDoc('${bk.id}')`:`openTenantLeaseDoc('${bk.id}')`;
-  // Tous les co-tenants avec leur statut de signature — affichés à TOUT LE
-  // MONDE (locataire principal, chaque co-tenant), pas seulement à un couple.
-  let allCoLessees=[];
-  try{allCoLessees=bk.co_lessees_embed_src?JSON.parse(bk.co_lessees_embed_src):[];}catch(e){}
   const payDeclared=bk.first_payment_sent;
   const payConfirmed=bk.first_payment_confirmed;
   const moveIn=bk.move_in_date||v.move_in_date||null;
@@ -1849,13 +1840,6 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   const rent=bk.monthly_rent||0;
   const deposit=rent;
   const holding=bk.holding_amount||0;
-  // Nombre total de locataires (principal + co-tenants) — le dépôt et le premier
-  // loyer se partagent, contrairement aux frais RestMalta payés par une seule personne.
-  let coTenantCount=0;
-  try{coTenantCount=(bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[]).length;}catch(e){}
-  const totalTenants=1+coTenantCount;
-  const totalDue=deposit+rent-holding;
-  const perTenantShare=Math.round((totalDue/totalTenants)*100)/100;
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
     <div style="background:rgba(76,175,125,.12);padding:.5rem .85rem">
@@ -1882,29 +1866,18 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
           <span style="font-size:.78rem">🏠 Landlord</span>
           ${llSigned?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
+        ${coTenantEntry?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">👤 ${bk.tenant_name||'Main tenant'}</span>
+          ${bk.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 ${coTenantEntry?bk.tenant_name||'Main tenant':'You'}</span>
-          ${!coTenantEntry
-            ?(tSigned
-              ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
-              :mySignEmbed
-                ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
-                :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>')
-            :(bk.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>')}
+          <span style="font-size:.78rem">👤 ${coTenantEntry?'You (co-tenant)':'You'}</span>
+          ${tSigned
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
+            :mySignEmbed
+              ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
+              :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
         </div>
-        ${allCoLessees.map(cl=>{
-          const isMe=coTenantEntry&&cl.tenant_id===coTenantEntry.tenant_id;
-          return`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-            <span style="font-size:.78rem">👤 ${isMe?'You (co-tenant)':(cl.name||'Co-tenant')}</span>
-            ${isMe
-              ?(tSigned
-                ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
-                :mySignEmbed
-                  ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
-                  :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>')
-              :(cl.signed?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>')}
-          </div>`;
-        }).join('')}
       </div>
       ${bk.status==='edl_scheduled'?`
       <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your landlord is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
@@ -1931,14 +1904,13 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       ${!payConfirmed?`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
       <div style="background:var(--s2);border-radius:8px;padding:.55rem .65rem;margin-bottom:.5rem">
-        <div style="font-size:.75rem;font-weight:600;margin-bottom:.35rem">💶 Amount due to landlord${totalTenants>1?` <span style="font-weight:400;color:var(--td)">(total, split ${totalTenants} ways)</span>`:''}</div>
+        <div style="font-size:.75rem;font-weight:600;margin-bottom:.35rem">💶 Amount due to landlord</div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span>🔐 Security deposit</span><span>€${deposit}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span>🏠 First month rent</span><span>€${rent}</span></div>
         ${holding?`<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#4CAF7D;margin-bottom:.15rem"><span>✅ Holding deposit deducted</span><span>-€${holding}</span></div>`:''}
-        <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${totalDue}</span></div>
-        ${totalTenants>1?`<div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;color:var(--terra);margin-top:.3rem"><span>👤 Your share (${totalTenants} tenants)</span><span>€${perTenantShare}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${deposit+rent-holding}</span></div>
       </div>
-      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main tenant'} — usually one of you sends the total and marks it as paid below. The RestMalta fee has already been paid by whoever sent the request, no need to split that part.</div>`:totalTenants>1?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with your co-tenant${totalTenants>2?'s':''} — usually one of you sends the total and marks it as paid below. The RestMalta fee has already been paid by whoever sent the request, no need to split that part.</div>`:''}
+      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main tenant'} — usually one of you sends the total and marks it as paid below.</div>`:''}
       ${bk.landlord_iban||bk.landlord_revolut?`
       <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.73rem;color:var(--tm)">
         ${bk.landlord_iban?`🏦 IBAN: <strong>${bk.landlord_iban}</strong><br>`:''}
@@ -2715,29 +2687,45 @@ async function loadAlertMatches(alert){
   </div>`).join('');
 }
 
-async function uploadDocument(input, docType){
+const DOC_STATUS_ID_MAP={'bank_statement':'doc-bank-status','emprent_letter':'doc-emprent-status','reference_letter':'doc-ref-status','rent1':'doc-rent1-status','rent2':'doc-rent2-status','rent3':'doc-rent3-status','id':'doc-id-status'};
+
+async function uploadSupportDoc(input,docType){
   const file=input.files[0];
   if(!file)return;
   if(file.size>10*1024*1024){toast('❌ File too large — max 10MB');return;}
-  const statusEl=document.getElementById('doc-status-'+docType);
-  const checkEl=document.getElementById('doc-check-'+docType);
-  const viewEl=document.getElementById('doc-view-'+docType);
-  if(statusEl)statusEl.textContent='Uploading...';
+  const statusEl=document.getElementById(DOC_STATUS_ID_MAP[docType]||`doc-${docType.replace(/_/g,'-')}-status`);
+  if(statusEl){statusEl.textContent='⏳ Uploading...';statusEl.style.color='var(--gold)';statusEl.className='';}
+
   try{
     const ext=file.name.split('.').pop();
-    const path=U.id+'/'+docType+'.'+ext;
+    const path=`docs/${U.id}/${docType}.${ext}`;
     const{error}=await sb.storage.from('tenant-documents').upload(path,file,{upsert:true});
     if(error)throw new Error(error.message);
-    const docs=(P?.documents)||{};
-    docs[docType]={path,name:file.name,uploaded_at:new Date().toISOString()};
-    await sb.from('profiles').update({documents:JSON.stringify(docs)}).eq('clerk_id',U.id);
-    if(P)P.documents=docs;
-    if(statusEl)statusEl.textContent=file.name;
-    if(checkEl)checkEl.style.display='inline';
-    if(viewEl)viewEl.style.display='inline';
+
+    // Toujours repartir de la version fraîche en base (pas de la copie en
+    // mémoire qui peut être une string OU un objet selon ce qui a tourné avant)
+    const{data:fresh}=await sb.from('profiles').select('documents').eq('clerk_id',U.id).maybeSingle();
+    let docs={};
+    try{docs=fresh?.documents?(typeof fresh.documents==='string'?JSON.parse(fresh.documents):fresh.documents):{};}catch(e){docs={};}
+    docs[docType]={path,ext,name:file.name,uploaded_at:new Date().toISOString()};
+
+    const{error:saveErr}=await sb.from('profiles').update({documents:JSON.stringify(docs)}).eq('clerk_id',U.id);
+    if(saveErr)throw new Error(saveErr.message);
+    if(P)P.documents=JSON.stringify(docs); // même format que ce que loadDossierStatus() attend
+
+    const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(path,604800);
+    if(statusEl){
+      const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
+      statusEl.innerHTML=isImg
+        ?`<a href="${urlData?.signedUrl}" target="_blank"><img src="${urlData?.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem"></a><div style="font-size:.65rem;color:var(--green);margin-top:.1rem">✅ Uploaded</div>`
+        :`<a href="${urlData?.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none;font-weight:600">✅ View document →</a>`;
+    }
+    uploadedDocs[docType]=true;
+    updateDossierBadge();
+    checkDossierComplete();
     toast('✅ Document uploaded!');
   }catch(e){
-    if(statusEl)statusEl.textContent='Upload failed';
+    if(statusEl){statusEl.textContent='❌ Upload failed';statusEl.style.color='var(--red)';}
     toast('❌ '+e.message);
   }
 }
@@ -2919,54 +2907,14 @@ async function loadDossierStatus(){
   }catch(e){console.warn('loadDossierStatus:',e);}
 }
 
-async function uploadDossierDoc(input, docType, statusId){
-  const file=input.files[0];
-  if(!file)return;
-  if(file.size>10*1024*1024){toast('❌ Fichier trop grand — max 10MB');return;}
-  const statusEl=document.getElementById(statusId);
-  if(statusEl){statusEl.textContent='⏳ Upload...';statusEl.style.color='var(--gold)';}
-  const ext=file.name.split('.').pop();
-  const path=`docs/${U.id}/${docType}.${ext}`;
-  const{error}=await sb.storage.from('tenant-documents').upload(path,file,{upsert:true});
-  if(error){
-    if(statusEl){statusEl.textContent='❌ Error';statusEl.style.color='var(--red)';}
-    toast('❌ Upload failed: '+error.message);
-    return;
-  }
-  uploadedDocs[docType]=true;
-  // Sauvegarder le chemin dans profiles pour persistance
-  try{
-    const docs = P?.documents ? (typeof P.documents==='string'?JSON.parse(P.documents):P.documents) : {};
-    docs[docType] = {path, ext, uploaded_at: new Date().toISOString()};
-    await sb.from('profiles').update({documents: JSON.stringify(docs)}).eq('clerk_id',U.id);
-    if(P) P.documents = JSON.stringify(docs);
-  }catch(e){console.warn('Save doc path:',e);}
-  // Afficher aperçu
-  const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(path,604800);
-  if(statusEl){
-    const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
-    statusEl.innerHTML = isImg
-      ? `<a href="${urlData?.signedUrl}" target="_blank"><img src="${urlData?.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem" title="View document"></a>`
-      : `<a href="${urlData?.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none">✅ View document →</a>`;
-    statusEl.style.color='var(--green)';
-  }
-  toast('✅ Document uploaded!');
-  updateDossierBadge();
-  checkDossierComplete();
-}
-
 function updateDossierBadge(){
-  const required=DOCS_REQUIRED.every(d=>uploadedDocs[d]);
-  const hasId=uploadedDocs['id'];
-  const badge=document.getElementById('dossier-badge');
+  const badge=document.getElementById('docs-badge');
   if(!badge)return;
-  if(required&&hasId){
-    badge.textContent='✅ Complet';badge.className='badge b-green';
-  } else if(hasId){
-    badge.textContent='⚠️ Partiel';badge.className='badge b-gold';
-  } else {
-    badge.textContent='❌ Incomplet';badge.className='badge b-red';
-  }
+  const allTypes=['id','bank_statement','emprent_letter','rent1','rent2','rent3','reference_letter'];
+  const count=allTypes.filter(d=>uploadedDocs[d]).length;
+  const required=DOCS_REQUIRED.every(d=>uploadedDocs[d]);
+  badge.textContent=`${count}/${allTypes.length} uploaded`;
+  badge.className=required?'badge b-green':count>0?'badge b-gold':'badge b-dim';
 }
 
 function checkDossierComplete(){
