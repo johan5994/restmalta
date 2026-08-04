@@ -9,7 +9,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Method not allowed' };
 
   try {
-    const { tenant, listing, holding_amount, commission_amount, total_amount, booking_id } = JSON.parse(event.body);
+    const { tenant, listing, commission_amount, total_amount, booking_id } = JSON.parse(event.body);
     const DOCU_KEY = process.env.DOCUSEAL_KEY;
 
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -46,14 +46,14 @@ exports.handler = async (event) => {
 
 <div class="header">
   <div class="header-title">RestMalta</div>
-  <div style="font-size:9pt;opacity:.85">Holding Deposit Agreement</div>
+  <div style="font-size:9pt;opacity:.85">Reservation Fee Receipt</div>
 </div>
 
-<h1>HOLDING DEPOSIT AGREEMENT</h1>
+<h1>RESERVATION FEE AGREEMENT</h1>
 <p class="subtitle">Property Reservation Document — Platform<br>
 Generated on ${today}</p>
 
-<p>This Holding Deposit Agreement is entered into on <strong>${today}</strong> between:</p>
+<p>This Reservation Fee Agreement is entered into on <strong>${today}</strong> between:</p>
 
 <div class="section-title">TENANT (PROSPECTIVE LESSEE)</div>
 <table class="info-table">
@@ -75,25 +75,21 @@ Generated on ${today}</p>
 
 <div class="section-title">FINANCIAL BREAKDOWN</div>
 <table class="info-table">
-  <tr><td class="label">Holding Deposit (½ month rent)</td><td class="value">€${holding_amount || '—'}</td></tr>
-  <tr><td class="label">Platform Service Fee (40% TTC)</td><td class="value">€${commission_amount || '—'}</td></tr>
-  <tr class="total-row"><td class="label">TOTAL CHARGED TODAY</td><td class="value">€${total_amount || '—'}</td></tr>
+  <tr class="total-row"><td class="label">RestMalta Platform Fee (10% TTC)</td><td class="value">€${commission_amount || total_amount || '—'}</td></tr>
 </table>
 
-<p><strong>Note:</strong> The Holding Deposit of €${holding_amount} will be deducted from the first month's rent at lease signing. If the Landlord accepts this application, the Platform Service Fee is earned. If the Landlord declines, <strong>both amounts are fully refunded</strong> to the Tenant within 3-5 business days.</p>
+<p><strong>Note:</strong> This fee is only earned by RestMalta once the Landlord accepts this application. If the Landlord declines, <strong>it is fully refunded</strong> to the Tenant within 3-5 business days. Deposit and first month's rent are paid separately, directly to the Landlord.</p>
 
 <div class="section-title">TERMS & CONDITIONS</div>
 <p><strong>1. Reservation Effect:</strong> By signing this agreement and completing payment, the Tenant reserves the above property exclusively. The Landlord agrees to remove the listing from the market during the review period (48 hours).</p>
 
 <p><strong>2. Landlord Review Period:</strong> The Landlord has <strong>48 hours</strong> from receipt of this agreement to accept or decline the Tenant's application. Deadline: <strong>${deadline}</strong>.</p>
 
-<p><strong>3. If Landlord Accepts:</strong> The Holding Deposit (€${holding_amount}) is transferred to the Landlord and deducted from the first month's rent. The lease agreement will be generated and sent for e-signature via DocuSeal within 24 hours.</p>
+<p><strong>3. If Landlord Accepts:</strong> The Platform Fee is earned by RestMalta. The Tenant then pays the security deposit and first month's rent directly to the Landlord. The lease agreement will be generated and sent for e-signature via DocuSeal within 24 hours.</p>
 
-<p><strong>4. If Landlord Declines:</strong> The Tenant receives a full refund of €${total_amount} (Holding Deposit + Platform Service Fee) within 3-5 business days. No questions asked.</p>
+<p><strong>4. If Landlord Declines:</strong> The Tenant receives a full refund of the Platform Fee within 3-5 business days. No questions asked.</p>
 
-<p><strong>5. If Tenant Withdraws (after Landlord acceptance):</strong> The Holding Deposit (€${holding_amount}) is <strong>non-refundable</strong> and kept by the Landlord as compensation for removing the property from the market. The Platform Service Fee will not be refunded.</p>
-
-<p><strong>6. Governing Law:</strong> This agreement is governed by the laws of Malta (Private Residential Leases Act, Cap. 604).</p>
+<p><strong>5. Governing Law:</strong> This agreement is governed by the laws of Malta (Private Residential Leases Act, Cap. 604).</p>
 
 <div class="warning">
   ⚠️ <strong>IMPORTANT:</strong> This is a legally binding document. By signing, the Tenant confirms they have read, understood, and agree to all terms above. The platform acts as an independent intermediary and is not a party to the lease agreement.
@@ -133,8 +129,8 @@ Generated on ${today}</p>
           { role: 'Tenant', email: tenant.email, name: tenant.name || 'Tenant' }
         ],
         message: {
-          subject: `Holding Deposit Agreement — Please sign`,
-          body: `You have reserved ${listing.title || 'a property'} in Malta. Please sign the Holding Deposit Agreement to confirm your reservation. Total charged: €${total_amount}.`
+          subject: `Reservation Fee Receipt — Please sign`,
+          body: `You have reserved ${listing.title || 'a property'} in Malta. Please sign the Reservation Fee Agreement to confirm your reservation. Fee charged: €${commission_amount || total_amount || ''}.`
         }
       })
     });
