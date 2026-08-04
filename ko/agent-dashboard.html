@@ -319,13 +319,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div id="address-map" style="height:180px;border-radius:10px;overflow:hidden;margin-top:.5rem;display:none;border:1px solid var(--b2)"></div>
             </div>
             <div class="frow" style="margin-top:.75rem">
-              <div class="fg2"><label>Rent due day each month</label>
-                <select class="fi" id="p-pay-day" style="cursor:pointer">
-                  <option value="1">1st of the month</option>
-                  <option value="5">5th of the month</option>
-                  <option value="15">15th of the month</option>
-                  <option value="last">Last day of the month</option>
-                </select>
+              <div class="fg2">
+                <div style="font-size:.72rem;color:var(--td);background:var(--gdim);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem .75rem;line-height:1.5">💡 In Malta, rent is due each month on the tenant's move-in date, not a fixed day — this is calculated automatically once a tenant moves in.</div>
               </div>
               <div class="fg2"><label>Bills situation</label>
                 <select class="fi" id="p-bills" style="cursor:pointer">
@@ -1480,7 +1475,8 @@ async function publishAgentListing(){
     wifi:document.getElementById('pwi').checked,
     accepts_attestation:document.getElementById('att-yes')?.checked===true,
     full_address:document.getElementById('p-full-address')?.value.trim()||null,
-    payment_due_day:document.getElementById('p-pay-day')?.value||null,
+    // Rent due day: dérivé automatiquement de la date d'entrée du locataire,
+    // pas saisi ici (voir generateRentScheduleLL côté propriétaire).
     bills_situation:document.getElementById('p-bills')?.value||null,
     active:true
   };
