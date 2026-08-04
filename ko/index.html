@@ -1102,19 +1102,19 @@ function showRolePicker(name) {
       <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;color:#F0EDE8;margin-bottom:.3rem">Welcome${name?' '+name:''}!</div>
       <div style="font-size:.82rem;color:rgba(240,237,232,.4);margin-bottom:1.6rem">Who are you on RestMalta?</div>
       <div style="display:flex;flex-direction:column;gap:.5rem">
-        <button onclick="setRoleAndContinue('tenant')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+        <button onclick="confirmRoleChoice('tenant','🎒','Tenant / Intern',\"I'm looking for a flat in Malta\")" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
           <span style="font-size:1.4rem;flex-shrink:0">🎒</span>
           <div><div>Tenant / Intern</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">I'm looking for a flat in Malta</div></div>
         </button>
-        <button onclick="setRoleAndContinue('landlord')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+        <button onclick="confirmRoleChoice('landlord','🏠','Landlord','I want to list my property')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
           <span style="font-size:1.4rem;flex-shrink:0">🏠</span>
           <div><div>Landlord</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">I want to list my property</div></div>
         </button>
-        <button onclick="setRoleAndContinue('agent')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+        <button onclick="confirmRoleChoice('agent','🏆','Real Estate Agent','I do visits and help landlords rent')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
           <span style="font-size:1.4rem;flex-shrink:0">🏆</span>
           <div><div>Real Estate Agent</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">I do visits and help landlords rent</div></div>
         </button>
-        <button onclick="setRoleAndContinue('agency')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(99,102,241,.4);background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(99,102,241,.22),rgba(139,92,246,.14))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08))'">
+        <button onclick="confirmRoleChoice('agency','🏢','Real Estate Agency','Publish listings · CRM · Team')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(99,102,241,.4);background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(99,102,241,.22),rgba(139,92,246,.14))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08))'">
           <span style="font-size:1.4rem;flex-shrink:0">🏢</span>
           <div style="flex:1">
             <div style="color:#818CF8">Real Estate Agency</div>
@@ -1124,6 +1124,26 @@ function showRolePicker(name) {
         </button>
       </div>
       <div style="font-size:.62rem;color:rgba(240,237,232,.18);margin-top:1.1rem">You can change this later in settings</div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function confirmRoleChoice(role,icon,label,description){
+  const existing=document.getElementById('role-confirm-modal');
+  if(existing)existing.remove();
+
+  const modal=document.createElement('div');
+  modal.id='role-confirm-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+  modal.innerHTML=`
+    <div style="background:#0D1220;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:2rem;max-width:360px;width:100%;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.5)">
+      <div style="font-size:2.2rem;margin-bottom:.6rem">${icon}</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:900;color:#F0EDE8;margin-bottom:.3rem">Continue as ${label}?</div>
+      <div style="font-size:.8rem;color:rgba(240,237,232,.45);margin-bottom:1.5rem;line-height:1.5">${description}</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <button onclick="document.getElementById('role-confirm-modal').remove();setRoleAndContinue('${role}')" style="width:100%;padding:.8rem;border-radius:12px;border:none;background:#E05A3A;color:white;font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:700;cursor:pointer">Yes, that's me →</button>
+        <button onclick="document.getElementById('role-confirm-modal').remove()" style="width:100%;padding:.8rem;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:none;color:rgba(240,237,232,.55);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer">← Go back</button>
+      </div>
     </div>`;
   document.body.appendChild(modal);
 }
