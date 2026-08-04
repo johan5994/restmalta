@@ -4035,6 +4035,10 @@ function renderLeaseSection(g){
   const payConfirmed=bk?.first_payment_confirmed;
   const moveIn=bk?.move_in_date||g.move_in_date||null; // date choisie par le tenant à la candidature
   const edlDate=bk?.edl_date||moveIn||g.visit_date||null; // par défaut, même date que le move-in — le proprio peut la changer
+  // Tous les co-tenants avec leur statut de signature — le propriétaire doit
+  // voir absolument tout le monde, pas seulement le locataire principal.
+  let allCoLessees=[];
+  try{allCoLessees=bk?.co_lessees_embed_src?JSON.parse(bk.co_lessees_embed_src):[];}catch(e){}
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
     <div style="background:rgba(76,175,125,.12);padding:.55rem .85rem">
@@ -4075,10 +4079,16 @@ function renderLeaseSection(g){
             ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${bk?.lease_tenant_embed?` <a href="${bk.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
             :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
+        ${allCoLessees.map(cl=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">👤 Co-tenant (${cl.name||'—'})</span>
+          ${cl.signed
+            ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
+            :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>`).join('')}
       </div>
 
       <!-- Paiement -->
-      ${llSigned&&tSigned&&bk?.status!=='signing_day'&&bk?.status!=='move_in_ready'?`
+      ${llSigned&&tSigned&&allCoLessees.every(cl=>cl.signed)&&bk?.status!=='signing_day'&&bk?.status!=='move_in_ready'?`
       <div style="margin-bottom:.5rem">
         <button onclick="setSigningDay('${bk?.id||''}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">📋 Mark as Signing Day</button>
       </div>`:''}
