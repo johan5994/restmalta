@@ -1583,6 +1583,19 @@ async function loadTenantVisits(){
     }
   }catch(e){}
 
+  // Charger les baux où CE compte est co-tenant (pas le demandeur principal)
+  // — nécessaire pour lui montrer sa propre carte de signature.
+  let coTenantBookings=[];
+  try{
+    const{data:allWithCoLessees}=await sb.from('bookings').select('*').not('co_lessees_embed_src','is',null).neq('tenant_id',U.id);
+    (allWithCoLessees||[]).forEach(b=>{
+      let coLessees=[];
+      try{coLessees=JSON.parse(b.co_lessees_embed_src);}catch(e){}
+      const myEntry=coLessees.find(cl=>cl.tenant_id===U.id);
+      if(myEntry)coTenantBookings.push({...b,_myCoTenantEntry:myEntry});
+    });
+  }catch(e){}
+
   // Charger les bookings du tenant
   let bookings=[];
   try{
@@ -1773,6 +1786,42 @@ async function loadTenantVisits(){
         <div style="font-size:.72rem;color:var(--td)">${doneLabels[v.status]||v.status} · ${dateStr}</div>
       </div>`;
     });
+  }
+
+  // Section dédiée : baux où ce compte est co-tenant (pas le demandeur principal)
+  if(coTenantBookings.length){
+    try{
+      const lIds=[...new Set(coTenantBookings.map(b=>b.listing_id).filter(Boolean))];
+      const{data:ls}=await sb.from('listings').select('id,title,zone').in('id',lIds);
+      const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
+      html+='<div style="font-size:.78rem;font-weight:700;color:var(--tm);margin:1rem 0 .5rem">🤝 Leases you\'re a co-tenant on</div>';
+      coTenantBookings.forEach(b=>{
+        const listing=lMap[b.listing_id]||{};
+        const entry=b._myCoTenantEntry;
+        html+=`<div style="padding:.85rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;margin-bottom:.6rem">
+          <div style="font-size:.85rem;font-weight:700;margin-bottom:.2rem">${listing.title||'Property'}</div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.55rem">📍 ${listing.zone||'Malta'} · Main applicant: ${b.tenant_name||'—'}</div>
+          <div style="display:flex;flex-direction:column;gap:.3rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+              <span style="font-size:.78rem">🏠 Landlord</span>
+              ${b.lease_signed_landlord?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+              <span style="font-size:.78rem">👤 Main tenant</span>
+              ${b.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+              <span style="font-size:.78rem">👤 You</span>
+              ${entry.signed
+                ?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>'
+                :entry.embed_src
+                  ?`<button onclick="openCoTenantLeaseDoc('${b.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
+                  :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
+            </div>
+          </div>
+        </div>`;
+      });
+    }catch(e){}
   }
 
   wrap.innerHTML=html;
@@ -2006,6 +2055,64 @@ function doOpenTenantLeaseDoc(bk,bookingId){
   body.appendChild(form);
   modal.appendChild(header);
   modal.appendChild(body);
+  document.body.appendChild(modal);
+}
+
+async function openCoTenantLeaseDoc(bookingId){
+  const{data:bk}=await sb.from('bookings').select('co_lessees_embed_src,id,listing_id,landlord_id').eq('id',bookingId).single();
+  let coLessees=[];
+  try{coLessees=bk?.co_lessees_embed_src?JSON.parse(bk.co_lessees_embed_src):[];}catch(e){}
+  const myEntry=coLessees.find(cl=>cl.tenant_id===U.id);
+  if(!myEntry?.embed_src){toast('❌ Lease document not ready yet');return;}
+
+  if(window.docusealLoaded){doOpenCoTenantLeaseDoc(bk,bookingId,myEntry);}
+  else{
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;doOpenCoTenantLeaseDoc(bk,bookingId,myEntry);};
+    document.head.appendChild(s);
+  }
+}
+
+function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  const header=document.createElement('div');
+  header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Lease Agreement (co-tenant)</div>';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
+  closeBtn.textContent='✕';
+  closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
+  header.appendChild(closeBtn);
+  const body2=document.createElement('div');
+  body2.style.cssText='flex:1;overflow:auto;background:white';
+  const form2=document.createElement('docuseal-form');
+  form2.setAttribute('data-src',myEntry.embed_src);
+  form2.setAttribute('data-send-copy-email','false');
+  form2.style.cssText='width:100%;display:block;min-height:100vh';
+  form2.addEventListener('completed',async()=>{
+    toast('✅ Lease signed!');
+    try{
+      const{data:current}=await sb.from('bookings').select('co_lessees_embed_src').eq('id',bookingId).single();
+      let cl2=[];
+      try{cl2=current?.co_lessees_embed_src?JSON.parse(current.co_lessees_embed_src):[];}catch(e){}
+      const idx=cl2.findIndex(cl=>cl.tenant_id===U.id);
+      if(idx!==-1){
+        cl2[idx].signed=true;
+        await sb.from('bookings').update({co_lessees_embed_src:JSON.stringify(cl2)}).eq('id',bookingId);
+      }
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        content:'✅ Co-tenant '+(P?.full_name||'')+' signed the lease!',type:'lease_signed_cotenant'
+      });
+    }catch(e){}
+    modal.remove();
+    loadTenantVisits();
+  });
+  body2.appendChild(form2);
+  modal.appendChild(header);
+  modal.appendChild(body2);
   document.body.appendChild(modal);
 }
 
@@ -3105,6 +3212,14 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
     <div style="background:#1A1D27;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
       <div style="font-size:1rem;font-weight:800;color:#F0EDE8;margin-bottom:.3rem">📋 Send your application</div>
       <div style="font-size:.78rem;color:rgba(240,237,232,.4);margin-bottom:1.2rem"><strong style="color:#F0EDE8">€${price||'—'}/mo</strong> · ${listingTitle||''}</div>
+
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;margin-bottom:1rem">
+        <div style="font-size:.8rem;font-weight:600;color:#F0EDE8;margin-bottom:.2rem">👥 Moving in with someone?</div>
+        <div style="font-size:.7rem;color:rgba(240,237,232,.35);margin-bottom:.65rem">Add anyone else who will be on the lease with you</div>
+        <div id="cotenants-list"></div>
+        <button type="button" id="cotenant-add-btn" onclick="addCoTenantSlot()" style="width:100%;background:none;border:1px dashed rgba(255,255,255,.15);color:rgba(240,237,232,.5);border-radius:10px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">+ Add a co-tenant</button>
+      </div>
+
       <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;margin-bottom:1rem">
         <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer">
           <input type="checkbox" id="nego-toggle" onchange="document.getElementById('nego-fields').style.display=this.checked?'block':'none'" style="accent-color:#E05A3A;width:15px;height:15px;cursor:pointer">
@@ -3166,6 +3281,8 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
       </div>
     </div>`;
   document.body.appendChild(modal);
+  window._coTenantsData=[];
+  coTenantSlotCount=0;
 }
 
 async function registerCardThenSend(listingId, listingTitle, contactId, price){
@@ -3182,6 +3299,13 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
   const proposedPrice=parseInt(document.getElementById('neg-price')?.value)||originalPrice;
   const extras=[...document.querySelectorAll('.neg-extra:checked')].map(e=>e.value);
   const message=document.getElementById('neg-message')?.value.trim()||'';
+
+  // Collecter les co-tenants MAINTENANT — leurs champs DOM disparaissent
+  // avec cette modal, donc on résout tout avant de la fermer.
+  const coTenantsFull=(window._coTenantsData||[])
+    .map((d,i)=>d&&!d.hasAccount?collectCoTenantManualFields(i):d)
+    .filter(Boolean);
+
   document.querySelector('#nego-modal-overlay')?.remove();
   let negotiationNote='';
   if(proposedPrice!==originalPrice) negotiationNote+=`💶 Proposed rent: €${proposedPrice}/mo (listed at €${originalPrice}/mo)\n`;
@@ -3197,7 +3321,7 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
     return;
   }
 
-  openDirectRentPayment(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras, moveIn);
+  openDirectRentPayment(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras, moveIn, coTenantsFull);
 }
 
 // Modal de paiement autonome (holding + commission) — utilisable depuis n'importe quelle
@@ -3363,7 +3487,7 @@ function collectCoTenantManualFields(slotId){
   };
 }
 
-async function openDirectRentPayment(listingId, listingTitle, landlordId, price, negotiationNote='', extras=[], moveIn=null){
+async function openDirectRentPayment(listingId, listingTitle, landlordId, price, negotiationNote='', extras=[], moveIn=null, coTenantsFull=[]){
   let listing=null,hasAgent=false;
   try{
     const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();
@@ -3390,9 +3514,6 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
         ${agentDirectAmount?`<div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--b)"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--tm)"><span>🤝 Agent fee (${agentMustCreate?40:30}%) — paid directly to your agent, not here</span><span>€${agentDirectAmount}</span></div></div>`:''}
         <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 This is only charged once the landlord accepts your request. If declined, nothing is taken. You'll then pay deposit + first month directly to the landlord.</div>
       </div>
-      <div id="cotenants-list"></div>
-      <button type="button" id="cotenant-add-btn" onclick="addCoTenantSlot()" style="width:100%;background:none;border:1px dashed var(--b2);color:var(--tm);border-radius:10px;padding:.55rem;font-size:.78rem;font-weight:600;cursor:pointer;margin-bottom:.85rem">+ Add a co-tenant</button>
-
       <div id="rent-pay-card" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:1rem;margin-bottom:.75rem"></div>
       <div id="rent-pay-error" style="color:var(--red);font-size:.78rem;margin-bottom:.5rem;display:none"></div>
       <div style="display:flex;gap:.5rem">
@@ -3401,7 +3522,6 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       </div>
     </div>`;
   document.body.appendChild(modal);
-  window._coTenantsData=[];
 
   if(!stripeInstance)stripeInstance=Stripe(STRIPE_PK);
   const elements=stripeInstance.elements();
@@ -3431,10 +3551,8 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       const{error,paymentIntent}=await stripeInstance.confirmCardPayment(data.client_secret,{payment_method:{card}});
       if(error)throw new Error(error.message);
 
-      // Collecter les co-locataires (comptes trouvés + saisis manuellement)
-      const coTenantsFull=(window._coTenantsData||[])
-        .map((d,i)=>d&&!d.hasAccount?collectCoTenantManualFields(i):d)
-        .filter(Boolean);
+      // Co-locataires déjà résolus (comptes trouvés + saisis manuellement) — passés
+      // en paramètre car leur formulaire vivait dans la modal de négociation précédente.
       const coTenantIds=coTenantsFull.filter(c=>c.hasAccount&&c.tenant_id).map(c=>c.tenant_id);
 
       const{error:bookingError}=await sb.from('bookings').insert({
