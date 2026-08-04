@@ -1849,6 +1849,13 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   const rent=bk.monthly_rent||0;
   const deposit=rent;
   const holding=bk.holding_amount||0;
+  // Nombre total de locataires (principal + co-tenants) — le dépôt et le premier
+  // loyer se partagent, contrairement aux frais RestMalta payés par une seule personne.
+  let coTenantCount=0;
+  try{coTenantCount=(bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[]).length;}catch(e){}
+  const totalTenants=1+coTenantCount;
+  const totalDue=deposit+rent-holding;
+  const perTenantShare=Math.round((totalDue/totalTenants)*100)/100;
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
     <div style="background:rgba(76,175,125,.12);padding:.5rem .85rem">
@@ -1924,13 +1931,14 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       ${!payConfirmed?`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
       <div style="background:var(--s2);border-radius:8px;padding:.55rem .65rem;margin-bottom:.5rem">
-        <div style="font-size:.75rem;font-weight:600;margin-bottom:.35rem">💶 Amount due to landlord</div>
+        <div style="font-size:.75rem;font-weight:600;margin-bottom:.35rem">💶 Amount due to landlord${totalTenants>1?` <span style="font-weight:400;color:var(--td)">(total, split ${totalTenants} ways)</span>`:''}</div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span>🔐 Security deposit</span><span>€${deposit}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span>🏠 First month rent</span><span>€${rent}</span></div>
         ${holding?`<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#4CAF7D;margin-bottom:.15rem"><span>✅ Holding deposit deducted</span><span>-€${holding}</span></div>`:''}
-        <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${deposit+rent-holding}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${totalDue}</span></div>
+        ${totalTenants>1?`<div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;color:var(--terra);margin-top:.3rem"><span>👤 Your share (${totalTenants} tenants)</span><span>€${perTenantShare}</span></div>`:''}
       </div>
-      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main tenant'} — usually one of you sends the total and marks it as paid below.</div>`:''}
+      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main tenant'} — usually one of you sends the total and marks it as paid below. The RestMalta fee has already been paid by whoever sent the request, no need to split that part.</div>`:totalTenants>1?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with your co-tenant${totalTenants>2?'s':''} — usually one of you sends the total and marks it as paid below. The RestMalta fee has already been paid by whoever sent the request, no need to split that part.</div>`:''}
       ${bk.landlord_iban||bk.landlord_revolut?`
       <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.73rem;color:var(--tm)">
         ${bk.landlord_iban?`🏦 IBAN: <strong>${bk.landlord_iban}</strong><br>`:''}
