@@ -4017,11 +4017,6 @@ function renderLeaseSection(g){
         </div>
       </div>
 
-      ${llSigned&&tSigned&&!payConfirmed?`
-      <div style="margin-bottom:.75rem">
-        <button onclick="markTenantGhosted('${bk?.id||''}')" style="width:100%;background:none;border:1px solid var(--red);color:var(--red);border-radius:8px;padding:.5rem;font-size:.72rem;font-weight:600;cursor:pointer">🚩 Tenant disappeared — charge holding deposit</button>
-      </div>`:''}
-
       <!-- Paiement -->
       ${llSigned&&tSigned&&bk?.status!=='signing_day'&&bk?.status!=='move_in_ready'?`
       <div style="margin-bottom:.5rem">
@@ -4544,26 +4539,6 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
   await sb.from('payments').insert(rows);
 }
 
-async function markTenantGhosted(bookingId){
-  if(!bookingId){toast('❌ No booking ID');return;}
-  if(!confirm('This will charge the tenant\'s holding deposit (pre-authorized on their card) as compensation. Only do this if the tenant signed the lease but then disappeared / backed out. Continue?'))return;
-
-  try{
-    const res=await fetch('/.netlify/functions/holding-deposit',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'tenant_ghosted',booking_id:bookingId})
-    });
-    const data=await res.json();
-    if(!data.success){toast('❌ '+(data.error||'Could not charge holding deposit'));return;}
-    if(data.result==='holding_captured'){
-      toast(`✅ Holding deposit charged (€${data.amount_captured}). Note: this lands in RestMalta's Stripe account — contact us to arrange the transfer to you.`);
-    }else{
-      toast('⚠️ '+data.result.replace(/_/g,' '));
-    }
-    loadVisitsPage();
-  }catch(e){toast('❌ '+e.message);}
-}
-
 async function confirmTenantPayment(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
   if(!confirm('Confirm you received the tenant\'s payment?')) return;
@@ -4591,15 +4566,6 @@ async function confirmTenantPayment(bookingId){
 
   toast('✅ Payment confirmed!');
   if(bk)generateFirstPaymentReceiptLL(bk,listing?.title,tenantProfile?.full_name);
-
-  // Le vrai dépôt vient d'être payé directement au propriétaire — le holding
-  // Stripe (pré-autorisation de bonne foi) n'a plus lieu d'être, on le relâche.
-  if(bk?.payment_intent_id){
-    fetch('/.netlify/functions/holding-deposit',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'release_holding',booking_id:bookingId})
-    }).catch(()=>{});
-  }
 
   loadVisitsPage();
 }
@@ -4647,15 +4613,14 @@ async function acceptDirectBooking(listingId, tenantId){
     const totalTenants = 1 + coTenantIds.length;
     const monthlyRent = booking.monthly_rent || 0;
     const commissionPerTenant = Math.round((monthlyRent * 0.10) / totalTenants);
-    const holdingPerTenant = Math.round((monthlyRent * 0.5) / totalTenants);
 
-    // Libérer le holding deposit (rembourser le 50% loyer)
+    // Capturer la commission RestMalta (10%)
     try{
       await fetch('/.netlify/functions/holding-deposit',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({action:'landlord_accept',booking_id:booking.id})
       });
-    }catch(e){console.warn('Holding release:',e.message);}
+    }catch(e){console.warn('Commission capture:',e.message);}
 
     // Récupérer la date de visite
     const{data:visitInfo}=await sb.from('visits').select('visit_date,visit_time').eq('listing_id',listingId).eq('tenant_id',tenantId).maybeSingle();
@@ -4676,14 +4641,10 @@ async function acceptDirectBooking(listingId, tenantId){
     try{await sb.from('visits').update({status:'lease_pending'}).eq('listing_id',listingId).eq('tenant_id',tenantId);}catch(e){}
 
     // Notifier le tenant principal
-    const refundMsg = totalTenants > 1
-      ? `💰 Your holding deposit has been split: each co-tenant paid €${holdingPerTenant} (refunded within 3-5 days).`
-      : `💰 Your holding deposit (€${holdingPerTenant}) has been refunded within 3-5 business days.`;
-
     try{
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:'🎉 Your application has been accepted!\n\n'+refundMsg+'\n\n📄 Your lease is ready to sign — check your visits page.',
+        content:'🎉 Your application has been accepted!\n\n📄 Your lease is ready to sign — check your visits page.',
         type:'booking_accepted'
       });
     }catch(e){}
@@ -4693,7 +4654,7 @@ async function acceptDirectBooking(listingId, tenantId){
       try{
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:coTenantId,
-          content:'🎉 The rental application has been accepted!\n\nYou are a co-tenant on this lease.\n\n'+refundMsg+'\n\n📄 Your lease is ready to sign — check your visits page.',
+          content:'🎉 The rental application has been accepted!\n\nYou are a co-tenant on this lease.\n\n📄 Your lease is ready to sign — check your visits page.',
           type:'booking_accepted'
         });
       }catch(e){}
@@ -4726,7 +4687,7 @@ async function acceptDirectBooking(listingId, tenantId){
 }
 
 async function declineDirectBooking(listingId, tenantId){
-  if(!confirm('Decline this tenant? Their holding deposit will be fully refunded.'))return;
+  if(!confirm('Decline this tenant? The RestMalta fee authorization will be released.'))return;
   try{
     const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).in('status',['pending','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(!booking){toast('❌ Booking not found');return;}
@@ -4739,7 +4700,7 @@ async function declineDirectBooking(listingId, tenantId){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:'❌ Your application has been declined.\n\n💰 Your holding deposit + commission have been fully refunded to your card within 3-5 business days.',
+        content:'❌ Your application has been declined.\n\n💰 The RestMalta fee authorization has been released — nothing was charged.',
         type:'booking_declined'
       });
     }catch(e){}
