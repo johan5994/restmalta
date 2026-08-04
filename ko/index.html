@@ -768,13 +768,8 @@ footer ul a:hover{color:var(--terra)}
             <div id="address-map-status" style="font-size:.72rem;color:var(--stone-l);margin-top:.35rem"></div>
             <div id="address-map" style="height:180px;border-radius:10px;overflow:hidden;margin-top:.5rem;display:none;border:1px solid rgba(0,0,0,.1)"></div>
           </div>
-          <div class="fg2"><label>Rent due day each month</label>
-            <select class="fi" id="p-pay-day" style="cursor:pointer">
-              <option value="1">1st of the month</option>
-              <option value="5">5th of the month</option>
-              <option value="15">15th of the month</option>
-              <option value="last">Last day of the month</option>
-            </select>
+          <div class="fg2">
+            <div style="font-size:.72rem;color:var(--stone-l);background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem .75rem;line-height:1.5">💡 In Malta, rent is due each month on the tenant's move-in date, not a fixed day — this is calculated automatically once a tenant moves in.</div>
           </div>
         </div>
         <div class="frow">
@@ -984,7 +979,7 @@ async function generateLease(listingId, tenantEmail, landlordEmail, type) {
           address: AL?.full_address || AL?.zone || '',
           price: AL?.price || 0,
           deposit: AL?.deposit || 0,
-          payment_due_day: AL?.payment_due_day || '1',
+          payment_due_day: new Date().getDate(),
           notice_period: AL?.notice_period || '1 month',
           bills: AL?.bills_situation || 'excluded'
         },
@@ -2218,7 +2213,8 @@ async function doPost(){
     active:!wants_agent, // reste caché tant qu'aucun agent n'a accepté de s'en occuper
     // Lease fields
     full_address:document.getElementById('p-full-address')?.value.trim()||null,
-    payment_due_day:document.getElementById('p-pay-day')?.value||null,
+    // Rent due day: no longer set manually — derived from the tenant's
+    // move-in date once a booking is accepted (see generateRentScheduleLL).
     notice_period:document.getElementById('p-notice')?.value||null,
     bills_situation:document.getElementById('p-bills')?.value||null,
     // New fields
