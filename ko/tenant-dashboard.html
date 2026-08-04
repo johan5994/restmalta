@@ -1170,9 +1170,7 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
   section.style.display='block';
 
   const tenantRate=0.10; // 10% TTC, que ce soit avec ou sans agent
-  const holding=Math.round(price/2); // 50% bonne foi — pré-auth relâchée si tout se passe bien
   const commission=Math.round(price*tenantRate);
-  const total=holding+commission;
   const rateLabel='10% TTC (RestMalta fee)';
 
   // Générer un aperçu du bail complet
@@ -1231,7 +1229,7 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
         </div>
 
         <div style="margin-top:.65rem;padding:.5rem .7rem;background:rgba(76,175,125,.08);border-radius:7px;font-size:.68rem;color:#4CAF7D;line-height:1.6">
-          ✅ <strong>This is a pre-authorisation only (50% deposit of good faith)</strong> — your card is not charged immediately. Once the landlord responds, this hold is automatically released and you pay deposit + first month directly to the landlord.
+          ✅ <strong>The RestMalta fee is only charged once the landlord accepts.</strong> If declined, nothing is taken. You then pay deposit + first month directly to the landlord.
         </div>
       </div>
     </div>`;
@@ -1240,10 +1238,8 @@ async function showHoldingDeposit(visitId, listingId, listingPrice){
   const breakdown=document.getElementById(`holding-breakdown-${visitId}`);
   if(breakdown) breakdown.innerHTML=`
     ${leasePreview}
-    <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding Deposit (½ month)</span><span>€${holding}</span></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (${rateLabel})</span><span>€${commission}</span></div>
-    <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.2rem;margin-top:.2rem"><span>Total today</span><span>€${total}</span></div>
-    <div style="font-size:.65rem;color:var(--td);margin-top:.3rem">💚 Holding Deposit deducted from first month. Full refund if landlord declines.</div>`;
+    <div style="display:flex;justify-content:space-between;font-weight:700"><span>RestMalta Fee (${rateLabel})</span><span>€${commission}</span></div>
+    <div style="font-size:.65rem;color:var(--td);margin-top:.3rem">💚 Only charged if the landlord accepts. Full refund if declined.</div>`;
 
   const cardWrap=document.getElementById(`holding-card-${visitId}`);
   if(cardWrap&&!cardWrap._mounted){
@@ -1273,7 +1269,6 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     const price=cardWrap._price||0;
     const hasAgent=cardWrap._hasAgent||false;
     const tenantRate=0.10; // 10% TTC, que ce soit avec ou sans agent
-    const holding=Math.round(price/2); // 50% bonne foi — pré-auth relâchée si tout se passe bien
     const commission=Math.round(price*tenantRate);
 
     // Récupérer la date souhaitée
@@ -1305,58 +1300,39 @@ async function payHoldingDepositFromVisits(visitId, listingId){
       }catch(e){console.warn('landlord lookup failed:',e);}
     }
 
-    // 2 — Créer la pré-autorisation du Holding Deposit
+    // 2 — Créer la pré-autorisation des frais RestMalta (10%)
     const res=await fetch('/.netlify/functions/holding-deposit',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        action:'create_holding',
+        action:'create_commission_intent',
         listing_id:listingId,
         tenant_id:U.id,
         tenant_email:P?.email||'',
         tenant_name:P?.full_name||'',
         tenant_stripe_customer_id:P?.stripe_customer_id||null,
-        monthly_rent:price,
-        has_agent:listing.wants_agent&&listing.agent_service==='full'
+        monthly_rent:price
       })
     });
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Payment failed');
 
-    // 3 — Confirmer le holding avec la carte (gère 3DS/SCA)
+    // 3 — Confirmer avec la carte (gère 3DS/SCA)
     const{error,paymentIntent}=await stripeInstance.confirmCardPayment(data.client_secret,{
       payment_method:{card:cardWrap._cardEl}
     });
     if(error)throw new Error(error.message);
 
-    // 4 — Créer la 2e pré-autorisation (commission 10%), même carte, sans ressaisie
-    const commRes=await fetch('/.netlify/functions/holding-deposit',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        action:'create_commission_intent',
-        customer_id:data.customer_id,
-        payment_method_id:paymentIntent.payment_method,
-        monthly_rent:price,
-        has_agent:listing.wants_agent&&listing.agent_service==='full',
-        listing_id:listingId,
-        tenant_id:U.id
-      })
-    });
-    const commData=await commRes.json();
-    if(!commData.success)throw new Error(commData.error||'Commission authorization failed');
-
-    // 5 — Sauvegarder la réservation avec les DEUX intentions
+    // 4 — Sauvegarder la réservation
     const{data:booking,error:bookingError}=await sb.from('bookings').insert({
       listing_id:listingId,
       tenant_id:U.id,
       landlord_id:landlordClerkId,
       tenant_name:P?.full_name||'',
       tenant_email:P?.email||'',
-      payment_intent_id:paymentIntent.id,
-      commission_payment_intent_id:commData.commission_payment_intent_id,
+      commission_payment_intent_id:paymentIntent.id,
       stripe_customer_id:data.customer_id,
-      holding_amount:holding,
       commission_amount:commission,
-      total_amount:holding+commission,
+      total_amount:commission,
       monthly_rent:price,
       status:'pending',
       has_agent:listing.wants_agent&&listing.agent_service==='full',
@@ -1365,34 +1341,34 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     if(bookingError)console.error('❌ Booking insert error:',bookingError.message,bookingError.details);
     else console.log('✅ Booking created:',booking?.id);
 
-    // 6 — Mettre le listing en reserved
+    // 5 — Mettre le listing en reserved
     try{await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId);}catch(e){}
 
-    // 6 — Marquer la visite
+    // 5 — Marquer la visite
     try{await sb.from('visits').update({status:'booking_pending'}).eq('id',visitId);}catch(e){}
 
-    // 7 — Générer reçu DocuSeal
+    // 6 — Générer reçu DocuSeal
     fetch('/.netlify/functions/generate-booking-receipt',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         tenant:{name:P?.full_name,passport:P?.passport_number,nationality:P?.nationality,email:P?.email||'',phone:P?.phone||''},
         listing:{title:listing.title,address:listing.full_address||listing.zone,price:listing.price,type:listing.type},
-        holding_amount:holding,commission_amount:commission,total_amount:holding+commission,
+        commission_amount:commission,total_amount:commission,
         booking_id:booking?.id||paymentIntent.id
       })
     }).catch(()=>{});
 
-    // 8 — Notifier le landlord avec la date souhaitée
+    // 7 — Notifier le landlord avec la date souhaitée
     const moveInFormatted=new Date(moveInDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     try{
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:landlordClerkId,
-        content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n🌍 ${P?.nationality||'—'} | 📋 ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n📅 Desired move-in date: ${moveInFormatted}\n💰 Rent: €${price}/mo\n✅ Holding deposit paid: €${holding}\n\n⏰ You have 48h to accept this date, propose another, or decline.\nGo to your dashboard → Visits to respond.`,
+        content:`🔒 New reservation!\n\n👤 ${P?.full_name||'—'} wants to rent your property.\n🌍 ${P?.nationality||'—'} | 📋 ${P?.passport_number||'—'}\n💼 ${P?.emprent||'—'}\n\n📅 Desired move-in date: ${moveInFormatted}\n💰 Rent: €${price}/mo\n\n⏰ You have 48h to accept this date, propose another, or decline.\nGo to your dashboard → Visits to respond.`,
         type:'booking_request'
       });
     }catch(e){}
 
-    // 9 — Sauvegarder stripe_customer_id
+    // 8 — Sauvegarder stripe_customer_id
     if(data.customer_id&&!P?.stripe_customer_id){
       try{await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id);}catch(e){}
     }
@@ -1403,7 +1379,7 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     setTimeout(()=>loadTenantVisits(),2000);
 
   }catch(e){
-    console.error('Holding error:',e);
+    console.error('Reservation error:',e);
     toast('❌ '+e.message);
     if(btn){btn.textContent='🔒 Reserve & Pay →';btn.disabled=false;}
   }
@@ -3399,10 +3375,8 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
 
   const agentMustCreate=listing?.agent_must_create||false;
   const tenantRate=agentMustCreate?0.00:0.10; // l'agent construit tout → RestMalta ne prend rien côté locataire ici, tout va à l'agent
-  const holding=Math.round(price/2);
   const commission=Math.round(price*tenantRate);
   const agentDirectAmount=hasAgent?Math.round(price*(agentMustCreate?0.40:0.30)):0;
-  const total=holding+commission;
 
   const modal=document.createElement('div');
   modal.id='rent-pay-modal-overlay';
@@ -3412,11 +3386,9 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       <div style="font-size:1rem;font-weight:800;margin-bottom:.3rem">🏠 Confirm your request</div>
       <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem"><strong style="color:var(--txt)">€${price}/mo</strong> · ${listingTitle||''}</div>
       <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.78rem">
-        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">Holding Deposit (½ month)</span><span>€${holding}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem"><span style="color:var(--td)">RestMalta Fee (${Math.round(tenantRate*100)}%)</span><span>€${commission}</span></div>
-        <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total today</span><span>€${total}</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700"><span>RestMalta Fee (${Math.round(tenantRate*100)}%)</span><span>€${commission}</span></div>
         ${agentDirectAmount?`<div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--b)"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--tm)"><span>🤝 Agent fee (${agentMustCreate?40:30}%) — paid directly to your agent, not here</span><span>€${agentDirectAmount}</span></div></div>`:''}
-        <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 Holding Deposit is a pre-authorization only, not charged. Released automatically once the landlord responds — you then pay deposit + first month directly to the landlord. RestMalta Fee is only charged if accepted.</div>
+        <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 This is only charged once the landlord accepts your request. If declined, nothing is taken. You'll then pay deposit + first month directly to the landlord.</div>
       </div>
       <div id="cotenants-list"></div>
       <button type="button" id="cotenant-add-btn" onclick="addCoTenantSlot()" style="width:100%;background:none;border:1px dashed var(--b2);color:var(--tm);border-radius:10px;padding:.55rem;font-size:.78rem;font-weight:600;cursor:pointer;margin-bottom:.85rem">+ Add a co-tenant</button>
@@ -3446,11 +3418,11 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       const res=await fetch('/.netlify/functions/holding-deposit',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-          action:'create_holding',
+          action:'create_commission_intent',
           listing_id:listingId,tenant_id:U.id,
           tenant_email:P?.email||'',tenant_name:P?.full_name||'',
           tenant_stripe_customer_id:P?.stripe_customer_id||null,
-          monthly_rent:price,has_agent:hasAgent
+          monthly_rent:price
         })
       });
       const data=await res.json();
@@ -3458,17 +3430,6 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
 
       const{error,paymentIntent}=await stripeInstance.confirmCardPayment(data.client_secret,{payment_method:{card}});
       if(error)throw new Error(error.message);
-
-      const commRes=await fetch('/.netlify/functions/holding-deposit',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          action:'create_commission_intent',
-          customer_id:data.customer_id,payment_method_id:paymentIntent.payment_method,
-          monthly_rent:price,has_agent:hasAgent,listing_id:listingId,tenant_id:U.id
-        })
-      });
-      const commData=await commRes.json();
-      if(!commData.success)throw new Error(commData.error||'Commission authorization failed');
 
       // Collecter les co-locataires (comptes trouvés + saisis manuellement)
       const coTenantsFull=(window._coTenantsData||[])
@@ -3479,10 +3440,9 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       const{error:bookingError}=await sb.from('bookings').insert({
         listing_id:listingId,tenant_id:U.id,landlord_id:landlordId,
         tenant_name:P?.full_name||'',tenant_email:P?.email||'',
-        payment_intent_id:paymentIntent.id,
-        commission_payment_intent_id:commData.commission_payment_intent_id,
+        commission_payment_intent_id:paymentIntent.id,
         stripe_customer_id:data.customer_id,
-        holding_amount:holding,commission_amount:commission,total_amount:total,
+        commission_amount:commission,total_amount:commission,
         monthly_rent:price,status:'pending',has_agent:hasAgent,
         move_in_date:moveIn||null,
         negotiation_note:negotiationNote||null,
@@ -3496,7 +3456,7 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       try{
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:landlordId,
-          content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have paid the holding deposit + commission authorization. Check your visits page to review their dossier and accept or decline.',
+          content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have authorized the RestMalta fee. Check your visits page to review their dossier and accept or decline.',
           type:'wants_to_rent'
         });
       }catch(e){}
