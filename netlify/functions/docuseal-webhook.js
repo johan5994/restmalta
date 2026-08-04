@@ -29,13 +29,29 @@ exports.handler = async (event) => {
         if (booking) {
           let updateData = {};
           const submitter = (submission.submitters || []).find(s => s.status === 'completed');
+          const role = submitter?.role || '';
+
           if (eventType === 'submission_completed') {
             updateData = { lease_signed_landlord: true, lease_signed_tenant: true };
-          } else if (submitter?.role === 'Lessor') {
+          } else if (role === 'Lessor') {
             updateData = { lease_signed_landlord: true };
-          } else if (submitter?.role === 'Lessee') {
+          } else if (role === 'Lessee') {
             updateData = { lease_signed_tenant: true };
+          } else if (role.startsWith('Lessee ')) {
+            // Co-tenant N a signé — on marque SON entrée précisément dans co_lessees_embed_src,
+            // sans jamais considérer le bail "signé" tant que chacun n'a pas fait sa part.
+            let coLessees = [];
+            try { coLessees = booking.co_lessees_embed_src ? JSON.parse(booking.co_lessees_embed_src) : []; } catch(e) {}
+            const idx = coLessees.findIndex(cl => cl.role === role);
+            if (idx !== -1) {
+              coLessees[idx].signed = true;
+              updateData = { co_lessees_embed_src: JSON.stringify(coLessees) };
+              if (coLessees[idx].tenant_id) {
+                await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: `✍️ Co-tenant ${coLessees[idx].name || ''} signed the lease!`, type: 'lease_signed_cotenant' }).catch(() => {});
+              }
+            }
           }
+
           if (Object.keys(updateData).length) {
             await sb2.from('bookings').update(updateData).eq('id', booking.id);
             // Notifier selon qui a signé
@@ -43,12 +59,25 @@ exports.handler = async (event) => {
               await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '✍️ The landlord signed the lease!\n\nIt\'s your turn — go to your visits page to sign.', type: 'lease_signed_landlord' }).catch(() => {});
             }
             if (updateData.lease_signed_tenant && !booking.lease_signed_tenant) {
-              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: '✍️ The tenant signed the lease!\n\nBoth parties signed. Waiting for first payment from tenant.', type: 'lease_signed_tenant' }).catch(() => {});
+              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: '✍️ The tenant signed the lease!\n\nWaiting on any remaining co-tenants and first payment.', type: 'lease_signed_tenant' }).catch(() => {});
             }
-            if ((updateData.lease_signed_landlord || booking.lease_signed_landlord) && (updateData.lease_signed_tenant || booking.lease_signed_tenant)) {
+
+            // Le bail n'est "entièrement signé" que si landlord + tenant principal
+            // + TOUS les co-tenants ayant un lien de signature ont signé.
+            const landlordDone = updateData.lease_signed_landlord || booking.lease_signed_landlord;
+            const tenantDone = updateData.lease_signed_tenant || booking.lease_signed_tenant;
+            let coLesseesForCheck = [];
+            try {
+              coLesseesForCheck = updateData.co_lessees_embed_src
+                ? JSON.parse(updateData.co_lessees_embed_src)
+                : (booking.co_lessees_embed_src ? JSON.parse(booking.co_lessees_embed_src) : []);
+            } catch(e) {}
+            const allCoTenantsDone = coLesseesForCheck.every(cl => cl.signed);
+
+            if (landlordDone && tenantDone && allCoTenantsDone) {
               const ibanInfo = booking.landlord_iban ? '\n🏦 IBAN: ' + booking.landlord_iban : '';
               const revInfo = booking.landlord_revolut ? '\n💜 Revolut: ' + booking.landlord_revolut : '';
-              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '🎉 Both parties signed!\n\nPlease transfer deposit + first month to landlord.' + ibanInfo + revInfo + '\n\nClick "I have paid" in your visits page once done.', type: 'lease_fully_signed' }).catch(() => {});
+              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '🎉 Everyone has signed!\n\nPlease transfer deposit + first month to landlord.' + ibanInfo + revInfo + '\n\nClick "I have paid" in your visits page once done.', type: 'lease_fully_signed' }).catch(() => {});
             }
           }
         }
