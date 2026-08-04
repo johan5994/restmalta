@@ -1838,6 +1838,10 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   const tSigned=coTenantEntry?coTenantEntry.signed:bk.lease_signed_tenant;
   const mySignEmbed=coTenantEntry?coTenantEntry.embed_src:bk.lease_tenant_embed;
   const mySignFn=coTenantEntry?`openCoTenantLeaseDoc('${bk.id}')`:`openTenantLeaseDoc('${bk.id}')`;
+  // Tous les co-tenants avec leur statut de signature — affichés à TOUT LE
+  // MONDE (locataire principal, chaque co-tenant), pas seulement à un couple.
+  let allCoLessees=[];
+  try{allCoLessees=bk.co_lessees_embed_src?JSON.parse(bk.co_lessees_embed_src):[];}catch(e){}
   const payDeclared=bk.first_payment_sent;
   const payConfirmed=bk.first_payment_confirmed;
   const moveIn=bk.move_in_date||v.move_in_date||null;
@@ -1871,18 +1875,29 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
           <span style="font-size:.78rem">🏠 Landlord</span>
           ${llSigned?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
-        ${coTenantEntry?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 ${bk.tenant_name||'Main tenant'}</span>
-          ${bk.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
-        </div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 ${coTenantEntry?'You (co-tenant)':'You'}</span>
-          ${tSigned
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
-            :mySignEmbed
-              ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
-              :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
+          <span style="font-size:.78rem">👤 ${coTenantEntry?bk.tenant_name||'Main tenant':'You'}</span>
+          ${!coTenantEntry
+            ?(tSigned
+              ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
+              :mySignEmbed
+                ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
+                :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>')
+            :(bk.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>')}
         </div>
+        ${allCoLessees.map(cl=>{
+          const isMe=coTenantEntry&&cl.tenant_id===coTenantEntry.tenant_id;
+          return`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+            <span style="font-size:.78rem">👤 ${isMe?'You (co-tenant)':(cl.name||'Co-tenant')}</span>
+            ${isMe
+              ?(tSigned
+                ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
+                :mySignEmbed
+                  ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
+                  :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>')
+              :(cl.signed?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>')}
+          </div>`;
+        }).join('')}
       </div>
       ${bk.status==='edl_scheduled'?`
       <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your landlord is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
