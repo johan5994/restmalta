@@ -1252,6 +1252,27 @@ async function viewTenantDoc(path){
   }catch(e){toast('❌ '+e.message);}
 }
 
+function renderCoTenantsSummary(booking){
+  if(!booking)return '';
+  let coTenants=[];
+  try{coTenants=booking.co_tenants_data?JSON.parse(booking.co_tenants_data):[];}catch(e){}
+  if(!coTenants.length)return '';
+  const cards=coTenants.map((ct,i)=>`
+    <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:.55rem .65rem;margin-bottom:.35rem">
+      <div style="font-size:.6rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.3rem">👥 Co-tenant ${i+1}${ct.hasAccount?' — RestMalta account':' — no account yet'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem .5rem;font-size:.72rem">
+        <div><div style="color:var(--td);font-size:.58rem">Full name</div><div style="font-weight:600">${ct.name||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.58rem">Email</div><div style="font-weight:600">${ct.email||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.58rem">Nationality</div><div style="font-weight:600">${ct.nationality||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.58rem">Passport / ID</div><div style="font-weight:600">${ct.passport||'—'}</div></div>
+      </div>
+    </div>`).join('');
+  return `<div style="margin-bottom:.5rem">
+    <div style="font-size:.65rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem">👥 Co-tenants (also on the lease)</div>
+    ${cards}
+  </div>`;
+}
+
 async function loadBookingDossier(booking){
   const container=document.getElementById(`booking-dossier-${booking.id}`);
   if(!container){console.warn('Container not found for booking',booking.id);return;}
@@ -1356,26 +1377,8 @@ async function loadBookingDossier(booking){
 
   // Co-tenants ajoutés lors de la candidature — ils seront aussi sur le bail,
   // le propriétaire doit voir leur profil comme celui du candidat principal.
-  let coTenants=[];
-  try{coTenants=booking.co_tenants_data?JSON.parse(booking.co_tenants_data):[];}catch(e){}
-  if(coTenants.length){
-    const coTenantsHtml=coTenants.map((ct,i)=>`
-      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
-        <div style="font-size:.63rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">👥 Co-tenant ${i+1}${ct.hasAccount?' — RestMalta account':' — no account yet'}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.77rem">
-          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Full name</div><div style="font-weight:700">${ct.name||'—'}</div></div>
-          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Email</div><div style="font-weight:600">${ct.email||'—'}</div></div>
-          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Nationality</div><div style="font-weight:600">${ct.nationality||'—'}</div></div>
-          <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Passport / ID No.</div><div style="font-weight:600">${ct.passport||'—'}</div></div>
-          ${ct.address?`<div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Home address</div><div style="font-weight:600">${ct.address}</div></div>`:''}
-        </div>
-      </div>`).join('');
-    container.insertAdjacentHTML('beforeend',`
-      <div style="margin-top:.6rem;border-top:1px solid var(--b);padding-top:.6rem">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td);margin-bottom:.4rem">👥 Co-tenants (also on the lease)</div>
-        ${coTenantsHtml}
-      </div>`);
-  }
+  const coTenantsHtml=renderCoTenantsSummary(booking);
+  if(coTenantsHtml)container.insertAdjacentHTML('beforeend',coTenantsHtml);
 
   // Bouton regenerate lease si booking accepted mais pas d'embed
   if(booking.status==='accepted'&&!booking.lease_landlord_embed){
@@ -4189,6 +4192,7 @@ function renderVisitGroup(g, isPast){
             <div style="font-size:.72rem;color:var(--td)">Loading...</div>
           </div>
         </div>
+        ${renderCoTenantsSummary(bk)}
       </div>
       <div style="display:flex;gap:.4rem">
         <button onclick="acceptDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">✅ Accept</button>
