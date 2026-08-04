@@ -813,7 +813,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Father's last name *</label><input class="fi" id="prof-father-last" placeholder="Dupont" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="prof-mother" placeholder="Marie" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="prof-mother-maiden" placeholder="Martin" oninput="updateLLCompleteness()"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address * <span style="font-size:.68rem;color:var(--td)">(full address)</span></label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta" oninput="updateLLCompleteness()"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Home / residence address * <span style="font-size:.68rem;color:var(--td)">(where you reside — appears on the lease as your legal residence)</span></label><input class="fi" id="prof-home-address" placeholder="e.g. 5 Rue de la Paix, 75002 Paris, France" oninput="updateLLCompleteness()"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address * <span style="font-size:.68rem;color:var(--td)">(full address — if different from above)</span></label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta" oninput="updateLLCompleteness()"></div>
           </div>
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">💶 Financial</div>
           <div class="fgrid2">
@@ -3449,6 +3450,7 @@ function updateLLCompleteness(){
     {id:'prof-father',label:"Father's first name"},
     {id:'prof-mother',label:"Mother's first name"},
     {id:'prof-mother-maiden',label:"Mother's maiden name"},
+    {id:'prof-home-address',label:'Home / residence address'},
     {id:'prof-malta-address',label:'Malta address'},
     {id:'prof-iban',label:'IBAN'},
   ];
@@ -3463,6 +3465,7 @@ function updateLLCompleteness(){
     'prof-father': document.getElementById('prof-father')?.value?.trim() || P?.father_name,
     'prof-mother': document.getElementById('prof-mother')?.value?.trim() || P?.mother_name,
     'prof-mother-maiden': document.getElementById('prof-mother-maiden')?.value?.trim() || P?.mother_maiden,
+    'prof-home-address': document.getElementById('prof-home-address')?.value?.trim() || P?.home_address,
     'prof-malta-address': document.getElementById('prof-malta-address')?.value?.trim() || P?.malta_address,
     'prof-iban': document.getElementById('prof-iban')?.value?.trim() || P?.iban,
   };
@@ -3528,6 +3531,7 @@ async function loadProfilee(){
   if(document.getElementById('prof-father-last'))document.getElementById('prof-father-last').value=P.father_last_name||'';
   document.getElementById('prof-mother').value=P.mother_name||'';
   document.getElementById('prof-mother-maiden').value=P.mother_maiden||'';
+  if(document.getElementById('prof-home-address'))document.getElementById('prof-home-address').value=P.home_address||'';
   document.getElementById('prof-malta-address').value=P.malta_address||'';
   document.getElementById('prof-iban').value=P.iban||'';
   document.getElementById('prof-revolut').value=P.revolut_tag||P.bank_details||'';
@@ -3572,6 +3576,7 @@ async function saveProfilee(){
     father_last_name:document.getElementById('prof-father-last')?.value.trim(),
     mother_name:document.getElementById('prof-mother').value.trim(),
     mother_maiden:document.getElementById('prof-mother-maiden').value.trim(),
+    home_address:document.getElementById('prof-home-address')?.value.trim()||'',
     malta_address:document.getElementById('prof-malta-address').value.trim(),
     iban:document.getElementById('prof-iban').value.trim(),
     revolut_tag:document.getElementById('prof-revolut').value.trim(),
