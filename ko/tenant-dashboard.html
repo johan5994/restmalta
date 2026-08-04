@@ -3269,9 +3269,56 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
 }
 
 async function registerCardThenSend(listingId, listingTitle, contactId, price){
-  document.getElementById('nego-modal-overlay')?.remove();
-  await initStripeCard();
-  setTimeout(()=>showNegotiationModal(listingId, listingTitle, contactId, price), 1000);
+  const modal=document.createElement('div');
+  modal.id='inline-card-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:#1A1D27;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:1.5rem;width:100%;max-width:380px">
+      <div style="font-size:.95rem;font-weight:800;color:#F0EDE8;margin-bottom:.3rem">💳 Register your card</div>
+      <div style="font-size:.75rem;color:rgba(240,237,232,.45);margin-bottom:1rem">Required to send an application — you won't be charged unless the landlord accepts.</div>
+      <div id="inline-card-element" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:.85rem;margin-bottom:.75rem"></div>
+      <div id="inline-card-error" style="color:#E05A5A;font-size:.76rem;margin-bottom:.5rem;display:none"></div>
+      <div style="display:flex;gap:.5rem">
+        <button id="inline-card-save-btn" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">Save card →</button>
+        <button onclick="document.getElementById('inline-card-modal').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .9rem;font-size:.82rem;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
+  const elements=stripeInstance.elements();
+  const inlineCard=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'#E05A5A'}}});
+  inlineCard.mount('#inline-card-element');
+
+  document.getElementById('inline-card-save-btn').onclick=async()=>{
+    const btn=document.getElementById('inline-card-save-btn');
+    const errEl=document.getElementById('inline-card-error');
+    errEl.style.display='none';
+    btn.textContent='Saving...';btn.disabled=true;
+
+    try{
+      const res=await fetch('/.netlify/functions/visit-noshow',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'setup_payment',tenant_email:U.email,tenant_name:P?.full_name||'Tenant'})
+      });
+      const data=await res.json();
+      if(!data.success)throw new Error(data.error||'Could not start card setup');
+
+      const{error,setupIntent}=await stripeInstance.confirmCardSetup(data.client_secret,{payment_method:{card:inlineCard}});
+      if(error)throw new Error(error.message);
+
+      await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id);
+      if(P)P.stripe_customer_id=data.customer_id;
+
+      modal.remove();
+      toast('✅ Card saved!');
+      showNegotiationModal(listingId,listingTitle,contactId,price);
+    }catch(e){
+      errEl.textContent='❌ '+e.message;
+      errEl.style.display='block';
+      btn.textContent='Save card →';btn.disabled=false;
+    }
+  };
 }
 
 
