@@ -813,8 +813,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Father's last name *</label><input class="fi" id="prof-father-last" placeholder="Dupont" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="prof-mother" placeholder="Marie" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="prof-mother-maiden" placeholder="Martin" oninput="updateLLCompleteness()"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Home / residence address * <span style="font-size:.68rem;color:var(--td)">(where you reside — appears on the lease as your legal residence)</span></label><input class="fi" id="prof-home-address" placeholder="e.g. 5 Rue de la Paix, 75002 Paris, France" oninput="updateLLCompleteness()"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address * <span style="font-size:.68rem;color:var(--td)">(full address — if different from above)</span></label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta" oninput="updateLLCompleteness()"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Malta address * <span style="font-size:.68rem;color:var(--td)">(full address)</span></label><input class="fi" id="prof-malta-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta" oninput="updateLLCompleteness()"></div>
           </div>
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">💶 Financial</div>
           <div class="fgrid2">
@@ -1674,7 +1673,9 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
       const endFmt=endDate?new Date(endDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
       const price=booking?.monthly_rent||listing?.price||0; // prix réellement convenu (négocié ou non), pas juste le prix affiché sur l'annonce
       const deposit=listing?.deposit||price;
-      const dueDay=listing?.payment_due_day||1;
+      // Règle maltaise : le loyer se paie chaque mois à la date d'entrée dans
+      // le logement, pas à un jour fixe choisi au moment de créer l'annonce.
+      const dueDay=startDate?new Date(startDate).getDate():1;
       const dueSuffix=dueDay===1?'st':dueDay===2?'nd':dueDay===3?'rd':'th';
 
       // Fix 2 — les extras/négociation demandés par le locataire deviennent une clause visible dans le bail
@@ -1784,7 +1785,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
       lease_end:endDate,
       landlord_iban:landlordProfile?.iban||null,
       landlord_revolut:landlordProfile?.revolut_tag||null,
-      payment_due_day:listing?.payment_due_day||1,
+      payment_due_day:dueDay,
       deposit:listing?.deposit||listing?.price||0
     }).eq('id',bookingId);
 
@@ -1798,7 +1799,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
     const ibanInfo=landlordProfile?.iban?'\n🏦 IBAN: '+landlordProfile.iban+'\nName: '+(landlordProfile?.full_name||''):'';
     const revTag=landlordProfile?.revolut_tag||'';
     const revInfo=revTag?'\n💜 Revolut: https://revolut.me/'+revTag.replace('@',''):'';
-    const payDue=listing?.payment_due_day||1;
+    const payDue=dueDay;
 
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
@@ -2331,7 +2332,7 @@ async function generateAndSendLease(){
           address:selectedListing.full_address||selectedListing.zone||'',
           price:selectedListing.price||0,
           deposit:selectedListing.deposit||0,
-          payment_due_day:selectedListing.payment_due_day||'1',
+          payment_due_day:start?new Date(start).getDate():1,
           notice_period:selectedListing.notice_period||'1 month',
           bills:selectedListing.bills_situation||'excluded'
         },
@@ -2993,7 +2994,7 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
         landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||'',father_name:landlordProfile.father_name||'',mother_name:landlordProfile.mother_name||'',mother_maiden:landlordProfile.mother_maiden||'',place_of_birth:landlordProfile.place_of_birth||''},
         tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||'',father_name:tenantProfile.father_name||'',mother_name:tenantProfile.mother_name||'',mother_maiden:tenantProfile.mother_maiden||'',place_of_birth:tenantProfile.place_of_birth||''},
         coTenants:[],
-        listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
+        listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
         start_date:startDate,end_date:endDate
       })
     });
@@ -3088,7 +3089,7 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
           landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||'',father_name:landlordProfile.father_name||'',mother_name:landlordProfile.mother_name||'',mother_maiden:landlordProfile.mother_maiden||'',place_of_birth:landlordProfile.place_of_birth||''},
           tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||'',father_name:tenantProfile.father_name||'',mother_name:tenantProfile.mother_name||'',mother_maiden:tenantProfile.mother_maiden||'',place_of_birth:tenantProfile.place_of_birth||''},
           coTenants:[],
-          listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:listing.payment_due_day||1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
+          listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
           start_date:startDate,
           end_date:endDate
         })
@@ -3450,7 +3451,6 @@ function updateLLCompleteness(){
     {id:'prof-father',label:"Father's first name"},
     {id:'prof-mother',label:"Mother's first name"},
     {id:'prof-mother-maiden',label:"Mother's maiden name"},
-    {id:'prof-home-address',label:'Home / residence address'},
     {id:'prof-malta-address',label:'Malta address'},
     {id:'prof-iban',label:'IBAN'},
   ];
@@ -3465,7 +3465,6 @@ function updateLLCompleteness(){
     'prof-father': document.getElementById('prof-father')?.value?.trim() || P?.father_name,
     'prof-mother': document.getElementById('prof-mother')?.value?.trim() || P?.mother_name,
     'prof-mother-maiden': document.getElementById('prof-mother-maiden')?.value?.trim() || P?.mother_maiden,
-    'prof-home-address': document.getElementById('prof-home-address')?.value?.trim() || P?.home_address,
     'prof-malta-address': document.getElementById('prof-malta-address')?.value?.trim() || P?.malta_address,
     'prof-iban': document.getElementById('prof-iban')?.value?.trim() || P?.iban,
   };
@@ -3531,7 +3530,6 @@ async function loadProfilee(){
   if(document.getElementById('prof-father-last'))document.getElementById('prof-father-last').value=P.father_last_name||'';
   document.getElementById('prof-mother').value=P.mother_name||'';
   document.getElementById('prof-mother-maiden').value=P.mother_maiden||'';
-  if(document.getElementById('prof-home-address'))document.getElementById('prof-home-address').value=P.home_address||'';
   document.getElementById('prof-malta-address').value=P.malta_address||'';
   document.getElementById('prof-iban').value=P.iban||'';
   document.getElementById('prof-revolut').value=P.revolut_tag||P.bank_details||'';
@@ -3576,7 +3574,6 @@ async function saveProfilee(){
     father_last_name:document.getElementById('prof-father-last')?.value.trim(),
     mother_name:document.getElementById('prof-mother').value.trim(),
     mother_maiden:document.getElementById('prof-mother-maiden').value.trim(),
-    home_address:document.getElementById('prof-home-address')?.value.trim()||'',
     malta_address:document.getElementById('prof-malta-address').value.trim(),
     iban:document.getElementById('prof-iban').value.trim(),
     revolut_tag:document.getElementById('prof-revolut').value.trim(),
@@ -3832,7 +3829,7 @@ async function regenLease(bookingId, listingId, tenantId){
         type:listing?.type==='short'?'short':'long',
         landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||'',father_name:landlordProfile?.father_name||'',mother_name:landlordProfile?.mother_name||'',mother_maiden:landlordProfile?.mother_maiden||'',place_of_birth:landlordProfile?.place_of_birth||''},
         tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||'',father_name:tenantProfile?.father_name||'',mother_name:tenantProfile?.mother_name||'',mother_maiden:tenantProfile?.mother_maiden||'',place_of_birth:tenantProfile?.place_of_birth||''},
-        listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:listing?.payment_due_day||1},
+        listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:new Date(startDate).getDate()},
         start_date:startDate,end_date:endDate
       })
     });
@@ -4040,10 +4037,6 @@ function renderLeaseSection(g){
   const payConfirmed=bk?.first_payment_confirmed;
   const moveIn=bk?.move_in_date||g.move_in_date||null; // date choisie par le tenant à la candidature
   const edlDate=bk?.edl_date||moveIn||g.visit_date||null; // par défaut, même date que le move-in — le proprio peut la changer
-  // Tous les co-tenants avec leur statut de signature — le propriétaire doit
-  // voir absolument tout le monde, pas seulement le locataire principal.
-  let allCoLessees=[];
-  try{allCoLessees=bk?.co_lessees_embed_src?JSON.parse(bk.co_lessees_embed_src):[];}catch(e){}
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
     <div style="background:rgba(76,175,125,.12);padding:.55rem .85rem">
@@ -4084,16 +4077,10 @@ function renderLeaseSection(g){
             ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${bk?.lease_tenant_embed?` <a href="${bk.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
             :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
-        ${allCoLessees.map(cl=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 Co-tenant (${cl.name||'—'})</span>
-          ${cl.signed
-            ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
-            :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
-        </div>`).join('')}
       </div>
 
       <!-- Paiement -->
-      ${llSigned&&tSigned&&allCoLessees.every(cl=>cl.signed)&&bk?.status!=='signing_day'&&bk?.status!=='move_in_ready'?`
+      ${llSigned&&tSigned&&bk?.status!=='signing_day'&&bk?.status!=='move_in_ready'?`
       <div style="margin-bottom:.5rem">
         <button onclick="setSigningDay('${bk?.id||''}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">📋 Mark as Signing Day</button>
       </div>`:''}
@@ -4589,6 +4576,10 @@ async function generateAnnexAndCompleteLL(){
 // First month's rent was already collected at signing (declareTenantPayment/
 // confirmTenantPayment) — this schedules the following months, correctly
 // linked to the tenant so they actually see and can pay them.
+//
+// Malta rule: rent is due each month on the day the tenant moved in, NOT on
+// the 1st of the month (e.g. moved in on the 15th → due on the 15th every
+// month after).
 async function generateRentScheduleLL(ctx,monthsAhead=12){
   const bk=ctx.booking;
   if(!bk?.tenant_id||!bk?.listing_id||!bk?.monthly_rent)return;
@@ -4598,9 +4589,10 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
   if(existing&&existing.length)return;
 
   const rows=[];
-  const base=bk.start_date?new Date(bk.start_date):new Date();
+  const base=new Date(bk.move_in_date||bk.start_date||Date.now());
+  const dueDayOfMonth=base.getDate();
   for(let i=1;i<=monthsAhead;i++){
-    const due=new Date(base.getFullYear(),base.getMonth()+i,1);
+    const due=new Date(base.getFullYear(),base.getMonth()+i,dueDayOfMonth);
     rows.push({
       landlord_id:U.id,
       tenant_id:bk.tenant_id,
@@ -4614,6 +4606,7 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
     });
   }
   await sb.from('payments').insert(rows);
+  return rows[0]?.due_date||null; // date du tout premier loyer récurrent, utile pour informer le locataire
 }
 
 async function confirmTenantPayment(bookingId){
@@ -4628,6 +4621,15 @@ async function confirmTenantPayment(bookingId){
   const{error}=await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
   if(error){toast('❌ '+error.message);return;}
 
+  // Prochaine échéance — règle maltaise : le loyer se paie chaque mois à la
+  // date d'entrée dans le logement, pas le 1er du mois.
+  let nextDueLabel='—';
+  if(bk?.move_in_date){
+    const moveIn=new Date(bk.move_in_date);
+    const nextDue=new Date(moveIn.getFullYear(),moveIn.getMonth()+1,moveIn.getDate());
+    nextDueLabel=nextDue.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  }
+
   // Record the deposit and first month's rent as clearly labeled payments —
   // 'first_rent' (not 'rent') so it doesn't get counted twice by the
   // recurring monthly schedule generator, which only looks for 'rent'.
@@ -4641,7 +4643,16 @@ async function confirmTenantPayment(bookingId){
     }catch(e){console.warn('Payments record:',e);}
   }
 
-  toast('✅ Payment confirmed!');
+  // Informer le locataire (payment confirmé + date du prochain loyer)
+  try{
+    await sb.from('messages').insert({
+      listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
+      content:`✅ Your landlord confirmed receiving your payment!\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,
+      type:'payment_confirmed'
+    });
+  }catch(e){}
+
+  toast(`✅ Payment confirmed! Next rent due: ${nextDueLabel}`);
   if(bk)generateFirstPaymentReceiptLL(bk,listing?.title,tenantProfile?.full_name);
 
   loadVisitsPage();
