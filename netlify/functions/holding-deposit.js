@@ -9,6 +9,12 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 // exact (amount_cents) est calculé et transmis par le frontend
 // (landlord-dashboard.html) — cette fonction ne fait que créer le PaymentIntent
 // Stripe pour le montant donné, elle ne connaît pas le taux elle-même.
+//
+// NOTE: le système de "Holding Deposit" (pré-autorisation de 50% du loyer,
+// capturée uniquement si le locataire disparaît) a été retiré — le locataire
+// paie déjà les frais RestMalta dès l'acceptation, ce qui représente un
+// engagement réel ; ajouter un blocage de carte supplémentaire avant même la
+// réponse du propriétaire créait de la friction pour une protection redondante.
 const TENANT_FEE_RATE = 0.10;
 
 exports.handler = async (event) => {
@@ -62,20 +68,15 @@ exports.handler = async (event) => {
       };
     }
 
-    // ── ACTION: Créer la pré-autorisation du Holding Deposit (bonne foi, PAS la commission) ──
-    // Le tenant confirme cette intention avec sa carte (gère 3DS/SCA). Une fois confirmée,
-    // le front récupère le payment_method et appelle 'create_commission_intent' juste après
-    // pour créer une DEUXIÈME intention séparée (la commission), en réutilisant la même carte
-    // sans redemander de saisie. Les deux intentions vivent indépendamment :
-    //  - la commission est capturée (encaissée) dès que le propriétaire accepte
-    //  - le holding reste juste autorisé, et n'est capturé QUE si le propriétaire déclare
-    //    le locataire disparu après signature du bail des deux côtés. Sinon il est relâché
-    //    (jamais prélevé) une fois le vrai dépôt payé directement au propriétaire.
-    if (action === 'create_holding') {
-      const { listing_id, tenant_id, tenant_email, tenant_name, tenant_stripe_customer_id, monthly_rent, has_agent } = params;
-
-      const holdingAmount = Math.round((monthly_rent / 2) * 100); // 50% loyer, en centimes
-      const commissionAmount = Math.round(monthly_rent * TENANT_FEE_RATE * 100); // 10%, calculé ici pour cohérence, capturé plus tard via create_commission_intent
+    // ── ACTION: Créer la pré-autorisation des frais RestMalta (10%) côté locataire ──
+    // Autorisée à la demande, capturée uniquement si le propriétaire accepte.
+    // Remplace l'ancien flow à deux intentions (holding + commission) par une
+    // seule intention directe.
+    if (action === 'create_commission_intent') {
+      const { listing_id, tenant_id, tenant_email, tenant_name, tenant_stripe_customer_id, monthly_rent } = params;
+      if (!monthly_rent) {
+        return { statusCode: 400, headers, body: JSON.stringify({ success: false, error: 'Missing monthly_rent' }) };
+      }
 
       let customerId = tenant_stripe_customer_id;
       if (!customerId) {
@@ -92,58 +93,14 @@ exports.handler = async (event) => {
         }
       }
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: holdingAmount,
-        currency: 'eur',
-        capture_method: 'manual', // Fonds bloqués, capturés uniquement si "tenant disparu"
-        customer: customerId,
-        payment_method_types: ['card'],
-        setup_future_usage: 'off_session', // Sauvegarde la carte pour create_commission_intent juste après
-        metadata: {
-          type: 'holding_deposit',
-          listing_id,
-          tenant_id,
-          holding_amount: holdingAmount,
-          monthly_rent: Math.round(monthly_rent * 100),
-          has_agent: String(has_agent || false)
-        },
-        description: `Holding Deposit (bonne foi)`
-      });
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          client_secret: paymentIntent.client_secret,
-          payment_intent_id: paymentIntent.id,
-          holding_amount: holdingAmount / 100,
-          commission_amount: commissionAmount / 100,
-          total: (holdingAmount + commissionAmount) / 100,
-          customer_id: customerId
-        })
-      };
-    }
-
-    // ── ACTION: Créer la 2e pré-autorisation (commission) juste après confirmation du holding ──
-    // Appelée immédiatement après que le front a confirmé create_holding avec succès.
-    // Réutilise le payment_method déjà validé — off_session, aucune ressaisie carte.
-    if (action === 'create_commission_intent') {
-      const { customer_id, payment_method_id, monthly_rent, has_agent, listing_id, tenant_id } = params;
-      if (!customer_id || !payment_method_id || !monthly_rent) {
-        return { statusCode: 400, headers, body: JSON.stringify({ success: false, error: 'Missing customer_id/payment_method_id/monthly_rent' }) };
-      }
-
       const commissionAmount = Math.round(monthly_rent * TENANT_FEE_RATE * 100);
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: commissionAmount,
         currency: 'eur',
         capture_method: 'manual', // Autorisé maintenant, capturé (encaissé) seulement si le propriétaire accepte
-        customer: customer_id,
-        payment_method: payment_method_id,
-        confirm: true,
-        off_session: true,
+        customer: customerId,
+        payment_method_types: ['card'],
         metadata: {
           type: 'tenant_commission',
           listing_id: listing_id || '',
@@ -158,13 +115,15 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({
           success: true,
+          client_secret: paymentIntent.client_secret,
           commission_payment_intent_id: paymentIntent.id,
-          commission_amount: commissionAmount / 100
+          commission_amount: commissionAmount / 100,
+          customer_id: customerId
         })
       };
     }
 
-    // ── ACTION: Landlord accepte → capture la commission (10%), le holding reste en attente ──
+    // ── ACTION: Landlord accepte → capture la commission (10%) ──
     if (action === 'landlord_accept') {
       const { booking_id } = params;
 
@@ -180,7 +139,6 @@ exports.handler = async (event) => {
       let commissionAmountEur = 0;
 
       if (booking.commission_payment_intent_id) {
-        // Nouveau flow : intentions séparées — capture propre de la commission uniquement
         try {
           const intent = await stripe.paymentIntents.retrieve(booking.commission_payment_intent_id);
           if (intent.status === 'requires_capture') {
@@ -192,23 +150,6 @@ exports.handler = async (event) => {
           }
         } catch(e) {
           console.warn('Commission capture error (non-blocking):', e.message);
-          captureResult = 'error: ' + e.message;
-        }
-        // Le holding (booking.payment_intent_id) n'est PAS touché ici — il reste autorisé,
-        // et sera soit relâché (release_holding) soit capturé (tenant_ghosted) plus tard.
-      } else if (booking.payment_intent_id) {
-        // Ancien flow (réservations créées avant la séparation en 2 intentions) — comportement de secours
-        try {
-          const intent = await stripe.paymentIntents.retrieve(booking.payment_intent_id);
-          const commissionCents = parseInt(intent.metadata?.commission_amount || '0', 10);
-          if (intent.status === 'requires_capture' && commissionCents > 0) {
-            await stripe.paymentIntents.capture(booking.payment_intent_id, { amount_to_capture: commissionCents });
-            captureResult = 'legacy_commission_captured_holding_released';
-            commissionAmountEur = commissionCents / 100;
-          } else {
-            captureResult = 'legacy_skipped';
-          }
-        } catch(e) {
           captureResult = 'error: ' + e.message;
         }
       }
@@ -237,85 +178,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // ── ACTION: Propriétaire déclare le locataire disparu → capture le holding deposit ──
-    // Autorisé UNIQUEMENT si le bail est signé des deux côtés (vérifié ici, pas juste côté front).
-    if (action === 'tenant_ghosted') {
-      const { booking_id } = params;
-
-      let booking = null;
-      try {
-        const { data } = await sb.from('bookings').select('*').eq('id', booking_id).single();
-        booking = data;
-      } catch(e) {}
-
-      if (!booking) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Booking not found' }) };
-      if (!booking.lease_signed_landlord || !booking.lease_signed_tenant) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Lease must be signed by both parties first' }) };
-      }
-      if (!booking.payment_intent_id) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'No holding deposit on file for this booking' }) };
-      }
-
-      let result = 'skipped';
-      let amountCaptured = 0;
-      try {
-        const intent = await stripe.paymentIntents.retrieve(booking.payment_intent_id);
-        if (intent.status === 'requires_capture') {
-          const captured = await stripe.paymentIntents.capture(booking.payment_intent_id);
-          amountCaptured = captured.amount_received / 100;
-          result = 'holding_captured';
-        } else {
-          result = `holding_${intent.status}_not_capturable`;
-        }
-      } catch(e) {
-        return { statusCode: 500, headers, body: JSON.stringify({ success: false, error: e.message }) };
-      }
-
-      if (result === 'holding_captured') {
-        await sb.from('bookings').update({
-          status: 'tenant_ghosted',
-          holding_captured_at: new Date().toISOString()
-        }).eq('id', booking_id);
-      }
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true, result, amount_captured: amountCaptured })
-      };
-    }
-
-    // ── ACTION: Relâcher le holding — appelée quand le vrai dépôt a été payé directement au propriétaire ──
-    if (action === 'release_holding') {
-      const { booking_id } = params;
-
-      let booking = null;
-      try {
-        const { data } = await sb.from('bookings').select('*').eq('id', booking_id).single();
-        booking = data;
-      } catch(e) {}
-
-      if (!booking || !booking.payment_intent_id) {
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true, result: 'nothing_to_release' }) };
-      }
-
-      let result = 'skipped';
-      try {
-        const intent = await stripe.paymentIntents.retrieve(booking.payment_intent_id);
-        if (intent.status === 'requires_capture') {
-          await stripe.paymentIntents.cancel(booking.payment_intent_id);
-          result = 'holding_released';
-        } else {
-          result = `holding_${intent.status}_no_action`;
-        }
-      } catch(e) {
-        result = 'error: ' + e.message;
-      }
-
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, result }) };
-    }
-
-    // ── ACTION: Landlord refuse → rembourser intégralement (commission + holding) ──
+    // ── ACTION: Landlord refuse → rembourser la commission ──
     if (action === 'landlord_decline') {
       const { booking_id, reason } = params;
 
@@ -327,12 +190,11 @@ exports.handler = async (event) => {
 
       if (!booking) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Booking not found' }) };
 
-      for (const intentId of [booking.payment_intent_id, booking.commission_payment_intent_id]) {
-        if (!intentId) continue;
+      if (booking.commission_payment_intent_id) {
         try {
-          const intent = await stripe.paymentIntents.retrieve(intentId);
-          if (intent.status === 'requires_capture') await stripe.paymentIntents.cancel(intentId);
-          else if (intent.status === 'succeeded') await stripe.refunds.create({ payment_intent: intentId });
+          const intent = await stripe.paymentIntents.retrieve(booking.commission_payment_intent_id);
+          if (intent.status === 'requires_capture') await stripe.paymentIntents.cancel(booking.commission_payment_intent_id);
+          else if (intent.status === 'succeeded') await stripe.refunds.create({ payment_intent: booking.commission_payment_intent_id });
         } catch(e) { console.warn('Decline refund/cancel error (non-blocking):', e.message); }
       }
 
@@ -352,7 +214,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // ── ACTION: Tenant annule avant acceptation → rembourser (commission + holding) ──
+    // ── ACTION: Tenant annule avant acceptation → rembourser la commission ──
     if (action === 'tenant_cancel') {
       const { booking_id } = params;
 
@@ -367,11 +229,10 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Booking already processed' }) };
       }
 
-      for (const intentId of [booking.payment_intent_id, booking.commission_payment_intent_id]) {
-        if (!intentId) continue;
+      if (booking.commission_payment_intent_id) {
         try {
-          const intent = await stripe.paymentIntents.retrieve(intentId);
-          if (intent.status === 'requires_capture') await stripe.paymentIntents.cancel(intentId);
+          const intent = await stripe.paymentIntents.retrieve(booking.commission_payment_intent_id);
+          if (intent.status === 'requires_capture') await stripe.paymentIntents.cancel(booking.commission_payment_intent_id);
         } catch(e) { console.warn('Cancel error (non-blocking):', e.message); }
       }
 
