@@ -1257,20 +1257,47 @@ function renderCoTenantsSummary(booking){
   let coTenants=[];
   try{coTenants=booking.co_tenants_data?JSON.parse(booking.co_tenants_data):[];}catch(e){}
   if(!coTenants.length)return '';
-  const cards=coTenants.map((ct,i)=>`
+  const cards=coTenants.map((ct,i)=>{
+    const verifiedCell=ct.hasAccount
+      ?`<div id="ct-ver-${booking.id}-${i}" style="font-weight:600">⏳</div>`
+      :`<div style="font-weight:600;color:var(--td)">No account</div>`;
+    const phoneCell=ct.hasAccount
+      ?`<div id="ct-phone-${booking.id}-${i}" style="font-weight:600">⏳</div>`
+      :`<div style="font-weight:600">${ct.phone||'—'}</div>`;
+    return`
     <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:.55rem .65rem;margin-bottom:.35rem">
       <div style="font-size:.6rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.3rem">👥 Co-tenant ${i+1}${ct.hasAccount?' — RestMalta account':' — no account yet'}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem .5rem;font-size:.72rem">
         <div><div style="color:var(--td);font-size:.58rem">Full name</div><div style="font-weight:600">${ct.name||'—'}</div></div>
-        <div><div style="color:var(--td);font-size:.58rem">Email</div><div style="font-weight:600">${ct.email||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.58rem">Verified</div>${verifiedCell}</div>
         <div><div style="color:var(--td);font-size:.58rem">Nationality</div><div style="font-weight:600">${ct.nationality||'—'}</div></div>
-        <div><div style="color:var(--td);font-size:.58rem">Passport / ID</div><div style="font-weight:600">${ct.passport||'—'}</div></div>
+        <div><div style="color:var(--td);font-size:.58rem">Phone</div>${phoneCell}</div>
       </div>
-    </div>`).join('');
-  return `<div style="margin-bottom:.5rem">
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:.5rem" id="co-tenants-summary-${booking.id}">
     <div style="font-size:.65rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem">👥 Co-tenants (also on the lease)</div>
     ${cards}
   </div>`;
+}
+
+async function loadCoTenantsLiveInfo(booking){
+  if(!booking)return;
+  let coTenants=[];
+  try{coTenants=booking.co_tenants_data?JSON.parse(booking.co_tenants_data):[];}catch(e){}
+  const accountTenantIds=coTenants.map((ct,i)=>({ct,i})).filter(x=>x.ct.hasAccount&&x.ct.tenant_id);
+  if(!accountTenantIds.length)return;
+  try{
+    const{data:profiles}=await sb.from('profiles').select('clerk_id,phone,verified,id_submitted').in('clerk_id',accountTenantIds.map(x=>x.ct.tenant_id));
+    const pMap={};(profiles||[]).forEach(p=>{pMap[p.clerk_id]=p;});
+    accountTenantIds.forEach(({ct,i})=>{
+      const p=pMap[ct.tenant_id];
+      const phoneEl=document.getElementById(`ct-phone-${booking.id}-${i}`);
+      const verEl=document.getElementById(`ct-ver-${booking.id}-${i}`);
+      if(phoneEl)phoneEl.textContent=p?.phone||ct.phone||'—';
+      if(verEl)verEl.innerHTML=p?.verified?'<span style="color:#4CAF7D">✅ Verified</span>':p?.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)">❌ Not verified</span>';
+    });
+  }catch(e){}
 }
 
 async function loadBookingDossier(booking){
@@ -1378,7 +1405,7 @@ async function loadBookingDossier(booking){
   // Co-tenants ajoutés lors de la candidature — ils seront aussi sur le bail,
   // le propriétaire doit voir leur profil comme celui du candidat principal.
   const coTenantsHtml=renderCoTenantsSummary(booking);
-  if(coTenantsHtml)container.insertAdjacentHTML('beforeend',coTenantsHtml);
+  if(coTenantsHtml){container.insertAdjacentHTML('beforeend',coTenantsHtml);loadCoTenantsLiveInfo(booking);}
 
   // Bouton regenerate lease si booking accepted mais pas d'embed
   if(booking.status==='accepted'&&!booking.lease_landlord_embed){
@@ -4136,6 +4163,7 @@ function renderVisitGroup(g, isPast){
   // Charger les infos du tenant si dossier reçu
   if((g.status==='booking_pending'||g.status==='pending')&&g.tenant_id){
     setTimeout(()=>loadTenantDossierForLL(g.tenant_id),50);
+    if(bk)setTimeout(()=>loadCoTenantsLiveInfo(bk),50);
   }
 
   return`<div style="padding:.85rem;background:${isPast?'transparent':bgColor};border:1px solid ${isPast?'var(--b)':borderColor};border-radius:12px;margin-bottom:.6rem;opacity:${isPast?'.6':'1'}">
