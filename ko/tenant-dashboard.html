@@ -1587,10 +1587,14 @@ async function loadTenantVisits(){
   // — dès l'envoi de la demande, pas seulement une fois le bail généré.
   let coTenantBookings=[];
   try{
-    const{data:allWithCoTenants}=await sb.from('bookings').select('*').not('co_tenants_data','is',null).neq('tenant_id',U.id).not('status','in','("declined","cancelled_by_tenant")');
+    const{data:allWithCoTenants,error:coTenantErr}=await sb.from('bookings').select('*').not('co_tenants_data','is',null).neq('tenant_id',U.id);
+    if(coTenantErr)console.error('[co-tenant query]',coTenantErr.message);
+    console.log('[co-tenant query] bookings with co_tenants_data (excluding mine as main applicant):',(allWithCoTenants||[]).length);
     (allWithCoTenants||[]).forEach(b=>{
+      if(['declined','cancelled_by_tenant'].includes(b.status))return;
       let coTenantsData=[];
-      try{coTenantsData=JSON.parse(b.co_tenants_data);}catch(e){}
+      try{coTenantsData=JSON.parse(b.co_tenants_data);}catch(e){console.error('[co-tenant query] bad co_tenants_data JSON on booking',b.id,e.message);}
+      console.log('[co-tenant query] booking',b.id,'co_tenants_data:',coTenantsData);
       const isMe=coTenantsData.find(ct=>ct.hasAccount&&ct.tenant_id===U.id);
       if(!isMe)return;
       let coLessees=[];
@@ -1598,7 +1602,8 @@ async function loadTenantVisits(){
       const myEntry=coLessees.find(cl=>cl.tenant_id===U.id)||{signed:false,embed_src:null,tenant_id:U.id};
       coTenantBookings.push({...b,_myCoTenantEntry:myEntry});
     });
-  }catch(e){}
+    console.log('[co-tenant query] matched bookings for me as co-tenant:',coTenantBookings.length);
+  }catch(e){console.error('[co-tenant query] exception',e.message);}
 
   // Charger les bookings du tenant
   let bookings=[];
