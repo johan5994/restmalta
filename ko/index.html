@@ -1037,7 +1037,7 @@ async function searchAgencies(){
     const lat=parseFloat(results[0].lat),lng=parseFloat(results[0].lon);
     const nearestZone=findNearestZone(lat,lng);
 
-    const{data:agencies}=await sb.from('profiles').select('*').eq('role','agency');
+    const{data:agencies}=await sb.from('agency_profiles').select('*');
     const matching=(agencies||[]).filter(a=>{
       const zones=(a.zones||'').split(',').map(z=>z.trim().toLowerCase());
       return zones.includes(nearestZone.toLowerCase());
