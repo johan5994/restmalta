@@ -58,6 +58,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
 /* ── Cards & Grid ── */
 .card{background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;margin-bottom:1rem}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:1rem}
 .ch{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;border-bottom:1px solid var(--b)}
 .ct{font-size:.88rem;font-weight:700}
 .cb{padding:1.2rem}
@@ -213,6 +214,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Clients</div>
     <button class="ni" onclick="sp('crm',this)"><span class="nico">👥</span>CRM Clients<span class="nbadge" id="nb-leads" style="display:none">0</span></button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-agency-msg" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('estimations',this)"><span class="nico">📐</span>Estimation Requests<span class="nbadge" id="nb-estimations" style="display:none">0</span></button>
 
     <div class="nl">Account</div>
     <button class="ni" onclick="sp('subscription',this)"><span class="nico">💳</span>Subscription</button>
@@ -405,19 +408,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="fgrid2">
             <div class="fg" style="grid-column:1/-1"><label class="fl">Property Title *</label><input class="fi" id="nl-title" placeholder="Modern 2BR apartment in Sliema"></div>
             <div class="fg"><label class="fl">Zone *</label><select class="fsel" id="nl-zone"><option value="">Select zone...</option><option>Valletta</option><option>Sliema</option><option>St Julian's</option><option>Msida</option><option>Gzira</option><option>Swieqi</option><option>Pembroke</option><option>St Paul's Bay</option><option>Mellieha</option><option>Marsaskala</option><option>Bugibba</option><option>Naxxar</option><option>Birkirkara</option><option>San Gwann</option><option>Attard</option><option>Balzan</option><option>Other</option></select></div>
-            <div class="fg"><label class="fl">Monthly Rent (€) *</label><input class="fi" type="number" id="nl-price" placeholder="850"></div>
+            <div class="fg"><label class="fl">Listing type</label><select class="fsel" id="nl-mode" onchange="toggleListingMode('nl')"><option value="long">🏛️ Long-let (rental)</option><option value="for_sale">🏷️ For sale</option></select></div>
+            <div class="fg"><label class="fl" id="nl-price-label">Monthly Rent (€) *</label><input class="fi" type="number" id="nl-price" placeholder="850"></div>
             <div class="fg"><label class="fl">Bedrooms</label><select class="fsel" id="nl-beds"><option value="0">Studio</option><option value="1">1 Bedroom</option><option value="2">2 Bedrooms</option><option value="3">3 Bedrooms</option><option value="4">4+ Bedrooms</option></select></div>
             <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="nl-baths"><option value="1">1 Bathroom</option><option value="2">2 Bathrooms</option><option value="3">3+ Bathrooms</option></select></div>
-            <div class="fg"><label class="fl">Lease Type</label><div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.65rem;font-size:.85rem;color:var(--tm)">🏛️ Long-let (1 year+) <span style="font-size:.7rem;color:var(--td)">— agences RestMalta, long-let uniquement</span></div></div>
             <div class="fg"><label class="fl">Property Type</label><select class="fsel" id="nl-ptype"><option value="apartment">Apartment</option><option value="house">House / Terraced House</option><option value="penthouse">Penthouse</option><option value="maisonette">Maisonette</option><option value="townhouse">Townhouse</option><option value="studio">Studio</option><option value="villa">Villa</option></select></div>
             <div class="fg"><label class="fl">Floor</label><select class="fsel" id="nl-floor"><option value="">—</option><option value="Ground floor">Ground floor</option><option value="1st floor">1st floor</option><option value="2nd floor">2nd floor</option><option value="3rd floor">3rd floor</option><option value="4th floor">4th floor</option><option value="5th floor+">5th floor+</option><option value="Penthouse level">Penthouse level</option></select></div>
             <div class="fg"><label class="fl">Size (m²)</label><input class="fi" type="number" id="nl-sqm" placeholder="75"></div>
-            <div class="fg"><label class="fl">Deposit (€)</label><input class="fi" type="number" id="nl-deposit" placeholder="Same as monthly rent if left empty"></div>
-            <div class="fg"><label class="fl">Available From</label><input class="fi" type="date" id="nl-available"></div>
-            <div class="fg"><label class="fl">Bills</label><select class="fsel" id="nl-bills"><option value="included">All bills included</option><option value="excluded">Bills not included</option></select></div>
+            <div class="fg" id="nl-deposit-wrap"><label class="fl">Deposit (€)</label><input class="fi" type="number" id="nl-deposit" placeholder="Same as monthly rent if left empty"></div>
+            <div class="fg" id="nl-available-wrap"><label class="fl">Available From</label><input class="fi" type="date" id="nl-available"></div>
+            <div class="fg" id="nl-bills-wrap"><label class="fl">Bills</label><select class="fsel" id="nl-bills"><option value="included">All bills included</option><option value="excluded">Bills not included</option></select></div>
           </div>
           <div class="fg"><label class="fl">Description</label><textarea class="fi" id="nl-desc" rows="4" placeholder="Describe the property — furnished, amenities, transport links..."></textarea></div>
           <div class="fg"><label class="fl">Full Address</label><input class="fi" id="nl-address" placeholder="12 Triq il-Kbira, Sliema SLM 1234, Malta"></div>
+          <div class="fg" id="nl-landlord-email-wrap" style="display:none;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:.75rem 1rem">
+            <label class="fl">Landlord's email *</label>
+            <input class="fi" id="nl-landlord-email" placeholder="owner@email.com" type="email">
+            <div style="font-size:.7rem;color:var(--td);margin-top:.4rem">Posting is free for you — the landlord pays €2/week to keep this listing online. We'll email them a link to activate it.</div>
+          </div>
 
           <!-- Features / Amenities -->
           <div class="fg">
@@ -522,6 +530,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div id="visits-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
+  <!-- ── MESSAGES ── -->
+  <div class="page" id="page-messages">
+    <div class="card"><div class="ch"><div class="ct">💬 My conversations</div></div><div class="cb" id="agency-messages-wrap"><div class="empty"><div class="em">💬</div><p>Loading...</p></div></div></div>
+
+    <!-- Modal chat -->
+    <div class="modal" id="agency-msg-modal" onclick="if(event.target.id==='agency-msg-modal')closeAgencyMsg()">
+      <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;max-width:520px;width:95%;height:80vh;display:flex;flex-direction:column">
+        <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:700;font-size:.95rem" id="agency-msg-title">—</div>
+            <div style="font-size:.72rem;color:var(--terra);font-weight:600;margin-top:.2rem" id="agency-msg-sub">—</div>
+          </div>
+          <button onclick="closeAgencyMsg()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+        </div>
+        <div id="agency-msg-thread" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
+        <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+          <input id="agency-msg-input" class="fi" placeholder="Write a message..." style="flex:1;font-size:.83rem" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAgencyMsg();}">
+          <button class="btn bp bsm" onclick="sendAgencyMsg()">Send →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ESTIMATION REQUESTS ── -->
+  <div class="page" id="page-estimations">
+    <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📐 Estimation Requests</div></div>
+    <div id="estimations-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+  </div>
+
   <!-- ── SUBSCRIPTION ── -->
   <div class="page" id="page-subscription">
     <div style="max-width:800px">
@@ -606,6 +643,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg" style="grid-column:1/-1"><label class="fl">Website</label><input class="fi" id="ag-website" placeholder="https://your-agency.com"></div>
             <div class="fg" style="grid-column:1/-1"><label class="fl">Address</label><input class="fi" id="ag-address" placeholder="123 Main Street, Sliema"></div>
             <div class="fg" style="grid-column:1/-1"><label class="fl">Current offer <span style="font-size:.68rem;color:var(--td)">(shown to landlords browsing agencies — optional)</span></label><input class="fi" id="ag-offer" placeholder="e.g. First year of management free"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Estimation fee (€) <span style="font-size:.68rem;color:var(--td)">(what you charge for a property estimation — 0 for free)</span></label><input class="fi" type="number" id="ag-estimation-tariff" placeholder="0" min="0"></div>
             <div class="fg" style="grid-column:1/-1">
               <label class="fl">Zones covered</label>
               <div style="font-size:.72rem;color:var(--td);margin-bottom:.5rem">Landlords searching for an agency near their property will only see you if it's in one of these zones.</div>
@@ -879,7 +917,7 @@ const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 const pageTitles={
   overview:'Dashboard',analytics:'Analytics',listings:'My Listings',import:'Quick Import',
   'new-listing':'New Listing',crm:'CRM — Client Pipeline',
-  visits:'All Visits',subscription:'Subscription',profile:'Agency Profile'
+  visits:'All Visits',messages:'Messages',estimations:'Estimation Requests',subscription:'Subscription',profile:'Agency Profile'
 };
 
 let clerk,U=null,P=null,agencyData=null;
@@ -912,6 +950,7 @@ async function loadAgencyProfile(){
       const savedZones=(p.zones||'').split(',').map(z=>z.trim()).filter(Boolean);
       document.querySelectorAll('.ag-zone-cb').forEach(cb=>{cb.checked=savedZones.includes(cb.value);});
       document.getElementById('ag-offer').value=p.current_offer||'';
+      document.getElementById('ag-estimation-tariff').value=p.estimation_tariff||'';
       document.getElementById('ag-bio').value=p.bio||'';
       if(p.logo_url){
         const preview=document.getElementById('logo-preview');
@@ -1061,6 +1100,8 @@ function sp(id, btn){
   if(id==='listings')loadListings();
   if(id==='crm')loadCRM();
   if(id==='visits')loadVisits();
+  if(id==='messages')loadAgencyMessages();
+  if(id==='estimations')loadEstimations();
   if(id==='analytics')loadAnalytics();
   if(id==='subscription')loadSubscription();
   if(id==='profile')renderTeamMembersSettings();
@@ -1070,7 +1111,7 @@ function sp(id, btn){
 function getPageSub(id){
   const subs={overview:'Agency overview',analytics:'Performance metrics',listings:'Manage your listings',
     import:'Add listings quickly',crm:'Client pipeline management',
-    visits:'All visit requests',subscription:'Plan & billing',profile:'Agency settings'};
+    visits:'All visit requests',messages:'Your conversations',estimations:'Property estimation requests from landlords',subscription:'Plan & billing',profile:'Agency settings'};
   return subs[id]||'';
 }
 
@@ -1157,11 +1198,14 @@ async function loadListings(){
             </div>
           </td>
           <td style="font-size:.82rem;color:var(--td)">📍 ${l.zone||'—'}</td>
-          <td style="font-weight:700;color:var(--green)">€${l.price||'—'}/mo</td>
-          <td><span class="agency-listing-badge">🏢 Agency</span></td>
+          <td style="font-weight:700;color:var(--green)">${l.type==='for_sale'?`€${l.sale_price||l.price||'—'}`:`€${l.price||'—'}/mo`}</td>
+          <td>${l.type==='for_sale'
+            ?(l.sale_subscription_status==='active'?'<span class="agency-listing-badge" style="background:rgba(76,175,125,.15);color:#2d7a56">🏷️ For sale — live</span>':l.sale_subscription_status==='past_due'?'<span class="agency-listing-badge" style="background:rgba(224,90,58,.15);color:#C9553A">⚠️ Payment issue</span>':'<span class="agency-listing-badge" style="background:rgba(212,168,71,.15);color:#8a6d1f">⏳ Not activated</span>')
+            :'<span class="agency-listing-badge">🏢 Agency</span>'}</td>
           <td style="font-size:.82rem;color:var(--td)" id="visit-count-${l.id}">—</td>
           <td>
             <div style="display:flex;gap:.3rem">
+              ${l.type==='for_sale'&&l.sale_subscription_status!=='active'?`<button onclick="resendActivationEmail('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.landlord_email||''}')" class="btn bp bsm" style="font-size:.68rem">📧 Resend to landlord</button>`:''}
               <a href="https://restmalta.netlify.app/#listing-${l.id}" target="_blank" class="btn bg bsm" style="font-size:.68rem;text-decoration:none">👁</a>
               <button onclick="editListing('${l.id}')" class="btn bg bsm" style="font-size:.68rem">✏️</button>
               <button onclick="deleteListing('${l.id}','${(l.title||'').replace(/'/g,"\\'")}',this)" class="btn bg bsm" style="font-size:.68rem;color:var(--red)">🗑</button>
@@ -1299,20 +1343,21 @@ async function publishImportedListing(){
 }
 
 async function createListing(data){
+  const isSale=data.lease_type==='for_sale';
   try{
     const{data:l,error}=await sb.from('listings').insert({
       title:data.title,zone:data.zone,price:data.price||0,
       spots:data.beds||0,baths:data.baths||1,
       description:data.description||'',full_address:data.full_address||'',
       furnished:data.furnished||false,wifi:data.wifi||false,
-      bills_situation:data.bills||'excluded',
-      bills_included:data.bills==='included',
+      bills_situation:isSale?null:(data.bills||'excluded'),
+      bills_included:isSale?false:data.bills==='included',
       type:data.lease_type||'long',
       property_type:data.property_type||null,
       floor:data.floor||null,
       sqm:data.sqm||null,
-      deposit:data.deposit||data.price||0,
-      available_from:data.available_from||null,
+      deposit:isSale?null:(data.deposit||data.price||0),
+      available_from:isSale?null:(data.available_from||null),
       payment_due_day:null,
       accepts_attestation:false,
       features:data.features&&data.features.length?JSON.stringify(data.features):null,
@@ -1321,14 +1366,24 @@ async function createListing(data){
       agent_id:U.id,agency_listing:true,
       agency_logo_url:agencyData?.logo_url||null,
       agency_name:agencyData?.agency_name||null,
+      sale_price:isSale?(data.price||0):null,
+      sale_subscription_status:isSale?'pending':null,
+      landlord_email:isSale?(data.landlord_email||null):null,
       status:'active',
+      active:!isSale, // les annonces "for sale" doivent d'abord activer leur abonnement
       created_at:new Date().toISOString()
     }).select().single();
     if(error)throw new Error(error.message);
-    toast('🚀 Listing published successfully!');
     uploadedPhotos=[];
     document.getElementById('import-preview').style.display='none';
-    sp('listings',null);
+    if(isSale){
+      await sendSaleActivationEmail(l.id,l.title,data.landlord_email);
+      toast('✅ Listing created — an activation email was sent to the landlord');
+      sp('listings',null);
+    }else{
+      toast('🚀 Listing published successfully!');
+      sp('listings',null);
+    }
   }catch(e){toast('❌ '+e.message);}
 }
 
@@ -1440,10 +1495,55 @@ function setFeatureTags(containerId,list){
   renderFeatureTags(containerId);
 }
 
+function toggleListingMode(prefix){
+  const mode=document.getElementById(`${prefix}-mode`)?.value;
+  const isSale=mode==='for_sale';
+  const priceLabel=document.getElementById(`${prefix}-price-label`);
+  if(priceLabel)priceLabel.textContent=isSale?'Sale Price (€) *':'Monthly Rent (€) *';
+  const depositWrap=document.getElementById(`${prefix}-deposit-wrap`);
+  const availWrap=document.getElementById(`${prefix}-available-wrap`);
+  const billsWrap=document.getElementById(`${prefix}-bills-wrap`);
+  const landlordEmailWrap=document.getElementById(`${prefix}-landlord-email-wrap`);
+  if(depositWrap)depositWrap.style.display=isSale?'none':'block';
+  if(availWrap)availWrap.style.display=isSale?'none':'block';
+  if(billsWrap)billsWrap.style.display=isSale?'none':'block';
+  if(landlordEmailWrap)landlordEmailWrap.style.display=isSale?'block':'none';
+}
+
+// Envoie au PROPRIÉTAIRE (pas à l'agence) le lien pour activer l'abonnement
+// hebdomadaire de visibilité — l'agence poste gratuitement, ne paie jamais.
+async function sendSaleActivationEmail(listingId,listingTitle,landlordEmail){
+  if(!landlordEmail)return;
+  try{
+    await fetch('/.netlify/functions/send-email',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        template:'sale_listing_activation',
+        to:landlordEmail,
+        data:{
+          landlordName:'there',
+          agencyName:agencyData?.agency_name||'Your agency',
+          listingTitle,
+          activationUrl:`https://restmalta.netlify.app/index.html?activate_sale=${listingId}`
+        }
+      })
+    });
+  }catch(e){console.warn('Activation email:',e);}
+}
+
+async function resendActivationEmail(listingId,listingTitle,landlordEmail){
+  if(!landlordEmail){toast('❌ No landlord email on file for this listing');return;}
+  await sendSaleActivationEmail(listingId,listingTitle,landlordEmail);
+  toast('✅ Activation email resent to the landlord');
+}
+
 async function publishNewListing(){
   const title=document.getElementById('nl-title').value.trim();
   const zone=document.getElementById('nl-zone').value;
   if(!title||!zone){toast('Title and zone required');return;}
+  const mode=document.getElementById('nl-mode').value; // 'long' ou 'for_sale'
+  const landlordEmail=document.getElementById('nl-landlord-email')?.value.trim();
+  if(mode==='for_sale'&&!landlordEmail){toast('⚠️ Landlord\'s email is required for sale listings');return;}
   const features=getFeatureTags('nl-features-tags');
   await createListing({
     title,zone,
@@ -1452,7 +1552,8 @@ async function publishNewListing(){
     baths:parseInt(document.getElementById('nl-baths').value)||1,
     description:document.getElementById('nl-desc').value.trim(),
     full_address:document.getElementById('nl-address').value.trim(),
-    lease_type:'long', // agences RestMalta = long-let uniquement
+    lease_type:mode,
+    landlord_email:landlordEmail,
     bills:document.getElementById('nl-bills').value,
     property_type:document.getElementById('nl-ptype').value,
     floor:document.getElementById('nl-floor').value,
@@ -1577,6 +1678,163 @@ function setCRMTab(tab, btn){
 function filterCRM(q){/* TODO: filter CRM list */}
 
 // ── Visits ────────────────────────────────────────────────────
+async function loadAgencyMessages(){
+  const wrap=document.getElementById('agency-messages-wrap');
+  if(!wrap)return;
+  try{
+    const{data:msgs}=await sb.from('messages')
+      .select('*')
+      .eq('receiver_id',U.id)
+      .not('type','eq','visit_request')
+      .order('created_at',{ascending:false})
+      .limit(50);
+
+    const nb=document.getElementById('nb-agency-msg');
+    const unread=(msgs||[]).filter(m=>!m.read).length;
+    if(nb){nb.textContent=unread;nb.style.display=unread>0?'inline':'none';}
+
+    if(!msgs?.length){
+      wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet</p></div>';
+      return;
+    }
+
+    const typeLabels={
+      'landlord_to_agency':'🏠 Landlord inquiry',
+      'message':'💬 Message',
+    };
+
+    wrap.innerHTML=msgs.map(m=>{
+      const date=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+      const label=typeLabels[m.type]||m.type||'Message';
+      const lines=m.content.split('\n');
+      const preview=lines[0]||'';
+      const otherParty=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      const canReply=otherParty&&otherParty!=='system';
+      return`<div style="padding:.75rem 1rem;background:${m.read?'var(--s2)':'rgba(76,175,125,.06)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="${canReply?`openAgencyMsg('${m.listing_id||''}','${otherParty}','${label.replace(/'/g,"\\'")}')`:''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
+          <span style="font-size:.75rem;font-weight:700;color:${m.read?'var(--td)':'#4CAF7D'}">${label}</span>
+          <span style="font-size:.65rem;color:var(--td)">${date}</span>
+        </div>
+        <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
+      </div>`;
+    }).join('');
+
+    try{await sb.from('messages').update({read:true}).eq('receiver_id',U.id).eq('read',false);}catch(e){}
+  }catch(e){
+    if(wrap)wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>Error loading messages</p></div>';
+    console.error('loadAgencyMessages:',e);
+  }
+}
+
+let agencyChatListingId=null,agencyChatOtherId=null;
+
+async function openAgencyMsg(listingId,otherPartyId,fallbackTitle){
+  agencyChatListingId=listingId||null;
+  agencyChatOtherId=otherPartyId;
+  document.getElementById('agency-msg-title').textContent='Loading...';
+  document.getElementById('agency-msg-sub').textContent='';
+  const thread=document.getElementById('agency-msg-thread');
+  thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td)">Loading...</div>';
+  document.getElementById('agency-msg-modal').style.display='flex';
+
+  let personName=fallbackTitle||'Conversation';
+  try{
+    const{data:profile}=await sb.from('profiles').select('full_name,role').eq('clerk_id',otherPartyId).maybeSingle();
+    if(profile?.full_name)personName=profile.full_name+(profile.role?' ('+profile.role+')':'');
+  }catch(e){}
+  let propertyTitle='';
+  if(listingId){
+    try{
+      const{data:listing}=await sb.from('listings').select('title,zone').eq('id',listingId).maybeSingle();
+      if(listing)propertyTitle=`${listing.title||''}${listing.zone?' — '+listing.zone:''}`;
+    }catch(e){}
+  }
+  document.getElementById('agency-msg-title').textContent=personName;
+  document.getElementById('agency-msg-sub').textContent=propertyTitle;
+
+  try{
+    let query=sb.from('messages').select('*').order('created_at',{ascending:true});
+    query=listingId?query.eq('listing_id',listingId):query.is('listing_id',null);
+    const{data}=await query;
+    const history=(data||[]).filter(m=>
+      (m.sender_id===U.id&&m.receiver_id===otherPartyId)||
+      (m.sender_id===otherPartyId&&m.receiver_id===U.id)
+    );
+
+    if(!history.length){
+      thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td);padding:1rem">No messages yet — say hello 👋</div>';
+    }else{
+      thread.innerHTML=history.map(m=>{
+        const isMe=m.sender_id===U.id;
+        return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+          <div style="max-width:80%;background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--txt)'};border-radius:12px;padding:.55rem .8rem;font-size:.83rem;white-space:pre-wrap;line-height:1.5">${m.content}</div>
+          <div style="font-size:.62rem;color:var(--td);margin-top:.2rem">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>`;
+      }).join('');
+      thread.scrollTop=thread.scrollHeight;
+    }
+  }catch(e){
+    thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--red)">Could not load messages</div>';
+  }
+
+  try{await sb.from('messages').update({read:true}).eq('receiver_id',U.id).eq('sender_id',otherPartyId).eq('read',false);}catch(e){}
+}
+
+function closeAgencyMsg(){
+  document.getElementById('agency-msg-modal').style.display='none';
+  agencyChatListingId=null;agencyChatOtherId=null;
+}
+
+async function sendAgencyMsg(){
+  const input=document.getElementById('agency-msg-input');
+  const content=input?.value.trim();
+  if(!content||!agencyChatOtherId)return;
+  input.value='';
+  try{
+    const{error}=await sb.from('messages').insert({
+      listing_id:agencyChatListingId,sender_id:U.id,receiver_id:agencyChatOtherId,
+      content,type:'message'
+    });
+    if(error){toast('❌ '+error.message);return;}
+    openAgencyMsg(agencyChatListingId,agencyChatOtherId,document.getElementById('agency-msg-title').textContent);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function loadEstimations(){
+  const wrap=document.getElementById('estimations-list');
+  wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
+  try{
+    const{data:reqs}=await sb.from('estimation_requests').select('*').eq('agency_id',U.id).order('created_at',{ascending:false});
+    const nb=document.getElementById('nb-estimations');
+    const pending=(reqs||[]).filter(r=>r.status==='pending').length;
+    if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
+    if(!(reqs||[]).length){wrap.innerHTML='<div class="empty"><div class="em">📐</div><p>No estimation requests yet.<br>Landlords browsing the agency directory can request one from your profile.</p></div>';return;}
+    wrap.innerHTML=(reqs||[]).map(r=>`
+      <div class="card" style="margin-bottom:.75rem">
+        <div class="cb" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">
+              <span style="font-weight:700">${r.landlord_name||'Landlord'}</span>
+              <span class="badge ${r.request_type==='sale'?'b-gold':'b-sea'}" style="font-size:.62rem">${r.request_type==='sale'?'🏷️ Sale estimation':'🏠 Rental estimation'}</span>
+              <span class="badge ${r.status==='pending'?'b-gold':r.status==='contacted'?'b-sea':'b-dim'}" style="font-size:.62rem">${r.status||'pending'}</span>
+            </div>
+            <div style="font-size:.82rem;color:var(--td);margin-bottom:.3rem">📍 ${r.address||'—'}</div>
+            ${r.notes?`<div style="font-size:.8rem;color:var(--tm);margin-bottom:.3rem">"${r.notes}"</div>`:''}
+            <div style="font-size:.7rem;color:var(--td)">${r.landlord_email||''} · ${r.created_at?new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.3rem;flex-shrink:0">
+            ${r.status==='pending'?`<button onclick="markEstimationContacted('${r.id}')" class="btn bp bsm" style="font-size:.7rem">Mark contacted</button>`:''}
+          </div>
+        </div>
+      </div>`).join('');
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading estimation requests</div>';}
+}
+
+async function markEstimationContacted(id){
+  await sb.from('estimation_requests').update({status:'contacted'}).eq('id',id);
+  loadEstimations();
+}
+
 async function loadVisits(){
   const wrap=document.getElementById('visits-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
@@ -1637,6 +1895,7 @@ async function saveAgencyProfile(){
     address:document.getElementById('ag-address').value.trim(),
     zones:[...document.querySelectorAll('.ag-zone-cb:checked')].map(cb=>cb.value).join(','),
     current_offer:document.getElementById('ag-offer').value.trim(),
+    estimation_tariff:parseFloat(document.getElementById('ag-estimation-tariff').value)||0,
     bio:document.getElementById('ag-bio').value.trim(),
   };
   if(!data.agency_name){toast('Agency name required');return;}
