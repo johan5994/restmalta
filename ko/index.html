@@ -574,18 +574,6 @@ footer ul a:hover{color:var(--terra)}
         </div>
         </div>
         <div id="section-agent-chosen-note" style="display:none;font-size:.78rem;color:#8B5CF6;font-weight:600">✅ Agent service already selected — <span onclick="document.getElementById('section-agent-choice').style.display='block';document.getElementById('section-agent-chosen-note').style.display='none'" style="text-decoration:underline;cursor:pointer;font-weight:700">change this</span></div>
-        <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(139,92,246,.15)">
-          <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
-            <input type="checkbox" id="p-exclusif" onchange="toggleExclusif(this)" style="margin-top:.2rem">
-            <div>
-              <div style="font-size:.82rem;font-weight:700;color:#8B5CF6">🤝 RestMalta Exclusive Mandate</div>
-              <div style="font-size:.72rem;color:var(--stone-l);margin-top:.2rem;line-height:1.5">Publish only on RestMalta for 3 months. In exchange: <strong style="color:#8B5CF6">reduced commission + priority placement</strong>. A mandate contract will be sent for e-signature on publication.</div>
-            </div>
-          </label>
-          <div id="exclusif-info" style="display:none;margin-top:.75rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem 1rem;font-size:.78rem;color:var(--stone)">
-            ✅ Exclusive mandate activated — You get priority placement and a reduced commission rate. A mandate contract will be sent to your email for e-signature upon publication.
-          </div>
-        </div>
       </div>
 
       <!-- Lease Agreement Attestation -->
@@ -1398,8 +1386,7 @@ async function openDet(id){
     <div class="crow"><span>Deposit</span><span>${l.deposit?'€'+l.deposit:'None'}</span></div>
     ${l.bills_situation?`<div class="crow"><span>Bills</span><span>${l.bills_situation==='included'?'✅ Included in rent':'❌ Tenant pays separately'}</span></div>`:''}
     ${l.payment_due_day?`<div class="crow"><span>Rent due</span><span>${l.payment_due_day==='last'?'Last day of month':l.payment_due_day+' of the month'}</span></div>`:''}
-    ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}
-    ${l.mandat_exclusif?'<div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;color:#8B5CF6;margin-top:.5rem">🤝 RestMalta Exclusive Mandate</div>':''}`;
+    ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}`;
 
   // Coût total pour le tenant
   const hasAgent=AL.wants_agent&&AL.agent_service==='full';
@@ -1821,10 +1808,6 @@ function updateAgentOpt(val){
   });
 }
 
-function toggleExclusif(cb){
-  document.getElementById('exclusif-info').style.display=cb.checked?'block':'none';
-}
-
 function toggleIndefinite(cb){
   const input=document.getElementById('pun');
   input.disabled=cb.checked;
@@ -2131,7 +2114,7 @@ async function doPost(){
     landlord_id:U.id,
     wants_agent,
     agent_service,
-    mandat_exclusif:document.getElementById('p-exclusif')?.checked||false,
+    // mandat_exclusif retiré — fonctionnalité jamais utile, supprimée
     active:!wants_agent, // reste caché tant qu'aucun agent n'a accepté de s'en occuper
     // Lease fields
     full_address:document.getElementById('p-full-address')?.value.trim()||null,
@@ -2183,10 +2166,6 @@ async function doPost(){
   }
   uploadedPhotos=[];document.getElementById('photo-previews').innerHTML='';
   document.getElementById('video-preview').innerHTML='';
-  // Generate mandat exclusif contract if selected
-  if(listing&&document.getElementById('p-exclusif')?.checked){
-    await generateMandatExclusif(listing);
-  }
   if(wants_agent&&listing){
     // L'annonce reste cachée tant qu'aucun agent n'a accepté — on prévient
     // uniquement les agents qui couvrent vraiment la zone de ce bien.
@@ -2210,55 +2189,6 @@ async function doPost(){
     sA(ok,"🎉 Listing published! It's now live on RestMalta.");
   }
   updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
-}
-
-async function generateMandatExclusif(listing){
-  try{
-    await sb.from('mandats').insert({
-      landlord_id:U.id,
-      listing_id:listing.id,
-      listing_title:listing.title,
-      start_date:new Date().toISOString().split('T')[0],
-      end_date:new Date(Date.now()+90*24*3600*1000).toISOString().split('T')[0],
-      status:'active',
-      commission_rate:3.5
-    });
-  }catch(e){}
-  // Generate contract document
-  const contractText=`MANDAT EXCLUSIF DE LOCATION
-RestMalta Platform
-
-Date : ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
-
-Mandant (Landlord) : ${P?.full_name||'Landlord'}
-Email: ${U.email}
-Property: ${listing.title} — ${listing.zone}, Malta
-Rent: €${listing.price}/month
-
-Le landlord confie à RestMalta, à titre exclusif, la mission de trouver un tenant for le bien désigné ci-dessus.
-
-DURATION: 3 months from the date above.
-
-EXCLUSIVITY: During the mandate period, the landlord agrees to:
-- Not publish this property on any other platform
-- Direct all enquiries to RestMaltae location reçue directement
-- Ne pas conclure de location sans passer par RestMalta
-
-AVANTAGES EXCLUSIF :
-- Reduced commission: 35% TTC (instead of 40% TTC)
-- Priority placement in search results
-- Badge "Mandat Exclusif" visible sur l'listing
-- Priority RestMalta support
-
-By publishing this property with the exclusive mandate checked, the landlord accepts these terms and conditions.
-
-Généré automatiquement par RestMalta — restmalta.com`;
-  const blob=new Blob([contractText],{type:'text/plain'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`Mandat_Exclusif_RestMalta_${listing.title.replace(/\s/g,'_')}.txt`;a.click();
-  URL.revokeObjectURL(url);
-  setTimeout(()=>toast('📄 Mandat exclusif téléchargé ! Gardez-le précieusement.'),500);
 }
 
 async function loadDash(){
