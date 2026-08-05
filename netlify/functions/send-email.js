@@ -6,6 +6,31 @@ const FROM = 'RestMalta <noreply@restmalta.com>';
 
 const templates = {
 
+  // Sale listing posted by an agency on the landlord's behalf — landlord
+  // needs to activate the €2/week visibility subscription (RestMalta
+  // never touches the sale itself, this is purely about staying online)
+  sale_listing_activation: ({ landlordName, agencyName, listingTitle, activationUrl }) => ({
+    subject: `🏷️ Activate your property listing on RestMalta`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:12px">
+        <div style="background:#6366F1;padding:20px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:white;margin:0;font-size:24px">RestMalta</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px">
+          <h2 style="color:#1a1a1a">🏷️ Your property is ready to go live</h2>
+          <p style="color:#666">${agencyName} has listed your property "<strong>${listingTitle}</strong>" for sale on RestMalta.</p>
+          <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0">
+            <p style="margin:5px 0;color:#666">Listing on RestMalta costs <strong>€2/week</strong>, billed automatically — cancel anytime, the listing goes offline the moment you do. RestMalta doesn't get involved in the sale itself, this only covers keeping your listing visible.</p>
+          </div>
+          <a href="${activationUrl}" style="display:inline-block;background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px">
+            Activate my listing →
+          </a>
+        </div>
+        <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">RestMalta — Malta's rental platform</p>
+      </div>
+    `
+  }),
+
   // Visit requested — to landlord
   visit_request_landlord: ({ tenantName, visitDate, visitTime, listingTitle, dashboardUrl }) => ({
     subject: `📅 New visit request — ${listingTitle}`,
