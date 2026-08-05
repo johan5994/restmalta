@@ -3600,20 +3600,44 @@ async function loadRentedProperties(){
   const{data:listings}=await sb.from('listings').select('id,title,zone,photos,price').in('id',listingIds);
   const lMap={};(listings||[]).forEach(l=>{lMap[l.id]=l;});
 
-  const{data:allPayments}=await sb.from('payments').select('*').eq('landlord_id',U.id).in('listing_id',listingIds).order('due_date',{ascending:false});
+  const{data:allPayments}=await sb.from('payments').select('*').eq('landlord_id',U.id).in('listing_id',listingIds).order('due_date',{ascending:true});
   const paysByListing={};
   (allPayments||[]).forEach(p=>{(paysByListing[p.listing_id]=paysByListing[p.listing_id]||[]).push(p);});
+
+  const{data:allTickets}=await sb.from('tickets').select('id,listing_id,status').in('listing_id',listingIds).neq('status','resolved');
+  const ticketsByListing={};
+  (allTickets||[]).forEach(t=>{(ticketsByListing[t.listing_id]=ticketsByListing[t.listing_id]||[]).push(t);});
 
   const today=new Date().toISOString().split('T')[0];
 
   wrap.innerHTML=bookings.map(bk=>{
     const listing=lMap[bk.listing_id]||{};
-    const pays=paysByListing[bk.listing_id]||[];
+    const pays=(paysByListing[bk.listing_id]||[]).slice().sort((a,b)=>(b.due_date||'').localeCompare(a.due_date||''));
     const overdue=pays.filter(p=>p.status==='pending'&&p.due_date&&p.due_date<today);
     const declared=pays.filter(p=>p.status==='declared'||(p.status==='pending'&&p.tenant_declared));
     let payBadge='<span class="badge b-green">✅ Up to date</span>';
     if(overdue.length)payBadge=`<span class="badge b-red">⚠️ ${overdue.length} overdue</span>`;
     else if(declared.length)payBadge=`<span class="badge b-gold">⏳ Awaiting confirmation</span>`;
+
+    // Prochaine échéance — le prochain paiement encore en attente, trié par date
+    const nextPending=(paysByListing[bk.listing_id]||[]).filter(p=>p.status!=='paid').sort((a,b)=>(a.due_date||'').localeCompare(b.due_date||''))[0];
+    const nextPaymentHtml=nextPending?.due_date
+      ?`<div style="font-size:.72rem;color:var(--td)">💶 Next payment: <strong style="color:var(--txt)">${new Date(nextPending.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong></div>`
+      :'';
+
+    // Fin de bail / rappel de renouvellement
+    let leaseEndHtml='';
+    if(bk.lease_end){
+      const daysLeft=Math.ceil((new Date(bk.lease_end)-new Date())/(1000*60*60*24));
+      const urgent=daysLeft<=60;
+      const soon=daysLeft<=90;
+      const color=daysLeft<0?'var(--red)':urgent?'var(--gold)':'var(--td)';
+      const label=daysLeft<0?`⚠️ Lease ended ${Math.abs(daysLeft)} days ago`:`📅 Lease ends in ${daysLeft} days (${new Date(bk.lease_end).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})})`;
+      leaseEndHtml=`<div style="font-size:.72rem;color:${color};font-weight:${soon?700:400}">${label}</div>`;
+    }
+
+    // Tickets de maintenance ouverts pour ce bien
+    const openTickets=ticketsByListing[bk.listing_id]||[];
 
     const recentPays=pays.slice(0,5);
     const receiptsHtml=recentPays.length?recentPays.map(p=>`
@@ -3634,9 +3658,16 @@ async function loadRentedProperties(){
         ${payBadge}
       </div>
       <div class="cb">
+        <div style="display:flex;flex-direction:column;gap:.2rem;margin-bottom:.65rem">
+          ${nextPaymentHtml}
+          ${leaseEndHtml}
+        </div>
+        <div id="rp-cotenants-${bk.id}"></div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
           ${bk.lease_tenant_embed||bk.lease_landlord_embed?`<a href="${bk.lease_landlord_embed||bk.lease_tenant_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📄 Lease</a>`:''}
           ${bk.status==='move_in_ready'?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📋 EDL dossier</button>`:''}
+          <button onclick="openMsgChatById('${bk.tenant_id||''}','${bk.listing_id||''}')" class="btn bg bsm">💬 Message tenant</button>
+          <button onclick="sp('maintenance',document.querySelector('.ni[onclick*=maintenance]'))" class="btn bg bsm" ${openTickets.length?'style="border-color:var(--red);color:var(--red)"':''}>🔧 Maintenance${openTickets.length?` (${openTickets.length})`:''}</button>
           <button onclick="sp('payments',document.querySelector('.ni[onclick*=payments]'))" class="btn bg bsm">💶 Full payment history</button>
         </div>
         <div style="font-size:.7rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Recent receipts</div>
@@ -3644,6 +3675,14 @@ async function loadRentedProperties(){
       </div>
     </div>`;
   }).join('');
+
+  // Co-tenants — chargés à part (réutilise le système construit plus tôt)
+  bookings.forEach(bk=>{
+    const el=document.getElementById(`rp-cotenants-${bk.id}`);
+    if(!el)return;
+    const html=renderCoTenantsSummary(bk);
+    if(html){el.innerHTML=html;loadCoTenantsLiveInfo(bk);}
+  });
 }
 
 async function loadTenantMatch(){
