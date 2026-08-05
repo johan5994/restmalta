@@ -380,6 +380,7 @@ footer ul a:hover{color:var(--terra)}
         <option value="short">🏠 Short-let only</option>
         <option value="long">📅 Long-let only</option>
         <option value="room_rental">🔑 Room rental</option>
+        <option value="for_sale">🏷️ For sale</option>
       </select></div>
       <div class="sf"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
       <div class="sf"><label>📋 Attestation</label><select id="fa" onchange="loadL()"><option value="">All</option><option value="yes">✅ Attestation OK</option></select></div>
@@ -507,6 +508,7 @@ footer ul a:hover{color:var(--terra)}
           <button class="tbtn active" onclick="setT(this,'short')">🏠 Short-let only</button>
           <button class="tbtn" onclick="setT(this,'long')">📅 Long-let only</button>
           <button class="tbtn" onclick="setT(this,'room_rental')">🔑 Room rental</button>
+          <button class="tbtn" onclick="setT(this,'for_sale')">🏷️ For sale</button>
         </div>
         <input type="hidden" id="pt" value="short">
         <div id="type-info" style="margin-top:.5rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
@@ -539,8 +541,8 @@ footer ul a:hover{color:var(--terra)}
   <option value="Marsaskala"><option value="Marsaxlokk"><option value="Birgu"><option value="Senglea">
 </datalist></div>
         <div class="fg2"><label>Size (m²)</label><input class="fi" type="number" id="p-sqm" placeholder="e.g. 65" min="10" max="1000"></div>
-        <div class="fg2"><label>Monthly rent (€) *</label><input class="fi" type="number" id="ppr" placeholder="650"></div>
-        <div class="fg2"><label>Deposit (€)</label><input class="fi" type="number" id="pdep" placeholder="650"></div>
+        <div class="fg2" id="pt-price-wrap"><label id="pt-price-label">Monthly rent (€) *</label><input class="fi" type="number" id="ppr" placeholder="650"></div>
+        <div class="fg2" id="pt-deposit-wrap"><label>Deposit (€)</label><input class="fi" type="number" id="pdep" placeholder="650"></div>
         <div class="fg2" id="section-beds"><label>Number of bedrooms</label>
           <select class="fi" id="psp" style="cursor:pointer">
             <option value="0">Studio</option>
@@ -558,7 +560,7 @@ footer ul a:hover{color:var(--terra)}
             <option value="3">3+ bathrooms</option>
           </select>
         </div>
-        <div class="fg2"><label>Available from</label><input class="fi" type="date" id="pfr" onchange="onAvailableFromChange(this.value)"></div>
+        <div class="fg2" id="pt-avail-wrap"><label>Available from</label><input class="fi" type="date" id="pfr" onchange="onAvailableFromChange(this.value)"></div>
       </div>
 
       <!-- Agent options -->
@@ -825,7 +827,7 @@ footer ul a:hover{color:var(--terra)}
       <div>
         <div class="ccard">
           <div class="cprice" id="dpr"></div>
-          <div class="cper">/month</div>
+          <div class="cper" id="dpr-per">/month</div>
 
           <!-- Contact card -->
           <div id="contact-agent-notice" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem">
@@ -1059,12 +1061,58 @@ async function searchAgencies(){
           <div style="font-size:.78rem;color:var(--stone-l);margin-bottom:.5rem">${a.bio||''}</div>
           ${a.current_offer?`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .7rem;font-size:.78rem;color:#2d7a56;font-weight:600;margin-bottom:.5rem;display:inline-block">🎁 ${a.current_offer}</div>`:''}
           <div style="font-size:.7rem;color:var(--stone-l);margin-bottom:.6rem">📍 ${(a.zones||'').split(',').filter(Boolean).length} zones covered, including ${nearestZone}</div>
-          <button class="btn btn-p bsm" onclick="contactAgency('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">💬 Contact this agency →</button>
+          <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem">📐 Property estimation: ${a.estimation_tariff?`€${a.estimation_tariff}`:'<strong style="color:#2d7a56">Free</strong>'}</div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn btn-p bsm" onclick="contactAgency('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">💬 Contact this agency →</button>
+            <button class="btn btn-s bsm" onclick="requestEstimation('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">📐 Request an estimation</button>
+          </div>
         </div>
       </div>`).join('');
   }catch(e){
     statusEl.innerHTML='<span style="color:var(--terra)">⚠️ Could not check this address right now</span>';
   }
+}
+
+async function requestEstimation(agencyId,agencyName){
+  if(!U){toast('Please sign in first');go('auth');return;}
+  const prefillAddress=document.getElementById('ag-search-address')?.value.trim()||'';
+
+  const modal=document.createElement('div');
+  modal.id='est-req-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:white;border-radius:18px;padding:1.75rem;max-width:420px;width:100%">
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:.3rem">📐 Request an estimation from ${agencyName}</div>
+      <div style="font-size:.8rem;color:var(--stone-l);margin-bottom:1.1rem">Tell them a bit about your property — they'll get back to you directly.</div>
+      <div class="fg2"><label>What kind of estimation?</label>
+        <select class="fi" id="est-req-type"><option value="rental">🏠 Rental estimation</option><option value="sale">🏷️ Sale estimation</option></select>
+      </div>
+      <div class="fg2"><label>Property address *</label><input class="fi" id="est-req-address" value="${prefillAddress.replace(/"/g,'&quot;')}" placeholder="12 Triq il-Kbira, Sliema"></div>
+      <div class="fg2"><label>Anything else? (optional)</label><textarea class="fi" id="est-req-notes" rows="3" placeholder="Property type, size, condition..."></textarea></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:.5rem" onclick="submitEstimationRequest('${agencyId}')">Send request →</button>
+      <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById('est-req-modal').remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function submitEstimationRequest(agencyId){
+  const address=document.getElementById('est-req-address')?.value.trim();
+  if(!address){toast('⚠️ Property address is required');return;}
+  const requestType=document.getElementById('est-req-type')?.value||'rental';
+  const notes=document.getElementById('est-req-notes')?.value.trim()||'';
+  try{
+    await sb.from('estimation_requests').insert({
+      landlord_id:U.id,
+      landlord_name:P?.full_name||'Landlord',
+      landlord_email:U.email,
+      agency_id:agencyId,
+      request_type:requestType,
+      address,notes,
+      status:'pending'
+    });
+    document.getElementById('est-req-modal')?.remove();
+    toast('✅ Estimation request sent!');
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function contactAgency(agencyId,agencyName){
@@ -1325,8 +1373,10 @@ async function loadL(){
   const z=document.getElementById('fz')?.value,t=document.getElementById('ft')?.value,p=document.getElementById('fp')?.value,att=document.getElementById('fa')?.value;
   let q=sb.from('listings').select('*').eq('active',true).not('status','in','("reserved","rented")').order('created_at',{ascending:false});
   if(z)q=q.eq('zone',z);
-  // For type filter: 'both' listings appear when filtering short OR long
-  if(t)q=q.eq('type',t);
+  // For type filter: 'both' listings appear when filtering short OR long.
+  // Sale listings never show mixed into the default rental browse — only
+  // when the type filter is explicitly set to 'for_sale'.
+  if(t)q=q.eq('type',t);else q=q.neq('type','for_sale');
   if(p)q=q.lte('price',parseInt(p));
   if(att==='yes')q=q.eq('accepts_attestation',true);
   const{data}=await q;
@@ -1337,13 +1387,13 @@ async function loadL(){
   if(mapView)initMap();
 }
 
-async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true);document.getElementById('sc').textContent=count??'0';}
+async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true).neq('type','for_sale');document.getElementById('sc').textContent=count??'0';}
 
 function rCard(l){
-  const ic={short:'🏠',room_rental:'🔑',long:'📅'};
-  const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
-  const lb={short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'📅 Long-let'};
-  const lbColor={short:'#C9553A',room_rental:'#D4A847',long:'#2E6B8A'};
+  const ic={short:'🏠',room_rental:'🔑',long:'📅',for_sale:'🏷️'};
+  const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)',for_sale:'linear-gradient(135deg,#F3EEFB,#E1D4F5)'};
+  const lb={short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'📅 Long-let',for_sale:'🏷️ For sale'};
+  const lbColor={short:'#C9553A',room_rental:'#D4A847',long:'#2E6B8A',for_sale:'#6366F1'};
   const tags=[l.furnished?'Furnished':null,l.wifi?'WiFi':null,l.bills_included?'Bills incl.':null,l.ac?'A/C':null,l.parking?'Parking':null,l.pool?'Pool':null,l.balcony?'Balcony':null,l.spots>1?`${l.spots} spots`:null].filter(Boolean).slice(0,3);
   const fr=l.available_indefinitely?'Available indefinitely':l.available_from?'From '+new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Available now';
   // Agent service badge
@@ -1371,7 +1421,7 @@ function rCard(l){
         ${l.agency_logo_url?`<img src="${l.agency_logo_url}" style="width:32px;height:32px;object-fit:cover;border-radius:7px;border:1px solid var(--stone-xl);flex-shrink:0" alt="${l.agency_name||'Agency'}">`:''}
       </div>
       <div class="ltags">${tags.map(t=>`<span class="ltag">${t}</span>`).join('')}</div>
-      <div class="lfoot"><div><span class="lprice">€${l.price}</span><span class="lper"> /month</span></div><span style="font-size:.7rem;color:var(--stone-l)">${fr}</span></div>
+      <div class="lfoot"><div><span class="lprice">€${l.type==='for_sale'?(l.sale_price||l.price):l.price}</span>${l.type==='for_sale'?'':'<span class="lper"> /month</span>'}</div><span style="font-size:.7rem;color:var(--stone-l)">${fr}</span></div>
     </div>
   </div>`;
 }
@@ -1432,14 +1482,16 @@ async function openDet(id){
   document.getElementById('dti').textContent=l.title;
   document.getElementById('dzo').textContent='📍 '+l.zone+(l.address?' · '+l.address:'');
   document.getElementById('dde').textContent=l.description||'No description provided.';
-  document.getElementById('dpr').textContent='€'+l.price;
+  document.getElementById('dpr').textContent='€'+(l.type==='for_sale'?(l.sale_price||l.price):l.price);
+  const dprPer=document.getElementById('dpr-per');
+  if(dprPer)dprPer.style.display=l.type==='for_sale'?'none':'block';
 
   // Specs rapides
   const specs=[];
   if(l.bedrooms||l.spots)specs.push(`🛏 ${l.bedrooms||l.spots} bedroom${(l.bedrooms||l.spots)>1?'s':''}`);
   if(l.baths)specs.push(`🚿 ${l.baths} bathroom${l.baths>1?'s':''}`);
   if(l.sqm)specs.push(`📐 ${l.sqm} m²`);
-  specs.push({short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'🏛 Long-let'}[l.type]||l.type);
+  specs.push({short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'🏛 Long-let',for_sale:'🏷️ For sale'}[l.type]||l.type);
   if(l.video_url)specs.push('🎥 Virtual tour');
   document.getElementById('dspecs').innerHTML=specs.map(s=>`<span class="dfeat" style="background:var(--s2);border:1px solid var(--b2);font-size:.78rem;padding:.3rem .7rem;border-radius:20px">${s}</span>`).join('');
 
@@ -1481,19 +1533,25 @@ async function openDet(id){
     ${l.payment_due_day?`<div class="crow"><span>Rent due</span><span>${l.payment_due_day==='last'?'Last day of month':l.payment_due_day+' of the month'}</span></div>`:''}
     ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}`;
 
-  // Coût total pour le tenant
-  const hasAgent=AL.wants_agent&&AL.agent_service==='full';
-  const isAgency=!!AL.agency_listing;
-  const commissionRate=isAgency?0.50:hasAgent?0.40:0.10;
-  const commission=Math.round(l.price*commissionRate);
-  const commissionLabel=isAgency?'Agency fee (50%)':hasAgent?'RestMalta fee (40% — agent)':'RestMalta fee (10%)';
-  document.getElementById('dcost-inner').innerHTML=`
-    <div class="crow"><span>First month rent</span><span style="font-weight:700">€${l.price}</span></div>
-    <div class="crow"><span>Security deposit</span><span style="font-weight:700">${l.deposit?'€'+l.deposit:'None'}</span></div>
-    <div class="crow"><span>${commissionLabel}</span><span style="font-weight:700;color:var(--terra)">€${commission}</span></div>
-    <div style="height:1px;background:rgba(201,85,58,.15);margin:.5rem 0"></div>
-    <div class="crow" style="font-size:.92rem"><span style="font-weight:700">Total at signing</span><span style="font-weight:900;color:var(--terra);font-size:1.1rem">€${l.price+(l.deposit||0)+commission}</span></div>
-    <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">Deposit held securely by RestMalta until move-in confirmed.</div>`;
+  // Coût total pour le tenant — n'a aucun sens pour une annonce "For sale"
+  const dcostCard=document.getElementById('dcost');
+  if(l.type==='for_sale'){
+    if(dcostCard)dcostCard.style.display='none';
+  }else{
+    if(dcostCard)dcostCard.style.display='block';
+    const hasAgent=AL.wants_agent&&AL.agent_service==='full';
+    const isAgency=!!AL.agency_listing;
+    const commissionRate=isAgency?0.50:hasAgent?0.40:0.10;
+    const commission=Math.round(l.price*commissionRate);
+    const commissionLabel=isAgency?'Agency fee (50%)':hasAgent?'RestMalta fee (40% — agent)':'RestMalta fee (10%)';
+    document.getElementById('dcost-inner').innerHTML=`
+      <div class="crow"><span>First month rent</span><span style="font-weight:700">€${l.price}</span></div>
+      <div class="crow"><span>Security deposit</span><span style="font-weight:700">${l.deposit?'€'+l.deposit:'None'}</span></div>
+      <div class="crow"><span>${commissionLabel}</span><span style="font-weight:700;color:var(--terra)">€${commission}</span></div>
+      <div style="height:1px;background:rgba(201,85,58,.15);margin:.5rem 0"></div>
+      <div class="crow" style="font-size:.92rem"><span style="font-weight:700">Total at signing</span><span style="font-weight:900;color:var(--terra);font-size:1.1rem">€${l.price+(l.deposit||0)+commission}</span></div>
+      <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">Deposit and rent are paid directly to the landlord once the lease is signed.</div>`;
+  }
 
   go('det');
 
@@ -1810,6 +1868,19 @@ function setT(el,t){
   if(longOpts)longOpts.style.display=t==='long'?'block':'none';
   if(room_rentalNotice)room_rentalNotice.style.display=t==='room_rental'?'block':'none';
   if(room_rentalOpts)room_rentalOpts.style.display=t==='room_rental'?'block':'none';
+
+  // "For sale" est un mode complètement à part : pas de bail, pas de caution,
+  // pas de disponibilité, pas d'agent — juste une annonce + abonnement 2€/semaine.
+  const isSale=t==='for_sale';
+  const priceLabel=document.getElementById('pt-price-label');
+  if(priceLabel)priceLabel.textContent=isSale?'Sale price (€) *':'Monthly rent (€) *';
+  const depositWrap=document.getElementById('pt-deposit-wrap');
+  const availWrap=document.getElementById('pt-avail-wrap');
+  if(depositWrap)depositWrap.style.display=isSale?'none':'block';
+  if(availWrap)availWrap.style.display=isSale?'none':'block';
+  const billsWrap=document.getElementById('p-bills')?.closest('.fg2');
+  if(billsWrap)billsWrap.style.display=isSale?'none':'block';
+
   // Cacher sections non pertinentes pour room_rental
   const isRoom=t==='room_rental';
   const secBeds=document.getElementById('section-beds');
@@ -1817,15 +1888,15 @@ function setT(el,t){
   const secLease=document.getElementById('section-lease-cond');
   const secAgent=document.getElementById('section-agent');
   if(secBeds)secBeds.style.display=isRoom?'none':'block';
-  if(secAtt)secAtt.style.display=isRoom?'none':'block';
-  if(secLease)secLease.style.display=isRoom?'none':'block';
-  if(secAgent)secAgent.style.display=isRoom?'none':'block';
+  if(secAtt)secAtt.style.display=(isRoom||isSale)?'none':'block';
+  if(secLease)secLease.style.display=(isRoom||isSale)?'none':'block';
+  if(secAgent)secAgent.style.display=(isRoom||isSale)?'none':'block';
   // section-agent-details reste géré par updateAgentOpt uniquement
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltese law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
-
-    room_rental:'🔑 Room rental: written owner consent required. Housing Authority registration is your responsibility.'
+    room_rental:'🔑 Room rental: written owner consent required. Housing Authority registration is your responsibility.',
+    for_sale:'🏷️ For sale: your listing stays online for €2/week, billed automatically after publishing. Cancel anytime.'
   };
   if(typeInfo)typeInfo.textContent=infos[t]||'';
 
@@ -2054,7 +2125,63 @@ document.addEventListener('DOMContentLoaded',()=>{
     const listingId=hash.replace('#listing-','');
     setTimeout(()=>openDet(listingId),1000);
   }
+
+  // Propriétaire arrivant depuis l'email d'activation d'une annonce "For sale"
+  // — aucun compte requis, juste confirmer son email et payer.
+  const urlParams=new URLSearchParams(window.location.search);
+  const activateId=urlParams.get('activate_sale');
+  if(activateId)setTimeout(()=>openSaleActivation(activateId),600);
+  if(urlParams.get('sale_activated')){
+    setTimeout(()=>toast('✅ Your listing is now live on RestMalta!'),600);
+    window.history.replaceState({},'',window.location.pathname);
+  }else if(urlParams.get('sale_cancelled')){
+    setTimeout(()=>toast('Activation cancelled — you can try again anytime from the link in your email.'),600);
+    window.history.replaceState({},'',window.location.pathname);
+  }
 });
+
+async function openSaleActivation(listingId){
+  const{data:l}=await sb.from('listings').select('id,title,zone,sale_price,price,landlord_email,sale_subscription_status').eq('id',listingId).maybeSingle();
+  if(!l){toast('❌ Listing not found');return;}
+  if(l.sale_subscription_status==='active'){toast('✅ This listing is already active');return;}
+
+  const modal=document.createElement('div');
+  modal.id='sale-activation-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:white;border-radius:18px;padding:1.75rem;max-width:420px;width:100%">
+      <div style="font-size:2rem;margin-bottom:.5rem;text-align:center">🏷️</div>
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:.3rem;text-align:center">Activate your listing</div>
+      <div style="background:var(--sand);border-radius:10px;padding:.75rem 1rem;margin:1rem 0">
+        <div style="font-weight:700">${l.title}</div>
+        <div style="font-size:.78rem;color:var(--stone-l)">📍 ${l.zone} · €${l.sale_price||l.price}</div>
+      </div>
+      <div style="font-size:.82rem;color:var(--stone);margin-bottom:1rem;line-height:1.6">Your listing stays online for <strong>€2/week</strong>, billed automatically. Cancel anytime — the listing goes offline the moment you do.</div>
+      <div class="fg2"><label>Your email *</label><input class="fi" id="sale-act-email" type="email" value="${l.landlord_email||''}" placeholder="you@email.com"></div>
+      <button id="sale-act-btn" class="btn btn-p" style="width:100%;justify-content:center;margin-top:.5rem" onclick="confirmSaleActivation('${listingId}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate for €2/week →</button>
+      <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById('sale-activation-modal').remove()">Not now</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function confirmSaleActivation(listingId,listingTitle){
+  const email=document.getElementById('sale-act-email')?.value.trim();
+  if(!email){toast('⚠️ Enter your email');return;}
+  const btn=document.getElementById('sale-act-btn');
+  if(btn){btn.textContent='Redirecting to payment...';btn.disabled=true;}
+  try{
+    const res=await fetch('/.netlify/functions/create-sale-subscription',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({listing_id:listingId,landlord_email:email,listing_title:listingTitle})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not start subscription');
+    window.location.href=data.checkout_url;
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.textContent='💳 Activate for €2/week →';btn.disabled=false;}
+  }
+}
 
 async function uploadPhotos(listingId) {
   const urls = [];
@@ -2208,7 +2335,9 @@ async function doPost(){
     wants_agent,
     agent_service,
     // mandat_exclusif retiré — fonctionnalité jamais utile, supprimée
-    active:!wants_agent, // reste caché tant qu'aucun agent n'a accepté de s'en occuper
+    active:document.getElementById('pt').value==='for_sale'?false:!wants_agent, // reste caché tant qu'aucun agent n'a accepté, ou tant que l'abonnement de vente n'est pas payé
+    sale_price:document.getElementById('pt').value==='for_sale'?parseInt(pr):null,
+    sale_subscription_status:document.getElementById('pt').value==='for_sale'?'pending':null,
     // Lease fields
     full_address:document.getElementById('p-full-address')?.value.trim()||null,
     // Rent due day: no longer set manually — derived from the tenant's
@@ -2278,10 +2407,25 @@ async function doPost(){
       }
     }catch(e){console.error('[property_needs_agent] outer error',e.message);}
     sA(ok,"✅ Listing saved! It'll go live as soon as an agent accepts to handle it.");
+    updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
+  }else if(document.getElementById('pt').value==='for_sale'&&listing){
+    sA(ok,'⏳ Redirecting you to activate your listing (€2/week)...');
+    try{
+      const res=await fetch('/.netlify/functions/create-sale-subscription',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({listing_id:listing.id,landlord_email:U.email,listing_title:listing.title})
+      });
+      const data=await res.json();
+      if(!data.success)throw new Error(data.error||'Could not start subscription');
+      window.location.href=data.checkout_url;
+    }catch(e){
+      sA(err,'Listing created, but activation failed: '+e.message+'. You can retry from your dashboard.');
+      updC();loadL();setTimeout(()=>{go('dash');loadDash();},2500);
+    }
   }else{
     sA(ok,"🎉 Listing published! It's now live on RestMalta.");
+    updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
   }
-  updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
 }
 
 async function loadDash(){
@@ -2296,16 +2440,33 @@ async function loadML(){
   if(P?.role!=='landlord'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a landlord account to post and manage listings.</p></div>';return;}
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo">📋</div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
-  const ic={short:'🏠',room_rental:'🔑',long:'🏛️'};
+  const ic={short:'🏠',room_rental:'🔑',long:'🏛️',for_sale:'🏷️'};
   w.innerHTML=data.map(l=>{
-    const pendingAgent=!l.active&&l.wants_agent&&l.agent_service==='full'&&!l.agent_id;
-    const statusLabel=pendingAgent?'⏳ Waiting for an agent to accept':l.active?'Active':'Paused';
-    const dotClass=pendingAgent?'dg':l.active?'dg':'dr';
+    const isSale=l.type==='for_sale';
+    const pendingAgent=!isSale&&!l.active&&l.wants_agent&&l.agent_service==='full'&&!l.agent_id;
+    const pendingSale=isSale&&l.sale_subscription_status!=='active';
+    const statusLabel=pendingAgent?'⏳ Waiting for an agent to accept':pendingSale?'⏳ Not activated — €2/week to go live':l.active?'Active':'Paused';
+    const dotClass=(pendingAgent||pendingSale)?'dg':l.active?'dg':'dr';
+    const priceLabel=isSale?`€${l.sale_price||l.price}`:`€${l.price}/mo`;
     const actionBtn=pendingAgent
       ?`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="An agent needs to accept this property first">⏳ Pending</button>`
+      :pendingSale
+      ?`<button class="btn btn-p btn-sm" onclick="retrySaleActivation('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`
       :`<button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>`;
-    return`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">€${l.price}/mo · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}</div></div>`;
+    return`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">${priceLabel} · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}</div></div>`;
   }).join('');
+}
+
+async function retrySaleActivation(listingId,listingTitle){
+  try{
+    const res=await fetch('/.netlify/functions/create-sale-subscription',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({listing_id:listingId,landlord_email:U.email,listing_title:listingTitle})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not start subscription');
+    window.location.href=data.checkout_url;
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'✅ Listing activated');loadML();updC();}
