@@ -476,6 +476,10 @@ footer ul a:hover{color:var(--terra)}
           <div style="font-size:1.8rem;flex-shrink:0">🤝</div>
           <div><div style="font-weight:700;margin-bottom:.2rem">Let an agent handle everything</div><div style="font-size:.78rem;color:var(--stone-l)">Just tell us about your property — an agent builds the full listing, does the visits, and negotiates for you.</div></div>
         </div>
+        <div onclick="go('agencies')" style="cursor:pointer;background:rgba(99,102,241,.06);border:2px solid rgba(99,102,241,.2);border-radius:12px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s" onmouseover="this.style.borderColor='#6366F1'" onmouseout="this.style.borderColor='rgba(99,102,241,.2)'">
+          <div style="font-size:1.8rem;flex-shrink:0">🏢</div>
+          <div><div style="font-weight:700;margin-bottom:.2rem;color:#6366F1">Browse real estate agencies</div><div style="font-size:.78rem;color:var(--stone-l)">Contact a professional agency directly — see their zones and any current offers (e.g. first year of management free).</div></div>
+        </div>
       </div>
     </div>
 
@@ -759,6 +763,23 @@ footer ul a:hover{color:var(--terra)}
   </div>
 </div>
 
+<!-- BROWSE AGENCIES -->
+<div class="page" id="page-agencies">
+  <div class="pwrap" style="max-width:760px">
+    <button class="btn btn-s" style="margin-bottom:1.5rem" onclick="go('post')">← Back</button>
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;margin-bottom:.4rem">🏢 Browse real estate agencies</h2>
+    <p style="color:var(--stone);font-size:.9rem;margin-bottom:1.5rem">Enter your property's address and we'll show you agencies covering that area — including any current offers.</p>
+
+    <div class="fcard" style="margin-bottom:1.5rem">
+      <div class="fg2"><label>Your property's address in Malta *</label><input class="fi" id="ag-search-address" placeholder="12 Triq il-Kbira, Sliema, Malta"></div>
+      <div id="ag-search-status" style="font-size:.8rem;margin:-.4rem 0 .6rem"></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="searchAgencies()">🔍 Find agencies near me →</button>
+    </div>
+
+    <div id="ag-search-results"></div>
+  </div>
+</div>
+
 <!-- DETAIL -->
 <div class="page" id="page-det">
   <div class="dwrap">
@@ -986,6 +1007,78 @@ async function sU(clerkUser, showPicker=true) {
   }
 }
 let addressMapInstance=null;
+
+// ── Annuaire d'agences pour propriétaires ──────────────────────
+function findNearestZone(lat,lng){
+  let best=null,bestDist=Infinity;
+  for(const[zone,coords]of Object.entries(AGENCY_ZONE_COORDS)){
+    const d=Math.sqrt((lat-coords[0])**2+(lng-coords[1])**2);
+    if(d<bestDist){bestDist=d;best=zone;}
+  }
+  return best;
+}
+
+async function searchAgencies(){
+  const addr=document.getElementById('ag-search-address')?.value.trim();
+  const statusEl=document.getElementById('ag-search-status');
+  const resultsEl=document.getElementById('ag-search-results');
+  if(!addr){toast('⚠️ Enter your property\'s address');return;}
+  statusEl.innerHTML='<span style="color:var(--stone-l)">📍 Locating address...</span>';
+  resultsEl.innerHTML='';
+
+  try{
+    const query=addr.toLowerCase().includes('malta')?addr:addr+', Malta';
+    const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,{headers:{'Accept-Language':'en'}});
+    const results=await res.json();
+    if(!results||!results.length){
+      statusEl.innerHTML='<span style="color:var(--terra)">❌ Could not locate this address — try being more specific</span>';
+      return;
+    }
+    const lat=parseFloat(results[0].lat),lng=parseFloat(results[0].lon);
+    const nearestZone=findNearestZone(lat,lng);
+
+    const{data:agencies}=await sb.from('profiles').select('*').eq('role','agency');
+    const matching=(agencies||[]).filter(a=>{
+      const zones=(a.zones||'').split(',').map(z=>z.trim().toLowerCase());
+      return zones.includes(nearestZone.toLowerCase());
+    });
+
+    if(!matching.length){
+      statusEl.innerHTML=`<span style="color:var(--terra)">📍 Zone identified: <strong>${nearestZone}</strong> — no agencies currently cover this area</span>`;
+      resultsEl.innerHTML='<div class="empty" style="padding:2rem;text-align:center;color:var(--stone-l)"><div style="font-size:2rem;margin-bottom:.5rem">🏢</div>No agencies found for this zone yet.</div>';
+      return;
+    }
+    statusEl.innerHTML=`<span style="color:#4CAF7D">✅ Zone identified: <strong>${nearestZone}</strong> — ${matching.length} agenc${matching.length>1?'ies':'y'} available</span>`;
+    resultsEl.innerHTML=matching.map(a=>`
+      <div class="fcard" style="margin-bottom:1rem;display:flex;gap:1rem;align-items:flex-start">
+        <div style="width:56px;height:56px;border-radius:10px;background:var(--sand);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+          ${a.logo_url?`<img src="${a.logo_url}" style="width:100%;height:100%;object-fit:cover">`:'🏢'}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:.2rem">${a.agency_name||'Agency'}</div>
+          <div style="font-size:.78rem;color:var(--stone-l);margin-bottom:.5rem">${a.bio||''}</div>
+          ${a.current_offer?`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .7rem;font-size:.78rem;color:#2d7a56;font-weight:600;margin-bottom:.5rem;display:inline-block">🎁 ${a.current_offer}</div>`:''}
+          <div style="font-size:.7rem;color:var(--stone-l);margin-bottom:.6rem">📍 ${(a.zones||'').split(',').filter(Boolean).length} zones covered, including ${nearestZone}</div>
+          <button class="btn btn-p bsm" onclick="contactAgency('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">💬 Contact this agency →</button>
+        </div>
+      </div>`).join('');
+  }catch(e){
+    statusEl.innerHTML='<span style="color:var(--terra)">⚠️ Could not check this address right now</span>';
+  }
+}
+
+async function contactAgency(agencyId,agencyName){
+  if(!U){toast('Please sign in first');go('auth');return;}
+  const msg=prompt(`Send a message to ${agencyName}:`,`Hi, I'd like to discuss managing my property with your agency.`);
+  if(!msg)return;
+  try{
+    await sb.from('messages').insert({
+      sender_id:U.id,receiver_id:agencyId,
+      content:msg,type:'landlord_to_agency'
+    });
+    toast('✅ Message sent! The agency will get back to you.');
+  }catch(e){toast('❌ '+e.message);}
+}
 
 async function geocodeAddress(){
   const addr=document.getElementById('p-full-address')?.value.trim();
@@ -2316,6 +2409,31 @@ function toast(msg){const t=document.getElementById('t');t.textContent=msg;t.cla
 // ── Map view ─────────────────────────────────────────────────
 let mapInstance=null;
 let mapView=false;
+
+// Liste complète des 55 zones (mêmes noms exacts que les cases à cocher
+// agent/agence) — utilisée pour trouver la zone la plus proche d'une adresse
+// géocodée, afin de faire correspondre un propriétaire aux bonnes agences.
+const AGENCY_ZONE_COORDS={
+  'Valletta':[35.8989,14.5146],'Floriana':[35.8934,14.5083],'Sliema':[35.9122,14.5017],
+  "St Julian's":[35.9181,14.4895],'Msida':[35.8994,14.4890],'Gzira':[35.9069,14.4953],
+  'Swieqi':[35.9197,14.4795],'Pembroke':[35.9250,14.4820],"St Andrew's":[35.9280,14.4750],
+  'Paceville':[35.9233,14.4863],'Mellieha':[35.9564,14.3617],"St Paul's Bay":[35.9481,14.3989],
+  'Bugibba':[35.9511,14.4156],'Naxxar':[35.9197,14.4442],'Birkirkara':[35.8958,14.4619],
+  'San Gwann':[35.9106,14.4700],'Attard':[35.8925,14.4322],'Balzan':[35.8975,14.4494],
+  'Lija':[35.9019,14.4489],'Mosta':[35.9086,14.4256],'Qormi':[35.8767,14.4736],
+  'Zebbug':[35.8722,14.4436],'Hamrun':[35.8825,14.4894],'Marsa':[35.8781,14.4967],
+  'Marsaskala':[35.8617,14.5556],'Zabbar':[35.8753,14.5350],'Zejtun':[35.8544,14.5361],
+  'Fgura':[35.8697,14.5192],'Tarxien':[35.8697,14.5089],'Paola':[35.8756,14.5081],
+  'Luqa':[35.8578,14.4878],'Gudja':[35.8478,14.4964],'Mqabba':[35.8378,14.4517],
+  'Zurrieq':[35.8261,14.4711],'Siggiewi':[35.8547,14.4356],'Rabat':[35.8819,14.3990],
+  'Mdina':[35.8869,14.4012],'Dingli':[35.8600,14.3831],'Gharghur':[35.9186,14.4406],
+  'Birgu':[35.8891,14.5214],'Bormla':[35.8875,14.5192],'Senglea':[35.8897,14.5156],
+  'Kalkara':[35.8886,14.5300],'Birzebbuga':[35.8258,14.5275],'Kirkop':[35.8397,14.4906],
+  'Safi':[35.8319,14.4989],'Qrendi':[35.8339,14.4581],'Mgarr':[35.9297,14.3908],
+  'Mtarfa':[35.8933,14.4033],'Pieta':[35.8969,14.4967],'Santa Lucija':[35.8686,14.5039],
+  'Santa Venera':[35.8961,14.4767],"Ta' Xbiex":[35.9028,14.4986],'Xghajra':[35.8858,14.5411],
+  'Gozo':[36.0443,14.2401]
+};
 
 const ZONE_COORDS={
   'St. Julian\'s':[35.9181,14.4895],'Sliema':[35.9122,14.5017],'Valletta':[35.8997,14.5148],
