@@ -1048,7 +1048,7 @@ async function loadListings(){
   const tb=document.getElementById('listings-tbody');
   const tl={short:'🏠 Short-let',sublet:'🔑 Sous-loc',long:'📅 Long-let',both:'🔄 Les deux'};
   tb.innerHTML=(data||[]).map(l=>`<tr>
-    <td style="color:var(--txt);font-weight:500">${l.title}${l.mandat_exclusif?'<span style="margin-left:.4rem;background:rgba(139,92,246,.15);color:#8B5CF6;font-size:.6rem;font-weight:700;padding:.1rem .4rem;border-radius:100px">🤝 Exclusive</span>':''}
+    <td style="color:var(--txt);font-weight:500">${l.title}
       <div style="font-size:.7rem;color:var(--td)">📍 ${l.zone}</div></td>
     <td><span class="badge b-sea">${tl[l.type]||l.type}</span></td>
     <td style="color:var(--txt);font-weight:600">€${l.price}/mo</td>
@@ -1935,12 +1935,11 @@ async function declineVisit(visitId){
 }
 
 function openMsgChatById(tenantId, listingId){
+  if(!tenantId){toast('❌ No tenant to message');return;}
   sp('messages');
   setTimeout(()=>{
-    const match=allMsgs.find(m=>m.listing_id===listingId&&(m.sender_id===tenantId||m.receiver_id===tenantId));
-    if(match)openMsgChat(match.id,match.listings?.title||'Visit',listingId,tenantId);
-    else toast('Send a message to this tenant first to start the conversation.');
-  },500);
+    openMsgChat(null,'Loading...',listingId,tenantId);
+  },400);
 }
 
 // Real-time group chat
@@ -3676,12 +3675,15 @@ async function loadRentedProperties(){
     </div>`;
   }).join('');
 
-  // Co-tenants — chargés à part (réutilise le système construit plus tôt)
+  // Co-tenants — juste nom + téléphone ici (pas le dossier complet, c'est
+  // une vue d'ensemble rapide, pas une revue de candidature)
   bookings.forEach(bk=>{
     const el=document.getElementById(`rp-cotenants-${bk.id}`);
     if(!el)return;
-    const html=renderCoTenantsSummary(bk);
-    if(html){el.innerHTML=html;loadCoTenantsLiveInfo(bk);}
+    let coTenants=[];
+    try{coTenants=bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[];}catch(e){}
+    if(!coTenants.length)return;
+    el.innerHTML=`<div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">👥 ${coTenants.length} co-tenant${coTenants.length>1?'s':''}: ${coTenants.map(ct=>`${ct.name||'—'}${ct.phone?' ('+ct.phone+')':''}`).join(', ')}</div>`;
   });
 }
 
