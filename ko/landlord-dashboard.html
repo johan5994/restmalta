@@ -4094,14 +4094,6 @@ function renderLeaseSection(g){
         </div>
       </div>
 
-      <!-- Paiement -->
-      ${llSigned&&tSigned&&bk?.status!=='signing_day'&&bk?.status!=='move_in_ready'?`
-      <div style="margin-bottom:.5rem">
-        <button onclick="setSigningDay('${bk?.id||''}')" style="width:100%;background:var(--sea);color:white;border:none;border-radius:8px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">📋 Mark as Signing Day</button>
-      </div>`:''}
-
-
-
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
       <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:.78rem">${payConfirmed?'✅ Payment confirmed':payDeclared?'💶 Tenant declared payment':'⏳ Waiting for payment'}</span>
@@ -4115,6 +4107,7 @@ function renderLeaseSection(g){
         <button onclick="openLandlordEDL('${bk?.id||''}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>
       </div>`:bk?.status==='move_in_ready'?`
       <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.5rem">✅ Move-in inventory completed — tenant has the keys</div>
+      <button onclick="viewEdlDossier('${bk?.id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>
       ${bk.edl_landlord_embed||bk.formh_landlord_embed?`
       <div style="display:flex;flex-direction:column;gap:.3rem">
         ${bk.edl_landlord_embed?`
@@ -4309,13 +4302,6 @@ async function setEDLDate(bookingId){
   loadVisitsPage();
 }
 
-async function setSigningDay(bookingId){
-  const{error}=await sb.from('bookings').update({status:'signing_day'}).eq('id',bookingId);
-  if(error){toast('❌ '+error.message);return;}
-  toast('✅ Marked as signing day!');
-  loadVisitsPage();
-}
-
 // ── Move-in inventory (EDL) — direct landlord/tenant flow ─────────────
 async function openLandlordEDL(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
@@ -4359,6 +4345,7 @@ async function openLandlordEDL(bookingId){
     {name:'Keys & Access',items:['Main door keys','Mailbox key','Garage remote','Other keys']}
   ];
   window._llEdlRooms=rooms;
+  window._llEdlPhotos={}; // {room_0:[{path,name}],...,meter_water:[...],meter_electricity:[...]}
 
   const roomsHtml=rooms.map((room,ri)=>`
     <div style="margin-bottom:.75rem;border:1px solid var(--b);border-radius:10px;overflow:hidden">
@@ -4382,6 +4369,12 @@ async function openLandlordEDL(bookingId){
             </tr>`).join('')}
           </tbody>
         </table>
+        <div style="padding:.5rem .4rem 0">
+          <label style="display:inline-flex;align-items:center;gap:.35rem;background:var(--s2);border:1px dashed var(--b2);border-radius:7px;padding:.35rem .6rem;font-size:.68rem;font-weight:600;color:var(--tm);cursor:pointer">
+            📷 Add photos<input type="file" accept="image/*" multiple style="display:none" onchange="handleEdlRoomPhotos(this,${ri})">
+          </label>
+          <div id="ll-edl-room-photos-${ri}" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem"></div>
+        </div>
       </div>
     </div>`).join('');
 
@@ -4425,10 +4418,18 @@ async function openLandlordEDL(bookingId){
             <div>
               <div style="font-size:.73rem;font-weight:600;color:var(--sea);margin-bottom:.3rem">💧 Water meter</div>
               <input type="text" id="ll-meter-water" placeholder="e.g. 00123456" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .7rem;color:var(--txt);font-size:.85rem">
+              <label style="display:inline-flex;align-items:center;gap:.35rem;background:var(--s2);border:1px dashed var(--b2);border-radius:7px;padding:.35rem .6rem;font-size:.68rem;font-weight:600;color:var(--tm);cursor:pointer;margin-top:.4rem">
+                📷 Add photo<input type="file" accept="image/*" multiple style="display:none" onchange="handleEdlMeterPhotos(this,'water')">
+              </label>
+              <div id="ll-edl-meter-photos-water" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem"></div>
             </div>
             <div>
               <div style="font-size:.73rem;font-weight:600;color:var(--gold);margin-bottom:.3rem">⚡ Electricity meter</div>
               <input type="text" id="ll-meter-electricity" placeholder="e.g. 00789012" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .7rem;color:var(--txt);font-size:.85rem">
+              <label style="display:inline-flex;align-items:center;gap:.35rem;background:var(--s2);border:1px dashed var(--b2);border-radius:7px;padding:.35rem .6rem;font-size:.68rem;font-weight:600;color:var(--tm);cursor:pointer;margin-top:.4rem">
+                📷 Add photo<input type="file" accept="image/*" multiple style="display:none" onchange="handleEdlMeterPhotos(this,'electricity')">
+              </label>
+              <div id="ll-edl-meter-photos-electricity" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem"></div>
             </div>
           </div>
           <div style="margin-top:.65rem;background:rgba(212,168,71,.08);border-radius:8px;padding:.55rem;font-size:.7rem;color:var(--gold)">
@@ -4502,6 +4503,49 @@ function showEdlStepLL(step){
   }
 }
 
+async function handleEdlRoomPhotos(input,roomIndex){
+  const files=[...input.files];
+  if(!files.length)return;
+  const key=`room_${roomIndex}`;
+  await uploadEdlPhotos(files,key,`ll-edl-room-photos-${roomIndex}`);
+}
+
+async function handleEdlMeterPhotos(input,meterType){
+  const files=[...input.files];
+  if(!files.length)return;
+  const key=`meter_${meterType}`;
+  await uploadEdlPhotos(files,key,`ll-edl-meter-photos-${meterType}`);
+}
+
+async function uploadEdlPhotos(files,key,previewElId){
+  const ctx=window._llEdl;
+  if(!ctx)return;
+  window._llEdlPhotos[key]=window._llEdlPhotos[key]||[];
+  const previewEl=document.getElementById(previewElId);
+  for(const file of files){
+    if(file.size>8*1024*1024){toast('❌ '+file.name+' too large — max 8MB');continue;}
+    const placeholder=document.createElement('div');
+    placeholder.style.cssText='width:44px;height:44px;border-radius:6px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--td)';
+    placeholder.textContent='⏳';
+    if(previewEl)previewEl.appendChild(placeholder);
+    try{
+      const ext=file.name.split('.').pop();
+      const path=`edl/${ctx.bookingId}/${key}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.${ext}`;
+      const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
+      if(error)throw new Error(error.message);
+      const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+      window._llEdlPhotos[key].push({path,url:urlData.publicUrl,name:file.name});
+      if(placeholder){
+        placeholder.style.background='';
+        placeholder.textContent='';
+        placeholder.innerHTML=`<img src="${urlData.publicUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--green)">`;
+      }
+    }catch(e){
+      if(placeholder){placeholder.textContent='❌';placeholder.title=e.message;}
+    }
+  }
+}
+
 function collectEdlRoomsLL(){
   const rooms=window._llEdlRooms;
   if(!rooms)return[];
@@ -4514,6 +4558,65 @@ function collectEdlRoomsLL(){
       notes:document.querySelector(`[data-room="${ri}"][data-item="${ii}"][data-field="notes"]`)?.value||''
     }))
   }));
+}
+
+async function viewEdlDossier(bookingId){
+  if(!bookingId){toast('❌ No booking ID');return;}
+  const{data:bk}=await sb.from('bookings').select('edl_rooms,edl_photos,meter_water,meter_electricity,edl_completed_at').eq('id',bookingId).single();
+  if(!bk){toast('❌ Could not load dossier');return;}
+
+  let rooms=[],photos={};
+  try{rooms=bk.edl_rooms?JSON.parse(bk.edl_rooms):[];}catch(e){}
+  try{photos=bk.edl_photos?JSON.parse(bk.edl_photos):{};}catch(e){}
+
+  const meterPhotosHtml=(type)=>{
+    const pics=photos[`meter_${type}`]||[];
+    if(!pics.length)return '';
+    return `<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.3rem">${pics.map(p=>`<a href="${p.url}" target="_blank"><img src="${p.url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--b2)"></a>`).join('')}</div>`;
+  };
+
+  const roomsHtml=rooms.map((room,ri)=>{
+    const itemsWithData=room.items.filter(it=>it.condition_arrival||it.notes||parseInt(it.qty)>0);
+    const pics=photos[`room_${ri}`]||[];
+    if(!itemsWithData.length&&!pics.length)return '';
+    return `<div style="margin-bottom:.65rem;border:1px solid var(--b);border-radius:10px;overflow:hidden">
+      <div style="background:var(--s2);padding:.4rem .65rem;font-size:.75rem;font-weight:700">${room.name}</div>
+      <div style="padding:.5rem .65rem">
+        ${itemsWithData.length?`<table style="width:100%;border-collapse:collapse;font-size:.68rem;margin-bottom:.4rem">
+          ${itemsWithData.map(it=>`<tr><td style="padding:.15rem 0;color:var(--tm)">${it.item}${it.qty?' ('+it.qty+')':''}</td><td style="padding:.15rem 0;text-align:right">${it.condition_arrival?({'Good':'✅ Good','Fair':'🟡 Fair','Poor':'🔴 Poor','N/A':'N/A'}[it.condition_arrival]||it.condition_arrival):''}</td></tr>${it.notes?`<tr><td colspan="2" style="padding:0 0 .3rem;color:var(--td);font-size:.64rem">↳ ${it.notes}</td></tr>`:''}`).join('')}
+        </table>`:''}
+        ${pics.length?`<div style="display:flex;gap:.4rem;flex-wrap:wrap">${pics.map(p=>`<a href="${p.url}" target="_blank"><img src="${p.url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--b2)"></a>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  const modal=document.createElement('div');
+  modal.id='edl-dossier-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  modal.innerHTML=`
+    <div style="background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0">
+      <div>
+        <div style="font-weight:700;font-size:.9rem">📋 Move-in Inventory Dossier</div>
+        <div style="font-size:.68rem;color:var(--td)">${bk.edl_completed_at?'Completed '+new Date(bk.edl_completed_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):''}</div>
+      </div>
+      <button onclick="document.getElementById('edl-dossier-modal').remove()" style="background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <div style="flex:1;overflow:auto;padding:1rem;max-width:720px;margin:0 auto;width:100%">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:1rem">
+        <div style="background:var(--s2);border-radius:8px;padding:.65rem">
+          <div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">💧 Water meter</div>
+          <div style="font-size:.8rem;font-weight:700">${bk.meter_water||'—'}</div>
+          ${meterPhotosHtml('water')}
+        </div>
+        <div style="background:var(--s2);border-radius:8px;padding:.65rem">
+          <div style="font-size:.68rem;color:var(--td);margin-bottom:.2rem">⚡ Electricity meter</div>
+          <div style="font-size:.8rem;font-weight:700">${bk.meter_electricity||'—'}</div>
+          ${meterPhotosHtml('electricity')}
+        </div>
+      </div>
+      ${roomsHtml||'<div style="text-align:center;color:var(--td);font-size:.8rem;padding:2rem">No detailed inventory recorded</div>'}
+    </div>`;
+  document.body.appendChild(modal);
 }
 
 async function generateAnnexAndCompleteLL(){
@@ -4572,7 +4675,10 @@ async function generateAnnexAndCompleteLL(){
       edl_submission_id:edlSubmissionId?String(edlSubmissionId):null,
       formh_landlord_embed:formhLandlordEmbed,
       formh_tenant_embed:formhTenantEmbed,
-      formh_submission_id:formhSubmissionId?String(formhSubmissionId):null
+      formh_submission_id:formhSubmissionId?String(formhSubmissionId):null,
+      edl_photos:JSON.stringify(window._llEdlPhotos||{}),
+      edl_rooms:JSON.stringify(rooms),
+      edl_completed_at:new Date().toISOString()
     }).eq('id',ctx.bookingId);
   }catch(e){console.warn('DB update:',e);}
 
