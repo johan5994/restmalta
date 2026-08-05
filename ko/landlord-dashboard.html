@@ -199,7 +199,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <nav class="sb-nav">
     <div class="nl">Overview</div>
     <button class="ni act" onclick="sp('dash',this)"><span class="nico">📊</span>Dashboard</button>
-    <button class="ni" onclick="sp('report',this)"><span class="nico">📈</span>Monthly report</button>
+    <button class="ni" onclick="sp('properties',this)"><span class="nico">🏠</span>Rented properties</button>
     <div class="nl">Properties</div>
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My listings</button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits-ll" style="display:none">0</span></button>
@@ -290,48 +290,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
     </div>
 
-    <!-- MONTHLY REPORT -->
-    <div class="page" id="page-report">
+    <!-- RENTED PROPERTIES -->
+    <div class="page" id="page-properties">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-        <div style="font-size:1rem;font-weight:700">📈 Monthly Report</div>
-        <button class="btn bp bsm" onclick="downloadReport()">⬇ Download PDF</button>
+        <div style="font-size:1rem;font-weight:700">🏠 Rented Properties</div>
+        <span class="badge b-dim" id="rp-count">—</span>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
-        <div class="kcard"><div class="klabel">Rent collected</div><div class="kval" id="rep-rent" style="color:var(--green)">€0</div><div class="ksub">This month</div></div>
-        <div class="kcard"><div class="klabel">Occupancy rate</div><div class="kval" id="rep-occ" style="color:var(--sea)">—</div><div class="ksub">Rented / Active listings</div></div>
-        <div class="kcard"><div class="klabel">Open tickets</div><div class="kval" id="rep-tick" style="color:var(--gold)">0</div><div class="ksub">Maintenance</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-        <div class="card">
-          <div class="ch"><div class="ct">Revenue breakdown</div></div>
-          <div class="cb">
-            <div style="display:flex;flex-direction:column;gap:.85rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;font-size:.85rem">
-                <span>Long-let rent</span><span style="font-weight:700;color:var(--green)" id="rep-longlet">€0</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;font-size:.85rem">
-                <span>Short-let rent</span><span style="font-weight:700;color:var(--sea)" id="rep-shortlet">€0</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;font-size:.85rem">
-                <span>Deposits held</span><span style="font-weight:700;color:var(--gold)" id="rep-deposits">€0</span>
-              </div>
-              <div style="border-top:1px solid var(--b);padding-top:.85rem;display:flex;justify-content:space-between;align-items:center;font-size:.9rem;font-weight:700">
-                <span>Total</span><span style="color:var(--terra)" id="rep-total">€0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Property status</div></div>
-          <div class="cb" id="rep-props"><div class="ld"><div class="sp"></div></div></div>
-        </div>
-        <div class="card" style="grid-column:1/-1">
-          <div class="ch"><div class="ct">Last 6 months</div></div>
-          <div class="cb">
-            <div style="display:flex;align-items:flex-end;gap:.5rem;height:100px" id="rep-chart"></div>
-          </div>
-        </div>
-      </div>
+      <div id="rp-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
 
     <!-- TENANT MATCHING -->
@@ -975,7 +940,7 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
-  const titles={dash:'Dashboard',report:'Monthly Report',listings:'My Listings',visits:'Visits',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',reviews:'Reviews',profile:'Profile & Settings'};
+  const titles={dash:'Dashboard',properties:'Rented Properties',listings:'My Listings',visits:'Visits',payments:'Payments & Rent',messages:'Messages',maintenance:'Maintenance',reviews:'Reviews',profile:'Profile & Settings'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
@@ -989,7 +954,7 @@ function sp(id,btn){
       if(e)e.addEventListener('change',checkLeaseReady);
     },100);
   }
-  if(id==='report')loadReport();
+  if(id==='properties')loadRentedProperties();
   if(id==='tenantmatch')loadTenantMatch();
 }
 
@@ -3616,38 +3581,70 @@ async function uploadDoc(input,type){
   toast(`✅ ${type==='id'?'ID':'Property proof'} uploaded!`);
 }
 
-async function loadReport(){
-  const[{data:listings},{data:pays},{data:tickets}]=await Promise.all([
-    sb.from('listings').select('*').eq('landlord_id',U.id),
-    sb.from('payments').select('*').eq('landlord_id',U.id),
-    sb.from('tickets').select('*').eq('landlord_id',U.id).neq('status','resolved')
-  ]);
-  const thisMonth=new Date();thisMonth.setDate(1);
-  const collected=(pays||[]).filter(p=>p.status==='paid'&&new Date(p.paid_at||p.created_at)>=thisMonth).reduce((s,p)=>s+(p.amount||0),0);
-  const active=(listings||[]).filter(l=>l.active).length;
-  const total=(listings||[]).length;
-  // Occupancy = listings with an active signed lease / total active listings
-  const{data:activeLeases}=await sb.from('leases').select('listing_id').eq('landlord_id',U.id).eq('status','signed');
-  const occupiedIds=new Set((activeLeases||[]).map(l=>l.listing_id));
-  const occupied=(listings||[]).filter(l=>occupiedIds.has(l.id)).length;
-  document.getElementById('rep-rent').textContent='€'+collected.toLocaleString();
-  document.getElementById('rep-occ').textContent=active>0?Math.round(occupied/active*100)+'%':'—';
-  document.getElementById('rep-tick').textContent=(tickets||[]).length;
-  document.getElementById('rep-total').textContent='€'+collected.toLocaleString();
-  document.getElementById('rep-longlet').textContent='€'+(pays||[]).filter(p=>(p.type==='rent'||p.type==='first_rent')&&p.status==='paid').reduce((s,p)=>s+(p.amount||0),0).toLocaleString();
-  document.getElementById('rep-shortlet').textContent='€0';
-  document.getElementById('rep-deposits').textContent='€'+(pays||[]).filter(p=>p.type==='deposit').reduce((s,p)=>s+(p.amount||0),0).toLocaleString();
-  // Props
-  const wrap=document.getElementById('rep-props');
-  wrap.innerHTML=(listings||[]).length?(listings||[]).map(l=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--b);font-size:.83rem"><span>${l.title}</span><span class="badge ${l.active?'b-green':'b-dim'}">${l.active?'Active':'Paused'}</span></div>`).join(''):'<div class="empty"><div class="em">🏠</div><p>No listings yet</p></div>';
-  // Chart
-  const months=['Oct','Nov','Dec','Jan','Feb','Mar'];
-  const mockVals=[320,480,290,520,380,collected||420];
-  const max=Math.max(...mockVals);
-  document.getElementById('rep-chart').innerHTML=months.map((m,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.3rem"><div style="width:100%;border-radius:4px 4px 0 0;background:${i===5?'var(--terra)':'var(--tdim)'};border:1px solid rgba(224,90,58,.2);height:${Math.round(mockVals[i]/max*100)}px"></div><span style="font-size:.65rem;color:var(--td)">${m}</span></div>`).join('');
-}
+async function loadRentedProperties(){
+  const wrap=document.getElementById('rp-list');
+  const countBadge=document.getElementById('rp-count');
+  if(!wrap)return;
 
-function downloadReport(){toast('📥 Report PDF generation coming soon with Stripe integration!');}
+  const occupiedStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
+  const{data:bookings}=await sb.from('bookings').select('*').eq('landlord_id',U.id).in('status',occupiedStatuses);
+
+  if(!bookings||!bookings.length){
+    wrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>No rented properties yet</p></div>';
+    if(countBadge)countBadge.textContent='0';
+    return;
+  }
+  if(countBadge)countBadge.textContent=bookings.length;
+
+  const listingIds=[...new Set(bookings.map(b=>b.listing_id).filter(Boolean))];
+  const{data:listings}=await sb.from('listings').select('id,title,zone,photos,price').in('id',listingIds);
+  const lMap={};(listings||[]).forEach(l=>{lMap[l.id]=l;});
+
+  const{data:allPayments}=await sb.from('payments').select('*').eq('landlord_id',U.id).in('listing_id',listingIds).order('due_date',{ascending:false});
+  const paysByListing={};
+  (allPayments||[]).forEach(p=>{(paysByListing[p.listing_id]=paysByListing[p.listing_id]||[]).push(p);});
+
+  const today=new Date().toISOString().split('T')[0];
+
+  wrap.innerHTML=bookings.map(bk=>{
+    const listing=lMap[bk.listing_id]||{};
+    const pays=paysByListing[bk.listing_id]||[];
+    const overdue=pays.filter(p=>p.status==='pending'&&p.due_date&&p.due_date<today);
+    const declared=pays.filter(p=>p.status==='declared'||(p.status==='pending'&&p.tenant_declared));
+    let payBadge='<span class="badge b-green">✅ Up to date</span>';
+    if(overdue.length)payBadge=`<span class="badge b-red">⚠️ ${overdue.length} overdue</span>`;
+    else if(declared.length)payBadge=`<span class="badge b-gold">⏳ Awaiting confirmation</span>`;
+
+    const recentPays=pays.slice(0,5);
+    const receiptsHtml=recentPays.length?recentPays.map(p=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--b);font-size:.75rem">
+        <span style="color:var(--tm)">${p.type==='first_rent'?'First month':p.type==='deposit'?'Deposit':p.type==='rent'?'Rent':p.type} — ${p.due_date?new Date(p.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span>
+        <span style="font-weight:600">€${p.amount||0} ${p.status==='paid'?'✅':p.status==='pending'&&p.due_date<today?'⚠️':'⏳'}</span>
+      </div>`).join(''):'<div style="font-size:.75rem;color:var(--td);padding:.5rem 0">No payment history yet</div>';
+
+    return `<div class="card" style="margin-bottom:1rem">
+      <div class="ch" style="display:flex;align-items:center;gap:.75rem">
+        <div style="width:44px;height:36px;border-radius:6px;background:var(--s2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          ${listing.photos&&listing.photos.length?`<img src="${listing.photos[0]}" style="width:100%;height:100%;object-fit:cover">`:'🏠'}
+        </div>
+        <div style="flex:1">
+          <div class="ct">${listing.title||'Property'}</div>
+          <div style="font-size:.72rem;color:var(--td)">📍 ${listing.zone||'—'} · 👤 ${bk.tenant_name||'Tenant'}</div>
+        </div>
+        ${payBadge}
+      </div>
+      <div class="cb">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+          ${bk.lease_tenant_embed||bk.lease_landlord_embed?`<a href="${bk.lease_landlord_embed||bk.lease_tenant_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📄 Lease</a>`:''}
+          ${bk.status==='move_in_ready'?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📋 EDL dossier</button>`:''}
+          <button onclick="sp('payments',document.querySelector('.ni[onclick*=payments]'))" class="btn bg bsm">💶 Full payment history</button>
+        </div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Recent receipts</div>
+        ${receiptsHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
 
 async function loadTenantMatch(){
   const wrap=document.getElementById('match-list');
