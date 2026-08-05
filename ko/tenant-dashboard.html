@@ -815,6 +815,8 @@ function sp(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   if(btn)btn.classList.add('act');
+  document.querySelector('.content')?.scrollTo(0,0);
+  window.scrollTo(0,0);
   // Afficher docs seulement sur profile
   const docsSection=document.getElementById('docs-section');
   if(docsSection) docsSection.style.display=id==='profile'?'block':'none';
