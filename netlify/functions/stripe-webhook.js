@@ -30,6 +30,41 @@ exports.handler = async (event) => {
 
   console.log('Stripe webhook event:', stripeEvent.type);
 
+  // ── Abonnement hebdomadaire "For sale" — activer l'annonce au premier paiement ──
+  if (stripeEvent.type === 'checkout.session.completed') {
+    const session = stripeEvent.data.object;
+    if (session.metadata?.type === 'sale_listing_subscription') {
+      const listingId = session.metadata.listing_id;
+      if (listingId) {
+        await sb.from('listings').update({
+          active: true,
+          sale_subscription_status: 'active',
+          sale_subscription_id: session.subscription || null
+        }).eq('id', listingId);
+        console.log(`Sale listing ${listingId} activated via subscription`);
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
+    }
+  }
+
+  // ── Abonnement hebdomadaire "For sale" — paiement raté ou abonnement annulé
+  // → l'annonce repasse hors ligne (visibilité seulement, rien d'autre) ──
+  if (stripeEvent.type === 'invoice.payment_failed' || stripeEvent.type === 'customer.subscription.deleted') {
+    const obj = stripeEvent.data.object;
+    const subscriptionId = stripeEvent.type === 'invoice.payment_failed' ? obj.subscription : obj.id;
+    if (subscriptionId) {
+      const { data: listing } = await sb.from('listings').select('id').eq('sale_subscription_id', subscriptionId).maybeSingle();
+      if (listing) {
+        await sb.from('listings').update({
+          active: false,
+          sale_subscription_status: stripeEvent.type === 'invoice.payment_failed' ? 'past_due' : 'cancelled'
+        }).eq('id', listing.id);
+        console.log(`Sale listing ${listing.id} deactivated — ${stripeEvent.type}`);
+      }
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
+  }
+
   // ── On écoute uniquement les paiements de commission complétés ──
   if (stripeEvent.type === 'checkout.session.completed') {
     const session = stripeEvent.data.object;
