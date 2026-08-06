@@ -1,5 +1,4 @@
-const DOCU_KEY = process.env.DOCUSEAL_API_KEY;
-const DOCU_URL = 'https://api.docuseal.eu/submissions/init';
+const DOCU_KEY = process.env.DOCUSEAL_KEY || process.env.DOCUSEAL_API_KEY;
 
 exports.handler = async (event) => {
   const headers = {
@@ -196,25 +195,58 @@ ${general_notes ? `
 </body>
 </html>`;
 
-    // Envoyer à DocuSeal
+    // Envoyer à DocuSeal — même procédé en 2 étapes que le bail/renouvellement :
+    // 1) créer un template depuis le HTML, 2) créer une soumission à partir de ce template.
+    // L'ancien code appelait directement /submissions/init en un seul appel, ce qui ne
+    // renvoyait jamais de vrais liens de signature exploitables.
     if (!DOCU_KEY) {
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, message: 'DocuSeal not configured' }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, edl_html: html, message: 'EDL generated — DocuSeal not configured' }) };
     }
-    const res = await fetch(DOCU_URL, {
+
+    const tplRes = await fetch('https://api.docuseal.eu/templates/html', {
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        html,
+        name: 'Move-in Inventory — ' + (listing?.address || 'Malta'),
+        documents: [{ name: 'Annex A - Inventory', html }]
+      })
+    });
+
+    if (!tplRes.ok) {
+      const errText = await tplRes.text();
+      console.error('DocuSeal template error:', errText);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, edl_html: html, message: 'DocuSeal template error: ' + errText.slice(0, 200) }) };
+    }
+
+    const tplData = await tplRes.json();
+    const templateId = tplData.id;
+    if (!templateId) {
+      console.error('No template ID returned:', JSON.stringify(tplData));
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, edl_html: html, message: 'No template ID' }) };
+    }
+
+    const res = await fetch('https://api.docuseal.eu/submissions', {
+      method: 'POST',
+      headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template_id: templateId,
         send_email: false,
         submitters: [
-          { role: 'Lessor', email: landlord?.email, name: landlord?.name || 'Landlord' },
-          { role: 'Lessee', email: tenant?.email, name: tenant?.name || 'Tenant' }
+          { role: 'Lessor', email: landlord?.email || '', name: landlord?.name || 'Landlord' },
+          { role: 'Lessee', email: tenant?.email || '', name: tenant?.name || 'Tenant' }
         ]
       })
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('DocuSeal submission error:', errText);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, edl_html: html, message: 'DocuSeal submission error: ' + errText.slice(0, 200) }) };
+    }
+
     const data = await res.json();
     const submitters_data = Array.isArray(data) ? data : (data.submitters || []);
+    const submissionId = submitters_data[0]?.submission_id || data.id;
     const lessorData = submitters_data.find(s => s.role === 'Lessor') || submitters_data[0];
     const lesseeData = submitters_data.find(s => s.role === 'Lessee') || submitters_data[1];
 
@@ -223,7 +255,7 @@ ${general_notes ? `
       headers,
       body: JSON.stringify({
         success: true,
-        submission_id: submitters_data[0]?.submission_id,
+        submission_id: submissionId,
         lessor_embed_src: lessorData?.embed_src || null,
         lessee_embed_src: lesseeData?.embed_src || null,
         lessor_slug: lessorData?.slug || null,
