@@ -45,6 +45,18 @@ exports.handler = async (event) => {
       }
       return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
     }
+
+    // ── Boost d'annonce — paiement unique, place l'annonce en tête pendant N jours ──
+    if (session.metadata?.type === 'listing_boost') {
+      const listingId = session.metadata.listing_id;
+      const boostDays = parseInt(session.metadata.boost_days || '7', 10);
+      if (listingId) {
+        const boostedUntil = new Date(Date.now() + boostDays * 24 * 60 * 60 * 1000).toISOString();
+        await sb.from('listings').update({ boosted_until: boostedUntil }).eq('id', listingId);
+        console.log(`Listing ${listingId} boosted until ${boostedUntil}`);
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
+    }
   }
 
   // ── Abonnement hebdomadaire "For sale" — paiement raté ou abonnement annulé
