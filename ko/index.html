@@ -331,8 +331,9 @@ footer ul a:hover{color:var(--terra)}
         <button class="btn btn-p" onclick="stl()">🔍 Browse listings</button>
         <button class="btn btn-s" onclick="chkPost()">🏠 List your flat</button>
       </div>
-      <div style="margin-top:.7rem;font-size:.8rem;color:var(--stone-l)">
-        Landlord looking to sell or rent through an agency? <a onclick="go('agencies')" style="color:var(--terra);font-weight:700;text-decoration:underline;cursor:pointer">Browse agencies & get a free estimation →</a>
+      <div onclick="go('agencies')" style="margin-top:1rem;display:inline-flex;align-items:center;gap:.6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:100px;padding:.55rem 1.1rem;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(99,102,241,.16)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">
+        <span style="font-size:1.1rem">🏢</span>
+        <span style="font-size:.85rem;font-weight:700;color:#4F46E5">Selling or renting through an agency? Browse agencies →</span>
       </div>
 
       <div class="hero-stats">
@@ -378,14 +379,14 @@ footer ul a:hover{color:var(--terra)}
   <option value="Mosta"><option value="Naxxar"><option value="Rabat"><option value="Mdina">
   <option value="Marsaskala"><option value="Marsaxlokk"><option value="Birgu"><option value="Senglea">
 </datalist></div>
-      <div class="sf"><label>📅 Type</label><select id="ft" onchange="loadL()">
+      <div class="sf"><label>📅 Type</label><select id="ft" onchange="loadL();toggleSaleFilterUI()">
         <option value="">All types</option>
         <option value="short">🏠 Short-let only</option>
         <option value="long">📅 Long-let only</option>
         <option value="room_rental">🔑 Room rental</option>
         <option value="for_sale">🏷️ For sale</option>
       </select></div>
-      <div class="sf"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
+      <div class="sf" id="fp-wrap"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
       <div class="sf"><label>📋 Attestation</label><select id="fa" onchange="loadL()"><option value="">All</option><option value="yes">✅ Attestation OK</option></select></div>
       <button class="btn btn-p" onclick="loadL()">Search →</button>
     </div>
@@ -1390,6 +1391,12 @@ async function doReg(){
 
 async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
 
+function toggleSaleFilterUI(){
+  const isSale=document.getElementById('ft')?.value==='for_sale';
+  const fpWrap=document.getElementById('fp-wrap');
+  if(fpWrap)fpWrap.style.display=isSale?'none':'block';
+}
+
 async function loadL(){
   const g=document.getElementById('lg');g.innerHTML='<div class="loading"><div class="sp"></div> Loading…</div>';
   const z=document.getElementById('fz')?.value,t=document.getElementById('ft')?.value,p=document.getElementById('fp')?.value,att=document.getElementById('fa')?.value;
@@ -1399,7 +1406,7 @@ async function loadL(){
   // Sale listings never show mixed into the default rental browse — only
   // when the type filter is explicitly set to 'for_sale'.
   if(t)q=q.eq('type',t);else q=q.neq('type','for_sale');
-  if(p)q=q.lte('price',parseInt(p));
+  if(p&&t!=='for_sale')q=q.lte('price',parseInt(p)); // le filtre budget est pensé pour un loyer, n'a pas de sens pour un prix de vente
   if(att==='yes')q=q.eq('accepts_attestation',true);
   const{data}=await q;
   window._currentListings=data||[];
