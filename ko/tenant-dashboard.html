@@ -128,6 +128,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-msg" style="display:none">0</span></button>
     <div class="nl">Documents & Finance</div>
     <button class="ni" onclick="sp('mylocation',this)"><span class="nico">🏠</span>Ma Location</button>
+    <button class="ni" onclick="sp('roommates',this)"><span class="nico">👥</span>Find a roommate</button>
     <div class="nl">Reviews & Profilee</div>
     <button class="ni" onclick="sp('reviews',this)"><span class="nico">⭐</span>Leave a review</button>
     <button class="ni" onclick="sp('profile',this)"><span class="nico">👤</span>My profile</button>
@@ -222,6 +223,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <button class="ml-tab act" id="ml-tabbtn-lease" onclick="showMlTab('lease')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--terra);color:white">📄 Bail & EDL</button>
           <button class="ml-tab" id="ml-tabbtn-payments" onclick="showMlTab('payments')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">💶 Payments</button>
           <button class="ml-tab" id="ml-tabbtn-maintenance" onclick="showMlTab('maintenance')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🔧 Maintenance</button>
+          <button class="ml-tab" id="ml-tabbtn-manage" onclick="showMlTab('manage')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🔄 Extend or Stop</button>
         </div>
 
         <!-- Sub-tab: Bail & EDL -->
@@ -232,7 +234,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <!-- Sub-tab: Payments -->
         <div id="ml-tab-payments" style="display:none">
           <div id="pay-due-now"></div>
-          <div class="card" style="margin-bottom:1rem"><div class="ch"><div class="ct">Payment history</div></div><div id="pay-list"><div class="ld"><div class="sp"></div></div></div></div>
+          <div class="card"><div class="ch"><div class="ct">Payment history</div></div><div id="pay-list"><div class="ld"><div class="sp"></div></div></div></div>
+        </div>
+
+        <!-- Sub-tab: Maintenance -->
+        <div id="ml-tab-maintenance" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+            <div style="font-size:.85rem;font-weight:700;color:var(--tm)">Maintenance tickets</div>
+            <button class="btn bp bsm" onclick="openTicketModal()">+ Report problem</button>
+          </div>
+          <div class="ai">🔧 Report any issue in your flat and your landlord is notified instantly. Track the status in real time — from open to in progress to resolved.</div>
+
+        <!-- Sub-tab: Extend or Stop -->
+        <div id="ml-tab-manage" style="display:none">
+          <div class="card" style="margin-bottom:1rem">
+            <div class="ch"><div class="ct">🔄 Extend your lease</div></div>
+            <div class="cb">
+              <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Want to stay longer? Send your landlord a renewal request — they'll review and sign, same as you. Nothing changes until you've both signed.</p>
+              <div id="ml-renewal-status"></div>
+            </div>
+          </div>
           <div class="card">
             <div class="ch"><div class="ct">📤 Generate notice to leave</div></div>
             <div class="cb">
@@ -261,14 +282,124 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
         </div>
 
-        <!-- Sub-tab: Maintenance -->
-        <div id="ml-tab-maintenance" style="display:none">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
-            <div style="font-size:.85rem;font-weight:700;color:var(--tm)">Maintenance tickets</div>
-            <button class="btn bp bsm" onclick="openTicketModal()">+ Report problem</button>
-          </div>
-          <div class="ai">🔧 Report any issue in your flat and your landlord is notified instantly. Track the status in real time — from open to in progress to resolved.</div>
           <div id="tickets-list"><div class="ld"><div class="sp"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIND A ROOMMATE -->
+    <div class="page" id="page-roommates">
+      <div style="display:flex;gap:.5rem;margin-bottom:1.2rem;overflow-x-auto">
+        <button class="ml-tab" id="rm-tabbtn-channel" onclick="showRmTab('channel')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--terra);color:white">💬 Community Channel</button>
+        <button class="ml-tab" id="rm-tabbtn-profile" onclick="showRmTab('profile')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">👤 My Profile</button>
+        <button class="ml-tab" id="rm-tabbtn-groups" onclick="showRmTab('groups')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">👥 My Groups</button>
+      </div>
+
+      <!-- Sub-tab: Community Channel -->
+      <div id="rm-tab-channel">
+        <div id="rm-profile-required" style="display:none;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;font-size:.82rem;color:var(--gold)">
+          👤 Create your roommate profile first so others know what you're looking for — <span onclick="showRmTab('profile')" style="text-decoration:underline;cursor:pointer;font-weight:700">set it up now</span>.
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">💬 Community Channel</div><span style="font-size:.68rem;color:var(--td)">Everyone looking for a roommate is here</span></div>
+          <div id="rm-channel-body" style="height:420px;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.6rem"></div>
+          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+            <input id="rm-channel-input" class="fi" placeholder="Say hi, mention your budget/zone..." style="flex:1;font-size:.83rem" onkeydown="if(event.key==='Enter'){event.preventDefault();sendRmChannelMsg();}">
+            <button class="btn bp bsm" onclick="sendRmChannelMsg()">Send →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-tab: My Profile -->
+      <div id="rm-tab-profile" style="display:none">
+        <div class="card">
+          <div class="ch"><div class="ct">👤 My roommate search profile</div><span class="badge" id="rm-profile-badge" style="display:none"></span></div>
+          <div class="cb">
+            <p style="font-size:.8rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">This is what other tenants see next to your messages in the Community Channel.</p>
+            <div class="fgrid2">
+              <div class="fg"><label class="fl">Budget min (€/mo)</label><input class="fi" type="number" id="rm-budget-min" placeholder="400"></div>
+              <div class="fg"><label class="fl">Budget max (€/mo)</label><input class="fi" type="number" id="rm-budget-max" placeholder="700"></div>
+            </div>
+            <div class="fg"><label class="fl">Preferred zone(s)</label><input class="fi" id="rm-zones" placeholder="Sliema, St Julian's, Gzira..."></div>
+            <div class="fg"><label class="fl">Move-in date</label><input class="fi" type="date" id="rm-movein"></div>
+            <div class="fg"><label class="fl">Do you already have some roommates and need more?</label>
+              <select class="fsel" id="rm-spots-needed">
+                <option value="0">No — I'm searching alone / open to joining anyone</option>
+                <option value="1">Yes — I need 1 more</option>
+                <option value="2">Yes — I need 2 more</option>
+                <option value="3">Yes — I need 3 more</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Lifestyle</label>
+              <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+                <label style="display:flex;align-items:center;gap:.3rem;background:var(--s2);border-radius:20px;padding:.3rem .7rem;font-size:.76rem;cursor:pointer"><input type="checkbox" id="rm-life-quiet"> 🤫 Quiet</label>
+                <label style="display:flex;align-items:center;gap:.3rem;background:var(--s2);border-radius:20px;padding:.3rem .7rem;font-size:.76rem;cursor:pointer"><input type="checkbox" id="rm-life-social"> 🎉 Social</label>
+                <label style="display:flex;align-items:center;gap:.3rem;background:var(--s2);border-radius:20px;padding:.3rem .7rem;font-size:.76rem;cursor:pointer"><input type="checkbox" id="rm-life-nonsmoker"> 🚭 Non-smoker</label>
+                <label style="display:flex;align-items:center;gap:.3rem;background:var(--s2);border-radius:20px;padding:.3rem .7rem;font-size:.76rem;cursor:pointer"><input type="checkbox" id="rm-life-pets"> 🐾 Pet-friendly</label>
+                <label style="display:flex;align-items:center;gap:.3rem;background:var(--s2);border-radius:20px;padding:.3rem .7rem;font-size:.76rem;cursor:pointer"><input type="checkbox" id="rm-life-wfh"> 💻 Works from home</label>
+              </div>
+            </div>
+            <div class="fg"><label class="fl">Short bio</label><textarea class="fta" id="rm-bio" rows="3" placeholder="A bit about you — where you're from, what you do, what you're looking for..."></textarea></div>
+            <div class="fg"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="checkbox" id="rm-active" checked> <span class="fl" style="margin:0">Visible in the Community Channel (turn off once you've found a place)</span></label></div>
+            <button class="btn bp" style="width:100%;justify-content:center" onclick="saveRoommateProfile()">Save profile →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-tab: My Groups -->
+      <div id="rm-tab-groups" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div style="font-size:.85rem;font-weight:700;color:var(--tm)">My roommate groups</div>
+          <button class="btn bp bsm" onclick="openCreateGroupModal()">+ Create group</button>
+        </div>
+        <div id="rm-groups-list"><div class="ld"><div class="sp"></div></div></div>
+      </div>
+
+      <!-- Modal: DM privé -->
+      <div id="rm-dm-modal" onclick="if(event.target.id==='rm-dm-modal')closeRmDm()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;max-width:480px;width:95%;height:75vh;display:flex;flex-direction:column">
+          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700;font-size:.95rem" id="rm-dm-title">—</div>
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <button onclick="reportRoommateUser()" title="Report" style="background:none;border:none;font-size:.9rem;cursor:pointer;color:var(--td)">🚩</button>
+              <button onclick="closeRmDm()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+            </div>
+          </div>
+          <div id="rm-dm-thread" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
+          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+            <input id="rm-dm-input" class="fi" placeholder="Write a message..." style="flex:1;font-size:.83rem" onkeydown="if(event.key==='Enter'){event.preventDefault();sendRmDm();}">
+            <button class="btn bp bsm" onclick="sendRmDm()">Send →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Créer un groupe -->
+      <div id="rm-group-modal" onclick="if(event.target.id==='rm-group-modal')document.getElementById('rm-group-modal').style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;max-width:420px;width:95%;padding:1.5rem">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">👥 Create a group</div>
+          <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">Start a group chat with people from the channel — good for coordinating a shared search or applying together.</div>
+          <div class="fg" style="margin-bottom:.75rem"><label class="fl">Group name</label><input class="fi" id="rm-group-name" placeholder="e.g. Sliema 3BR search"></div>
+          <div class="fg" style="margin-bottom:1rem"><label class="fl">Add members</label><div id="rm-group-member-picker" style="max-height:180px;overflow-y:auto;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem"></div></div>
+          <button class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="submitCreateGroup()">Create group →</button>
+          <button class="btn bg" style="width:100%;justify-content:center" onclick="document.getElementById('rm-group-modal').style.display='none'">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Modal: Chat de groupe -->
+      <div id="rm-groupchat-modal" onclick="if(event.target.id==='rm-groupchat-modal')closeRmGroupChat()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;max-width:480px;width:95%;height:75vh;display:flex;flex-direction:column">
+          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700;font-size:.95rem" id="rm-groupchat-title">—</div>
+              <div style="font-size:.68rem;color:var(--td)" id="rm-groupchat-members">—</div>
+            </div>
+            <button onclick="closeRmGroupChat()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+          </div>
+          <div id="rm-groupchat-thread" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
+          <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
+            <input id="rm-groupchat-input" class="fi" placeholder="Write a message..." style="flex:1;font-size:.83rem" onkeydown="if(event.key==='Enter'){event.preventDefault();sendRmGroupMsg();}">
+            <button class="btn bp bsm" onclick="sendRmGroupMsg()">Send →</button>
+          </div>
         </div>
       </div>
     </div>
@@ -810,11 +941,337 @@ function sp(id,btn){
   if(id==='mylocation')loadMyLocation();
   if(id==='search')loadAlertState();
   if(id==='visits'){loadTenantVisits();}
+  if(id==='roommates'){showRmTab('channel');}
   if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// FIND A ROOMMATE — canal communautaire, profils, DM privé, groupes
+// ═══════════════════════════════════════════════════════════════════
+let rmBlockedIds=new Set();
+let rmProfilesCache={};
+let rmDmOtherId=null;
+let rmActiveGroupId=null;
+
+function showRmTab(tab){
+  ['channel','profile','groups'].forEach(t=>{
+    const panel=document.getElementById('rm-tab-'+t);
+    const btn=document.getElementById('rm-tabbtn-'+t);
+    if(panel)panel.style.display=t===tab?'block':'none';
+    if(btn){btn.style.background=t===tab?'var(--terra)':'var(--s2)';btn.style.color=t===tab?'white':'var(--tm)';}
+  });
+  if(tab==='channel')loadRmChannel();
+  if(tab==='profile')loadRoommateProfile();
+  if(tab==='groups')loadRmGroups();
+}
+
+async function loadRoommateProfile(){
+  try{
+    const{data:p}=await sb.from('roommate_profiles').select('*').eq('tenant_id',U.id).maybeSingle();
+    if(!p)return;
+    document.getElementById('rm-budget-min').value=p.budget_min||'';
+    document.getElementById('rm-budget-max').value=p.budget_max||'';
+    document.getElementById('rm-zones').value=p.zones||'';
+    document.getElementById('rm-movein').value=p.move_in_date||'';
+    document.getElementById('rm-spots-needed').value=p.spots_needed||0;
+    document.getElementById('rm-bio').value=p.bio||'';
+    document.getElementById('rm-active').checked=p.active!==false;
+    let life={};
+    try{life=p.lifestyle?JSON.parse(p.lifestyle):{};}catch(e){}
+    document.getElementById('rm-life-quiet').checked=!!life.quiet;
+    document.getElementById('rm-life-social').checked=!!life.social;
+    document.getElementById('rm-life-nonsmoker').checked=!!life.nonsmoker;
+    document.getElementById('rm-life-pets').checked=!!life.pets;
+    document.getElementById('rm-life-wfh').checked=!!life.wfh;
+    const badge=document.getElementById('rm-profile-badge');
+    if(badge){badge.style.display='inline';badge.className='badge '+(p.active!==false?'b-green':'b-dim');badge.textContent=p.active!==false?'Visible in channel':'Hidden';}
+  }catch(e){}
+}
+
+async function saveRoommateProfile(){
+  const lifestyle={
+    quiet:document.getElementById('rm-life-quiet').checked,
+    social:document.getElementById('rm-life-social').checked,
+    nonsmoker:document.getElementById('rm-life-nonsmoker').checked,
+    pets:document.getElementById('rm-life-pets').checked,
+    wfh:document.getElementById('rm-life-wfh').checked
+  };
+  const payload={
+    tenant_id:U.id,
+    full_name:P?.full_name||'Tenant',
+    budget_min:parseFloat(document.getElementById('rm-budget-min').value)||null,
+    budget_max:parseFloat(document.getElementById('rm-budget-max').value)||null,
+    zones:document.getElementById('rm-zones').value.trim(),
+    move_in_date:document.getElementById('rm-movein').value||null,
+    spots_needed:parseInt(document.getElementById('rm-spots-needed').value)||0,
+    lifestyle:JSON.stringify(lifestyle),
+    bio:document.getElementById('rm-bio').value.trim(),
+    active:document.getElementById('rm-active').checked,
+    updated_at:new Date().toISOString()
+  };
+  try{
+    const{error}=await sb.from('roommate_profiles').upsert(payload,{onConflict:'tenant_id'});
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Profile saved!');
+    loadRoommateProfile();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function rmLifestyleIcons(life){
+  if(!life)return'';
+  const icons=[];
+  if(life.quiet)icons.push('🤫');
+  if(life.social)icons.push('🎉');
+  if(life.nonsmoker)icons.push('🚭');
+  if(life.pets)icons.push('🐾');
+  if(life.wfh)icons.push('💻');
+  return icons.join(' ');
+}
+
+async function loadRmChannel(){
+  const body=document.getElementById('rm-channel-body');
+  if(!body)return;
+  body.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td)">Loading...</div>';
+
+  try{
+    const{data:myProfile}=await sb.from('roommate_profiles').select('id').eq('tenant_id',U.id).maybeSingle();
+    const reqEl=document.getElementById('rm-profile-required');
+    if(reqEl)reqEl.style.display=myProfile?'none':'block';
+
+    const{data:blocks}=await sb.from('roommate_blocks').select('blocked_id').eq('blocker_id',U.id);
+    rmBlockedIds=new Set((blocks||[]).map(b=>b.blocked_id));
+
+    const{data:msgs}=await sb.from('roommate_channel_messages').select('*').order('created_at',{ascending:true}).limit(150);
+    const visibleMsgs=(msgs||[]).filter(m=>!rmBlockedIds.has(m.sender_id));
+
+    const senderIds=[...new Set(visibleMsgs.map(m=>m.sender_id))];
+    if(senderIds.length){
+      const{data:profiles}=await sb.from('roommate_profiles').select('*').in('tenant_id',senderIds);
+      rmProfilesCache={};
+      (profiles||[]).forEach(p=>{rmProfilesCache[p.tenant_id]=p;});
+    }
+
+    if(!visibleMsgs.length){
+      body.innerHTML='<div style="text-align:center;font-size:.8rem;color:var(--td);padding:2rem">No messages yet — be the first to say hi 👋</div>';
+    }else{
+      body.innerHTML=visibleMsgs.map(m=>{
+        const prof=rmProfilesCache[m.sender_id];
+        const isMe=m.sender_id===U.id;
+        const name=prof?.full_name||'Someone';
+        const budget=prof?.budget_min||prof?.budget_max?`€${prof.budget_min||'?'}-${prof.budget_max||'?'}`:'';
+        const zones=prof?.zones||'';
+        const spotsNote=prof?.spots_needed>0?`· needs ${prof.spots_needed} more`:'';
+        return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+          ${!isMe?`<div onclick="openRmProfileFromChannel('${m.sender_id}')" style="font-size:.68rem;color:var(--terra);font-weight:700;margin-bottom:.15rem;cursor:pointer">${name}${budget?' · '+budget:''}${zones?' · 📍'+zones:''} ${spotsNote} ${rmLifestyleIcons(prof?.lifestyle?JSON.parse(prof.lifestyle):null)}</div>`:''}
+          <div style="max-width:78%;background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--txt)'};border-radius:12px;padding:.55rem .8rem;font-size:.83rem;white-space:pre-wrap;line-height:1.5">${m.content}</div>
+          <div style="font-size:.6rem;color:var(--td);margin-top:.15rem">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>`;
+      }).join('');
+      body.scrollTop=body.scrollHeight;
+    }
+  }catch(e){body.innerHTML='<div style="text-align:center;font-size:.8rem;color:var(--red)">Could not load channel</div>';}
+}
+
+async function sendRmChannelMsg(){
+  const input=document.getElementById('rm-channel-input');
+  const content=input?.value.trim();
+  if(!content)return;
+  const{data:myProfile}=await sb.from('roommate_profiles').select('id').eq('tenant_id',U.id).maybeSingle();
+  if(!myProfile){toast('⚠️ Set up your profile first so others know who you are');showRmTab('profile');return;}
+  input.value='';
+  try{
+    const{error}=await sb.from('roommate_channel_messages').insert({sender_id:U.id,content});
+    if(error){toast('❌ '+error.message);return;}
+    loadRmChannel();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function openRmProfileFromChannel(otherId){
+  if(otherId===U.id)return;
+  const prof=rmProfilesCache[otherId];
+  const name=prof?.full_name||'This person';
+  if(confirm(`Message ${name} privately?`))openRmDm(otherId,name);
+}
+
+async function openRmDm(otherId,otherName){
+  rmDmOtherId=otherId;
+  document.getElementById('rm-dm-title').textContent=otherName||'Conversation';
+  document.getElementById('rm-dm-modal').style.display='flex';
+  const thread=document.getElementById('rm-dm-thread');
+  thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td)">Loading...</div>';
+  try{
+    const{data}=await sb.from('messages').select('*').is('listing_id',null).order('created_at',{ascending:true});
+    const history=(data||[]).filter(m=>
+      (m.sender_id===U.id&&m.receiver_id===otherId)||(m.sender_id===otherId&&m.receiver_id===U.id)
+    );
+    if(!history.length){
+      thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td);padding:1rem">No messages yet — say hello 👋</div>';
+    }else{
+      thread.innerHTML=history.map(m=>{
+        const isMe=m.sender_id===U.id;
+        return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+          <div style="max-width:80%;background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--txt)'};border-radius:12px;padding:.55rem .8rem;font-size:.83rem;white-space:pre-wrap;line-height:1.5">${m.content}</div>
+        </div>`;
+      }).join('');
+      thread.scrollTop=thread.scrollHeight;
+    }
+  }catch(e){}
+}
+
+function closeRmDm(){
+  document.getElementById('rm-dm-modal').style.display='none';
+  rmDmOtherId=null;
+}
+
+async function sendRmDm(){
+  const input=document.getElementById('rm-dm-input');
+  const content=input?.value.trim();
+  if(!content||!rmDmOtherId)return;
+  input.value='';
+  try{
+    const{error}=await sb.from('messages').insert({sender_id:U.id,receiver_id:rmDmOtherId,content,listing_id:null,type:'roommate_dm'});
+    if(error){toast('❌ '+error.message);return;}
+    openRmDm(rmDmOtherId,document.getElementById('rm-dm-title').textContent);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function reportRoommateUser(){
+  if(!rmDmOtherId)return;
+  const reason=prompt('What happened? (helps us review)');
+  if(reason===null)return;
+  try{
+    await sb.from('roommate_reports').insert({reporter_id:U.id,reported_id:rmDmOtherId,context:reason||''});
+    if(confirm('Report sent. Do you also want to block this person from the channel?')){
+      await sb.from('roommate_blocks').insert({blocker_id:U.id,blocked_id:rmDmOtherId});
+      toast('🚫 Blocked and reported');
+      closeRmDm();
+      loadRmChannel();
+    }else{
+      toast('🚩 Reported — thank you');
+    }
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function openCreateGroupModal(){
+  document.getElementById('rm-group-modal').style.display='flex';
+  document.getElementById('rm-group-name').value='';
+  const picker=document.getElementById('rm-group-member-picker');
+  picker.innerHTML='<div style="font-size:.75rem;color:var(--td)">Loading...</div>';
+  try{
+    const{data:profiles}=await sb.from('roommate_profiles').select('tenant_id,full_name').neq('tenant_id',U.id).eq('active',true);
+    if(!profiles?.length){picker.innerHTML='<div style="font-size:.75rem;color:var(--td)">No other active profiles yet</div>';return;}
+    picker.innerHTML=profiles.map(p=>`
+      <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem 0;cursor:pointer;font-size:.8rem">
+        <input type="checkbox" value="${p.tenant_id}" class="rm-member-cb"> ${p.full_name||'Tenant'}
+      </label>`).join('');
+  }catch(e){picker.innerHTML='<div style="font-size:.75rem;color:var(--red)">Could not load</div>';}
+}
+
+async function submitCreateGroup(){
+  const name=document.getElementById('rm-group-name').value.trim();
+  const selected=[...document.querySelectorAll('.rm-member-cb:checked')].map(cb=>cb.value);
+  if(!name){toast('⚠️ Give your group a name');return;}
+  if(!selected.length){toast('⚠️ Pick at least one member');return;}
+  try{
+    const{data:group,error}=await sb.from('roommate_groups').insert({name,created_by:U.id}).select().single();
+    if(error){toast('❌ '+error.message);return;}
+    const members=[U.id,...selected].map(tid=>({group_id:group.id,tenant_id:tid}));
+    await sb.from('roommate_group_members').insert(members);
+    document.getElementById('rm-group-modal').style.display='none';
+    toast('✅ Group created!');
+    showRmTab('groups');
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function loadRmGroups(){
+  const wrap=document.getElementById('rm-groups-list');
+  if(!wrap)return;
+  wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
+  try{
+    const{data:myMemberships}=await sb.from('roommate_group_members').select('group_id').eq('tenant_id',U.id);
+    const groupIds=(myMemberships||[]).map(m=>m.group_id);
+    if(!groupIds.length){
+      wrap.innerHTML='<div class="empty"><div class="em">👥</div><p>No groups yet.<br>Create one from the channel to coordinate with others.</p></div>';
+      return;
+    }
+    const{data:groups}=await sb.from('roommate_groups').select('*').in('id',groupIds);
+    const{data:allMembers}=await sb.from('roommate_group_members').select('group_id,tenant_id').in('group_id',groupIds);
+    const memberIds=[...new Set((allMembers||[]).map(m=>m.tenant_id))];
+    const{data:profiles}=await sb.from('roommate_profiles').select('tenant_id,full_name').in('tenant_id',memberIds);
+    const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.tenant_id]=p.full_name;});
+
+    wrap.innerHTML=(groups||[]).map(g=>{
+      const members=(allMembers||[]).filter(m=>m.group_id===g.id).map(m=>nameMap[m.tenant_id]||'Tenant');
+      return`<div class="card" style="margin-bottom:.75rem;cursor:pointer" onclick="openRmGroupChat('${g.id}','${(g.name||'Group').replace(/'/g,"\\'")}')">
+        <div class="cb" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:700;font-size:.9rem">${g.name}</div>
+            <div style="font-size:.72rem;color:var(--td)">${members.join(', ')}</div>
+          </div>
+          <span style="font-size:1.2rem">💬</span>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Could not load groups</div>';}
+}
+
+async function openRmGroupChat(groupId,groupName){
+  rmActiveGroupId=groupId;
+  document.getElementById('rm-groupchat-title').textContent=groupName||'Group';
+  document.getElementById('rm-groupchat-modal').style.display='flex';
+  try{
+    const{data:members}=await sb.from('roommate_group_members').select('tenant_id').eq('group_id',groupId);
+    const ids=(members||[]).map(m=>m.tenant_id);
+    const{data:profiles}=await sb.from('roommate_profiles').select('tenant_id,full_name').in('tenant_id',ids);
+    const names=(profiles||[]).map(p=>p.full_name||'Tenant');
+    document.getElementById('rm-groupchat-members').textContent=names.join(', ');
+  }catch(e){}
+  loadRmGroupMessages();
+}
+
+async function loadRmGroupMessages(){
+  const thread=document.getElementById('rm-groupchat-thread');
+  if(!thread||!rmActiveGroupId)return;
+  thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td)">Loading...</div>';
+  try{
+    const{data:msgs}=await sb.from('roommate_group_messages').select('*').eq('group_id',rmActiveGroupId).order('created_at',{ascending:true});
+    if(!msgs?.length){
+      thread.innerHTML='<div style="text-align:center;font-size:.75rem;color:var(--td);padding:1rem">No messages yet</div>';
+      return;
+    }
+    const senderIds=[...new Set(msgs.map(m=>m.sender_id))];
+    const{data:profiles}=await sb.from('roommate_profiles').select('tenant_id,full_name').in('tenant_id',senderIds);
+    const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.tenant_id]=p.full_name;});
+    thread.innerHTML=msgs.map(m=>{
+      const isMe=m.sender_id===U.id;
+      return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+        ${!isMe?`<div style="font-size:.65rem;color:var(--terra);font-weight:700;margin-bottom:.1rem">${nameMap[m.sender_id]||'Tenant'}</div>`:''}
+        <div style="max-width:80%;background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--txt)'};border-radius:12px;padding:.55rem .8rem;font-size:.83rem;white-space:pre-wrap;line-height:1.5">${m.content}</div>
+      </div>`;
+    }).join('');
+    thread.scrollTop=thread.scrollHeight;
+  }catch(e){}
+}
+
+function closeRmGroupChat(){
+  document.getElementById('rm-groupchat-modal').style.display='none';
+  rmActiveGroupId=null;
+}
+
+async function sendRmGroupMsg(){
+  const input=document.getElementById('rm-groupchat-input');
+  const content=input?.value.trim();
+  if(!content||!rmActiveGroupId)return;
+  input.value='';
+  try{
+    const{error}=await sb.from('roommate_group_messages').insert({group_id:rmActiveGroupId,sender_id:U.id,content});
+    if(error){toast('❌ '+error.message);return;}
+    loadRmGroupMessages();
+  }catch(e){toast('❌ '+e.message);}
+}
+
 function showMlTab(tab){
-  ['lease','payments','maintenance'].forEach(t=>{
+  ['lease','payments','maintenance','manage'].forEach(t=>{
     const panel=document.getElementById('ml-tab-'+t);
     const btn=document.getElementById('ml-tabbtn-'+t);
     if(panel)panel.style.display=t===tab?'block':'none';
@@ -823,6 +1280,33 @@ function showMlTab(tab){
       btn.style.color=t===tab?'white':'var(--tm)';
     }
   });
+  if(tab==='manage')loadRenewalStatus();
+}
+
+async function loadRenewalStatus(){
+  const wrap=document.getElementById('ml-renewal-status');
+  if(!wrap)return;
+  wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
+  const activeStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
+  try{
+    const{data:bk}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',activeStatuses).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if(!bk||!bk.lease_end){
+      wrap.innerHTML='<div style="font-size:.78rem;color:var(--td)">No active lease with an end date yet.</div>';
+      return;
+    }
+    if(bk.renewal_tenant_embed){
+      wrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.5rem .7rem">
+        <span style="font-size:.8rem">Renewal to ${bk.renewal_new_end_date?new Date(bk.renewal_new_end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span>
+        ${bk.renewal_signed_tenant
+          ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.renewal_tenant_embed}" target="_blank" style="font-size:.7rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+          :`<button onclick="openTenantRenewalDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.3rem .7rem;font-size:.74rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+      </div>`;
+    }else{
+      wrap.innerHTML=`<button onclick="openTenantRenewalModal('${bk.id}')" class="btn bp" style="width:100%;justify-content:center">🔄 Request lease renewal →</button>`;
+    }
+  }catch(e){
+    wrap.innerHTML='<div style="font-size:.78rem;color:var(--red)">Could not load renewal status</div>';
+  }
 }
 
 async function loadMyLocation(){
@@ -943,6 +1427,22 @@ async function loadMessages(){
       (profiles||[]).forEach(p=>{profileMap[p.clerk_id]=p;});
     }
 
+    // Vérifier, pour chaque conversation, si une visite ou une demande de
+    // location existe déjà (peu importe qui a envoyé le dernier message) —
+    // c'est ça qui doit décider si on montre les boutons, pas qui a parlé en dernier.
+    const listingIds=[...new Set(convs.map(c=>c.listing_id).filter(Boolean))];
+    const existingRequestKeys=new Set();
+    if(listingIds.length){
+      try{
+        const[{data:existingVisits},{data:existingBookings}]=await Promise.all([
+          sb.from('visits').select('listing_id,landlord_id').eq('tenant_id',U.id).in('listing_id',listingIds),
+          sb.from('bookings').select('listing_id,landlord_id').eq('tenant_id',U.id).in('listing_id',listingIds)
+        ]);
+        (existingVisits||[]).forEach(v=>existingRequestKeys.add(`${v.listing_id}-${v.landlord_id}`));
+        (existingBookings||[]).forEach(b=>existingRequestKeys.add(`${b.listing_id}-${b.landlord_id}`));
+      }catch(e){}
+    }
+
     wrap.innerHTML=convs.map(m=>{
       const other=profileMap[m.otherId];
       const roleIco=other?.role==='landlord'?'🏠':other?.role==='agent'?'🏆':'💬';
@@ -950,6 +1450,7 @@ async function loadMessages(){
       const name=other?.full_name||m.listings?.title||'Conversation';
       const subtitle=roleTxt?`${roleTxt} · ${m.listings?.title||''} · ${m.listings?.zone||''}`:m.listings?.title||'';
       const isUnread=!m.read&&m.receiver_id===U.id;
+      const hasExistingRequest=existingRequestKeys.has(`${m.listing_id}-${m.otherId}`);
       return`<div class="mitem ${isUnread?'unread':''}" onclick="openMsg('${m.key}','${encodeURIComponent(name)}','${encodeURIComponent(subtitle)}','${m.listing_id||''}','${m.otherId}','${m.key}')">
         <div class="mav" style="font-size:1.1rem">${roleIco}</div>
         <div style="flex:1;min-width:0">
@@ -963,7 +1464,7 @@ async function loadMessages(){
         </div>
       </div>
       </div>
-      ${m.sender_id===U.id && !m._hasVisit ? `<div style="display:flex;flex-direction:column;gap:.3rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
+      ${!hasExistingRequest && m.listing_id ? `<div style="display:flex;flex-direction:column;gap:.3rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
         <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||''). replace(/"/g,'&quot;')}"\n            onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"\n            style="width:100%;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer;margin-bottom:.3rem">\n            📅 I want to visit\n          </button>\n        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-price="${m.listings?.price||0}"
           onclick="showNegotiationModal(this.dataset.lid,this.dataset.name,this.dataset.oid,parseFloat(this.dataset.price))"
           style="width:100%;background:var(--terra);color:white;border:none;border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer">
@@ -1530,18 +2031,28 @@ async function submitTicket(){
     status:'open'
   }).select().single();
   if(error){toast('Error: '+error.message);return;}
-  // Upload photos if any
+  // Upload photos if any, puis sauvegarder leurs URLs sur le ticket lui-même
+  // pour que le propriétaire puisse les voir sans requête supplémentaire
   if(ticketPhotos.length&&ticket){
+    const photoUrls=[];
     for(let i=0;i<ticketPhotos.length;i++){
       const f=ticketPhotos[i];
       const ext=f.name.split('.').pop();
-      await sb.storage.from('listings').upload(`tickets/${ticket.id}/photo_${i}.${ext}`,f,{upsert:true});
+      const path=`tickets/${ticket.id}/photo_${i}.${ext}`;
+      const{error:upErr}=await sb.storage.from('listings').upload(path,f,{upsert:true});
+      if(!upErr){
+        const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+        if(urlData?.publicUrl)photoUrls.push(urlData.publicUrl);
+      }
+    }
+    if(photoUrls.length){
+      try{await sb.from('tickets').update({photos:JSON.stringify(photoUrls)}).eq('id',ticket.id);}catch(e){}
     }
   }
   if(bk?.landlord_id){
     try{await sb.from('messages').insert({
       listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
-      content:`🔧 New maintenance ticket from ${P?.full_name||'your tenant'}\n\n${title}\n${desc}\n\nCheck your Maintenance page to respond.`,
+      content:`🔧 New maintenance ticket from ${P?.full_name||'your tenant'}\n\n${title} — ${priority==='high'?'🔴 High priority':priority==='low'?'🟢 Low priority':'🟡 Medium priority'}\n${desc}\n\nCheck your Maintenance page to respond.`,
       type:'maintenance_new'
     });}catch(e){}
   }
@@ -1752,7 +2263,13 @@ async function loadTenantVisits(){
       ${v.status==='booking_pending'?`
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--gold)">
         🔒 Your rental request has been sent to the landlord. Awaiting their decision.
-      </div>`:''} 
+      </div>
+      ${bk?.receipt_tenant_embed?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-top:.4rem">
+        <span style="font-size:.76rem">🧾 Reservation fee receipt</span>
+        ${bk?.receipt_signed_tenant
+          ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.receipt_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+          :`<a href="${bk.receipt_tenant_embed}" target="_blank" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;text-decoration:none">✍️ Sign now</a>`}
+      </div>`:''}`:''} 
 
       <!-- ÉTAPES 6+ : Bail, paiement, EDL -->
       ${['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(v.status)&&bk?renderTenantLeaseSection(v,bk):''} 
@@ -1896,8 +2413,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         ${bk.renewal_signed_tenant
           ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.renewal_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
           :`<button onclick="openTenantRenewalDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
-      </div>`:bk.lease_end?`
-      <button onclick="openTenantRenewalModal('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.75rem">🔄 Request lease renewal →</button>`:''}
+      </div>`:''}
 
       <!-- Paiement -->
       ${!payConfirmed?`
@@ -3400,9 +3916,9 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
       </div>
         <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">💳 Platform fee authorization</div>
         <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (10%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
-        ${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}
+        <div id="nego-card-status">${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}</div>
       </div>
-      <div style="display:flex;gap:.5rem">
+      <div style="display:flex;gap:.5rem" id="nego-action-buttons">
         ${hasCard?`<button onclick="submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed">🚀 Send application →</button>`}
         <button onclick="document.getElementById('nego-modal-overlay').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
       </div>
@@ -3456,7 +3972,29 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
 
       modal.remove();
       toast('✅ Card saved!');
-      showNegotiationModal(listingId,listingTitle,contactId,price);
+
+      // Mettre à jour la modal de candidature EN PLACE plutôt que de la
+      // reconstruire — la reconstruire effaçait les co-tenants déjà ajoutés
+      // (et le prix négocié, le message, la date d'emménagement...) puisque
+      // showNegotiationModal() réinitialise tout à chaque appel.
+      const statusEl=document.getElementById('nego-card-status');
+      if(statusEl)statusEl.innerHTML=`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`;
+      const btnsEl=document.getElementById('nego-action-buttons');
+      if(btnsEl){
+        const sendBtn=btnsEl.querySelector('button:first-child');
+        if(sendBtn){
+          sendBtn.disabled=false;
+          sendBtn.style.background='#E05A3A';
+          sendBtn.style.color='white';
+          sendBtn.style.cursor='pointer';
+          sendBtn.textContent='🚀 Send application →';
+          sendBtn.onclick=()=>submitNegotiationAndRent(listingId,listingTitle,contactId,price);
+        }
+      }
+      if(!document.getElementById('nego-modal-overlay')){
+        // Si la modal n'existe plus pour une raison quelconque, on la rouvre en dernier recours
+        showNegotiationModal(listingId,listingTitle,contactId,price);
+      }
     }catch(e){
       errEl.textContent='❌ '+e.message;
       errEl.style.display='block';
