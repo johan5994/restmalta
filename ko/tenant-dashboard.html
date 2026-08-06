@@ -315,22 +315,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="page" id="page-visits">
       <div style="margin-bottom:1rem;font-size:1rem;font-weight:700">My Visits</div>
 
-      <!-- Card registration -->
-      <div class="card" style="margin-bottom:1rem" id="card-register-section">
-        <div class="ch">
-          <div class="ct">💳 Register your card</div>
-          <span class="badge b-gold" id="card-status-badge">Required</span>
-        </div>
-        <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Required to confirm visits. <strong>Only charged €50 if you no-show without 24h cancellation.</strong></p>
-          <div id="card-form-wrap">
-            <div id="card-element" style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.75rem;margin-bottom:.75rem"></div>
-            <button class="btn bp" style="width:100%;justify-content:center" onclick="registerCard()">💳 Save card →</button>
-          </div>
-          <div id="card-saved-msg" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;color:var(--green)">✅ Card registered — you can confirm visits</div>
-        </div>
-      </div>
-
       <!-- Onglets -->
 
       <div id="tenant-visits-list">
@@ -825,7 +809,7 @@ function sp(id,btn){
   if(id==='messages')loadMessages();
   if(id==='mylocation')loadMyLocation();
   if(id==='search')loadAlertState();
-  if(id==='visits'){loadTenantVisits();initStripeCard();}
+  if(id==='visits'){loadTenantVisits();}
   if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
 }
 
@@ -1885,25 +1869,27 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       </div>
       ${bk.status==='edl_scheduled'?`
       <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your landlord is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
-      ${bk.status==='move_in_ready'&&(bk.edl_tenant_embed||bk.formh_tenant_embed)?`
+      ${bk.status==='move_in_ready'&&bk.edl_tenant_embed?`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
-        ${bk.edl_tenant_embed?`
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem">📋 Move-in Inventory (Annex A)</span>
           ${bk.edl_signed_tenant
             ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
             :`<button onclick="openTenantEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
-        </div>`:''}
-        ${bk.formh_tenant_embed?`
-        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">📝 Form H (ARMS)</span>
-          ${bk.formh_signed_tenant
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.formh_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
-            :`<button onclick="openTenantFormHDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
-        </div>`:''}
+        </div>
       </div>
-      <button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.75rem">📋 View full inventory dossier (with photos) →</button>`:''}
+      <button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.7rem;color:var(--gold);margin-bottom:.75rem">📝 Reminder: submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. This is separate from your RestMalta lease/EDL.</div>`:''}
+      ${bk.renewal_tenant_embed?`
+      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">🔄 Lease Renewal</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.75rem">
+        <span style="font-size:.78rem">Renewal to ${bk.renewal_new_end_date?new Date(bk.renewal_new_end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span>
+        ${bk.renewal_signed_tenant
+          ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.renewal_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+          :`<button onclick="openTenantRenewalDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+      </div>`:bk.lease_end?`
+      <button onclick="openTenantRenewalModal('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.75rem">🔄 Request lease renewal →</button>`:''}
 
       <!-- Paiement -->
       ${!payConfirmed?`
@@ -2000,14 +1986,122 @@ async function openTenantEdlDoc(bookingId){
   }
 }
 
-async function openTenantFormHDoc(bookingId){
-  const{data:bk}=await sb.from('bookings').select('formh_tenant_embed,id,listing_id,landlord_id').eq('id',bookingId).single();
-  if(!bk?.formh_tenant_embed){toast('❌ Document not ready yet');return;}
-  if(window.docusealLoaded){doOpenTenantDoc(bk,bookingId,bk.formh_tenant_embed,'formh_signed_tenant','📝 Form H (ARMS)');}
+async function openTenantRenewalModal(bookingId){
+  const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+  if(!bk){toast('❌ Could not load booking');return;}
+  const{data:listing}=await sb.from('listings').select('full_address,zone,price').eq('id',bk.listing_id).single();
+
+  const currentEnd=bk.lease_end?new Date(bk.lease_end):new Date();
+
+  const modal=document.createElement('div');
+  modal.id='tenant-renewal-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:420px;width:100%">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🔄 Request lease renewal</div>
+      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">Your landlord will receive this and can review and sign — it doesn't renew the lease until both of you sign.</div>
+      <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">Current lease ends: <strong>${bk.lease_end?new Date(bk.lease_end).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—'}</strong></div>
+      <div class="fg" style="margin-bottom:.75rem">
+        <label class="fl">Renew for *</label>
+        <select class="fsel" id="t-renewal-duration" onchange="updateTenantRenewalEndPreview('${currentEnd.toISOString()}')" style="width:100%">
+          <option value="1">1 year</option>
+          <option value="2">2 years</option>
+          <option value="3">3 years</option>
+          <option value="custom">Custom end date</option>
+        </select>
+        <div style="font-size:.7rem;color:var(--td);margin-top:.3rem" id="t-renewal-end-preview"></div>
+      </div>
+      <div class="fg" id="t-renewal-custom-date-wrap" style="display:none;margin-bottom:1rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="t-renewal-new-end"></div>
+      <button id="t-renewal-submit-btn" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="submitTenantRenewal('${bookingId}')">📎 Request renewal →</button>
+      <button class="btn bg" style="width:100%;justify-content:center" onclick="document.getElementById('tenant-renewal-modal').remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+  updateTenantRenewalEndPreview(currentEnd.toISOString());
+}
+
+function updateTenantRenewalEndPreview(currentEndIso){
+  const duration=document.getElementById('t-renewal-duration')?.value;
+  const customWrap=document.getElementById('t-renewal-custom-date-wrap');
+  const preview=document.getElementById('t-renewal-end-preview');
+  if(duration==='custom'){
+    if(customWrap)customWrap.style.display='block';
+    if(preview)preview.textContent='';
+    return;
+  }
+  if(customWrap)customWrap.style.display='none';
+  const newEnd=new Date(currentEndIso);
+  newEnd.setFullYear(newEnd.getFullYear()+parseInt(duration));
+  if(preview)preview.textContent=`New end date: ${newEnd.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+  window._tenantRenewalComputedEnd=newEnd.toISOString().split('T')[0];
+}
+
+async function submitTenantRenewal(bookingId){
+  const duration=document.getElementById('t-renewal-duration')?.value;
+  const newEnd=duration==='custom'?document.getElementById('t-renewal-new-end')?.value:window._tenantRenewalComputedEnd;
+  if(!newEnd){toast('⚠️ Pick a new end date');return;}
+  const btn=document.getElementById('t-renewal-submit-btn');
+  if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
+
+  try{
+    const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+    const{data:listing}=await sb.from('listings').select('full_address,zone,price').eq('id',bk.listing_id).single();
+    const{data:landlordProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.landlord_id).maybeSingle();
+    const{data:tenantProfile}=await sb.from('profiles').select('*').eq('clerk_id',U.id).maybeSingle();
+
+    let coTenants=[];
+    try{coTenants=(bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[]).map(ct=>({name:ct.name,email:ct.email}));}catch(e){}
+
+    const res=await fetch('/.netlify/functions/generate-renewal',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        landlord:{name:landlordProfile?.full_name||'',passport:landlordProfile?.passport_number||'',email:landlordProfile?.email||''},
+        tenant:{name:tenantProfile?.full_name||P?.full_name||'',passport:tenantProfile?.passport_number||'',email:tenantProfile?.email||U.email},
+        coTenants,
+        listing:{address:listing?.full_address||listing?.zone||''},
+        original_start_date:bk.lease_start||bk.move_in_date,
+        original_end_date:bk.lease_end,
+        new_end_date:newEnd,
+        original_rent:bk.monthly_rent||listing?.price||0,
+        new_rent:bk.monthly_rent||listing?.price||0
+      })
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not generate renewal');
+
+    await sb.from('bookings').update({
+      renewal_landlord_embed:data.lessor_embed_src,
+      renewal_tenant_embed:data.lessee_embed_src,
+      renewal_submission_id:data.submission_id?String(data.submission_id):null,
+      renewal_new_end_date:newEnd,
+      renewal_signed_landlord:false,
+      renewal_signed_tenant:false
+    }).eq('id',bookingId);
+
+    if(bk.landlord_id){
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
+        content:`🔄 Your tenant has requested a lease renewal — the lease would extend to ${new Date(newEnd).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}. Check Rented Properties to review and sign.`,
+        type:'renewal_sent'
+      }).catch(()=>{});
+    }
+
+    document.getElementById('tenant-renewal-modal')?.remove();
+    toast('✅ Renewal request sent to your landlord!');
+    loadTenantVisits();
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.textContent='📎 Request renewal →';btn.disabled=false;}
+  }
+}
+
+async function openTenantRenewalDoc(bookingId){
+  const{data:bk}=await sb.from('bookings').select('renewal_tenant_embed,id,listing_id,landlord_id').eq('id',bookingId).single();
+  if(!bk?.renewal_tenant_embed){toast('❌ Document not ready yet');return;}
+  if(window.docusealLoaded){doOpenTenantDoc(bk,bookingId,bk.renewal_tenant_embed,'renewal_signed_tenant','🔄 Lease Renewal');}
   else{
     const s=document.createElement('script');
     s.src='https://cdn.docuseal.com/js/form.js';
-    s.onload=()=>{window.docusealLoaded=true;doOpenTenantDoc(bk,bookingId,bk.formh_tenant_embed,'formh_signed_tenant','📝 Form H (ARMS)');};
+    s.onload=()=>{window.docusealLoaded=true;doOpenTenantDoc(bk,bookingId,bk.renewal_tenant_embed,'renewal_signed_tenant','🔄 Lease Renewal');};
     document.head.appendChild(s);
   }
 }
@@ -2048,11 +2142,6 @@ function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
 }
 
 async function confirmTenantPresence(visitId){
-  if(!P?.stripe_customer_id){
-    toast('⚠️ Please register your card first.');
-    registerCardForVisit(visitId);
-    return;
-  }
   try{await sb.from('visits').update({status:'confirmed',tenant_confirmed:true}).eq('id',visitId);}catch(e){}
   toast('✅ Presence confirmed! See you at the visit.');
   loadTenantVisits();
@@ -2187,77 +2276,9 @@ function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
   document.body.appendChild(modal);
 }
 
-async function confirmTenantPresence(visitId){
-  if(!P?.stripe_customer_id){
-    toast('⚠️ Please register your card first.');
-    registerCardForVisit(visitId);
-    return;
-  }
-  try{await sb.from('visits').update({status:'confirmed',tenant_confirmed:true}).eq('id',visitId);}catch(e){}
-  toast('✅ Presence confirmed! See you at the visit.');
-  loadTenantVisits();
-}
 
-async function registerCardForVisit(visitId){
-  // Ouvrir le modal d'enregistrement de carte (via visit-noshow setup_payment)
-  const btn=document.querySelector(`[onclick*="registerCardForVisit('${visitId}')"]`);
-  if(btn){btn.textContent='⏳ Setting up...';btn.disabled=true;}
 
-  try{
-    const res=await fetch('/.netlify/functions/visit-noshow',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'setup_payment',tenant_email:U.email,tenant_name:P?.full_name||'Tenant',visit_id:visitId})
-    });
-    const data=await res.json();
-    if(!data.success)throw new Error(data.error||'Setup failed');
 
-    // Sauvegarder le customer_id
-    if(data.customer_id){
-      try{await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id);}catch(e){}
-      if(P)P.stripe_customer_id=data.customer_id;
-    }
-
-    // Monter Stripe pour enregistrer la carte
-    if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
-
-    // Afficher un overlay pour enregistrer la carte
-    const overlay=document.createElement('div');
-    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
-    overlay.innerHTML=`
-      <div style="background:var(--card,#1a1a1a);border-radius:16px;padding:1.75rem;max-width:380px;width:100%">
-        <div style="font-size:1rem;font-weight:700;margin-bottom:.4rem">💳 Register your card</div>
-        <div style="font-size:.78rem;color:var(--td,#888);margin-bottom:1rem;line-height:1.5">Your card will only be charged €50 if you no-show without cancelling 24h before. Cancellations are always free.</div>
-        <div id="card-register-el" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:.75rem;margin-bottom:1rem"></div>
-        <button id="card-register-btn" style="width:100%;background:var(--terra,#E05A3A);color:white;border:none;border-radius:10px;padding:.85rem;font-size:.92rem;font-weight:700;cursor:pointer">Register card →</button>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;color:var(--td,#888);border:none;padding:.6rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">Cancel</button>
-      </div>`;
-    document.body.appendChild(overlay);
-
-    const elements=stripeInstance.elements();
-    const cardEl=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}}}});
-    cardEl.mount('#card-register-el');
-
-    document.getElementById('card-register-btn').onclick=async()=>{
-      const registerBtn=document.getElementById('card-register-btn');
-      registerBtn.textContent='Saving...';registerBtn.disabled=true;
-      try{
-        const{error,setupIntent}=await stripeInstance.confirmCardSetup(data.client_secret,{payment_method:{card:cardEl}});
-        if(error)throw new Error(error.message);
-        overlay.remove();
-        if(P)P.stripe_customer_id=data.customer_id;
-        toast('✅ Card registered! You can now confirm your visit.');
-        loadTenantVisits(); // Recharger pour afficher le bouton de confirmation
-      }catch(e){
-        registerBtn.textContent='Register card →';registerBtn.disabled=false;
-        toast('❌ '+e.message);
-      }
-    };
-
-  }catch(e){
-    toast('❌ '+e.message);
-    if(btn){btn.textContent='💳 Register my card to confirm →';btn.disabled=false;}
-  }
-}
 
 async function cancelVisit(visitId, agentId, listingId){
   if(!confirm('Cancel this visit? Free if 24h+ before the visit date.'))return;
@@ -2271,7 +2292,7 @@ async function cancelVisit(visitId, agentId, listingId){
   const isLate=hoursUntil<24;
 
   if(isLate){
-    if(!confirm('⚠️ Less than 24 hours before the visit. You may be charged €50 no-show fee. Continue cancelling?'))return;
+    if(!confirm('⚠️ Less than 24 hours before the visit. The landlord/agent will be notified this is a late cancellation. Continue cancelling?'))return;
   }
 
   // Marquer la visite comme annulée
@@ -2292,7 +2313,7 @@ async function cancelVisit(visitId, agentId, listingId){
 👤 Tenant: ${P?.full_name||'—'}
 📅 Visit was scheduled for: ${visitDateStr}
 
-${isLate?'⚠️ Cancelled less than 24 hours before — no-show fee may apply.':'✅ Cancelled more than 24 hours before — no fee.'}`,
+${isLate?'⚠️ Cancelled less than 24 hours before the visit.':'✅ Cancelled more than 24 hours before — plenty of notice.'}`,
       type:'visit_cancelled'
     });}catch(e){}
   }
@@ -2313,51 +2334,6 @@ ${isLate?'⚠️ Cancelled less than 24 hours before — no-show fee may apply.'
 }
 
 let cardElement=null;
-async function initStripeCard(){
-  if(!window.Stripe)return;
-  try{
-    if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
-    if(P?.stripe_customer_id){
-      document.getElementById('card-form-wrap').style.display='none';
-      document.getElementById('card-saved-msg').style.display='block';
-      document.getElementById('card-status-badge').textContent='✅ Saved';
-      document.getElementById('card-status-badge').className='badge b-green';
-      return;
-    }
-    const elements=stripeInstance.elements();
-    cardElement=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'#E05A5A'}}});
-    cardElement.mount('#card-element');
-  }catch(e){}
-}
-
-async function registerCard(){
-  if(!stripeInstance||!cardElement){toast('❌ Payment system not loaded');return;}
-  toast('⏳ Saving card...');
-  try{
-    const res=await fetch('/.netlify/functions/visit-noshow',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'setup_payment',tenant_email:U.email,tenant_name:P?.full_name||'Tenant'})
-    });
-    const data=await res.json();
-    if(!data.success){toast('❌ '+data.error);return;}
-
-    const{error,setupIntent}=await stripeInstance.confirmCardSetup(data.client_secret,{
-      payment_method:{card:cardElement}
-    });
-
-    if(error){toast('❌ '+error.message);return;}
-
-    // Save customer_id to profile
-    try{await sb.from('profiles').update({stripe_customer_id:data.customer_id}).eq('clerk_id',U.id);}catch(e){}
-
-    document.getElementById('card-form-wrap').style.display='none';
-    document.getElementById('card-saved-msg').style.display='block';
-    document.getElementById('card-status-badge').textContent='✅ Saved';
-    document.getElementById('card-status-badge').className='badge b-green';
-    toast('✅ Card saved!');
-  }catch(e){toast('❌ '+e.message);}
-}
 async function loadPaymentsData(){
   // Try by tenant_id (clerk_id) or by email match
   let data=[];
