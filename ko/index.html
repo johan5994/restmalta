@@ -331,6 +331,9 @@ footer ul a:hover{color:var(--terra)}
         <button class="btn btn-p" onclick="stl()">🔍 Browse listings</button>
         <button class="btn btn-s" onclick="chkPost()">🏠 List your flat</button>
       </div>
+      <div style="margin-top:.7rem;font-size:.8rem;color:var(--stone-l)">
+        Landlord looking to sell or rent through an agency? <a onclick="go('agencies')" style="color:var(--terra);font-weight:700;text-decoration:underline;cursor:pointer">Browse agencies & get a free estimation →</a>
+      </div>
 
       <div class="hero-stats">
         <div><div class="sn" id="sc">—</div><div class="sl">Active listings</div></div>
@@ -429,7 +432,7 @@ footer ul a:hover{color:var(--terra)}
     <div class="fg">
       <div><div class="flogo"><svg width="16" height="16" viewBox="0 0 16 16" style="display:inline-block;vertical-align:-2px;margin-right:.35rem"><path d="M8 0 L10.2 3.5 L14 4.5 L11.5 7.5 L12 11.5 L8 9.8 L4 11.5 L4.5 7.5 L2 4.5 L5.8 3.5 Z" fill="var(--terra)"/></svg>RestMalta</div><p class="fdesc">Malta's first smart rental platform. Real-time chat, agent visits, e-signed leases and a photographed move-in inventory. Built for interns, expats and independent landlords.</p></div>
       <div><h4>For tenants</h4><ul><li><a onclick="stl()">Browse listings</a></li><li><a onclick="stl()">Virtual visits</a></li><li><a onclick="go('auth')">Build your dossier</a></li><li><a onclick="stl()">Room rental</a></li></ul></div>
-      <div><h4>For landlords</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a onclick="chkPost()">Agent-assisted visits</a></li><li><a onclick="go('auth')">Dashboard</a></li><li><a onclick="chkPost()">Auto-generated lease</a></li></ul></div>
+      <div><h4>For landlords</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a onclick="go('agencies')">Browse agencies</a></li><li><a onclick="chkPost()">Agent-assisted visits</a></li><li><a onclick="go('auth')">Dashboard</a></li></ul></div>
       <div><h4>Legal</h4><ul><li><a>Terms of service</a></li><li><a>Privacy policy</a></li><li><a>Contact us</a></li></ul></div>
     </div>
     <div class="fbot"><p>© 2026 RestMalta. Made with ☀️ in Malta.</p><p>Not affiliated with the Maltese government. RestMalta is not a real estate agency.</p></div>
@@ -561,6 +564,24 @@ footer ul a:hover{color:var(--terra)}
           </select>
         </div>
         <div class="fg2" id="pt-avail-wrap"><label>Available from</label><input class="fi" type="date" id="pfr" onchange="onAvailableFromChange(this.value)"></div>
+      </div>
+
+      <!-- Champs spécifiques à une vente — n'apparaissent qu'en mode "For sale" -->
+      <div id="pt-sale-details-wrap" style="display:none;background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
+        <div style="font-size:.78rem;font-weight:700;color:#6366F1;margin-bottom:.6rem">🏷️ Sale details</div>
+        <div class="frow">
+          <div class="fg2"><label>Tenure *</label><select class="fi" id="p-tenure"><option value="freehold">Freehold</option><option value="leasehold">Leasehold</option><option value="perpetual_ground_rent">Perpetual ground rent</option></select></div>
+          <div class="fg2"><label>Finish status *</label><select class="fi" id="p-finish"><option value="finished">Fully finished</option><option value="furnished">Finished & furnished</option><option value="semi_finished">Semi-finished</option><option value="shell">Shell form (bare)</option></select></div>
+        </div>
+        <div class="frow">
+          <div class="fg2"><label>EPC rating <span style="font-size:.68rem;color:var(--stone-l)">(legally required to sell)</span></label><select class="fi" id="p-epc"><option value="">Not available yet</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
+          <div class="fg2"><label>Annual service charge (€) <span style="font-size:.68rem;color:var(--stone-l)">(if applicable)</span></label><input class="fi" type="number" id="p-service-charge" placeholder="0"></div>
+        </div>
+        <div class="frow">
+          <div class="fg2"><label>Planning permit no. <span style="font-size:.68rem;color:var(--stone-l)">(optional)</span></label><input class="fi" id="p-permit" placeholder="e.g. PA 1234/23"></div>
+          <div class="fg2" style="display:flex;align-items:center;padding-top:1.4rem"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.85rem"><input type="checkbox" id="p-sda"> Special Designated Area (SDA)</label></div>
+        </div>
+        <div style="font-size:.72rem;color:var(--stone-l);margin-top:.3rem">SDAs let foreign buyers purchase without an AIP permit — worth flagging if it applies.</div>
       </div>
 
       <!-- Agent options -->
@@ -1101,7 +1122,7 @@ async function submitEstimationRequest(agencyId){
   const requestType=document.getElementById('est-req-type')?.value||'rental';
   const notes=document.getElementById('est-req-notes')?.value.trim()||'';
   try{
-    await sb.from('estimation_requests').insert({
+    const{error}=await sb.from('estimation_requests').insert({
       landlord_id:U.id,
       landlord_name:P?.full_name||'Landlord',
       landlord_email:U.email,
@@ -1110,6 +1131,7 @@ async function submitEstimationRequest(agencyId){
       address,notes,
       status:'pending'
     });
+    if(error){console.error('[estimation_requests] insert failed:',error);toast('❌ '+error.message);return;}
     document.getElementById('est-req-modal')?.remove();
     toast('✅ Estimation request sent!');
   }catch(e){toast('❌ '+e.message);}
@@ -1521,10 +1543,21 @@ async function openDet(id){
   }catch(e){}
   document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
 
-  // Infos bail
-  const tl={short:'Short-let (1-6 months)',room_rental:'Room rental',long:'Long-let (1 year+)'};
+  // Infos bail — ou infos de vente si l'annonce est "For sale"
+  const tl={short:'Short-let (1-6 months)',room_rental:'Room rental',long:'Long-let (1 year+)',for_sale:'For sale'};
   const badge=await getLandlordResponseBadge(l.landlord_id);
-  document.getElementById('din').innerHTML=`
+  const tenureLabels={freehold:'Freehold',leasehold:'Leasehold',perpetual_ground_rent:'Perpetual ground rent'};
+  const finishLabels={finished:'Fully finished',furnished:'Finished & furnished',semi_finished:'Semi-finished',shell:'Shell form (bare)'};
+  document.getElementById('din').innerHTML=l.type==='for_sale'?`
+    ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">${badge}</div>`:''}
+    <div class="crow"><span>Type</span><span>🏷️ For sale</span></div>
+    ${l.tenure?`<div class="crow"><span>Tenure</span><span>${tenureLabels[l.tenure]||l.tenure}</span></div>`:''}
+    ${l.finish_status?`<div class="crow"><span>Finish status</span><span>${finishLabels[l.finish_status]||l.finish_status}</span></div>`:''}
+    <div class="crow"><span>EPC rating</span><span>${l.epc_rating?'Class '+l.epc_rating:'Not available yet'}</span></div>
+    ${l.service_charge?`<div class="crow"><span>Annual service charge</span><span>€${l.service_charge}/year</span></div>`:''}
+    ${l.permit_number?`<div class="crow"><span>Planning permit</span><span>${l.permit_number}</span></div>`:''}
+    ${l.sda?`<div class="crow"><span>Special Designated Area</span><span>✅ Yes — no AIP permit needed for foreign buyers</span></div>`:''}
+    ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}`:`
     ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">${badge}</div>`:''}
     <div class="crow"><span>Type</span><span>${tl[l.type]||l.type}</span></div>
     <div class="crow"><span>Available from</span><span>${l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Now'}</span></div>
@@ -1880,6 +1913,8 @@ function setT(el,t){
   if(availWrap)availWrap.style.display=isSale?'none':'block';
   const billsWrap=document.getElementById('p-bills')?.closest('.fg2');
   if(billsWrap)billsWrap.style.display=isSale?'none':'block';
+  const saleDetailsWrap=document.getElementById('pt-sale-details-wrap');
+  if(saleDetailsWrap)saleDetailsWrap.style.display=isSale?'block':'none';
 
   // Cacher sections non pertinentes pour room_rental
   const isRoom=t==='room_rental';
@@ -2338,6 +2373,12 @@ async function doPost(){
     active:document.getElementById('pt').value==='for_sale'?false:!wants_agent, // reste caché tant qu'aucun agent n'a accepté, ou tant que l'abonnement de vente n'est pas payé
     sale_price:document.getElementById('pt').value==='for_sale'?parseInt(pr):null,
     sale_subscription_status:document.getElementById('pt').value==='for_sale'?'pending':null,
+    tenure:document.getElementById('pt').value==='for_sale'?(document.getElementById('p-tenure')?.value||null):null,
+    finish_status:document.getElementById('pt').value==='for_sale'?(document.getElementById('p-finish')?.value||null):null,
+    epc_rating:document.getElementById('pt').value==='for_sale'?(document.getElementById('p-epc')?.value||null):null,
+    service_charge:document.getElementById('pt').value==='for_sale'?(parseFloat(document.getElementById('p-service-charge')?.value)||null):null,
+    permit_number:document.getElementById('pt').value==='for_sale'?(document.getElementById('p-permit')?.value.trim()||null):null,
+    sda:document.getElementById('pt').value==='for_sale'?(document.getElementById('p-sda')?.checked||false):false,
     // Lease fields
     full_address:document.getElementById('p-full-address')?.value.trim()||null,
     // Rent due day: no longer set manually — derived from the tenant's
