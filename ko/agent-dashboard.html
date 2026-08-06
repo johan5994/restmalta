@@ -1684,7 +1684,7 @@ async function openSigningDay(visitId){
             </div>
           </div>
           <div style="margin-top:.65rem;background:rgba(212,168,71,.08);border-radius:8px;padding:.55rem;font-size:.7rem;color:var(--gold)">
-            ⚠️ Take photos of both meters. These readings will be annexed to the lease and Form H.
+            ⚠️ Take photos of both meters. These readings will be annexed to the lease.
           </div>
         </div>
         <div style="display:flex;gap:.5rem">
@@ -1697,7 +1697,7 @@ async function openSigningDay(visitId){
       <div id="signing-step-2" style="display:none">
         <div style="background:var(--card);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
           <div style="font-size:.85rem;font-weight:700;margin-bottom:.35rem">📎 Annex to Lease & Generate Documents</div>
-          <div style="font-size:.73rem;color:var(--td);margin-bottom:.75rem">This will generate and send to both parties:<br>• Annex A — EDL (Inventory & Condition Form) with meter readings<br>• Form H — ARMS Declaration (pre-filled)</div>
+          <div style="font-size:.73rem;color:var(--td);margin-bottom:.75rem">This will generate and send to both parties:<br>• Annex A — EDL (Inventory & Condition Form) with meter readings</div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.65rem">
             <div>
@@ -1709,11 +1709,7 @@ async function openSigningDay(visitId){
               <input type="number" id="keys-mailbox" value="1" min="0" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
             </div>
             <div>
-              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">ARMS Account No.</div>
-              <input type="text" id="arms-account" placeholder="From landlord's ARMS bill" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
-            </div>
-            <div>
-              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Number of residents</div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Number of residents <span style="font-size:.62rem;color:var(--td);font-weight:400">(for lease registration)</span></div>
               <input type="number" id="arms-residents" value="1" min="1" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--t);font-size:.8rem">
             </div>
           </div>
@@ -1722,7 +1718,7 @@ async function openSigningDay(visitId){
         </div>
         <div style="display:flex;gap:.5rem">
           <button onclick="showSigningStep(1)" style="flex:1;background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
-          <button onclick="generateAnnexAndComplete()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">📎 Generate Annex A + Form H & Complete →</button>
+          <button onclick="generateAnnexAndComplete()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">📎 Generate Annex A & Complete →</button>
         </div>
       </div>
 
@@ -1735,7 +1731,7 @@ async function openSigningDay(visitId){
           <div style="font-size:.76rem;color:var(--td);text-align:left;background:var(--card);border-radius:10px;padding:.75rem;margin-bottom:1rem;line-height:2">
             ✅ EDL completed & sent for signature<br>
             ✅ Meter readings recorded & annexed<br>
-            ✅ Form H (ARMS) generated<br>
+            
             ✅ Keys handed over
           </div>
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">📝 Remind the landlord to register the lease at <strong>rentregistration.mt</strong> within 30 days.</div>
@@ -1782,18 +1778,17 @@ async function generateAnnexAndComplete(){
   const edlNotes=document.getElementById('edl-notes')?.value||'';
   const keysMain=document.getElementById('keys-main')?.value||'2';
   const keysMailbox=document.getElementById('keys-mailbox')?.value||'1';
-  const armsAccount=document.getElementById('arms-account')?.value||'';
   const armsResidents=document.getElementById('arms-residents')?.value||'1';
   const rooms=collectEdlRooms();
 
   const statusEl=document.getElementById('annex-status');
-  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ Generating Annex A (EDL) and Form H...';}
+  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ Generating Annex A (EDL)...';}
 
   const landlord={name:v.landlord?.full_name||'',email:v.landlord?.email||'',passport:v.landlord?.passport_number||''};
   const tenant={name:v.tenant?.full_name||'',email:v.tenant?.email||'',passport:v.tenant?.passport_number||'',nationality:v.tenant?.nationality||''};
   const listing={address:v.listing?.full_address||v.listing?.zone||'',price:v.listing?.price||0};
 
-  let edlOk=false, formHOk=false;
+  let edlOk=false;
 
   // Générer l'EDL (Annex A)
   try{
@@ -1803,26 +1798,16 @@ async function generateAnnexAndComplete(){
     });
     const data=await res.json();
     edlOk=data.success;
-    if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent! Generating Form H...';
+    if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent for signature!';
   }catch(e){console.warn('EDL:',e);}
-
-  // Générer Form H
-  try{
-    const res=await fetch('/.netlify/functions/generate-form-h',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({landlord,tenant,listing,arms_account:armsAccount,residents:parseInt(armsResidents)||1,meter_water:meterWater,meter_electricity:meterElec})
-    });
-    const data=await res.json();
-    formHOk=data.success;
-    if(statusEl)statusEl.textContent='✅ Annex A + Form H sent for signature!';
-  }catch(e){console.warn('Form H:',e);}
 
   // Sauvegarder dans booking + visits
   try{
     await sb.from('bookings').update({
       meter_water:meterWater,
       meter_electricity:meterElec,
-      status:'move_in_ready'
+      status:'move_in_ready',
+      number_of_residents:parseInt(armsResidents)||1
     }).eq('id',v.booking?.id);
 
     await sb.from('visits').update({
@@ -1833,15 +1818,16 @@ async function generateAnnexAndComplete(){
     }).eq('id',v.visitId);
   }catch(e){console.warn('DB update:',e);}
 
-  // Notifier tenant et landlord
-  const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 Remember to submit Form H to ARMS within 30 days.\n📋 Register your lease at rentregistration.mt within 30 days.';
+  // Notifier tenant et landlord — Form H n'est plus co-signé sur RestMalta,
+  // c'est une déclaration ARMS séparée que le locataire remet directement.
+  const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 Remember to submit ARMS Form H (change of occupants) and Form N (meter verification authorisation) within 30 days — arms.com.mt.\n📋 Register your lease at rentregistration.mt within 30 days.';
   try{
     if(v.visit?.tenant_id) await sb.from('messages').insert({listing_id:v.visit.listing_id,sender_id:'system',receiver_id:v.visit.tenant_id,content:notif,type:'move_in_complete'});
     if(v.listing?.landlord_id) await sb.from('messages').insert({listing_id:v.visit.listing_id,sender_id:'system',receiver_id:v.listing.landlord_id,content:notif,type:'move_in_complete'});
   }catch(e){}
 
   showSigningStep(3);
-  toast('🎉 Signing Day complete! Annex A + Form H sent.');
+  toast('🎉 Signing Day complete! Annex A sent.');
 }
 
 
@@ -2253,8 +2239,7 @@ Date: ${visitDateStr}
 Property: ${listing?.title||'—'}
 Address: ${listing?.full_address||listing?.zone||'—'}
 
-⚠️ Please confirm your attendance in My Visits.
-€50 no-show fee if you miss without 24h cancellation.`,
+⚠️ Please confirm your attendance in My Visits, or cancel ahead of time if you can't make it.`,
       type:'visit_confirmed_noshow'
     });}catch(e){}
 
