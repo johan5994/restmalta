@@ -168,7 +168,7 @@ exports.handler = async (event) => {
 <h2>Utility Bills &amp; Services</h2>
 <ol type="i">
   <li>The lessor shall ensure that all utilities and other fees or bills payable in respect of rent/consumption until the commencement of the lease are duly paid and settled.</li>
-  <li>Annex B shall include Automated Revenue and Management Services (ARMS), Form H and Form N duly filled and signed by both parties to this agreement.</li>
+  <li>The tenant is responsible for submitting ARMS Form H (change of occupants declaration) within 30 days of move-in, for correct utility billing.</li>
   <li>Both parties to this agreement declare that water/electricity meters were read on the day of the entry inventory and key handover. The meter readings shall be recorded in <strong>Annex A (Entry Inventory and Condition Form)</strong>, which forms an integral part of this agreement and shall be annexed hereto on the day of move-in.
     <div class="meter-box" style="background:#fffbeb;border:1px solid #f6d860;padding:10px;border-radius:5px;margin-top:6px">
       <p style="font-weight:700;color:#744210">📋 ANNEX A — To be completed on move-in day:</p>
