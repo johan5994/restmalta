@@ -1121,10 +1121,11 @@ async function contactAgency(agencyId,agencyName){
   const msg=prompt(`Send a message to ${agencyName}:`,`Hi, I'd like to discuss managing my property with your agency.`);
   if(!msg)return;
   try{
-    await sb.from('messages').insert({
+    const{error}=await sb.from('messages').insert({
       sender_id:U.id,receiver_id:agencyId,
       content:msg,type:'landlord_to_agency'
     });
+    if(error){console.error('[contactAgency] insert failed:',error);toast('❌ '+error.message);return;}
     toast('✅ Message sent! The agency will get back to you.');
   }catch(e){toast('❌ '+e.message);}
 }
