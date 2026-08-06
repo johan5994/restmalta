@@ -653,7 +653,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg" style="grid-column:1/-1"><label class="fl">Website</label><input class="fi" id="ag-website" placeholder="https://your-agency.com"></div>
             <div class="fg" style="grid-column:1/-1"><label class="fl">Address</label><input class="fi" id="ag-address" placeholder="123 Main Street, Sliema"></div>
             <div class="fg" style="grid-column:1/-1"><label class="fl">Current offer <span style="font-size:.68rem;color:var(--td)">(shown to landlords browsing agencies — optional)</span></label><input class="fi" id="ag-offer" placeholder="e.g. First year of management free"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Estimation fee (€) <span style="font-size:.68rem;color:var(--td)">(what you charge for a property estimation — 0 for free)</span></label><input class="fi" type="number" id="ag-estimation-tariff" placeholder="0" min="0"></div>
             <div class="fg" style="grid-column:1/-1">
               <label class="fl">Zones covered</label>
               <div style="font-size:.72rem;color:var(--td);margin-bottom:.5rem">Landlords searching for an agency near their property will only see you if it's in one of these zones.</div>
@@ -960,7 +959,6 @@ async function loadAgencyProfile(){
       const savedZones=(p.zones||'').split(',').map(z=>z.trim()).filter(Boolean);
       document.querySelectorAll('.ag-zone-cb').forEach(cb=>{cb.checked=savedZones.includes(cb.value);});
       document.getElementById('ag-offer').value=p.current_offer||'';
-      document.getElementById('ag-estimation-tariff').value=p.estimation_tariff||'';
       document.getElementById('ag-bio').value=p.bio||'';
       if(p.logo_url){
         const preview=document.getElementById('logo-preview');
@@ -1807,7 +1805,7 @@ async function loadEstimations(){
             <div style="font-size:.7rem;color:var(--td)">${r.landlord_email||''} · ${r.created_at?new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:.3rem;flex-shrink:0">
-            ${r.status==='pending'?`<button onclick="markEstimationContacted('${r.id}')" class="btn bp bsm" style="font-size:.7rem">Mark contacted</button>`:''}
+            <button onclick="openAgencyMsg(null,'${r.landlord_id}','${(r.landlord_name||'Landlord').replace(/'/g,"\\'")} — estimation request');markEstimationContacted('${r.id}')" class="btn bp bsm" style="font-size:.7rem">💬 Reply</button>
           </div>
         </div>
       </div>`).join('');
@@ -1879,7 +1877,6 @@ async function saveAgencyProfile(){
     address:document.getElementById('ag-address').value.trim(),
     zones:[...document.querySelectorAll('.ag-zone-cb:checked')].map(cb=>cb.value).join(','),
     current_offer:document.getElementById('ag-offer').value.trim(),
-    estimation_tariff:parseFloat(document.getElementById('ag-estimation-tariff').value)||0,
     bio:document.getElementById('ag-bio').value.trim(),
   };
   if(!data.agency_name){toast('Agency name required');return;}
