@@ -1402,10 +1402,7 @@ async function loadL(){
   const z=document.getElementById('fz')?.value,t=document.getElementById('ft')?.value,p=document.getElementById('fp')?.value,att=document.getElementById('fa')?.value;
   let q=sb.from('listings').select('*').eq('active',true).not('status','in','("reserved","rented")').order('created_at',{ascending:false});
   if(z)q=q.eq('zone',z);
-  // For type filter: 'both' listings appear when filtering short OR long.
-  // Sale listings never show mixed into the default rental browse — only
-  // when the type filter is explicitly set to 'for_sale'.
-  if(t)q=q.eq('type',t);else q=q.neq('type','for_sale');
+  if(t)q=q.eq('type',t);
   if(p&&t!=='for_sale')q=q.lte('price',parseInt(p)); // le filtre budget est pensé pour un loyer, n'a pas de sens pour un prix de vente
   if(att==='yes')q=q.eq('accepts_attestation',true);
   const{data}=await q;
@@ -1416,7 +1413,7 @@ async function loadL(){
   if(mapView)initMap();
 }
 
-async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true).neq('type','for_sale');document.getElementById('sc').textContent=count??'0';}
+async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true);document.getElementById('sc').textContent=count??'0';}
 
 function rCard(l){
   const ic={short:'🏠',room_rental:'🔑',long:'📅',for_sale:'🏷️'};
