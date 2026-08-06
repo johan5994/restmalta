@@ -1810,7 +1810,7 @@ function setT(el,t){
   if(secBeds)secBeds.style.display=isRoom?'none':'block';
   if(secAtt)secAtt.style.display=(isRoom||isSale)?'none':'block';
   if(secLease)secLease.style.display=(isRoom||isSale)?'none':'block';
-  if(secAgent)secAgent.style.display=(isRoom||isSale)?'none':'block';
+  if(secAgent)secAgent.style.display=(isRoom||isSale||window._agentChoiceMade)?'none':'block';
   // section-agent-details reste géré par updateAgentOpt uniquement
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltese law. Cannot be renewed.',
@@ -1877,6 +1877,7 @@ async function checkAgentsInZone(zone){
 
 function selectSelfFormAgentOpt(val){
   updateAgentOpt(val);
+  window._agentChoiceMade=true;
   const wholeSection=document.getElementById('section-agent');
   if(wholeSection)wholeSection.style.display='none';
 }
@@ -2354,8 +2355,28 @@ async function doPost(){
     }
   }else{
     sA(ok,"🎉 Listing published! It's now live on RestMalta.");
-    updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
+    updC();loadL();
+    if(listing)offerBoostAfterPublish(listing.id,listing.title,listing.type);
+    else setTimeout(()=>{go('dash');loadDash();},1800);
   }
+}
+
+function offerBoostAfterPublish(listingId,listingTitle,listingType){
+  const isSale=listingType==='for_sale';
+  const price=isSale?'€15':'€5';
+  const days=isSale?'14':'7';
+  const modal=document.createElement('div');
+  modal.id='boost-offer-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:white;border-radius:18px;padding:1.75rem;max-width:400px;width:100%;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">🔥</div>
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:.4rem">Want more eyes on your listing?</div>
+      <div style="font-size:.82rem;color:var(--stone-l);margin-bottom:1.2rem;line-height:1.6">Boost "${listingTitle}" to the top of search results for <strong>${days} days</strong> — one-time payment of <strong>${price}</strong>.</div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="startBoostPayment('${listingId}','${listingTitle.replace(/'/g,"\\'")}','${listingType}')">🔥 Boost for ${price} →</button>
+      <button class="btn btn-s" style="width:100%;justify-content:center" onclick="document.getElementById('boost-offer-modal').remove();go('dash');loadDash();">Maybe later — I'll do it from My Listings</button>
+    </div>`;
+  document.body.appendChild(modal);
 }
 
 async function loadDash(){
