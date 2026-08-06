@@ -419,13 +419,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg" id="nl-available-wrap"><label class="fl">Available From</label><input class="fi" type="date" id="nl-available"></div>
             <div class="fg" id="nl-bills-wrap"><label class="fl">Bills</label><select class="fsel" id="nl-bills"><option value="included">All bills included</option><option value="excluded">Bills not included</option></select></div>
           </div>
+
+          <!-- Champs spécifiques à une vente — n'apparaissent qu'en mode "For sale" -->
+          <div id="nl-sale-details-wrap" style="display:none;background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.75rem">
+            <div style="font-size:.78rem;font-weight:700;color:#6366F1;margin-bottom:.6rem">🏷️ Sale details</div>
+            <div class="fgrid2">
+              <div class="fg"><label class="fl">Tenure *</label><select class="fsel" id="nl-tenure"><option value="freehold">Freehold</option><option value="leasehold">Leasehold</option><option value="perpetual_ground_rent">Perpetual ground rent</option></select></div>
+              <div class="fg"><label class="fl">Finish status *</label><select class="fsel" id="nl-finish"><option value="finished">Fully finished</option><option value="furnished">Finished & furnished</option><option value="semi_finished">Semi-finished</option><option value="shell">Shell form (bare)</option></select></div>
+              <div class="fg"><label class="fl">EPC rating <span style="font-size:.65rem;color:var(--td)">(legally required to sell)</span></label><select class="fsel" id="nl-epc"><option value="">Not available yet</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
+              <div class="fg"><label class="fl">Annual service charge (€) <span style="font-size:.65rem;color:var(--td)">(if applicable)</span></label><input class="fi" type="number" id="nl-service-charge" placeholder="0"></div>
+              <div class="fg"><label class="fl">Planning permit no. <span style="font-size:.65rem;color:var(--td)">(optional)</span></label><input class="fi" id="nl-permit" placeholder="e.g. PA 1234/23"></div>
+              <div class="fg" style="display:flex;align-items:center;padding-top:1.3rem"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.82rem"><input type="checkbox" id="nl-sda"> Special Designated Area (SDA)</label></div>
+            </div>
+            <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">SDAs let foreign buyers purchase without an AIP permit — worth flagging if it applies.</div>
+          </div>
+
           <div class="fg"><label class="fl">Description</label><textarea class="fi" id="nl-desc" rows="4" placeholder="Describe the property — furnished, amenities, transport links..."></textarea></div>
           <div class="fg"><label class="fl">Full Address</label><input class="fi" id="nl-address" placeholder="12 Triq il-Kbira, Sliema SLM 1234, Malta"></div>
-          <div class="fg" id="nl-landlord-email-wrap" style="display:none;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:.75rem 1rem">
-            <label class="fl">Landlord's email *</label>
-            <input class="fi" id="nl-landlord-email" placeholder="owner@email.com" type="email">
-            <div style="font-size:.7rem;color:var(--td);margin-top:.4rem">Posting is free for you — the landlord pays €2/week to keep this listing online. We'll email them a link to activate it.</div>
-          </div>
 
           <!-- Features / Amenities -->
           <div class="fg">
@@ -1199,13 +1209,10 @@ async function loadListings(){
           </td>
           <td style="font-size:.82rem;color:var(--td)">📍 ${l.zone||'—'}</td>
           <td style="font-weight:700;color:var(--green)">${l.type==='for_sale'?`€${l.sale_price||l.price||'—'}`:`€${l.price||'—'}/mo`}</td>
-          <td>${l.type==='for_sale'
-            ?(l.sale_subscription_status==='active'?'<span class="agency-listing-badge" style="background:rgba(76,175,125,.15);color:#2d7a56">🏷️ For sale — live</span>':l.sale_subscription_status==='past_due'?'<span class="agency-listing-badge" style="background:rgba(224,90,58,.15);color:#C9553A">⚠️ Payment issue</span>':'<span class="agency-listing-badge" style="background:rgba(212,168,71,.15);color:#8a6d1f">⏳ Not activated</span>')
-            :'<span class="agency-listing-badge">🏢 Agency</span>'}</td>
+          <td>${l.type==='for_sale'?'<span class="agency-listing-badge" style="background:rgba(76,175,125,.15);color:#2d7a56">🏷️ For sale</span>':'<span class="agency-listing-badge">🏢 Agency</span>'}</td>
           <td style="font-size:.82rem;color:var(--td)" id="visit-count-${l.id}">—</td>
           <td>
             <div style="display:flex;gap:.3rem">
-              ${l.type==='for_sale'&&l.sale_subscription_status!=='active'?`<button onclick="resendActivationEmail('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.landlord_email||''}')" class="btn bp bsm" style="font-size:.68rem">📧 Resend to landlord</button>`:''}
               <a href="https://restmalta.netlify.app/#listing-${l.id}" target="_blank" class="btn bg bsm" style="font-size:.68rem;text-decoration:none">👁</a>
               <button onclick="editListing('${l.id}')" class="btn bg bsm" style="font-size:.68rem">✏️</button>
               <button onclick="deleteListing('${l.id}','${(l.title||'').replace(/'/g,"\\'")}',this)" class="btn bg bsm" style="font-size:.68rem;color:var(--red)">🗑</button>
@@ -1367,23 +1374,22 @@ async function createListing(data){
       agency_logo_url:agencyData?.logo_url||null,
       agency_name:agencyData?.agency_name||null,
       sale_price:isSale?(data.price||0):null,
-      sale_subscription_status:isSale?'pending':null,
-      landlord_email:isSale?(data.landlord_email||null):null,
+      tenure:isSale?(data.tenure||null):null,
+      finish_status:isSale?(data.finish_status||null):null,
+      epc_rating:isSale?(data.epc_rating||null):null,
+      service_charge:isSale?(data.service_charge||null):null,
+      permit_number:isSale?(data.permit_number||null):null,
+      sda:isSale?(data.sda||false):false,
+      sale_subscription_status:isSale?'not_required':null, // gratuit et immédiat via une agence — le 2€/semaine ne concerne que les propriétaires qui postent seuls
       status:'active',
-      active:!isSale, // les annonces "for sale" doivent d'abord activer leur abonnement
+      active:true, // les annonces d'agence sont toujours publiées immédiatement, vente ou location
       created_at:new Date().toISOString()
     }).select().single();
     if(error)throw new Error(error.message);
     uploadedPhotos=[];
     document.getElementById('import-preview').style.display='none';
-    if(isSale){
-      await sendSaleActivationEmail(l.id,l.title,data.landlord_email);
-      toast('✅ Listing created — an activation email was sent to the landlord');
-      sp('listings',null);
-    }else{
-      toast('🚀 Listing published successfully!');
-      sp('listings',null);
-    }
+    toast(isSale?'🚀 Sale listing published successfully!':'🚀 Listing published successfully!');
+    sp('listings',null);
   }catch(e){toast('❌ '+e.message);}
 }
 
@@ -1503,38 +1509,11 @@ function toggleListingMode(prefix){
   const depositWrap=document.getElementById(`${prefix}-deposit-wrap`);
   const availWrap=document.getElementById(`${prefix}-available-wrap`);
   const billsWrap=document.getElementById(`${prefix}-bills-wrap`);
-  const landlordEmailWrap=document.getElementById(`${prefix}-landlord-email-wrap`);
+  const saleDetailsWrap=document.getElementById(`${prefix}-sale-details-wrap`);
   if(depositWrap)depositWrap.style.display=isSale?'none':'block';
   if(availWrap)availWrap.style.display=isSale?'none':'block';
   if(billsWrap)billsWrap.style.display=isSale?'none':'block';
-  if(landlordEmailWrap)landlordEmailWrap.style.display=isSale?'block':'none';
-}
-
-// Envoie au PROPRIÉTAIRE (pas à l'agence) le lien pour activer l'abonnement
-// hebdomadaire de visibilité — l'agence poste gratuitement, ne paie jamais.
-async function sendSaleActivationEmail(listingId,listingTitle,landlordEmail){
-  if(!landlordEmail)return;
-  try{
-    await fetch('/.netlify/functions/send-email',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        template:'sale_listing_activation',
-        to:landlordEmail,
-        data:{
-          landlordName:'there',
-          agencyName:agencyData?.agency_name||'Your agency',
-          listingTitle,
-          activationUrl:`https://restmalta.netlify.app/index.html?activate_sale=${listingId}`
-        }
-      })
-    });
-  }catch(e){console.warn('Activation email:',e);}
-}
-
-async function resendActivationEmail(listingId,listingTitle,landlordEmail){
-  if(!landlordEmail){toast('❌ No landlord email on file for this listing');return;}
-  await sendSaleActivationEmail(listingId,listingTitle,landlordEmail);
-  toast('✅ Activation email resent to the landlord');
+  if(saleDetailsWrap)saleDetailsWrap.style.display=isSale?'block':'none';
 }
 
 async function publishNewListing(){
@@ -1542,8 +1521,6 @@ async function publishNewListing(){
   const zone=document.getElementById('nl-zone').value;
   if(!title||!zone){toast('Title and zone required');return;}
   const mode=document.getElementById('nl-mode').value; // 'long' ou 'for_sale'
-  const landlordEmail=document.getElementById('nl-landlord-email')?.value.trim();
-  if(mode==='for_sale'&&!landlordEmail){toast('⚠️ Landlord\'s email is required for sale listings');return;}
   const features=getFeatureTags('nl-features-tags');
   await createListing({
     title,zone,
@@ -1553,13 +1530,18 @@ async function publishNewListing(){
     description:document.getElementById('nl-desc').value.trim(),
     full_address:document.getElementById('nl-address').value.trim(),
     lease_type:mode,
-    landlord_email:landlordEmail,
     bills:document.getElementById('nl-bills').value,
     property_type:document.getElementById('nl-ptype').value,
     floor:document.getElementById('nl-floor').value,
     sqm:parseInt(document.getElementById('nl-sqm').value)||null,
     deposit:parseFloat(document.getElementById('nl-deposit').value)||null,
     available_from:document.getElementById('nl-available').value||null,
+    tenure:document.getElementById('nl-tenure')?.value||null,
+    finish_status:document.getElementById('nl-finish')?.value||null,
+    epc_rating:document.getElementById('nl-epc')?.value||null,
+    service_charge:parseFloat(document.getElementById('nl-service-charge')?.value)||null,
+    permit_number:document.getElementById('nl-permit')?.value.trim()||null,
+    sda:document.getElementById('nl-sda')?.checked||false,
     features,
     photos:uploadedPhotos,
   });
@@ -1804,7 +1786,9 @@ async function loadEstimations(){
   const wrap=document.getElementById('estimations-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:reqs}=await sb.from('estimation_requests').select('*').eq('agency_id',U.id).order('created_at',{ascending:false});
+    const{data:reqs,error}=await sb.from('estimation_requests').select('*').eq('agency_id',U.id).order('created_at',{ascending:false});
+    if(error){console.error('[estimation_requests] load failed:',error);wrap.innerHTML=`<div style="color:var(--red);padding:1rem">Error: ${error.message}</div>`;return;}
+    console.log('[estimation_requests] loaded',(reqs||[]).length,'for agency_id',U.id);
     const nb=document.getElementById('nb-estimations');
     const pending=(reqs||[]).filter(r=>r.status==='pending').length;
     if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
