@@ -10,7 +10,7 @@ exports.handler = async (event) => {
 
   try {
     const { tenant, listing, commission_amount, total_amount, booking_id } = JSON.parse(event.body);
-    const DOCU_KEY = process.env.DOCUSEAL_KEY;
+    const DOCU_KEY = process.env.DOCUSEAL_KEY || process.env.DOCUSEAL_API_KEY;
 
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const deadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -118,12 +118,37 @@ Generated on ${today}</p>
 </body>
 </html>`;
 
-    // Envoyer à DocuSeal — le tenant signe, RestMalta signe automatiquement
-    const res = await fetch('https://api.docuseal.eu/submissions/init', {
+    // Envoyer à DocuSeal — même procédé en 2 étapes que le bail/renouvellement/EDL
+    if (!DOCU_KEY) {
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, tenant_embed_src: null, html, message: 'Receipt generated — DocuSeal not configured' }) };
+    }
+
+    const tplRes = await fetch('https://api.docuseal.eu/templates/html', {
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        html,
+        name: 'Reservation Fee Receipt — ' + (listing.title || 'Malta'),
+        documents: [{ name: 'Reservation Fee Agreement', html }]
+      })
+    });
+
+    if (!tplRes.ok) {
+      const errText = await tplRes.text();
+      console.error('DocuSeal template error:', errText);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, tenant_embed_src: null, html, message: 'DocuSeal template error: ' + errText.slice(0, 200) }) };
+    }
+
+    const tplData = await tplRes.json();
+    const templateId = tplData.id;
+    if (!templateId) {
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, tenant_embed_src: null, html, message: 'No template ID' }) };
+    }
+
+    const res = await fetch('https://api.docuseal.eu/submissions', {
+      method: 'POST',
+      headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template_id: templateId,
         send_email: true,
         submitters: [
           { role: 'Tenant', email: tenant.email, name: tenant.name || 'Tenant' }
@@ -135,8 +160,16 @@ Generated on ${today}</p>
       })
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('DocuSeal submission error:', errText);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, tenant_embed_src: null, html, message: 'DocuSeal submission error: ' + errText.slice(0, 200) }) };
+    }
+
     const data = await res.json();
-    const submissionId = data.id || data[0]?.id;
+    const submitters_data = Array.isArray(data) ? data : (data.submitters || []);
+    const submissionId = submitters_data[0]?.submission_id || data.id;
+    const tenantData = submitters_data.find(s => s.role === 'Tenant') || submitters_data[0];
 
     return {
       statusCode: 200,
@@ -144,6 +177,8 @@ Generated on ${today}</p>
       body: JSON.stringify({
         success: true,
         submission_id: submissionId,
+        tenant_embed_src: tenantData?.embed_src || null,
+        tenant_slug: tenantData?.slug || null,
         html
       })
     };
