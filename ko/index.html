@@ -599,7 +599,6 @@ footer ul a:hover{color:var(--terra)}
           </label>
         </div>
         </div>
-        <div id="section-agent-chosen-note" style="display:none;font-size:.78rem;color:#8B5CF6;font-weight:600">✅ Agent service already selected — <span onclick="document.getElementById('section-agent-choice').style.display='block';document.getElementById('section-agent-chosen-note').style.display='none'" style="text-decoration:underline;cursor:pointer;font-weight:700">change this</span></div>
       </div>
 
       <!-- Lease Agreement Attestation -->
@@ -1385,10 +1384,17 @@ async function loadL(){
   if(p&&t!=='for_sale')q=q.lte('price',parseInt(p)); // le filtre budget est pensé pour un loyer, n'a pas de sens pour un prix de vente
   if(att==='yes')q=q.eq('accepts_attestation',true);
   const{data}=await q;
-  window._currentListings=data||[];
-  if(!data||data.length===0){g.innerHTML=`<div class="empty"><div class="emo">🏠</div><p>No listings found. Try adjusting your filters!</p><button class="btn btn-p" onclick="chkPost()">Post your flat →</button></div>`;document.getElementById('lc').textContent='';return;}
-  document.getElementById('lc').textContent=`${data.length} listing${data.length>1?'s':''} found`;
-  g.innerHTML=data.map(rCard).join('');
+  const now=Date.now();
+  const sorted=(data||[]).slice().sort((a,b)=>{
+    const aBoost=a.boosted_until&&new Date(a.boosted_until).getTime()>now?1:0;
+    const bBoost=b.boosted_until&&new Date(b.boosted_until).getTime()>now?1:0;
+    if(aBoost!==bBoost)return bBoost-aBoost; // les boostés valides passent devant
+    return new Date(b.created_at)-new Date(a.created_at);
+  });
+  window._currentListings=sorted;
+  if(!sorted.length){g.innerHTML=`<div class="empty"><div class="emo">🏠</div><p>No listings found. Try adjusting your filters!</p><button class="btn btn-p" onclick="chkPost()">Post your flat →</button></div>`;document.getElementById('lc').textContent='';return;}
+  document.getElementById('lc').textContent=`${sorted.length} listing${sorted.length>1?'s':''} found`;
+  g.innerHTML=sorted.map(rCard).join('');
   if(mapView)initMap();
 }
 
@@ -1411,11 +1417,14 @@ function rCard(l){
   // Attestation badge — only show when accepted, and never for agency listings (info not collected)
   const attBadge=(l.accepts_attestation&&!l.agency_listing)?
     `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(46,107,138,.9);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ✅</span>`:'';
-  return`<div class="lcard" onclick="openDet('${l.id}')">
+  const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
+  const boostBadge=isBoosted?
+    `<span style="position:absolute;bottom:.5rem;left:.5rem;background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;font-size:.58rem;font-weight:800;padding:.2rem .5rem;border-radius:100px;box-shadow:0 2px 6px rgba(220,38,38,.4)">🔥 Boosted</span>`:'';
+  return`<div class="lcard" onclick="openDet('${l.id}')" style="${isBoosted?'box-shadow:0 0 0 2px #F59E0B,0 4px 14px rgba(245,158,11,.25)':''}">
     <div class="limg" style="background:${bg[l.type]||bg.room_rental}">
       ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'🏠'}</span>`}
       <span style="position:absolute;top:.5rem;right:.5rem;background:${lbColor[l.type]||'#C9553A'};color:white;font-size:.65rem;font-weight:700;padding:.25rem .6rem;border-radius:100px">${lb[l.type]||'Listing'}</span>
-      ${agentBadge}${attBadge}
+      ${agentBadge}${attBadge}${boostBadge}
     </div>
     <div class="lbody">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
@@ -1868,10 +1877,8 @@ async function checkAgentsInZone(zone){
 
 function selectSelfFormAgentOpt(val){
   updateAgentOpt(val);
-  const choiceBlock=document.getElementById('section-agent-choice');
-  const note=document.getElementById('section-agent-chosen-note');
-  if(choiceBlock)choiceBlock.style.display='none';
-  if(note)note.style.display='block';
+  const wholeSection=document.getElementById('section-agent');
+  if(wholeSection)wholeSection.style.display='none';
 }
 
 function updateAgentOpt(val){
@@ -2047,6 +2054,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     window.history.replaceState({},'',window.location.pathname);
   }else if(urlParams.get('sale_cancelled')){
     setTimeout(()=>toast('Activation cancelled — you can try again anytime from the link in your email.'),600);
+    window.history.replaceState({},'',window.location.pathname);
+  }else if(urlParams.get('boost_activated')){
+    setTimeout(()=>toast('🔥 Boost activated! Your listing now shows at the top of search results.'),600);
+    window.history.replaceState({},'',window.location.pathname);
+  }else if(urlParams.get('boost_cancelled')){
+    setTimeout(()=>toast('Boost payment cancelled — you can try again anytime from My Listings.'),600);
     window.history.replaceState({},'',window.location.pathname);
   }
 });
@@ -2365,6 +2378,9 @@ async function loadML(){
     const statusLabel=pendingAgent?'⏳ Waiting for an agent to accept':pendingSale?'⏳ Not activated — €2/week to go live':l.active?'Active':'Paused';
     const dotClass=(pendingAgent||pendingSale)?'dg':l.active?'dg':'dr';
     const priceLabel=isSale?`€${l.sale_price||l.price}`:`€${l.price}/mo`;
+    const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
+    const boostLabel=isBoosted?`🔥 Boosted until ${new Date(l.boosted_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:'';
+    const boostBtn=(!pendingAgent&&!pendingSale)?`<button class="btn btn-s btn-sm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPayment('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend boost':'🚀 Boost'}</button>`:'';
     const actionBtn=pendingAgent
       ?`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="An agent needs to accept this property first">⏳ Pending</button>`
       :isSale
@@ -2372,8 +2388,21 @@ async function loadML(){
         ?`<button class="btn btn-s btn-sm" onclick="togL('${l.id}',true)">Pause</button>`
         :`<button class="btn btn-p btn-sm" onclick="retrySaleActivation('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`)
       :`<button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>`;
-    return`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">${priceLabel} · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}</div></div>`;
+    return`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">${priceLabel} · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}${boostLabel?' · '+boostLabel:''}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}${boostBtn}</div></div>`;
   }).join('');
+}
+
+async function startBoostPayment(listingId,listingTitle,listingType){
+  toast('💳 Redirecting to payment...');
+  try{
+    const res=await fetch('/.netlify/functions/create-boost-payment',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({listing_id:listingId,listing_title:listingTitle,listing_type:listingType,payer_email:U.email,payer_name:P?.full_name||''})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not start payment');
+    window.location.href=data.checkout_url;
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function retrySaleActivation(listingId,listingTitle){
