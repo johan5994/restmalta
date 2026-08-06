@@ -2367,8 +2367,10 @@ async function loadML(){
     const priceLabel=isSale?`€${l.sale_price||l.price}`:`€${l.price}/mo`;
     const actionBtn=pendingAgent
       ?`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="An agent needs to accept this property first">⏳ Pending</button>`
-      :pendingSale
-      ?`<button class="btn btn-p btn-sm" onclick="retrySaleActivation('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`
+      :isSale
+      ?(l.active
+        ?`<button class="btn btn-s btn-sm" onclick="togL('${l.id}',true)">Pause</button>`
+        :`<button class="btn btn-p btn-sm" onclick="retrySaleActivation('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`)
       :`<button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>`;
     return`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">${priceLabel} · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}</div></div>`;
   }).join('');
