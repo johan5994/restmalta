@@ -1046,20 +1046,60 @@ async function loadListings(){
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   myListings=data||[];
   const tb=document.getElementById('listings-tbody');
-  const tl={short:'🏠 Short-let',sublet:'🔑 Sous-loc',long:'📅 Long-let',both:'🔄 Les deux'};
-  tb.innerHTML=(data||[]).map(l=>`<tr>
+  const tl={short:'🏠 Short-let',sublet:'🔑 Sous-loc',long:'📅 Long-let',both:'🔄 Les deux',for_sale:'🏷️ For sale'};
+  tb.innerHTML=(data||[]).map(l=>{
+    const isSale=l.type==='for_sale';
+    const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
+    const pendingSale=isSale&&l.sale_subscription_status!=='active';
+    const priceLabel=isSale?`€${l.sale_price||l.price}`:`€${l.price}/mo`;
+    const statusBadge=pendingSale?'<span class="badge b-gold">⏳ Not activated — €2/week</span>':`<span class="badge ${l.active?'b-green':'b-dim'}">${l.active?'🟢 Active':'⚫ Paused'}</span>`;
+    const actionBtn=isSale
+      ?(l.active
+        ?`<button class="btn bg bsm" onclick="toggleListing('${l.id}',true)">Pause</button>`
+        :`<button class="btn bp bsm" onclick="retrySaleActivationLL('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`)
+      :`<button class="btn bg bsm" onclick="toggleListing('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>`;
+    const boostBtn=!pendingSale?`<button class="btn bg bsm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPaymentLL('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend':'🚀 Boost'}</button>`:'';
+    return`<tr>
     <td style="color:var(--txt);font-weight:500">${l.title}
-      <div style="font-size:.7rem;color:var(--td)">📍 ${l.zone}</div></td>
+      <div style="font-size:.7rem;color:var(--td)">📍 ${l.zone}${isBoosted?` · 🔥 Boosted until ${new Date(l.boosted_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:''}</div></td>
     <td><span class="badge b-sea">${tl[l.type]||l.type}</span></td>
-    <td style="color:var(--txt);font-weight:600">€${l.price}/mo</td>
-    <td><span class="badge ${l.active?'b-green':'b-dim'}">${l.active?'🟢 Active':'⚫ Paused'}</span></td>
+    <td style="color:var(--txt);font-weight:600">${priceLabel}</td>
+    <td>${statusBadge}</td>
     <td style="font-size:.75rem;color:var(--td)">${l.available_indefinitely?'Indefinitely':l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Now'}</td>
-    <td><div style="display:flex;gap:.4rem">
+    <td><div style="display:flex;gap:.4rem;flex-wrap:wrap">
       <button class="btn bg bsm" onclick="viewListing('${l.id}')">View</button>
-      <button class="btn bg bsm" onclick="toggleListing('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>
+      ${actionBtn}
+      ${boostBtn}
       <button class="btn bdanger bsm" onclick="deleteListing('${l.id}')">Delete</button>
     </div></td>
-  </tr>`).join('')||'<tr><td colspan="6"><div class="empty"><div class="em">🏠</div><p>No listings yet.</p></div></td></tr>';
+  </tr>`;
+  }).join('')||'<tr><td colspan="6"><div class="empty"><div class="em">🏠</div><p>No listings yet.</p></div></td></tr>';
+}
+
+async function retrySaleActivationLL(listingId,listingTitle){
+  toast('💳 Redirecting to payment...');
+  try{
+    const res=await fetch('/.netlify/functions/create-sale-subscription',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({listing_id:listingId,landlord_email:U.email,listing_title:listingTitle})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not start subscription');
+    window.location.href=data.checkout_url;
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function startBoostPaymentLL(listingId,listingTitle,listingType){
+  toast('💳 Redirecting to payment...');
+  try{
+    const res=await fetch('/.netlify/functions/create-boost-payment',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({listing_id:listingId,listing_title:listingTitle,listing_type:listingType,payer_email:U.email,payer_name:P?.full_name||''})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not start payment');
+    window.location.href=data.checkout_url;
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function toggleListing(id,active){
@@ -1703,7 +1743,7 @@ ${leaseType==='long'?'<li>After year 1, rent may increase in proportion to the y
 <h2>Utility Bills &amp; Services</h2>
 <ol>
 <li>The lessor shall ensure all utilities are settled up to the commencement date.</li>
-<li>Annex B shall include ARMS Form H and Form N duly signed by both parties.</li>
+<li>The tenant is responsible for submitting ARMS Form H (change of occupants declaration) within 30 days of move-in, for correct utility billing.</li>
 <li>Both parties declare that water and electricity meter readings shall be recorded in <strong>Annex A on move-in day</strong> and form an integral part of this agreement.</li>
 </ol>
 ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may terminate after the compulsory period with one (1) month written notice by registered letter.</li><li>The lessor must notify non-renewal at least 3 months before expiry, otherwise the lease renews automatically.</li></ol>`:''}
@@ -3664,7 +3704,9 @@ async function loadRentedProperties(){
         <div id="rp-cotenants-${bk.id}"></div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
           ${bk.lease_tenant_embed||bk.lease_landlord_embed?`<a href="${bk.lease_landlord_embed||bk.lease_tenant_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📄 Lease</a>`:''}
-          ${bk.status==='move_in_ready'?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📋 EDL dossier</button>`:''}
+          ${bk.edl_landlord_embed?`<a href="${bk.edl_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📋 EDL ${bk.edl_signed_landlord?'✅':'⏳'}</a>`:''}
+          ${bk.edl_completed_at?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📷 Inventory + photos</button>`:''}
+          ${bk.renewal_landlord_embed?`<a href="${bk.renewal_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">🔄 Renewal ${bk.renewal_signed_landlord?'✅':'⏳'}</a>`:bk.lease_end?`<button onclick="openRenewalModal('${bk.id}','landlord')" class="btn bg bsm">🔄 Renew lease</button>`:''}
           <button onclick="openMsgChatById('${bk.tenant_id||''}','${bk.listing_id||''}')" class="btn bg bsm">💬 Message tenant</button>
           <button onclick="sp('maintenance',document.querySelector('.ni[onclick*=maintenance]'))" class="btn bg bsm" ${openTickets.length?'style="border-color:var(--red);color:var(--red)"':''}>🔧 Maintenance${openTickets.length?` (${openTickets.length})`:''}</button>
           <button onclick="sp('payments',document.querySelector('.ni[onclick*=payments]'))" class="btn bg bsm">💶 Full payment history</button>
@@ -3979,12 +4021,6 @@ async function openLandlordEdlDoc(bookingId){
   doOpenLandlordDoc(bk,bookingId,bk.edl_landlord_embed,'edl_signed_landlord','📋 Move-in Inventory (Annex A)');
 }
 
-async function openLandlordFormHDoc(bookingId){
-  const{data:bk}=await sb.from('bookings').select('formh_landlord_embed,id,listing_id,tenant_id').eq('id',bookingId).single();
-  if(!bk?.formh_landlord_embed){toast('❌ Document not ready yet');return;}
-  doOpenLandlordDoc(bk,bookingId,bk.formh_landlord_embed,'formh_signed_landlord','📝 Form H (ARMS)');
-}
-
 function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
   const open=()=>{
     const modal=document.createElement('div');
@@ -4146,23 +4182,16 @@ function renderLeaseSection(g){
       </div>`:bk?.status==='move_in_ready'?`
       <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.5rem">✅ Move-in inventory completed — tenant has the keys</div>
       <button onclick="viewEdlDossier('${bk?.id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>
-      ${bk.edl_landlord_embed||bk.formh_landlord_embed?`
+      ${bk.edl_landlord_embed?`
       <div style="display:flex;flex-direction:column;gap:.3rem">
-        ${bk.edl_landlord_embed?`
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.76rem">📋 Move-in Inventory (Annex A)</span>
           ${bk.edl_signed_landlord
             ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
             :`<button onclick="openLandlordEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.7rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
-        </div>`:''}
-        ${bk.formh_landlord_embed?`
-        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.76rem">📝 Form H (ARMS)</span>
-          ${bk.formh_signed_landlord
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.formh_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
-            :`<button onclick="openLandlordFormHDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.7rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
-        </div>`:''}
-      </div>`:''}`:''}
+        </div>
+      </div>`:''}
+      <div style="margin-top:.5rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.72rem;color:var(--gold)">📝 Reminder: submit ARMS Form H (change of occupants) and Form N (authorisation to verify meter readings/dues) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. Both are separate from your RestMalta lease/EDL.</div>`:''}
 
     </div>
   </div>`;
@@ -4471,7 +4500,7 @@ async function openLandlordEDL(bookingId){
             </div>
           </div>
           <div style="margin-top:.65rem;background:rgba(212,168,71,.08);border-radius:8px;padding:.55rem;font-size:.7rem;color:var(--gold)">
-            ⚠️ Take photos of both meters. These readings will be annexed to the lease and Form H.
+            ⚠️ Take photos of both meters. These readings will be annexed to the lease.
           </div>
         </div>
         <div style="display:flex;gap:.5rem">
@@ -4483,7 +4512,7 @@ async function openLandlordEDL(bookingId){
       <div id="ll-edl-step-2" style="display:none">
         <div style="background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
           <div style="font-size:.85rem;font-weight:700;margin-bottom:.35rem">📎 Annex to Lease & Generate Documents</div>
-          <div style="font-size:.73rem;color:var(--td);margin-bottom:.75rem">This will generate and send to both parties:<br>• Annex A — EDL (Inventory & Condition Form) with meter readings<br>• Form H — ARMS Declaration (pre-filled)</div>
+          <div style="font-size:.73rem;color:var(--td);margin-bottom:.75rem">This will generate and send to both parties:<br>• Annex A — EDL (Inventory & Condition Form) with meter readings</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.65rem">
             <div>
               <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Main door keys (qty)</div>
@@ -4494,19 +4523,15 @@ async function openLandlordEDL(bookingId){
               <input type="number" id="ll-keys-mailbox" value="1" min="0" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
             </div>
             <div>
-              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">ARMS Account No.</div>
-              <input type="text" id="ll-arms-account" placeholder="From your ARMS bill" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
-            </div>
-            <div>
-              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Number of residents</div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Number of residents <span style="font-size:.62rem;color:var(--td);font-weight:400">(for lease registration)</span></div>
               <input type="number" id="ll-arms-residents" value="1" min="1" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
             </div>
           </div>
           <div id="ll-annex-status" style="display:none;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.55rem;font-size:.73rem;color:#4CAF7D;margin-bottom:.5rem"></div>
         </div>
-        <div style="display:flex;gap:.5rem">
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
           <button onclick="showEdlStepLL(1)" style="flex:1;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
-          <button onclick="generateAnnexAndCompleteLL()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">📎 Generate Annex A + Form H & Complete →</button>
+          <button onclick="generateAnnexAndCompleteLL()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">📎 Generate Annex A & Complete →</button>
         </div>
       </div>
 
@@ -4518,10 +4543,10 @@ async function openLandlordEDL(bookingId){
           <div style="font-size:.76rem;color:var(--td);text-align:left;background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:1rem;line-height:2">
             ✅ EDL completed & sent for signature<br>
             ✅ Meter readings recorded & annexed<br>
-            ✅ Form H (ARMS) generated<br>
             ✅ Keys handed over
           </div>
-          <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">📝 Remember to register the lease at <strong>rentregistration.mt</strong> within 30 days.</div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">📝 Remember to register the lease at <strong>rentregistration.mt</strong> within 30 days.</div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">📝 Also submit ARMS Form H (change of occupants) and Form N (meter verification authorisation) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold)">arms.com.mt</a>.</div>
           <button onclick="loadVisitsPage()" style="background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer">← Back to visits</button>
         </div>
       </div>
@@ -4598,6 +4623,125 @@ function collectEdlRoomsLL(){
   }));
 }
 
+async function openRenewalModal(bookingId,initiator){
+  const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+  if(!bk){toast('❌ Could not load booking');return;}
+  const{data:listing}=await sb.from('listings').select('full_address,zone,price').eq('id',bk.listing_id).single();
+
+  const currentEnd=bk.lease_end?new Date(bk.lease_end):new Date();
+
+  const modal=document.createElement('div');
+  modal.id='renewal-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:420px;width:100%">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🔄 Renew lease</div>
+      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">Quick renewal addendum for ${bk.tenant_name||'this tenant'} — references the original lease instead of rebuilding it from scratch.</div>
+      <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">Current lease ends: <strong>${bk.lease_end?new Date(bk.lease_end).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—'}</strong></div>
+      <div class="fg" style="margin-bottom:.75rem">
+        <label class="fl">Renew for *</label>
+        <select class="fsel" id="renewal-duration" onchange="updateRenewalEndPreview('${currentEnd.toISOString()}')" style="width:100%">
+          <option value="1">1 year</option>
+          <option value="2">2 years</option>
+          <option value="3">3 years</option>
+          <option value="custom">Custom end date</option>
+        </select>
+        <div style="font-size:.7rem;color:var(--td);margin-top:.3rem" id="renewal-end-preview"></div>
+      </div>
+      <div class="fg" id="renewal-custom-date-wrap" style="display:none;margin-bottom:.75rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="renewal-new-end"></div>
+      <div class="fg" style="margin-bottom:1rem"><label class="fl">New monthly rent (€) <span style="font-size:.65rem;color:var(--td)">(leave as-is if unchanged — max +5%/year by law)</span></label><input class="fi" type="number" id="renewal-new-rent" value="${bk.monthly_rent||listing?.price||''}"></div>
+      <button id="renewal-submit-btn" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="submitRenewal('${bookingId}','${initiator||'landlord'}')">📎 Generate & send for signature →</button>
+      <button class="btn bg" style="width:100%;justify-content:center" onclick="document.getElementById('renewal-modal').remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+  updateRenewalEndPreview(currentEnd.toISOString());
+}
+
+function updateRenewalEndPreview(currentEndIso){
+  const duration=document.getElementById('renewal-duration')?.value;
+  const customWrap=document.getElementById('renewal-custom-date-wrap');
+  const preview=document.getElementById('renewal-end-preview');
+  if(duration==='custom'){
+    if(customWrap)customWrap.style.display='block';
+    if(preview)preview.textContent='';
+    return;
+  }
+  if(customWrap)customWrap.style.display='none';
+  const newEnd=new Date(currentEndIso);
+  newEnd.setFullYear(newEnd.getFullYear()+parseInt(duration));
+  if(preview)preview.textContent=`New end date: ${newEnd.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+  // Stocker pour submitRenewal
+  window._renewalComputedEnd=newEnd.toISOString().split('T')[0];
+}
+
+async function submitRenewal(bookingId,initiator){
+  const duration=document.getElementById('renewal-duration')?.value;
+  const newEnd=duration==='custom'?document.getElementById('renewal-new-end')?.value:window._renewalComputedEnd;
+  const newRent=document.getElementById('renewal-new-rent')?.value;
+  if(!newEnd){toast('⚠️ Pick a new end date');return;}
+  const btn=document.getElementById('renewal-submit-btn');
+  if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
+
+  try{
+    const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+    const{data:listing}=await sb.from('listings').select('full_address,zone,price,landlord_id').eq('id',bk.listing_id).single();
+    const{data:landlordProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.landlord_id).maybeSingle();
+    const{data:tenantProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.tenant_id).maybeSingle();
+
+    let coTenants=[];
+    try{coTenants=(bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[]).map(ct=>({name:ct.name,email:ct.email}));}catch(e){}
+
+    const res=await fetch('/.netlify/functions/generate-renewal',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        landlord:{name:landlordProfile?.full_name||'',passport:landlordProfile?.passport_number||'',email:landlordProfile?.email||''},
+        tenant:{name:bk.tenant_name||tenantProfile?.full_name||'',passport:tenantProfile?.passport_number||'',email:tenantProfile?.email||bk.tenant_email},
+        coTenants,
+        listing:{address:listing?.full_address||listing?.zone||''},
+        original_start_date:bk.lease_start||bk.move_in_date,
+        original_end_date:bk.lease_end,
+        new_end_date:newEnd,
+        original_rent:bk.monthly_rent||listing?.price||0,
+        new_rent:newRent||bk.monthly_rent||listing?.price||0
+      })
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not generate renewal');
+
+    await sb.from('bookings').update({
+      renewal_landlord_embed:data.lessor_embed_src,
+      renewal_tenant_embed:data.lessee_embed_src,
+      renewal_submission_id:data.submission_id?String(data.submission_id):null,
+      renewal_new_end_date:newEnd,
+      renewal_signed_landlord:false,
+      renewal_signed_tenant:false
+    }).eq('id',bookingId);
+
+    // Notifier l'AUTRE partie — peu importe qui a lancé la demande
+    const newEndLabel=new Date(newEnd).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    if(initiator==='tenant'&&bk.landlord_id){
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
+        content:`🔄 Your tenant has requested a lease renewal — the lease would extend to ${newEndLabel}. Check Rented Properties to review and sign.`,
+        type:'renewal_sent'
+      }).catch(()=>{});
+    }else if(bk.tenant_id){
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
+        content:`🔄 Your landlord has sent a lease renewal for signature — the lease would extend to ${newEndLabel}. Check your visits page to review and sign.`,
+        type:'renewal_sent'
+      }).catch(()=>{});
+    }
+
+    document.getElementById('renewal-modal')?.remove();
+    toast('✅ Renewal sent for signature!');
+    loadRentedProperties();
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.textContent='📎 Generate & send for signature →';btn.disabled=false;}
+  }
+}
+
 async function viewEdlDossier(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
   const{data:bk}=await sb.from('bookings').select('edl_rooms,edl_photos,meter_water,meter_electricity,edl_completed_at').eq('id',bookingId).single();
@@ -4666,12 +4810,11 @@ async function generateAnnexAndCompleteLL(){
   const edlNotes=document.getElementById('ll-edl-notes')?.value||'';
   const keysMain=document.getElementById('ll-keys-main')?.value||'2';
   const keysMailbox=document.getElementById('ll-keys-mailbox')?.value||'1';
-  const armsAccount=document.getElementById('ll-arms-account')?.value||'';
   const armsResidents=document.getElementById('ll-arms-residents')?.value||'1';
   const rooms=collectEdlRoomsLL();
 
   const statusEl=document.getElementById('ll-annex-status');
-  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ Generating Annex A (EDL) and Form H...';}
+  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ Generating Annex A (EDL)...';}
 
   const landlord={name:ctx.landlord?.full_name||'',email:ctx.landlord?.email||'',passport:ctx.landlord?.passport_number||''};
   const tenant={name:ctx.tenant?.full_name||'',email:ctx.tenant?.email||'',passport:ctx.tenant?.passport_number||'',nationality:ctx.tenant?.nationality||''};
@@ -4687,21 +4830,8 @@ async function generateAnnexAndCompleteLL(){
     edlLandlordEmbed=edlData?.lessor_embed_src||null;
     edlTenantEmbed=edlData?.lessee_embed_src||null;
     edlSubmissionId=edlData?.submission_id||null;
-    if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent! Generating Form H...';
+    if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent for signature!';
   }catch(e){console.warn('EDL:',e);}
-
-  let formhLandlordEmbed=null,formhTenantEmbed=null,formhSubmissionId=null;
-  try{
-    const res=await fetch('/.netlify/functions/generate-form-h',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({landlord,tenant,listing,arms_account:armsAccount,residents:parseInt(armsResidents)||1,meter_water:meterWater,meter_electricity:meterElec})
-    });
-    const formhData=await res.json();
-    formhLandlordEmbed=formhData?.owner_embed_src||null;
-    formhTenantEmbed=formhData?.resident_embed_src||null;
-    formhSubmissionId=formhData?.submission_id||null;
-    if(statusEl)statusEl.textContent='✅ Annex A + Form H sent for signature!';
-  }catch(e){console.warn('Form H:',e);}
 
   try{
     await sb.from('bookings').update({
@@ -4711,18 +4841,18 @@ async function generateAnnexAndCompleteLL(){
       edl_landlord_embed:edlLandlordEmbed,
       edl_tenant_embed:edlTenantEmbed,
       edl_submission_id:edlSubmissionId?String(edlSubmissionId):null,
-      formh_landlord_embed:formhLandlordEmbed,
-      formh_tenant_embed:formhTenantEmbed,
-      formh_submission_id:formhSubmissionId?String(formhSubmissionId):null,
       edl_photos:JSON.stringify(window._llEdlPhotos||{}),
       edl_rooms:JSON.stringify(rooms),
-      edl_completed_at:new Date().toISOString()
+      edl_completed_at:new Date().toISOString(),
+      number_of_residents:parseInt(armsResidents)||1
     }).eq('id',ctx.bookingId);
   }catch(e){console.warn('DB update:',e);}
 
   try{await generateRentScheduleLL(ctx);}catch(e){console.warn('Rent schedule:',e);}
 
-  const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 Remember to submit Form H to ARMS within 30 days.\n📋 Register your lease at rentregistration.mt within 30 days.';
+  // Form H n'est plus co-signé sur RestMalta — c'est une déclaration ARMS que le
+  // propriétaire remet directement, pas un document type bail. On garde juste le rappel.
+  const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 Remember to submit ARMS Form H (change of occupants) and Form N (meter verification authorisation) within 30 days — arms.com.mt.\n📋 Register your lease at rentregistration.mt within 30 days.';
   try{
     if(ctx.booking?.tenant_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.tenant_id,content:notif,type:'move_in_complete'});
   }catch(e){}
