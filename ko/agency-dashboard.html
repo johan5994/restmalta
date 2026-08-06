@@ -1213,6 +1213,7 @@ async function loadListings(){
             <div style="display:flex;gap:.3rem">
               <a href="https://restmalta.netlify.app/#listing-${l.id}" target="_blank" class="btn bg bsm" style="font-size:.68rem;text-decoration:none">👁</a>
               <button onclick="editListing('${l.id}')" class="btn bg bsm" style="font-size:.68rem">✏️</button>
+              <button onclick="startBoostPaymentAgency('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')" class="btn bg bsm" style="font-size:.68rem;${l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now()?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}">${l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now()?'🔥':'🚀'}</button>
               <button onclick="deleteListing('${l.id}','${(l.title||'').replace(/'/g,"\\'")}',this)" class="btn bg bsm" style="font-size:.68rem;color:var(--red)">🗑</button>
             </div>
           </td>
@@ -1777,6 +1778,19 @@ async function sendAgencyMsg(){
     });
     if(error){toast('❌ '+error.message);return;}
     openAgencyMsg(agencyChatListingId,agencyChatOtherId,document.getElementById('agency-msg-title').textContent);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function startBoostPaymentAgency(listingId,listingTitle,listingType){
+  toast('💳 Redirecting to payment...');
+  try{
+    const res=await fetch('/.netlify/functions/create-boost-payment',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({listing_id:listingId,listing_title:listingTitle,listing_type:listingType,payer_email:U.email,payer_name:agencyData?.agency_name||''})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not start payment');
+    window.location.href=data.checkout_url;
   }catch(e){toast('❌ '+e.message);}
 }
 
