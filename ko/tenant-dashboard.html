@@ -1335,7 +1335,8 @@ async function payHoldingDepositFromVisits(visitId, listingId){
     // 5 — Marquer la visite
     try{await sb.from('visits').update({status:'booking_pending'}).eq('id',visitId);}catch(e){}
 
-    // 6 — Générer reçu DocuSeal
+    // 6 — Générer reçu DocuSeal (email de signature envoyé directement par DocuSeal,
+    // + on garde le lien pour l'afficher dans l'app aussi)
     fetch('/.netlify/functions/generate-booking-receipt',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -1344,6 +1345,13 @@ async function payHoldingDepositFromVisits(visitId, listingId){
         commission_amount:commission,total_amount:commission,
         booking_id:booking?.id||paymentIntent.id
       })
+    }).then(r=>r.json()).then(receiptData=>{
+      if(receiptData?.success&&receiptData.tenant_embed_src&&booking?.id){
+        sb.from('bookings').update({
+          receipt_tenant_embed:receiptData.tenant_embed_src,
+          receipt_submission_id:receiptData.submission_id?String(receiptData.submission_id):null
+        }).eq('id',booking.id).then(()=>{}).catch(()=>{});
+      }
     }).catch(()=>{});
 
     // 7 — Notifier le landlord avec la date souhaitée
@@ -2334,6 +2342,102 @@ ${isLate?'⚠️ Cancelled less than 24 hours before the visit.':'✅ Cancelled 
 }
 
 let cardElement=null;
+async function generateNotice(){
+  const startDate=document.getElementById('notice-start')?.value;
+  const diFermoMonths=parseInt(document.getElementById('notice-difermo')?.value||'6');
+  const noticeMonths=parseInt(document.getElementById('notice-period')?.value||'1');
+  const departureDate=document.getElementById('notice-departure')?.value;
+  const resultEl=document.getElementById('notice-result');
+
+  if(!startDate){toast('⚠️ Enter your lease start date');return;}
+  if(!departureDate){toast('⚠️ Enter your desired departure date');return;}
+
+  // Date de fin du Di Fermo (période minimale d'engagement)
+  const diFermoEnd=new Date(startDate);
+  diFermoEnd.setMonth(diFermoEnd.getMonth()+diFermoMonths);
+
+  // Date de départ la plus proche possible = fin du Di Fermo + préavis
+  // (le préavis se compte à partir d'aujourd'hui, mais ne peut jamais faire
+  // sortir le locataire avant la fin du Di Fermo)
+  const today=new Date();
+  const noticeFromToday=new Date(today);
+  noticeFromToday.setMonth(noticeFromToday.getMonth()+noticeMonths);
+  const earliestDeparture=noticeFromToday>diFermoEnd?noticeFromToday:diFermoEnd;
+
+  const chosenDeparture=new Date(departureDate);
+  const isValid=chosenDeparture>=earliestDeparture;
+
+  // Récupérer le bail actif pour pré-remplir la lettre
+  let bk=null,listing=null,landlordProfile=null;
+  try{
+    const{data:bookings}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).order('created_at',{ascending:false}).limit(1);
+    bk=bookings?.[0]||null;
+    if(bk){
+      const{data:l}=await sb.from('listings').select('*').eq('id',bk.listing_id).single();
+      listing=l;
+      const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',bk.landlord_id).maybeSingle();
+      landlordProfile=lp;
+    }
+  }catch(e){}
+
+  const todayLabel=today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const departureLabel=chosenDeparture.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const earliestLabel=earliestDeparture.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+  if(!isValid){
+    resultEl.style.display='block';
+    resultEl.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.25);border-radius:8px;padding:.75rem;font-size:.82rem;color:var(--terra)">⚠️ Your chosen departure date is too early. Based on your Di Fermo period and notice period, the earliest you can leave is <strong>${earliestLabel}</strong>.</div>`;
+    return;
+  }
+
+  const letterText=`${P?.full_name||'[Your name]'}
+${P?.home_address||'[Your current address]'}
+${U.email||''}
+
+${todayLabel}
+
+To: ${landlordProfile?.full_name||'[Landlord name]'}
+${landlordProfile?.home_address||listing?.full_address||'[Landlord address]'}
+
+RE: NOTICE OF WITHDRAWAL FROM LEASE AGREEMENT
+Property: ${listing?.full_address||listing?.zone||'[Property address]'}
+
+Dear ${landlordProfile?.full_name||'Landlord'},
+
+In accordance with the Private Residential Leases Act (Chapter 604 of the Laws of Malta), I am writing to formally give notice of my intention to withdraw from the lease agreement for the above-mentioned property.
+
+Lease start date: ${new Date(startDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+Intended departure date: ${departureLabel}
+
+This notice is being given in compliance with the required notice period under the Act. I confirm that this departure date falls after the applicable Di Fermo (binding) period and satisfies the required notice period.
+
+I will ensure the property is vacated and keys returned on the departure date stated above, in the same condition as recorded in the move-in inventory, subject to fair wear and tear.
+
+Please confirm receipt of this letter at your earliest convenience. I would appreciate arranging a move-out inspection ahead of my departure.
+
+Yours sincerely,
+${P?.full_name||'[Your name]'}
+
+---
+⚠️ IMPORTANT: Maltese law requires this notice to be sent by registered mail (or another verifiable method with proof of delivery) to be legally valid. Simply keeping this document is not sufficient — please send it and keep your proof of posting.`;
+
+  resultEl.style.display='block';
+  resultEl.innerHTML=`
+    <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.82rem;color:#4CAF7D">✅ You can give notice now — earliest valid departure was ${earliestLabel}, and ${departureLabel} works.</div>
+    <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:1rem;font-family:Georgia,serif;font-size:.8rem;white-space:pre-wrap;line-height:1.6;max-height:400px;overflow-y:auto;margin-bottom:.75rem">${letterText}</div>
+    <button class="btn bp" style="width:100%;justify-content:center" onclick="downloadNoticeLetter()">⬇ Download letter →</button>`;
+  window._noticeLetterText=letterText;
+}
+
+function downloadNoticeLetter(){
+  if(!window._noticeLetterText)return;
+  const blob=new Blob([window._noticeLetterText],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='Notice_to_Leave_RestMalta.txt';a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function loadPaymentsData(){
   // Try by tenant_id (clerk_id) or by email match
   let data=[];
