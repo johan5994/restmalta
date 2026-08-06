@@ -2770,6 +2770,23 @@ async function loadMessages(){
   });
 
   allMsgs=Array.from(convMap.values()).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
+  // Pour les conversations sans annonce (ex: contact direct à une agence),
+  // récupérer le nom de l'interlocuteur pour ne pas juste afficher "Listing"
+  const noListingIds=[...new Set(allMsgs.filter(m=>!m.listing_id&&m._other_id&&m._other_id!=='system').map(m=>m._other_id))];
+  if(noListingIds.length){
+    try{
+      const[{data:agencyProfiles},{data:regularProfiles}]=await Promise.all([
+        sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',noListingIds),
+        sb.from('profiles').select('clerk_id,full_name').in('clerk_id',noListingIds)
+      ]);
+      const nameMap={};
+      (regularProfiles||[]).forEach(p=>{nameMap[p.clerk_id]=p.full_name;});
+      (agencyProfiles||[]).forEach(p=>{nameMap[p.clerk_id]=p.agency_name;}); // agence prioritaire si les deux existent
+      allMsgs=allMsgs.map(m=>(!m.listing_id&&nameMap[m._other_id])?{...m,_other_name:nameMap[m._other_id]}:m);
+    }catch(e){}
+  }
+
   renderMessages();
 }
 
@@ -2779,10 +2796,11 @@ function renderMessages(){
   wrap.innerHTML=allMsgs.map(m=>{
     const otherId=m._other_id||m.sender_id;
     const isUnread=!m.read&&m.receiver_id===U.id;
-    return`<div class="mitem ${isUnread?'unread':''}" onclick="openMsgChat('${m.id}','${(m.listings?.title||'Listing').replace(/'/g,"\\'")}','${m.listing_id||''}','${otherId}')">
-      <div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div>
+    const displayName=m.listings?.title||m._other_name||'Conversation';
+    return`<div class="mitem ${isUnread?'unread':''}" onclick="openMsgChat('${m.id}','${displayName.replace(/'/g,"\\'")}','${m.listing_id||''}','${otherId}')">
+      <div class="mav">${displayName[0].toUpperCase()}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:.83rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.listings?.title||'Listing'}</div>
+        <div style="font-size:.83rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${displayName}</div>
         <div class="mprev" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${m.sender_id===U.id?'You: ':''}${m.content}</div>
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:.3rem">
@@ -2823,9 +2841,13 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
   body.innerHTML='<div style="text-align:center;color:var(--td);font-size:.78rem">Loading...</div>';
 
   // Charger tous les messages pour CETTE annonce avec cette personne
+  // (ou, s'il n'y a pas d'annonce — ex: contact direct à une agence —
+  // tous les messages échangés avec cette personne sans listing_id)
   let data=[];
   try{
-    const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
+    let query=sb.from('messages').select('*').order('created_at',{ascending:true});
+    query=listingId?query.eq('listing_id',listingId):query.is('listing_id',null);
+    const{data:byListing}=await query;
     data=(byListing||[]).filter(m=>m.sender_id===senderId||m.receiver_id===senderId||m.sender_id==='system'||m.sender_id===U.id);
   }catch(e){}
   body.innerHTML='';
@@ -3148,7 +3170,7 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
 async function sendMsg(){
   const input=document.getElementById('msg-input');
   const content=input?.value.trim();
-  if(!content||!activeChatListingId)return;
+  if(!content||!activeChatSenderId)return;
   // Fix problem 1 — optimistic UI: show message immediately
   const body=document.getElementById('msg-chat-body');
   const div=document.createElement('div');
@@ -3159,9 +3181,9 @@ async function sendMsg(){
   input.value='';
 
   // Fix problem 4 — send and show confirmation
-  const tid=activeChatThreadId||makeThreadId(activeChatListingId,U.id,activeChatSenderId||'');
+  const tid=activeChatThreadId||makeThreadId(activeChatListingId||'',U.id,activeChatSenderId||'');
   const{error}=await sb.from('messages').insert({
-    listing_id:activeChatListingId,
+    listing_id:activeChatListingId||null,
     sender_id:U.id,
     receiver_id:activeChatSenderId,
     thread_id:tid,
@@ -3179,7 +3201,7 @@ async function sendModalReply(){
   const reply=document.getElementById('mm-reply')?.value.trim();
   if(!reply)return;
   document.getElementById('mm-reply').value='';
-  await sb.from('messages').insert({listing_id:activeChatListingId,sender_id:U.id,receiver_id:activeChatSenderId,content:reply,read:false});
+  await sb.from('messages').insert({listing_id:activeChatListingId||null,sender_id:U.id,receiver_id:activeChatSenderId,content:reply,read:false});
 }
 
 /* MAINTENANCE */
@@ -3213,20 +3235,26 @@ async function loadMaintenance(){
   const pc={high:'ph',medium:'pm',low:'pl'};
   const sc={open:'to',in_progress:'tip',resolved:'tr'};
   const sl={open:'⚠️ Open',in_progress:'🔧 In progress',resolved:'✅ Resolved'};
+  const pl={high:'🔴 High priority',medium:'🟡 Medium priority',low:'🟢 Low priority'};
   const ico={Plomberie:'🚰',Électricité:'💡',Climatisation:'❄️','Portes/Fenêtres':'🚪',Nuisibles:'🪲',Structure:'🏗️',Serrure:'🔒',Électroménager:'🍳',Internet:'📶'};
   if(!allTickets.length){wrap.innerHTML='<div class="empty"><div class="em">✅</div><p>None ticket de maintenance</p></div>';return;}
-  wrap.innerHTML=allTickets.map(t=>`
+  wrap.innerHTML=allTickets.map(t=>{
+    let photos=[];
+    try{photos=t.photos?JSON.parse(t.photos):[];}catch(e){}
+    return`
     <div class="tcard" style="flex-direction:column;gap:.75rem">
       <div style="display:flex;align-items:center;gap:.75rem">
         <div class="tpri ${pc[t.priority]||'pm'}"></div>
         <div style="font-size:1.4rem">${ico[t.title]||'🔧'}</div>
         <div style="flex:1">
           <div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">${t.title}</div>
+          <div style="font-size:.7rem;font-weight:700;margin-bottom:.25rem">${pl[t.priority]||pl.medium}</div>
           <div style="font-size:.72rem;color:var(--tm);line-height:1.4">${t.description||''}</div>
           <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${t.tenant_id?`👤 ${tenantNames[t.tenant_id]||'Tenant'} · `:'🏠 Reported by you · '}${listingTitles[t.listing_id]||'No property linked'} · ${new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
         </div>
         <span class="tst ${sc[t.status]||'to'}">${sl[t.status]||'Open'}</span>
       </div>
+      ${photos.length?`<div style="display:flex;gap:.5rem;flex-wrap:wrap">${photos.map(url=>`<a href="${url}" target="_blank"><img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--b)"></a>`).join('')}</div>`:''}
       ${t.status==='open'?`
       <div style="background:var(--tdim);border-radius:8px;padding:.75rem;font-size:.8rem">
         <div style="font-weight:700;margin-bottom:.5rem;color:var(--txt)">How would you like to handle this issue?</div>
@@ -3237,7 +3265,8 @@ async function loadMaintenance(){
         </div>
       </div>`:''}
       ${t.status==='in_progress'?`<div style="display:flex;gap:.4rem"><button class="btn bp bsm" onclick="updateTicket('${t.id}','resolved')">✅ Marquer résolu</button><button class="btn bg bsm" onclick="updateTicket('${t.id}','open')">↩ Rouvrir</button></div>`:''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function handleTicket(id, action){
@@ -3704,7 +3733,7 @@ async function loadRentedProperties(){
         <div id="rp-cotenants-${bk.id}"></div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
           ${bk.lease_tenant_embed||bk.lease_landlord_embed?`<a href="${bk.lease_landlord_embed||bk.lease_tenant_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📄 Lease</a>`:''}
-          ${bk.edl_landlord_embed?`<a href="${bk.edl_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📋 EDL ${bk.edl_signed_landlord?'✅':'⏳'}</a>`:''}
+          ${bk.edl_landlord_embed?`<a href="${bk.edl_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📋 EDL ${bk.edl_signed_landlord?'✅':'⏳'}</a>`:bk.edl_completed_at?`<button onclick="retryEdlGeneration('${bk.id}')" class="btn bp bsm">⚠️ Retry EDL signature</button>`:''}
           ${bk.edl_completed_at?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📷 Inventory + photos</button>`:''}
           ${bk.renewal_landlord_embed?`<a href="${bk.renewal_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">🔄 Renewal ${bk.renewal_signed_landlord?'✅':'⏳'}</a>`:bk.lease_end?`<button onclick="openRenewalModal('${bk.id}','landlord')" class="btn bg bsm">🔄 Renew lease</button>`:''}
           <button onclick="openMsgChatById('${bk.tenant_id||''}','${bk.listing_id||''}')" class="btn bg bsm">💬 Message tenant</button>
@@ -4216,8 +4245,8 @@ function renderVisitGroup(g, isPast){
     'agents_applying':{label:'✅ Visit confirmed',cls:'b-sea'},
     'agent_assigned':{label:'✅ Agent assigned',cls:'b-green'},
     'confirmed':{label:'✅ Visit confirmed',cls:'b-green'},
-    'done':{label:'🏁 Visit done',cls:'b-dim'},
-    'completed':{label:'🏁 Visit done',cls:'b-dim'},
+    'done':{label:'⏳ Waiting for tenant\'s choice',cls:'b-gold'},
+    'completed':{label:'⏳ Waiting for tenant\'s choice',cls:'b-gold'},
     'cancelled':{label:'❌ Cancelled',cls:'b-dim'},
     'no_show':{label:'🚫 No-show',cls:'b-dim'},
     'tenant_declined':{label:'👎 Not interested',cls:'b-dim'},
@@ -4742,6 +4771,49 @@ async function submitRenewal(bookingId,initiator){
   }
 }
 
+async function retryEdlGeneration(bookingId){
+  toast('⏳ Retrying EDL signature generation...');
+  try{
+    const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+    if(!bk){toast('❌ Booking not found');return;}
+    const{data:listing}=await sb.from('listings').select('*').eq('id',bk.listing_id).single();
+    const{data:landlordProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.landlord_id).maybeSingle();
+    const{data:tenantProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.tenant_id).maybeSingle();
+
+    let rooms=[];
+    try{rooms=bk.edl_rooms?JSON.parse(bk.edl_rooms):[];}catch(e){}
+
+    const res=await fetch('/.netlify/functions/generate-edl',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||''},
+        tenant:{name:bk.tenant_name||tenantProfile?.full_name||'',email:tenantProfile?.email||bk.tenant_email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||''},
+        listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0},
+        meter_water:bk.meter_water,meter_electricity:bk.meter_electricity,
+        rooms,general_notes:'',phase:'arrival'
+      })
+    });
+    const edlData=await res.json();
+    console.log('[retryEdlGeneration] response:',edlData);
+
+    if(!edlData?.lessor_embed_src||!edlData?.lessee_embed_src){
+      toast('❌ Still failed: '+(edlData?.message||'unknown error — check console'));
+      return;
+    }
+
+    await sb.from('bookings').update({
+      edl_landlord_embed:edlData.lessor_embed_src,
+      edl_tenant_embed:edlData.lessee_embed_src,
+      edl_submission_id:edlData.submission_id?String(edlData.submission_id):null
+    }).eq('id',bookingId);
+
+    toast('✅ EDL signature links generated — refresh to see them!');
+    loadRentedProperties();
+  }catch(e){
+    toast('❌ '+e.message);
+  }
+}
+
 async function viewEdlDossier(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
   const{data:bk}=await sb.from('bookings').select('edl_rooms,edl_photos,meter_water,meter_electricity,edl_completed_at').eq('id',bookingId).single();
@@ -4827,11 +4899,20 @@ async function generateAnnexAndCompleteLL(){
       body:JSON.stringify({landlord,tenant,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
     });
     const edlData=await res.json();
+    console.log('[generate-edl] full response:',edlData);
     edlLandlordEmbed=edlData?.lessor_embed_src||null;
     edlTenantEmbed=edlData?.lessee_embed_src||null;
     edlSubmissionId=edlData?.submission_id||null;
-    if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent for signature!';
-  }catch(e){console.warn('EDL:',e);}
+    if(!edlLandlordEmbed||!edlTenantEmbed){
+      console.error('[generate-edl] No sign links in response — message:',edlData?.message);
+      if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='⚠️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error — check console');}
+    }else{
+      if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent for signature!';
+    }
+  }catch(e){
+    console.error('[generate-edl] request failed:',e.message);
+    if(statusEl){statusEl.style.color='var(--terra)';statusEl.textContent='❌ Could not generate EDL: '+e.message;}
+  }
 
   try{
     await sb.from('bookings').update({
