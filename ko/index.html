@@ -338,8 +338,6 @@ footer ul a:hover{color:var(--terra)}
 
       <div class="hero-stats">
         <div><div class="sn" id="sc">—</div><div class="sl">Active listings</div></div>
-        <div><div class="sn">3×</div><div class="sl">Cheaper than agents</div></div>
-        <div><div class="sn">0€</div><div class="sl">Free for tenants</div></div>
       </div>
     </div>
     <div class="hero-r">
@@ -864,25 +862,6 @@ footer ul a:hover{color:var(--terra)}
             <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
           </div>
 
-          <!-- Visit request — agent only -->
-          <div id="visit-action-wrap" style="margin-top:.75rem;padding:.85rem;background:rgba(46,107,138,.06);border:1px solid rgba(46,107,138,.2);border-radius:10px">
-            <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.4rem" id="visit-action-title">📅 Book a guided visit</div>
-            <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem" id="visit-action-sub">A RestMalta agent will show you the property.</div>
-            <div class="frow" style="margin-bottom:.5rem;gap:.5rem">
-              <div class="fg2"><label style="font-size:.72rem">Preferred date *</label><input class="fi" type="date" id="visit-date" style="font-size:.82rem"></div>
-              <div class="fg2"><label style="font-size:.72rem">Preferred time *</label>
-                <select class="fi" id="visit-time" style="font-size:.82rem">
-                  <option value="09:00">9:00 AM</option><option value="10:00">10:00 AM</option>
-                  <option value="11:00">11:00 AM</option><option value="12:00">12:00 PM</option>
-                  <option value="14:00" selected>2:00 PM</option><option value="15:00">3:00 PM</option>
-                  <option value="16:00">4:00 PM</option><option value="17:00">5:00 PM</option>
-                  <option value="18:00">6:00 PM</option>
-                </select>
-              </div>
-            </div>
-            <button class="btn" id="visit-action-btn" style="width:100%;justify-content:center;background:var(--sea);color:white;font-size:.8rem" onclick="requestVisit()">📅 Request a visit →</button>
-          </div>
-
           <p style="margin-top:.6rem;font-size:.68rem;color:var(--stone-l);text-align:center">🔒 Your contact details are never shared directly</p>
         </div>
       </div>
@@ -1083,7 +1062,7 @@ async function searchAgencies(){
           <div style="font-size:.78rem;color:var(--stone-l);margin-bottom:.5rem">${a.bio||''}</div>
           ${a.current_offer?`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .7rem;font-size:.78rem;color:#2d7a56;font-weight:600;margin-bottom:.5rem;display:inline-block">🎁 ${a.current_offer}</div>`:''}
           <div style="font-size:.7rem;color:var(--stone-l);margin-bottom:.6rem">📍 ${(a.zones||'').split(',').filter(Boolean).length} zones covered, including ${nearestZone}</div>
-          <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem">📐 Property estimation: ${a.estimation_tariff?`€${a.estimation_tariff}`:'<strong style="color:#2d7a56">Free</strong>'}</div>
+          <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem">📐 They'll get back to you with a quote or a call</div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
             <button class="btn btn-p bsm" onclick="contactAgency('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">💬 Contact this agency →</button>
             <button class="btn btn-s bsm" onclick="requestEstimation('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">📐 Request an estimation</button>
@@ -1592,22 +1571,10 @@ async function openDet(id){
 
   go('det');
 
-  const vdInput=document.getElementById('visit-date');
-  if(vdInput)vdInput.min=new Date().toISOString().split('T')[0];
-
   const agentNotice=document.getElementById('contact-agent-notice');
   const directWrap=document.getElementById('contact-direct-wrap');
   if(agentNotice)agentNotice.style.display=hasAgent?'block':'none';
   if(directWrap)directWrap.style.display=hasAgent?'none':'block';
-
-  const visitWrap=document.getElementById('visit-action-wrap');
-  const visitBtn=document.getElementById('visit-action-btn');
-  if(hasAgent){
-    if(visitWrap)visitWrap.style.display='block';
-    if(visitBtn){visitBtn.textContent='Book visit with agent →';visitBtn.onclick=requestAgentVisit;}
-  } else {
-    if(visitWrap)visitWrap.style.display='none';
-  }
 }
 
 function openFullscreen(src){
@@ -1777,101 +1744,6 @@ function filterContactData(text){
   // WhatsApp / Telegram
   text=text.replace(/whatsapp|telegram|signal|viber/gi,'[RestMalta chat only]');
   return text;
-}
-
-async function requestVisit(){
-  if(!U){toast('Please sign in first');go('auth');return;}
-  if(!AL)return;
-
-  const missing=[];
-  if(!P?.full_name)missing.push('Full name');
-  if(!P?.passport_number)missing.push('Passport/ID');
-  if(!P?.nationality)missing.push('Nationality');
-  if(!P?.date_of_birth)missing.push('Date of birth');
-  if(!P?.home_address)missing.push('Home address');
-  if(missing.length>0){
-    toast('❌ Complete your profile before requesting a visit');
-    alert(`Please complete your profile first.\n\nMissing: ${missing.join(', ')}`);
-    return;
-  }
-
-  const visitDate=document.getElementById('visit-date')?.value;
-  const visitTime=document.getElementById('visit-time')?.value||'14:00';
-  if(!visitDate){toast('⚠️ Please select a preferred visit date');return;}
-
-  const today=new Date();today.setHours(0,0,0,0);
-  if(new Date(visitDate)<today){toast('⚠️ Please select a future date');return;}
-
-  toast('📅 Sending visit request...');
-
-  try{
-    // 1 — Save visit with status 'awaiting_landlord'
-    let visit=null;
-    try{
-      const{data:visitData,error:visitErr}=await sb.from('visits').insert({
-        listing_id:AL.id,
-        tenant_id:U.id,
-        landlord_id:AL.landlord_id,
-        tenant_name:P.full_name||'',
-        tenant_email:P.email||U.email||'',
-        visit_date:visitDate,
-        visit_time:visitTime,
-        zone:AL.zone||'',
-        status:'awaiting_landlord'
-      }).select().maybeSingle();
-      if(visitErr)console.warn('Visit insert:',visitErr.message);
-      visit=visitData;
-    }catch(e){console.warn('Visit insert:',e.message);}
-
-    const visitId=visit?.id||null;
-    const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-
-    // 2 — Notifier l'agent déjà assigné à ce bien (plus de diffusion à tous
-    // les agents / candidature par visite — l'agent gère le bien en entier
-    // depuis qu'il l'a accepté, donc c'est directement à lui que revient
-    // cette nouvelle demande de visite).
-    const keyTypeLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
-    const keyInfo=keyTypeLabels[AL.key_type]||'Contact landlord';
-    const keyDetail=AL.key_location?`\nKey details: ${AL.key_location}`:'';
-
-    if(AL.agent_id){
-      try{
-        const{error}=await sb.from('messages').insert({
-          listing_id:AL.id,
-          sender_id:'system',
-          receiver_id:AL.agent_id,
-          content:`🏠 NEW VISIT REQUEST — ⏳ Awaiting landlord confirmation\n\nProperty: ${AL.title||'Listing'}\nAddress: ${AL.full_address||AL.zone||'Malta'}\nDate: ${visitDateStr} at ${visitTime}\nTenant: ${P.full_name||'Tenant'}\n\n🔑 Key access: ${keyInfo}${keyDetail}\n\nThe landlord must confirm availability first — you'll be able to proceed once they do.`,
-          visit_id:visitId,
-          type:'visit_request'
-        });
-        if(error)console.error('[visit_request] failed to notify assigned agent',error.message);
-      }catch(e){console.error('[visit_request] exception notifying assigned agent',e.message);}
-    }
-
-    // 3 — Notify landlord with 3 action buttons (handled in landlord dashboard)
-    try{
-      await sb.from('messages').insert({
-        listing_id:AL.id,
-        sender_id:'system',
-        receiver_id:AL.landlord_id,
-        content:`📅 New visit request!\n\nTenant: ${P.full_name||'—'}\nDate: ${visitDateStr} at ${visitTime}\n\nPlease confirm if your property is available on this date.\n\nGo to your dashboard → Visits to respond.`,
-        visit_id:visitId,
-        type:'visit_availability_check'
-      });
-    }catch(e){}
-
-    if(document.getElementById('visit-date'))document.getElementById('visit-date').value='';
-    toast(`✅ Visit requested for ${visitDateStr} at ${visitTime}! Waiting for landlord confirmation.`);
-
-  }catch(e){
-    console.error('Visit error:',e);
-    toast('✅ Visit request sent!');
-  }
-}
-
-async function requestAgentVisit(){
-  // Legacy — redirect to new requestVisit
-  requestVisit();
 }
 
 async function requestLease(){
