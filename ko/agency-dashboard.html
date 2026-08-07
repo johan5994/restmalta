@@ -329,6 +329,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div style="font-size:.78rem;color:var(--td)">Import your existing listings in seconds — no retyping needed.</div>
       </div>
 
+      <div class="card" style="margin-bottom:1rem">
+        <div class="cb">
+          <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">What are you importing?</div>
+          <div style="display:flex;gap:.5rem">
+            <label style="flex:1;display:flex;align-items:center;gap:.5rem;background:var(--s2);border:2px solid var(--agencybright);border-radius:10px;padding:.6rem .8rem;cursor:pointer" id="import-mode-rental-label">
+              <input type="radio" name="import-mode" value="long" checked onchange="setImportMode('long')"> 🏛️ Rental
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:.5rem;background:var(--s2);border:2px solid var(--b2);border-radius:10px;padding:.6rem .8rem;cursor:pointer" id="import-mode-sale-label">
+              <input type="radio" name="import-mode" value="for_sale" onchange="setImportMode('for_sale')"> 🏷️ For sale
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="tabs">
         <button class="tab act" onclick="setImportTab('url',this)">🔗 From URL</button>
         <button class="tab" onclick="setImportTab('pdf',this)">📄 From PDF</button>
@@ -1278,26 +1292,50 @@ async function importFromURL(){
   }
 }
 
+let importMode='long';
+function setImportMode(mode){
+  importMode=mode;
+  const rentalLabel=document.getElementById('import-mode-rental-label');
+  const saleLabel=document.getElementById('import-mode-sale-label');
+  if(rentalLabel)rentalLabel.style.borderColor=mode==='long'?'var(--agencybright)':'var(--b2)';
+  if(saleLabel)saleLabel.style.borderColor=mode==='for_sale'?'var(--agencybright)':'var(--b2)';
+}
+
 function showImportPreview(data){
   document.getElementById('import-preview').style.display='block';
+  const isSale=importMode==='for_sale';
   const photos=Array.isArray(data.photos)?data.photos:[];
   const detectedFeatures=Array.isArray(data.features)?data.features:[];
   document.getElementById('import-preview-content').innerHTML=`
     <div class="fgrid2" style="gap:.5rem">
       <div class="fg"><label class="fl">Title</label><input class="fi" id="prev-title" value="${data.title||''}"></div>
       <div class="fg"><label class="fl">Zone</label><input class="fi" id="prev-zone" value="${data.zone||''}"></div>
-      <div class="fg"><label class="fl">Monthly Rent (€)</label><input class="fi" type="number" id="prev-price" value="${data.price||''}"></div>
+      <div class="fg"><label class="fl">${isSale?'Sale Price (€)':'Monthly Rent (€)'}</label><input class="fi" type="number" id="prev-price" value="${data.price||''}"></div>
       <div class="fg"><label class="fl">Bedrooms</label><input class="fi" type="number" id="prev-beds" value="${data.bedrooms||''}"></div>
       <div class="fg"><label class="fl">Size (m²)</label><input class="fi" type="number" id="prev-sqm" value="${data.sqm||''}"></div>
-      <div class="fg"><label class="fl">Deposit (€)</label><input class="fi" type="number" id="prev-deposit" placeholder="Same as rent if left empty"></div>
-      <div class="fg"><label class="fl">Available From</label><input class="fi" type="date" id="prev-available"></div>
+      <div class="fg" id="prev-deposit-wrap" style="${isSale?'display:none':''}"><label class="fl">Deposit (€)</label><input class="fi" type="number" id="prev-deposit" placeholder="Same as rent if left empty"></div>
+      <div class="fg" id="prev-available-wrap" style="${isSale?'display:none':''}"><label class="fl">Available From</label><input class="fi" type="date" id="prev-available"></div>
       <div class="fg"><label class="fl">Property Type</label><select class="fsel" id="prev-ptype"><option value="apartment">Apartment</option><option value="house">House / Terraced House</option><option value="penthouse">Penthouse</option><option value="maisonette">Maisonette</option><option value="townhouse">Townhouse</option><option value="studio">Studio</option><option value="villa">Villa</option></select></div>
       <div class="fg"><label class="fl">Bathrooms</label><select class="fsel" id="prev-baths"><option value="1" ${(!data.bathrooms||data.bathrooms==1)?'selected':''}>1 Bathroom</option><option value="2" ${data.bathrooms==2?'selected':''}>2 Bathrooms</option><option value="3" ${data.bathrooms>=3?'selected':''}>3+ Bathrooms</option></select></div>
-      <div class="fg"><label class="fl">Lease Type</label><div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.65rem;font-size:.85rem;color:var(--tm)">🏛️ Long-let (1 year+) <span style="font-size:.7rem;color:var(--td)">— agences RestMalta, long-let uniquement</span></div></div>
-      <div class="fg"><label class="fl">Bills</label><select class="fsel" id="prev-bills"><option value="included" ${data.bills==='included'?'selected':''}>All bills included</option><option value="excluded" ${(!data.bills||data.bills==='excluded')?'selected':''}>Bills not included</option></select></div>
+      <div class="fg"><label class="fl">${isSale?'Listing type':'Lease Type'}</label><div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.65rem;font-size:.85rem;color:var(--tm)">${isSale?'🏷️ For sale':'🏛️ Long-let (1 year+)'} <span style="font-size:.7rem;color:var(--td)">— set on the Import mode toggle above</span></div></div>
+      <div class="fg" id="prev-bills-wrap" style="${isSale?'display:none':''}"><label class="fl">Bills</label><select class="fsel" id="prev-bills"><option value="included" ${data.bills==='included'?'selected':''}>All bills included</option><option value="excluded" ${(!data.bills||data.bills==='excluded')?'selected':''}>Bills not included</option></select></div>
       <div class="fg"><label class="fl">Floor</label><select class="fsel" id="prev-floor"><option value="">—</option><option value="Ground floor">Ground floor</option><option value="1st floor">1st floor</option><option value="2nd floor">2nd floor</option><option value="3rd floor">3rd floor</option><option value="4th floor">4th floor</option><option value="5th floor+">5th floor+</option><option value="Penthouse level">Penthouse level</option></select></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Description</label><textarea class="fi" id="prev-desc" rows="3">${data.description||''}</textarea></div>
       <div class="fg" style="grid-column:1/-1"><label class="fl">Full Address</label><input class="fi" id="prev-address" value="${data.full_address||''}"></div>
+
+      ${isSale?`
+      <div class="fg" style="grid-column:1/-1;background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:.75rem 1rem;margin-top:.3rem">
+        <div style="font-size:.78rem;font-weight:700;color:#6366F1;margin-bottom:.6rem">🏷️ Sale details</div>
+        <div class="fgrid2">
+          <div class="fg"><label class="fl">Tenure *</label><select class="fsel" id="prev-tenure"><option value="freehold">Freehold</option><option value="leasehold">Leasehold</option><option value="perpetual_ground_rent">Perpetual ground rent</option></select></div>
+          <div class="fg"><label class="fl">Finish status *</label><select class="fsel" id="prev-finish"><option value="finished">Fully finished</option><option value="furnished">Finished & furnished</option><option value="semi_finished">Semi-finished</option><option value="shell">Shell form (bare)</option></select></div>
+          <div class="fg"><label class="fl">EPC rating <span style="font-size:.65rem;color:var(--td)">(legally required to sell)</span></label><select class="fsel" id="prev-epc"><option value="">Not available yet</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
+          <div class="fg"><label class="fl">Annual service charge (€) <span style="font-size:.65rem;color:var(--td)">(if applicable)</span></label><input class="fi" type="number" id="prev-service-charge" placeholder="0"></div>
+          <div class="fg"><label class="fl">Planning permit no. <span style="font-size:.65rem;color:var(--td)">(optional)</span></label><input class="fi" id="prev-permit" placeholder="e.g. PA 1234/23"></div>
+          <div class="fg" style="display:flex;align-items:center;padding-top:1.3rem"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.82rem"><input type="checkbox" id="prev-sda"> Special Designated Area (SDA)</label></div>
+        </div>
+      </div>`:''}
+
       <div class="fg" style="grid-column:1/-1">
         <label class="fl">Features & Amenities${detectedFeatures.length?' ('+detectedFeatures.length+' found on source page)':''}</label>
         <div id="prev-features-tags" style="display:flex;flex-wrap:wrap;gap:.4rem;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.65rem;min-height:20px"></div>
@@ -1341,8 +1379,14 @@ async function publishImportedListing(){
     property_type:document.getElementById('prev-ptype')?.value,
     floor:document.getElementById('prev-floor')?.value,
     baths:parseInt(document.getElementById('prev-baths')?.value)||1,
-    lease_type:'long', // agences RestMalta = long-let uniquement
+    lease_type:importMode,
     bills:document.getElementById('prev-bills')?.value,
+    tenure:document.getElementById('prev-tenure')?.value||null,
+    finish_status:document.getElementById('prev-finish')?.value||null,
+    epc_rating:document.getElementById('prev-epc')?.value||null,
+    service_charge:parseFloat(document.getElementById('prev-service-charge')?.value)||null,
+    permit_number:document.getElementById('prev-permit')?.value.trim()||null,
+    sda:document.getElementById('prev-sda')?.checked||false,
   };
   if(!data.title||!data.zone){toast('Title and zone are required');return;}
   await createListing(data);
