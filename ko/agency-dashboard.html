@@ -1251,6 +1251,12 @@ async function loadListingVisitCount(listingId){
 }
 
 async function deleteListing(id, title, btn){
+  // Empêcher de supprimer une annonce qui a un locataire actif
+  const{data:activeBooking}=await sb.from('bookings').select('id,tenant_name').eq('listing_id',id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1).maybeSingle();
+  if(activeBooking){
+    toast(`❌ Can't delete — ${activeBooking.tenant_name||'a tenant'} has an active tenancy on this property.`);
+    return;
+  }
   if(!confirm(`Delete listing "${title}"? This cannot be undone.`)) return;
   btn.textContent='⏳';
   const{error}=await sb.from('listings').delete().eq('id',id);
@@ -1389,6 +1395,7 @@ async function publishImportedListing(){
     sda:document.getElementById('prev-sda')?.checked||false,
   };
   if(!data.title||!data.zone){toast('Title and zone are required');return;}
+  if(!data.price||data.price<=0){toast('Please enter a valid price greater than €0');return;}
   await createListing(data);
 }
 
@@ -1562,7 +1569,9 @@ function toggleListingMode(prefix){
 async function publishNewListing(){
   const title=document.getElementById('nl-title').value.trim();
   const zone=document.getElementById('nl-zone').value;
+  const price=document.getElementById('nl-price').value;
   if(!title||!zone){toast('Title and zone required');return;}
+  if(!price||parseFloat(price)<=0){toast('Please enter a valid price greater than €0');return;}
   const mode=document.getElementById('nl-mode').value; // 'long' ou 'for_sale'
   const features=getFeatureTags('nl-features-tags');
   await createListing({
@@ -1826,6 +1835,8 @@ async function sendAgencyMsg(){
 }
 
 async function startBoostPaymentAgency(listingId,listingTitle,listingType){
+  const btn=event?.target;
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳';}
   toast('💳 Redirecting to payment...');
   try{
     const res=await fetch('/.netlify/functions/create-boost-payment',{
@@ -1835,7 +1846,10 @@ async function startBoostPaymentAgency(listingId,listingTitle,listingType){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Could not start payment');
     window.location.href=data.checkout_url;
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'🚀';}
+  }
 }
 
 async function loadEstimations(){
