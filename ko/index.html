@@ -2084,7 +2084,7 @@ async function openSaleActivation(listingId){
       </div>
       <div style="font-size:.82rem;color:var(--stone);margin-bottom:1rem;line-height:1.6">Your listing stays online for <strong>€2/week</strong>, billed automatically. Cancel anytime — the listing goes offline the moment you do.</div>
       <div class="fg2"><label>Your email *</label><input class="fi" id="sale-act-email" type="email" value="${l.landlord_email||''}" placeholder="you@email.com"></div>
-      <button id="sale-act-btn" class="btn btn-p" style="width:100%;justify-content:center;margin-top:.5rem" onclick="confirmSaleActivation('${listingId}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate for €2/week →</button>
+      <button id="sale-act-btn" class="btn btn-p" style="width:100%;justify-content:center;margin-top:.5rem" onclick="this.disabled=true;confirmSaleActivation('${listingId}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate for €2/week →</button>
       <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById('sale-activation-modal').remove()">Not now</button>
     </div>`;
   document.body.appendChild(modal);
@@ -2221,7 +2221,8 @@ async function findAgentsCoveringZone(zone){
 async function doPost(){
   const err=document.getElementById('poer'),ok=document.getElementById('pook');err.style.display='none';ok.style.display='none';
   const ti=document.getElementById('pti').value.trim(),pr=document.getElementById('ppr').value;
-  if(!ti||!pr){sA(err,'Title and price are required');return;}
+  if(!ti){sA(err,'Title is required');return;}
+  if(!pr||parseFloat(pr)<=0){sA(err,'Please enter a valid price greater than €0');return;}
 
   // Photo required check
   if(uploadedPhotos.length===0){
@@ -2402,7 +2403,7 @@ async function loadML(){
     const priceLabel=isSale?`€${l.sale_price||l.price}`:`€${l.price}/mo`;
     const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
     const boostLabel=isBoosted?`🔥 Boosted until ${new Date(l.boosted_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:'';
-    const boostBtn=(!pendingAgent&&!pendingSale)?`<button class="btn btn-s btn-sm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPayment('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend boost':'🚀 Boost'}</button>`:'';
+    const boostBtn=(!pendingAgent&&!pendingSale)?(l.active?`<button class="btn btn-s btn-sm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPayment('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend boost':'🚀 Boost'}</button>`:`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Activate the listing first — a paused listing doesn't show in search, so boosting it does nothing">🚀 Boost</button>`):'';
     const actionBtn=pendingAgent
       ?`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="An agent needs to accept this property first">⏳ Pending</button>`
       :isSale
@@ -2415,6 +2416,8 @@ async function loadML(){
 }
 
 async function startBoostPayment(listingId,listingTitle,listingType){
+  const btn=event?.target;
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳ Redirecting...';}
   toast('💳 Redirecting to payment...');
   try{
     const res=await fetch('/.netlify/functions/create-boost-payment',{
@@ -2424,10 +2427,15 @@ async function startBoostPayment(listingId,listingTitle,listingType){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Could not start payment');
     window.location.href=data.checkout_url;
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'🚀 Boost';}
+  }
 }
 
 async function retrySaleActivation(listingId,listingTitle){
+  const btn=event?.target;
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳ Redirecting...';}
   try{
     const res=await fetch('/.netlify/functions/create-sale-subscription',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -2436,7 +2444,10 @@ async function retrySaleActivation(listingId,listingTitle){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Could not start subscription');
     window.location.href=data.checkout_url;
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'💳 Activate';}
+  }
 }
 
 async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'✅ Listing activated');loadML();updC();}
