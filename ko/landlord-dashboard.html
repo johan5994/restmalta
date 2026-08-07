@@ -1058,7 +1058,7 @@ async function loadListings(){
         ?`<button class="btn bg bsm" onclick="toggleListing('${l.id}',true)">Pause</button>`
         :`<button class="btn bp bsm" onclick="retrySaleActivationLL('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`)
       :`<button class="btn bg bsm" onclick="toggleListing('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>`;
-    const boostBtn=!pendingSale?`<button class="btn bg bsm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPaymentLL('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend':'🚀 Boost'}</button>`:'';
+    const boostBtn=!pendingSale?(l.active?`<button class="btn bg bsm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPaymentLL('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend':'🚀 Boost'}</button>`:`<button class="btn bg bsm" disabled style="opacity:.5;cursor:not-allowed" title="Activate the listing first — paused listings don't show in search">🚀 Boost</button>`):'';
     return`<tr>
     <td style="color:var(--txt);font-weight:500">${l.title}
       <div style="font-size:.7rem;color:var(--td)">📍 ${l.zone}${isBoosted?` · 🔥 Boosted until ${new Date(l.boosted_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:''}</div></td>
@@ -1077,6 +1077,8 @@ async function loadListings(){
 }
 
 async function retrySaleActivationLL(listingId,listingTitle){
+  const btn=event?.target;
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳ Redirecting...';}
   toast('💳 Redirecting to payment...');
   try{
     const res=await fetch('/.netlify/functions/create-sale-subscription',{
@@ -1086,10 +1088,15 @@ async function retrySaleActivationLL(listingId,listingTitle){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Could not start subscription');
     window.location.href=data.checkout_url;
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'💳 Activate';}
+  }
 }
 
 async function startBoostPaymentLL(listingId,listingTitle,listingType){
+  const btn=event?.target;
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳ Redirecting...';}
   toast('💳 Redirecting to payment...');
   try{
     const res=await fetch('/.netlify/functions/create-boost-payment',{
@@ -1099,7 +1106,10 @@ async function startBoostPaymentLL(listingId,listingTitle,listingType){
     const data=await res.json();
     if(!data.success)throw new Error(data.error||'Could not start payment');
     window.location.href=data.checkout_url;
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'🚀 Boost';}
+  }
 }
 
 async function toggleListing(id,active){
@@ -1109,6 +1119,13 @@ async function toggleListing(id,active){
 }
 
 async function deleteListing(id){
+  // Empêcher de supprimer une annonce qui a un locataire actif — ça
+  // casserait Rented Properties et laisserait le locataire dans le vide
+  const{data:activeBooking}=await sb.from('bookings').select('id,tenant_name').eq('listing_id',id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1).maybeSingle();
+  if(activeBooking){
+    toast(`❌ Can't delete — ${activeBooking.tenant_name||'a tenant'} has an active tenancy on this property. Pause it instead if you want to hide it.`);
+    return;
+  }
   if(!confirm('Delete this listing? This cannot be undone.'))return;
   await sb.from('listings').delete().eq('id',id);
   toast('🗑️ Listing deleted');loadListings();loadDash();
@@ -2742,11 +2759,14 @@ function makeThreadId(listingId, id1, id2){
 }
 
 async function loadMessages(){
-  // Get all messages involving this landlord
+  // Get all messages involving this landlord — jamais les DM du canal
+  // "Find a roommate" (locataire à locataire, n'ont rien à faire ici).
+  // Filtré côté JS plutôt qu'avec .neq() en base : .neq() exclurait aussi
+  // par erreur les messages sans type du tout (assez courants ici).
   const{data:received}=await sb.from('messages').select('*, listings(title,zone,id)').eq('receiver_id',U.id).order('created_at',{ascending:false});
   const{data:sent}=await sb.from('messages').select('*, listings(title,zone,id)').eq('sender_id',U.id).order('created_at',{ascending:false});
 
-  const all=[...(received||[]),...(sent||[])];
+  const all=[...(received||[]),...(sent||[])].filter(m=>m.type!=='roommate_dm');
 
   // Trouver le vrai interlocuteur (non-system) pour chaque annonce, pour
   // pouvoir y rattacher les messages système auto-envoyés (sender='system',
@@ -3015,6 +3035,17 @@ async function declineTenantFromVisits(visitId, listingId, tenantId){
 
 async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, endDate){
   toast('⏳ Generating lease and sending for signature...');
+
+  // Empêcher d'accepter deux locataires pour le même bien — vérifier
+  // qu'aucune autre réservation n'est déjà en cours pour cette annonce
+  try{
+    const{data:existingActive}=await sb.from('bookings').select('id').eq('listing_id',listingId).neq('tenant_id',tenantId).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1);
+    if(existingActive&&existingActive.length){
+      toast('❌ This property already has another accepted tenant.');
+      return;
+    }
+  }catch(e){}
+
   try{await sb.from('visits').update({status:'lease_pending'}).eq('id',visitId);}catch(e){}
 
   let listing=null,tenantProfile=null,landlordProfile=null,visit=null;
@@ -3105,6 +3136,15 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
     const startDate=document.getElementById(`lease-start-${msgId}`)?.value;
     const endDate=document.getElementById(`lease-end-${msgId}`)?.value;
     if(!startDate||!endDate){toast('⚠️ Please set lease start and end dates first.');return;}
+
+    // Empêcher d'accepter deux locataires pour le même bien
+    try{
+      const{data:existingActive}=await sb.from('bookings').select('id').eq('listing_id',listingId).neq('tenant_id',visit?.tenant_id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1);
+      if(existingActive&&existingActive.length){
+        toast('❌ This property already has another accepted tenant.');
+        return;
+      }
+    }catch(e){}
 
     try{await sb.from('visits').update({status:'lease_pending'}).eq('id',visitId);}catch(e){}
 
@@ -4677,7 +4717,7 @@ async function openRenewalModal(bookingId,initiator){
         </select>
         <div style="font-size:.7rem;color:var(--td);margin-top:.3rem" id="renewal-end-preview"></div>
       </div>
-      <div class="fg" id="renewal-custom-date-wrap" style="display:none;margin-bottom:.75rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="renewal-new-end"></div>
+      <div class="fg" id="renewal-custom-date-wrap" style="display:none;margin-bottom:.75rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="renewal-new-end" min="${currentEnd.toISOString().split('T')[0]}"></div>
       <div class="fg" style="margin-bottom:1rem"><label class="fl">New monthly rent (€) <span style="font-size:.65rem;color:var(--td)">(leave as-is if unchanged — max +5%/year by law)</span></label><input class="fi" type="number" id="renewal-new-rent" value="${bk.monthly_rent||listing?.price||''}"></div>
       <button id="renewal-submit-btn" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="submitRenewal('${bookingId}','${initiator||'landlord'}')">📎 Generate & send for signature →</button>
       <button class="btn bg" style="width:100%;justify-content:center" onclick="document.getElementById('renewal-modal').remove()">Cancel</button>
@@ -4708,6 +4748,15 @@ async function submitRenewal(bookingId,initiator){
   const newEnd=duration==='custom'?document.getElementById('renewal-new-end')?.value:window._renewalComputedEnd;
   const newRent=document.getElementById('renewal-new-rent')?.value;
   if(!newEnd){toast('⚠️ Pick a new end date');return;}
+
+  // Vraie vérification JS — l'attribut min="" en HTML se contourne facilement
+  const{data:bkCheck}=await sb.from('bookings').select('lease_end').eq('id',bookingId).maybeSingle();
+  const currentEndCheck=bkCheck?.lease_end?new Date(bkCheck.lease_end):new Date();
+  if(new Date(newEnd)<=currentEndCheck){
+    toast('⚠️ The new end date must be after the current lease end date ('+currentEndCheck.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+')');
+    return;
+  }
+
   const btn=document.getElementById('renewal-submit-btn');
   if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
 
@@ -5062,6 +5111,14 @@ Generated automatically by RestMalta — restmalta.com`;
 async function acceptDirectBooking(listingId, tenantId){
   toast('⏳ Accepting...');
   try{
+    // Empêcher d'accepter deux locataires pour le même bien — vérifier
+    // qu'aucune autre réservation n'est déjà en cours pour cette annonce
+    const{data:existingActive}=await sb.from('bookings').select('id,tenant_id').eq('listing_id',listingId).neq('tenant_id',tenantId).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1);
+    if(existingActive&&existingActive.length){
+      toast('❌ This property already has another accepted tenant — decline this application first if that\'s a mistake, or check My Listings.');
+      return;
+    }
+
     // Trouver le booking avec co-tenants
     const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).in('status',['pending','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(!booking){toast('❌ Booking not found');return;}
