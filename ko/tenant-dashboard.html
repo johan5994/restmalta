@@ -344,6 +344,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <button class="btn bp" style="width:100%;justify-content:center" onclick="saveRoommateProfile()">Save profile →</button>
           </div>
         </div>
+
+        <div class="card" style="margin-top:1rem">
+          <div class="ch"><div class="ct">🚫 Blocked users</div></div>
+          <div class="cb" id="rm-blocked-list"><div style="font-size:.78rem;color:var(--td)">Loading...</div></div>
+        </div>
       </div>
 
       <!-- Sub-tab: My Groups -->
@@ -393,7 +398,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div style="font-weight:700;font-size:.95rem" id="rm-groupchat-title">—</div>
               <div style="font-size:.68rem;color:var(--td)" id="rm-groupchat-members">—</div>
             </div>
-            <button onclick="closeRmGroupChat()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <button onclick="leaveRoommateGroup()" title="Leave group" style="background:none;border:none;font-size:.85rem;cursor:pointer;color:var(--td)">🚪 Leave</button>
+              <button onclick="closeRmGroupChat()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+            </div>
           </div>
           <div id="rm-groupchat-thread" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
           <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
@@ -966,6 +974,7 @@ function showRmTab(tab){
 }
 
 async function loadRoommateProfile(){
+  loadBlockedUsersList();
   try{
     const{data:p}=await sb.from('roommate_profiles').select('*').eq('tenant_id',U.id).maybeSingle();
     if(!p)return;
@@ -986,6 +995,35 @@ async function loadRoommateProfile(){
     const badge=document.getElementById('rm-profile-badge');
     if(badge){badge.style.display='inline';badge.className='badge '+(p.active!==false?'b-green':'b-dim');badge.textContent=p.active!==false?'Visible in channel':'Hidden';}
   }catch(e){}
+}
+
+async function loadBlockedUsersList(){
+  const wrap=document.getElementById('rm-blocked-list');
+  if(!wrap)return;
+  try{
+    const{data:blocks}=await sb.from('roommate_blocks').select('id,blocked_id').eq('blocker_id',U.id);
+    if(!blocks?.length){
+      wrap.innerHTML='<div style="font-size:.78rem;color:var(--td)">You haven\'t blocked anyone.</div>';
+      return;
+    }
+    const ids=blocks.map(b=>b.blocked_id);
+    const{data:profiles}=await sb.from('roommate_profiles').select('tenant_id,full_name').in('tenant_id',ids);
+    const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.tenant_id]=p.full_name;});
+    wrap.innerHTML=blocks.map(b=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--b);font-size:.82rem">
+        <span>${nameMap[b.blocked_id]||'Former roommate profile'}</span>
+        <button onclick="unblockRoommateUser('${b.id}')" class="btn bg bsm">Unblock</button>
+      </div>`).join('');
+  }catch(e){wrap.innerHTML='<div style="font-size:.78rem;color:var(--red)">Could not load</div>';}
+}
+
+async function unblockRoommateUser(blockId){
+  try{
+    const{error}=await sb.from('roommate_blocks').delete().eq('id',blockId);
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Unblocked');
+    loadBlockedUsersList();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function saveRoommateProfile(){
@@ -1253,6 +1291,18 @@ async function loadRmGroupMessages(){
   }catch(e){}
 }
 
+async function leaveRoommateGroup(){
+  if(!rmActiveGroupId)return;
+  if(!confirm('Leave this group? You\'ll need to be re-added to come back.'))return;
+  try{
+    const{error}=await sb.from('roommate_group_members').delete().eq('group_id',rmActiveGroupId).eq('tenant_id',U.id);
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ You left the group');
+    closeRmGroupChat();
+    loadRmGroups();
+  }catch(e){toast('❌ '+e.message);}
+}
+
 function closeRmGroupChat(){
   document.getElementById('rm-groupchat-modal').style.display='none';
   rmActiveGroupId=null;
@@ -1393,10 +1443,13 @@ async function loadMessages(){
   const wrap=document.getElementById('messages-list');
   try{
     const[{data:sent},{data:received}]=await Promise.all([
-      sb.from('messages').select('*,listings(title,zone,price)').eq('sender_id',U.id).neq('type','visit_request').order('created_at',{ascending:false}),
-      sb.from('messages').select('*,listings(title,zone,price)').eq('receiver_id',U.id).neq('type','visit_request').order('created_at',{ascending:false})
+      sb.from('messages').select('*,listings(title,zone,price)').eq('sender_id',U.id).order('created_at',{ascending:false}),
+      sb.from('messages').select('*,listings(title,zone,price)').eq('receiver_id',U.id).order('created_at',{ascending:false})
     ]);
-    const all=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    // Filtré côté JS (pas .neq() en base) : ça exclurait aussi par erreur les
+    // messages sans type du tout. Exclut les demandes de visite (gérées
+    // ailleurs) et les DM du canal "Find a roommate" (page séparée).
+    const all=[...(sent||[]),...(received||[])].filter(m=>m.type!=='visit_request'&&m.type!=='roommate_dm').sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
     // Trouver le vrai interlocuteur (non-system) pour chaque annonce, pour
     // rattacher les messages système (sender='system') au bon thread au lieu
@@ -2535,7 +2588,7 @@ async function openTenantRenewalModal(bookingId){
         </select>
         <div style="font-size:.7rem;color:var(--td);margin-top:.3rem" id="t-renewal-end-preview"></div>
       </div>
-      <div class="fg" id="t-renewal-custom-date-wrap" style="display:none;margin-bottom:1rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="t-renewal-new-end"></div>
+      <div class="fg" id="t-renewal-custom-date-wrap" style="display:none;margin-bottom:1rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="t-renewal-new-end" min="${currentEnd.toISOString().split('T')[0]}"></div>
       <button id="t-renewal-submit-btn" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="submitTenantRenewal('${bookingId}')">📎 Request renewal →</button>
       <button class="btn bg" style="width:100%;justify-content:center" onclick="document.getElementById('tenant-renewal-modal').remove()">Cancel</button>
     </div>`;
@@ -2563,6 +2616,14 @@ async function submitTenantRenewal(bookingId){
   const duration=document.getElementById('t-renewal-duration')?.value;
   const newEnd=duration==='custom'?document.getElementById('t-renewal-new-end')?.value:window._tenantRenewalComputedEnd;
   if(!newEnd){toast('⚠️ Pick a new end date');return;}
+
+  const{data:bkCheck}=await sb.from('bookings').select('lease_end').eq('id',bookingId).maybeSingle();
+  const currentEndCheck=bkCheck?.lease_end?new Date(bkCheck.lease_end):new Date();
+  if(new Date(newEnd)<=currentEndCheck){
+    toast('⚠️ The new end date must be after the current lease end date ('+currentEndCheck.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+')');
+    return;
+  }
+
   const btn=document.getElementById('t-renewal-submit-btn');
   if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
 
@@ -3919,7 +3980,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
         <div id="nego-card-status">${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}</div>
       </div>
       <div style="display:flex;gap:.5rem" id="nego-action-buttons">
-        ${hasCard?`<button onclick="submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed">🚀 Send application →</button>`}
+        ${hasCard?`<button id="nego-submit-btn" onclick="this.disabled=true;this.textContent='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed">🚀 Send application →</button>`}
         <button onclick="document.getElementById('nego-modal-overlay').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
       </div>
     </div>`;
@@ -4005,8 +4066,10 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
 
 
 async function submitNegotiationAndRent(listingId, listingTitle, contactId, originalPrice){
+  if(window._submittingApplication)return; // double-clic protégé même hors du bouton
+  window._submittingApplication=true;
   const moveIn=document.getElementById('neg-movein')?.value;
-  if(!moveIn){toast('⚠️ Please select your desired move-in date');return;}
+  if(!moveIn){toast('⚠️ Please select your desired move-in date');window._submittingApplication=false;return;}
   const duration=document.getElementById('neg-duration')?.value||null;
   const proposedPrice=parseInt(document.getElementById('neg-price')?.value)||originalPrice;
   const extras=[...document.querySelectorAll('.neg-extra:checked')].map(e=>e.value);
@@ -4030,10 +4093,12 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
   if(existing){
     toast('⚠️ You already have a request for this listing.');
     sp('visits',document.querySelector('.ni[onclick*="visits"]'));
+    window._submittingApplication=false;
     return;
   }
 
   openDirectRentPayment(listingId, listingTitle, contactId, proposedPrice, negotiationNote, extras, moveIn, coTenantsFull);
+  window._submittingApplication=false;
 }
 
 // Modal de paiement autonome (holding + commission) — utilisable depuis n'importe quelle
@@ -4143,6 +4208,15 @@ function removeCoTenantSlot(slotId){
 async function lookupCoTenant(slotId){
   const email=document.getElementById(`ct-email-${slotId}`)?.value.trim();
   if(!email||!email.includes('@')){toast('⚠️ Enter a valid email');return;}
+  if(email.toLowerCase()===U.email?.toLowerCase()){
+    toast('⚠️ That\'s your own email — enter your co-tenant\'s email instead');
+    return;
+  }
+  const alreadyUsed=(window._coTenantsData||[]).some((d,i)=>i!==slotId&&d&&d.email&&d.email.toLowerCase()===email.toLowerCase());
+  if(alreadyUsed){
+    toast('⚠️ You already added this person as a co-tenant');
+    return;
+  }
   const resultEl=document.getElementById(`ct-result-${slotId}`);
   const manualEl=document.getElementById(`ct-manual-${slotId}`);
   resultEl.innerHTML='⏳ Searching...';
