@@ -99,8 +99,8 @@ Generated on ${today}</p>
   <div class="sig-row">
     <div class="sig-block">
       <div class="sig-name">TENANT: ${tenant.name || '—'}</div>
-      <div class="sig-line"></div>
-      <div class="sig-label">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: _______________</div>
+      <p>Signature: <text-field name="Tenant Signature" role="Tenant" required="true" type="signature" style="width: 180px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+      <p>Date: <text-field name="Tenant Date" role="Tenant" required="true" type="date" style="width: 110px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
     </div>
     <div class="sig-block">
       <div class="sig-name">Platform</div>
