@@ -181,14 +181,14 @@ ${general_notes ? `
   <div class="sig-box">
     <p><strong>LESSOR (Landlord)</strong></p>
     <p>${landlord?.name || '_______________'}</p>
-    <div class="sig-line"></div>
-    <p style="font-size:8pt;color:#666">Signature &amp; Date</p>
+    <p>Signature: <text-field name="Lessor Signature" role="Lessor" required="true" type="signature" style="width: 180px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+    <p>Date: <text-field name="Lessor Date" role="Lessor" required="true" type="date" style="width: 110px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
   <div class="sig-box">
     <p><strong>LESSEE (Tenant)</strong></p>
     <p>${tenant?.name || '_______________'}</p>
-    <div class="sig-line"></div>
-    <p style="font-size:8pt;color:#666">Signature &amp; Date</p>
+    <p>Signature: <text-field name="Lessee Signature" role="Lessee" required="true" type="signature" style="width: 180px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+    <p>Date: <text-field name="Lessee Date" role="Lessee" required="true" type="date" style="width: 110px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
 </div>
 
