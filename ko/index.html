@@ -98,7 +98,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .hiw h2{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:.8rem}
 .hiw h2 em{font-style:italic;color:var(--terra)}
 .hiw p{color:var(--stone);font-size:.95rem;line-height:1.7;max-width:480px;margin-bottom:3rem}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem}
 .step{padding:1.8rem;border-radius:18px;border:1px solid rgba(107,95,82,.1);background:var(--warm);transition:all .3s;position:relative;overflow:hidden}
 .step::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--terra);transform:scaleX(0);transition:transform .3s;transform-origin:left}
 .step:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(26,20,16,.08)}
@@ -407,12 +407,43 @@ footer ul a:hover{color:var(--terra)}
 
   <div class="hiw">
     <div class="stag">✦ Simple process</div>
-    <h2>From scroll to <em>signed</em> in 3 steps</h2>
-    <p>No Facebook groups, no cash to strangers, no chasing people for a signature. Browse, visit, and sign your lease — all digital, all compliant with Maltese law.</p>
-    <div class="steps">
-      <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & contact</h3><p>Filter by zone, budget and type. Message landlords directly through real-time chat — no phone numbers shared, no middlemen.</p></div>
-      <div class="step"><div class="snum">02</div><div class="sico">🏆</div><h3>Visit with confidence</h3><p>Book a guided visit with a RestMalta agent — they show you the property and verify everything is as described. Or visit directly with the landlord.</p></div>
-      <div class="step"><div class="snum">03</div><div class="sico">📄</div><h3>Sign & move in</h3><p>Your lease is auto-generated, e-signed via DocuSeal, and compliant with Maltese law. Deposit and first month go straight to your landlord — no middleman holding your money.</p></div>
+    <h2>How <em>RestMalta</em> works</h2>
+    <p>A different experience depending on who you are — pick your role below.</p>
+
+    <div style="display:flex;gap:.5rem;margin:1.5rem 0 2rem;flex-wrap:wrap">
+      <button class="hiw-tab act" id="hiw-tabbtn-tenant" onclick="setHiwTab('tenant')" style="border:2px solid var(--terra);background:var(--terra);color:white;border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🎒 Tenant</button>
+      <button class="hiw-tab" id="hiw-tabbtn-landlord" onclick="setHiwTab('landlord')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏠 Landlord</button>
+      <button class="hiw-tab" id="hiw-tabbtn-agent" onclick="setHiwTab('agent')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏆 Agent / Agency</button>
+    </div>
+
+    <!-- TENANT -->
+    <div id="hiw-panel-tenant">
+      <div class="steps">
+        <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & message</h3><p>Filter by zone, budget and type. Message landlords or agents directly through real-time chat — no phone numbers shared, no vanishing "agents" from a WhatsApp group. Searching alone? Find a Roommate connects you with others looking to share.</p></div>
+        <div class="step"><div class="snum">02</div><div class="sico">🤝</div><h3>Apply & sign</h3><p>A small platform fee is authorized on your card when you apply — never charged unless the landlord accepts. Once accepted, your lease is auto-generated and e-signed, compliant with Maltese law. Bringing roommates? They're added to the same lease and sign too.</p></div>
+        <div class="step"><div class="snum">03</div><div class="sico">📸</div><h3>Move in with proof</h3><p>Every room and both meters are logged and photographed at move-in, signed by you and your landlord. Real protection if a dispute ever comes up — not just a promise. Deposit and first month go straight to your landlord, no middleman holding your money.</p></div>
+        <div class="step"><div class="snum">04</div><div class="sico">🏡</div><h3>Live & manage</h3><p>Message your landlord anytime, report maintenance issues with photos, and track every payment from your dashboard. When you're ready, renew your lease or generate your official notice to leave — both handled right from the app.</p></div>
+      </div>
+    </div>
+
+    <!-- LANDLORD -->
+    <div id="hiw-panel-landlord" style="display:none">
+      <div class="steps">
+        <div class="step"><div class="snum">01</div><div class="sico">✍️</div><h3>List your property</h3><p>Fill in the details yourself, hand visits to a RestMalta agent, or let an agent build the whole listing for you. Selling instead? List it for sale too — same platform, different flow.</p></div>
+        <div class="step"><div class="snum">02</div><div class="sico">💬</div><h3>Review & accept</h3><p>Tenants message and apply directly — see their verified dossier (ID, employment letter, references) before deciding. Accept the application that fits, and their lease generates automatically, ready to sign.</p></div>
+        <div class="step"><div class="snum">03</div><div class="sico">📋</div><h3>Move-in day</h3><p>Complete the move-in inventory with photos and meter readings, right from your dashboard — signed by both of you as shared proof. Deposit and first month land directly in your account, no waiting on a middleman.</p></div>
+        <div class="step"><div class="snum">04</div><div class="sico">📊</div><h3>Manage with ease</h3><p>Track every rented property, payment status and lease end date in one place. Handle maintenance requests, message your tenant, and renew or let leases run their course — all from Rented Properties.</p></div>
+      </div>
+    </div>
+
+    <!-- AGENT / AGENCY -->
+    <div id="hiw-panel-agent" style="display:none">
+      <div class="steps">
+        <div class="step"><div class="snum">01</div><div class="sico">🏆</div><h3>Get matched to properties</h3><p>Landlords in your covered zones can assign you to handle visits and the move-in inventory, or hand you the whole listing to build. Agencies get their own directory profile landlords can find and contact directly.</p></div>
+        <div class="step"><div class="snum">02</div><div class="sico">📅</div><h3>Run the visits</h3><p>Confirm visit requests, meet tenants on-site, and report back — all tracked in your dashboard. No more juggling WhatsApp threads across a dozen properties.</p></div>
+        <div class="step"><div class="snum">03</div><div class="sico">📷</div><h3>Complete move-in</h3><p>Run the move-in inventory with photos and meter readings directly from your phone, generate the annex, and get it signed by landlord and tenant.</p></div>
+        <div class="step"><div class="snum">04</div><div class="sico">💶</div><h3>Get paid your way</h3><p>RestMalta only ever captures its own platform fee — your commission is arranged and paid directly, never routed through the platform. Agencies can also post sale listings for free and pick up estimation requests from landlords.</p></div>
+      </div>
     </div>
   </div>
 
@@ -1347,6 +1378,19 @@ async function doReg(){
 }
 
 async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
+
+function setHiwTab(role){
+  ['tenant','landlord','agent'].forEach(r=>{
+    const panel=document.getElementById('hiw-panel-'+r);
+    const btn=document.getElementById('hiw-tabbtn-'+r);
+    if(panel)panel.style.display=r===role?'block':'none';
+    if(btn){
+      btn.style.background=r===role?'var(--terra)':'transparent';
+      btn.style.color=r===role?'white':'var(--stone)';
+      btn.style.borderColor=r===role?'var(--terra)':'var(--b2)';
+    }
+  });
+}
 
 function toggleSaleFilterUI(){
   const isSale=document.getElementById('ft')?.value==='for_sale';
