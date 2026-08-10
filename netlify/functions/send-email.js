@@ -6,6 +6,32 @@ const FROM = 'RestMalta <noreply@restmalta.com>';
 
 const templates = {
 
+  // Co-tenant invité par email — n'a pas encore de compte RestMalta,
+  // doit en créer un pour pouvoir signer sa part du bail
+  co_tenant_invite: ({ mainTenantName, listingTitle, address, signupUrl }) => ({
+    subject: `🏠 You've been added as a co-tenant on RestMalta`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:12px">
+        <div style="background:#E05A3A;padding:20px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:white;margin:0;font-size:24px">RestMalta</h1>
+        </div>
+        <div style="background:white;padding:30px;border-radius:0 0 8px 8px">
+          <h2 style="color:#1a1a1a">🏠 You've been added as a co-tenant</h2>
+          <p style="color:#666">${mainTenantName} has listed you as a co-tenant for a property they're renting on RestMalta.</p>
+          <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0">
+            <p style="margin:5px 0"><strong>Property:</strong> ${listingTitle}</p>
+            ${address ? `<p style="margin:5px 0"><strong>Address:</strong> ${address}</p>` : ''}
+          </div>
+          <p style="color:#666">Create your free RestMalta account to review and sign your part of the lease.</p>
+          <a href="${signupUrl}" style="display:inline-block;background:#E05A3A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px">
+            Create my account →
+          </a>
+        </div>
+        <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">RestMalta — Malta's rental platform</p>
+      </div>
+    `
+  }),
+
   // Sale listing posted by an agency on the landlord's behalf — landlord
   // needs to activate the €2/week visibility subscription (RestMalta
   // never touches the sale itself, this is purely about staying online)
