@@ -281,7 +281,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <div class="cb" style="display:flex;flex-direction:column;gap:.6rem">
 
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sendAllReminders()">📧 Send rent reminders</button>
-            <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('inventory',null)">📋 New inventory check</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="generateAllReceipts()">🧾 Generate all receipts</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sp('listings',null);openNewListing()">🏠 Add new listing</button>
           </div>
@@ -962,17 +961,7 @@ function sp(id,btn){
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
   if(id==='visits')loadVisitsPage();
-  if(id==='inventory')loadInventoryUI();
-  if(id==='leases'){
-    setTimeout(()=>{
-      const s=document.getElementById('lease-start');
-      const e=document.getElementById('lease-end');
-      if(s)s.addEventListener('change',checkLeaseReady);
-      if(e)e.addEventListener('change',checkLeaseReady);
-    },100);
-  }
   if(id==='properties')loadRentedProperties();
-  if(id==='tenantmatch')loadTenantMatch();
 }
 
 /* DASHBOARD */
@@ -2120,21 +2109,6 @@ async function joinVisit(groupId){
   loadVisitsPage();
 }
 
-async function loadCommissionStatus(leases){
-  for(const l of (leases||[])){
-    const cell=document.getElementById(`comm-${l.id}`);
-    if(!cell)continue;
-    const{data:comm}=await sb.from('commissions').select('*').eq('lease_id',l.id).maybeSingle();
-    if(!comm){
-      cell.innerHTML=l.status==='signed'?'<span style="font-size:.7rem;color:var(--gold)">⏳ Pending</span>':'<span style="font-size:.7rem;color:var(--td)">—</span>';
-    } else if(comm.landlord_paid){
-      cell.innerHTML='<span style="font-size:.7rem;color:var(--green)">✅ Paid</span>';
-    } else {
-      cell.innerHTML=`<a href="${comm.landlord_payment_url}" target="_blank" class="btn bp bsm" style="font-size:.65rem">💳 Pay €${comm.landlord_amount}</a>`;
-    }
-  }
-}
-
 async function markVisitDone(visitId){
   await sb.from('visits').update({status:'completed'}).eq('id',visitId);
   toast('✅ Visit marked as done. Tenant will be asked if they are interested.');
@@ -2145,122 +2119,8 @@ let leaseTenants=[];
 let selectedListing=null;
 let selectedTenant=null;
 
-async function loadLeases(){
-  // Load landlord's listings into selector
-  const{data:listings}=await sb.from('listings').select('*').eq('landlord_id',U.id).eq('active',true);
-  leaseListings=listings||[];
-  const sel=document.getElementById('lease-listing');
-  if(sel){
-    sel.innerHTML='<option value="">Select a listing...</option>'+leaseListings.map(l=>`<option value="${l.id}">${l.title} — ${l.zone} · €${l.price}/mo</option>`).join('');
-  }
-
-  // Load tenants who contacted this landlord
-  const{data:msgs}=await sb.from('messages').select('sender_id').eq('receiver_id',U.id);
-  if(msgs&&msgs.length){
-    const ids=[...new Set(msgs.map(m=>m.sender_id))];
-    const{data:tenants}=await sb.from('profiles').select('*').in('clerk_id',ids);
-    leaseTenants=tenants||[];
-    const tsel=document.getElementById('lease-tenant-select');
-    if(tsel){
-      tsel.innerHTML='<option value="">Select a tenant who contacted you...</option>'+leaseTenants.map(t=>`<option value="${t.clerk_id}">${t.full_name||t.email||t.clerk_id} ${t.verified?'✅':''}</option>`).join('');
-    }
-  }
-
-  // Load existing leases
-  const{data}=await sb.from('leases').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-  const tb=document.getElementById('leases-tbody');
-
-  // Check for leases needing HA registration reminder
-  const today=new Date();
-  (data||[]).forEach(l=>{
-    if(l.start_date&&!l.ha_registered){
-      const start=new Date(l.start_date);
-      const daysSince=Math.floor((today-start)/(1000*60*60*24));
-      if([1,5,9].includes(daysSince)){
-        // Show reminder alert
-        const alertsWrap=document.getElementById('alerts-list');
-        if(alertsWrap){
-          const alert=document.createElement('div');
-          alert.style.cssText='display:flex;align-items:center;gap:.75rem;padding:.75rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:10px;margin-bottom:.5rem';
-          alert.innerHTML=`<div style="font-size:1.2rem">⚠️</div><div style="flex:1;font-size:.8rem"><strong>Register your lease!</strong> "${l.listing_title||'Your lease'}" started ${daysSince} day${daysSince>1?'s':''} ago. You have ${Math.max(0,10-daysSince)} days left to register with the Housing Authority or face a €120 fine.</div><a href="https://rentregistration.mt" target="_blank" class="btn bp bsm" style="flex-shrink:0">Register now →</a>`;
-          alertsWrap.prepend(alert);
-        }
-      }
-    }
-  });
-
-  tb.innerHTML=(data||[]).map(l=>{
-    const daysSinceStart=l.start_date?Math.floor((today-new Date(l.start_date))/(1000*60*60*24)):0;
-    const daysLeft=Math.max(0,10-daysSinceStart);
-    const haStatus=l.ha_registered
-      ?'<span class="badge b-green">✅ HA Registered</span>'
-      :daysSinceStart>10
-        ?'<span class="badge b-red">⚠️ Overdue</span>'
-        :`<span class="badge b-gold">⏳ ${daysLeft}d left</span>`;
-    return`<tr>
-      <td style="color:var(--txt)">${l.tenant_name||l.tenant_id||'—'}</td>
-      <td style="color:var(--td);font-size:.78rem">${l.listing_title||'—'}</td>
-      <td><span class="badge b-sea">${l.type==='long'?'Long-let':'Short-let'}</span></td>
-      <td style="font-size:.75rem;color:var(--td)">${l.start_date?new Date(l.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'} → ${l.end_date?new Date(l.end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</td>
-      <td>
-        ${haStatus}
-        ${!l.ha_registered?`
-        <div style="display:flex;gap:.3rem;margin-top:.3rem">
-          <a href="https://rentregistration.mt" target="_blank" class="btn bg bsm" style="font-size:.65rem">Register →</a>
-          <button class="btn bp bsm" style="font-size:.65rem" onclick="markHARegistered('${l.id}')">✅ Mark done</button>
-        </div>`:''}
-      </td>
-      <td>
-        ${l.status==='signed'&&l.pdf_url
-          ?`<a href="${l.pdf_url}" target="_blank" class="btn bp bsm">📄 Download signed</a>`
-          :l.pdf_url
-            ?`<a href="${l.pdf_url}" target="_blank" class="btn bg bsm">View</a>`
-            :`<span style="font-size:.72rem;color:var(--td)">⏳ Awaiting signatures</span>`}
-      </td>
-      <td id="comm-${l.id}">
-        <div class="sp" style="width:12px;height:12px"></div>
-      </td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="7"><div class="empty"><div class="em">📄</div><p>No leases yet. Generate your first!</p></div></td></tr>';
-
-  // Load commission status for each signed lease
-  loadCommissionStatus(data||[]);
-}
-
-async function markHARegistered(leaseId){
-  await sb.from('leases').update({ha_registered:true,ha_registered_at:new Date().toISOString()}).eq('id',leaseId);
-  toast('✅ Lease marked as registered with the Housing Authority!');
-  // Update listing badge
-  const{data:lease}=await sb.from('leases').select('listing_id').eq('id',leaseId).maybeSingle();
-  if(lease?.listing_id){
-    await sb.from('listings').update({ha_registered:true}).eq('id',lease.listing_id);
-  }
-  loadLeases();
-  loadListings();
-}
-
 function autoSetEndDate(bookingId, leaseType){
-  if(!bookingId){
-    // Version originale sans booking
-    const type=document.getElementById('lease-type')?.value;
-    const startVal=document.getElementById('lease-start')?.value;
-    const endInput=document.getElementById('lease-end');
-    const hint=document.getElementById('end-date-hint');
-    if(!startVal||!endInput)return;
-    const start=new Date(startVal);
-    if(type==='short'||type==='sublet'){
-      const end=new Date(start);end.setMonth(end.getMonth()+6);
-      endInput.value=end.toISOString().split('T')[0];
-      if(hint)hint.textContent='(auto: +6 months)';
-    } else {
-      const end=new Date(start);end.setFullYear(end.getFullYear()+1);
-      endInput.value=end.toISOString().split('T')[0];
-      if(hint)hint.textContent='(auto: +1 year minimum)';
-    }
-    checkLeaseReady();
-    return;
-  }
-  // Version avec bookingId
+  if(!bookingId)return;
   const startVal=document.getElementById('bstart-'+bookingId)?.value;
   if(!startVal)return;
   const start=new Date(startVal);
@@ -2273,229 +2133,6 @@ function autoSetEndDate(bookingId, leaseType){
   if(endInput)endInput.value=end.toISOString().split('T')[0];
   if(edlInput)edlInput.value=startVal; // EDL = jour du move-in
 }
-
-function onLeaseListingChange(id){
-  selectedListing=leaseListings.find(l=>l.id===id)||null;
-  const preview=document.getElementById('lease-listing-preview');
-  if(!selectedListing){preview.style.display='none';checkLeaseReady();return;}
-  document.getElementById('lp-address').textContent=selectedListing.full_address||selectedListing.zone||'—';
-  document.getElementById('lp-rent').textContent=selectedListing.price?'€'+selectedListing.price+'/mo':'—';
-  document.getElementById('lp-deposit').textContent=selectedListing.deposit?'€'+selectedListing.deposit:'Not specified';
-  document.getElementById('lease-rent').value=selectedListing.price||'';
-  document.getElementById('lease-deposit').value=selectedListing.deposit||'';
-  preview.style.display='block';
-  // Auto-set type based on listing type
-  if(selectedListing.type==='long')document.getElementById('lease-type').value='long';
-  checkLeaseReady();
-}
-
-let coTenants=[];
-
-function toggleCoTenants(){
-  const sec=document.getElementById('co-tenants-section');
-  const btn=document.getElementById('add-cotenant-btn');
-  if(sec.style.display==='none'){
-    sec.style.display='block';
-    btn.textContent='👥 Hide co-tenants';
-    loadCoTenantOptions();
-  } else {
-    sec.style.display='none';
-    btn.textContent='👥 Add co-tenants to lease';
-  }
-}
-
-async function loadCoTenantOptions(){
-  const wrap=document.getElementById('co-tenants-list');
-  if(!wrap)return;
-  // Load all tenants who contacted this landlord except selected one
-  const available=leaseTenants.filter(t=>t.clerk_id!==selectedTenant?.clerk_id);
-  if(!available.length){
-    wrap.innerHTML='<div style="font-size:.78rem;color:var(--td)">No other tenants available. Co-tenants must contact you first through RestMalta.</div>';
-    return;
-  }
-  wrap.innerHTML=available.slice(0,3).map((t,i)=>`
-    <label style="display:flex;align-items:center;gap:.6rem;padding:.5rem;border:1px solid var(--b);border-radius:8px;cursor:pointer;font-size:.82rem">
-      <input type="checkbox" value="${t.clerk_id}" onchange="toggleCoTenant(this,'${t.clerk_id}','${t.full_name||''}','${t.email||''}','${t.passport_number||''}','${t.nationality||''}','${t.date_of_birth||''}')">
-      <div>
-        <div style="font-weight:600">${t.full_name||'—'} ${t.verified?'✅':''}</div>
-        <div style="font-size:.7rem;color:var(--td)">${t.email||'—'} · ${t.nationality||'—'}</div>
-      </div>
-    </label>`).join('');
-}
-
-function toggleCoTenant(cb, clerkId, name, email, passport, nationality, dob){
-  if(cb.checked){
-    if(coTenants.length>=3){cb.checked=false;toast('Maximum 3 co-tenants (4 total with primary)');return;}
-    coTenants.push({clerk_id:clerkId,full_name:name,email,passport_number:passport,nationality,date_of_birth:dob});
-  } else {
-    coTenants=coTenants.filter(t=>t.clerk_id!==clerkId);
-  }
-  toast(`✅ ${coTenants.length} co-tenant(s) selected`);
-}
-
-function onLeaseTenantChange(clerkId){
-  selectedTenant=leaseTenants.find(t=>t.clerk_id===clerkId)||null;
-  const preview=document.getElementById('lease-tenant-preview');
-  if(!selectedTenant){
-    preview.style.display='none';
-    document.getElementById('add-cotenant-btn').style.display='none';
-    document.getElementById('co-tenants-section').style.display='none';
-    coTenants=[];
-    checkLeaseReady();return;
-  }
-  document.getElementById('add-cotenant-btn').style.display='inline-flex';
-  document.getElementById('tp-name').textContent=selectedTenant.full_name||'—';
-  document.getElementById('tp-email').textContent=selectedTenant.email||'—';
-  document.getElementById('tp-passport').textContent=selectedTenant.passport_number||'—';
-  document.getElementById('tp-nat').textContent=selectedTenant.nationality||'—';
-  document.getElementById('tp-dob').textContent=selectedTenant.date_of_birth?new Date(selectedTenant.date_of_birth).toLocaleDateString('en-GB'):'—';
-  document.getElementById('tp-address').textContent=selectedTenant.home_address||'—';
-  // Fill hidden fields
-  document.getElementById('lease-tenant-name').value=selectedTenant.full_name||'';
-  document.getElementById('lease-tenant-email').value=selectedTenant.email||'';
-  document.getElementById('lease-tenant-id').value=selectedTenant.passport_number||'';
-  // Show incomplete warning
-  const missing=[selectedTenant.full_name,selectedTenant.passport_number,selectedTenant.date_of_birth,selectedTenant.home_address].filter(Boolean).length;
-  document.getElementById('tp-incomplete').style.display=missing<4?'block':'none';
-  preview.style.display='block';
-  checkLeaseReady();
-}
-
-function checkLeaseReady(){
-  const ready=selectedListing&&selectedTenant&&document.getElementById('lease-start').value&&document.getElementById('lease-end').value;
-  document.getElementById('lease-ready').style.display=ready?'block':'none';
-}
-
-async function generateAndSendLease(){
-  if(!requireCompleteProfile('generate a lease'))return;
-  if(!selectedListing||!selectedTenant){toast('Please select a property and a tenant');return;}
-  const start=document.getElementById('lease-start').value;
-  const end=document.getElementById('lease-end').value;
-  if(!start||!end){toast('Please select start and end dates');return;}
-  toast('📄 Generating lease for e-signature...');
-  try{
-    const type=document.getElementById('lease-type').value;
-
-    // Build submitters list for DocuSeal
-    const submitters=[
-      { role:'Lessor', email:U.email, name:P.full_name||'Landlord' },
-      { role:'Lessee 1', email:selectedTenant.email||'', name:selectedTenant.full_name||'Tenant' }
-    ];
-    // Add co-tenants as additional signatories
-    coTenants.forEach((ct,i)=>{
-      submitters.push({role:`Co-Lessee ${i+2}`, email:ct.email||'', name:ct.full_name||`Co-Tenant ${i+2}`});
-    });
-
-    // Call Netlify function — bypasses CORS
-    const res=await fetch('/.netlify/functions/generate-lease',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        type,
-        submitters,
-        landlord:{
-          email:U.email,
-          name:P.full_name||'',
-          passport:P.passport_number||'',
-          address:P.home_address||'',
-          phone:P.phone||'',
-          iban:P.iban||'',
-          father_name:P.father_name||'',
-          mother_name:P.mother_name||'',
-          mother_maiden:P.mother_maiden||'',
-          place_of_birth:P.place_of_birth||''
-        },
-        tenant:{
-          email:selectedTenant.email||'',
-          name:selectedTenant.full_name||'',
-          passport:selectedTenant.passport_number||'',
-          nationality:selectedTenant.nationality||'',
-          dob:selectedTenant.date_of_birth||'',
-          address:selectedTenant.home_address||'',
-          phone:selectedTenant.phone||'',
-          father_name:selectedTenant.father_name||'',
-          mother_name:selectedTenant.mother_name||'',
-          mother_maiden:selectedTenant.mother_maiden||'',
-          place_of_birth:selectedTenant.place_of_birth||''
-        },
-        coTenants:coTenants.map((ct,i)=>({
-          name:ct.full_name||'',
-          passport:ct.passport_number||'',
-          nationality:ct.nationality||'',
-          dob:ct.date_of_birth||'',
-          email:ct.email||''
-        })),
-        listing:{
-          address:selectedListing.full_address||selectedListing.zone||'',
-          price:selectedListing.price||0,
-          deposit:selectedListing.deposit||0,
-          payment_due_day:start?new Date(start).getDate():1,
-          notice_period:selectedListing.notice_period||'1 month',
-          bills:selectedListing.bills_situation||'excluded'
-        },
-        start_date:start,
-        end_date:end
-      })
-    });
-
-    const data=await res.json();
-
-    if(data.success){
-      // Save to Supabase
-      await sb.from('leases').insert({
-        landlord_id:U.id,
-        tenant_id:selectedTenant.clerk_id,
-        tenant_name:selectedTenant.full_name,
-        listing_id:selectedListing.id,
-        listing_title:selectedListing.title,
-        type,
-        start_date:start,
-        end_date:end,
-        rent:selectedListing.price,
-        docuseal_id:data.submission_id?String(data.submission_id):'local',
-        status:'pending'
-      });
-
-      if(data.fallback){
-        // DocuSeal had an issue — download HTML as fallback
-        toast('⚠️ DocuSeal unavailable — downloading lease as HTML file.');
-        const blob=new Blob([data.html],{type:'text/html'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url;
-        a.download=`Lease_${selectedTenant.full_name?.replace(/\s/g,'_')||'tenant'}_${selectedListing.title?.replace(/\s/g,'_')||'listing'}.html`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        toast('✅ Lease sent to both parties for e-signature via DocuSeal!');
-        if(data.signing_url){
-          setTimeout(()=>{
-            if(confirm('Lease sent! Open the signing page now?')){
-              window.open(data.signing_url,'_blank');
-            }
-          },500);
-        }
-      }
-      coTenants=[];
-        // Also add commission column header to leases table
-      const th=document.querySelector('#leases-tbody')?.closest('table')?.querySelector('thead tr');
-      if(th&&!document.getElementById('comm-header')){
-        const td=document.createElement('th');
-        td.id='comm-header';
-        td.textContent='Commission';
-        th.appendChild(td);
-      }
-    } else {
-      console.error('DocuSeal error:', data);
-      toast('❌ Error: '+(data.error||'DocuSeal failed'));
-    }
-  }catch(e){
-    toast('❌ Error: '+e.message);
-  }
-}
-
-function openNewLease(){sp('leases',document.querySelector('[onclick*="leases"]'));}
-function saveLeaseDraft(){toast('💾 Draft saved!');}
 
 /* PAYMENTS */
 /* PAYMENTS — Full rent flow */
@@ -3439,65 +3076,6 @@ async function submitTicket(){
   toast('✅ Ticket created!');loadMaintenance();
 }
 
-/* INVENTORY */
-const defaultInventory={
-  'Living Room':{icon:'🛋️',items:[{n:'Sofa',c:'good'},{n:'Coffee table',c:'good'},{n:'TV + remote',c:'good'},{n:'A/C unit',c:'worn'},{n:'Curtains',c:'good'}]},
-  'Kitchen':{icon:'🍳',items:[{n:'Fridge/freezer',c:'good'},{n:'Oven + hob',c:'good'},{n:'Microwave',c:'good'},{n:'Kitchen table',c:'good'},{n:'Crockery set',c:'good'}]},
-  'Bedroom':{icon:'🛏️',items:[{n:'Double bed + mattress',c:'good'},{n:'Wardrobe',c:'good'},{n:'Bedside table',c:'good'},{n:'Desk + chair',c:'good'}]},
-  'Bathroom':{icon:'🚿',items:[{n:'Shower + screen',c:'good'},{n:'Bathroom tap',c:'good'},{n:'Toilet + cistern',c:'good'},{n:'Washing machine',c:'good'}]}
-};
-
-function loadInventoryUI(){
-  const grid=document.getElementById('inventory-grid');
-  grid.innerHTML=Object.entries(defaultInventory).map(([room,data])=>`
-    <div class="iroom">
-      <div class="irh"><div style="font-size:.85rem;font-weight:600">${data.icon} ${room}</div><span style="font-size:.7rem;color:var(--td)">${data.items.length} items</span></div>
-      <div class="iitems">${data.items.map((item,i)=>`<div class="iitem"><div class="ichk ${item.c==='good'?'ok':item.c==='damaged'?'dmg':''}" onclick="toggleItem(this)" data-room="${room}" data-idx="${i}">${item.c==='good'?'✓':item.c==='damaged'?'!':''}</div><span style="flex:1;color:var(--tm)">${item.n}</span><span class="icond ${item.c==='good'?'ig':item.c==='worn'?'iw':'id2'}">${item.c==='good'?'Good':item.c==='worn'?'Worn':'Damaged'}</span></div>`).join('')}</div>
-    </div>`).join('');
-}
-
-function toggleItem(el){
-  if(el.classList.contains('ok')){el.classList.remove('ok');el.classList.add('dmg');el.textContent='!';toast('⚠️ Item marked as damaged');}
-  else if(el.classList.contains('dmg')){el.classList.remove('dmg');el.textContent='';toast('Item unchecked');}
-  else{el.classList.add('ok');el.textContent='✓';toast('✅ Item checked — good');}
-}
-
-function saveInventory(){
-  toast('✅ Inventaire sauvegardé !');
-}
-
-function setInvType(type, btn){
-  document.getElementById('inv-type').value=type;
-  document.getElementById('inv-entry-btn').className=type==='entry'?'btn bp bsm':'btn bg bsm';
-  document.getElementById('inv-exit-btn').className=type==='exit'?'btn bp bsm':'btn bg bsm';
-  document.getElementById('inv-type-badge').textContent=type==='entry'?'Entrée':'Sortie';
-  document.getElementById('inv-type-badge').className=type==='entry'?'badge b-green':'badge b-gold';
-}
-
-function addInvPhotos(input){
-  const wrap=document.getElementById('inv-photos');
-  Array.from(input.files).forEach(f=>{
-    const url=URL.createObjectURL(f);
-    const div=document.createElement('div');
-    div.style.cssText='position:relative;width:80px;height:80px';
-    div.innerHTML=`<img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--b)"><button onclick="this.parentElement.remove()" style="position:absolute;top:-5px;right:-5px;background:var(--terra);color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:.65rem;cursor:pointer">✕</button>`;
-    wrap.appendChild(div);
-  });
-  toast(`✅ ${input.files.length} photo(s) added`);
-}
-
-async function sendInventoryForSignature(){
-  toast('📤 Envoi de l\'état des lieux for signature...');
-  setTimeout(()=>toast('✅ Email sent to tenant for signature via DocuSeal!'),1500);
-}
-
-function showExitCheck(){setInvType('exit',document.getElementById('inv-exit-btn'));}
-
-function bookAgentInventory(type){
-  toast(`🏆 Demande d'agent for état des lieux de ${type==='entry'?'sortie':'sortie'} envoyée ! Un agent you contactera sous 24h. (~120€)`);
-}
-function exportInventory(){toast('📥 Inventory PDF generated!');}
-
 /* REVIEWS */
 async function loadReviews(){
   const{data}=await sb.from('reviews').select('*').eq('landlord_id',U.id).eq('type','tenant_to_landlord').order('created_at',{ascending:false});
@@ -3892,38 +3470,6 @@ async function loadRentedProperties(){
     if(!coTenants.length)return;
     el.innerHTML=`<div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">👥 ${coTenants.length} co-tenant${coTenants.length>1?'s':''}: ${coTenants.map(ct=>`${ct.name||'—'}${ct.phone?' ('+ct.phone+')':''}`).join(', ')}</div>`;
   });
-}
-
-async function loadTenantMatch(){
-  const wrap=document.getElementById('match-list');
-  const{data:listings}=await sb.from('listings').select('*').eq('landlord_id',U.id).eq('active',true);
-  if(!listings||!listings.length){wrap.innerHTML='<div class="empty"><div class="em">🎯</div><p>No active listings to match tenants to.<br>Post a listing first.</p></div>';return;}
-  // Load recent profiles who contacted landlord
-  const{data:msgs}=await sb.from('messages').select('*, profiles!sender_id(*)').eq('receiver_id',U.id).order('created_at',{ascending:false}).limit(10);
-  const seen=new Set();
-  const tenants=(msgs||[]).filter(m=>{if(seen.has(m.sender_id))return false;seen.add(m.sender_id);return true;}).map(m=>m.profiles).filter(Boolean);
-  if(!tenants.length){wrap.innerHTML='<div class="empty"><div class="em">🎯</div><p>No tenant matches yet.<br>When tenants contact you, their compatibility score will appear here.</p></div>';return;}
-  wrap.innerHTML=tenants.map(t=>{
-    const fields=[t.full_name,t.phone,t.nationality,t.passport_number,t.date_of_birth,t.home_address,t.emprent];
-    const score=Math.round(fields.filter(Boolean).length/fields.length*90+10);
-    const color=score>75?'var(--green)':score>50?'var(--gold)':'var(--red)';
-    return`<div class="card" style="margin-bottom:.75rem">
-      <div class="cb" style="display:flex;align-items:center;gap:1.2rem">
-        <div style="width:44px;height:44px;border-radius:50%;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--terra);font-size:1rem;flex-shrink:0">${(t.full_name||'T')[0].toUpperCase()}</div>
-        <div style="flex:1">
-          <div style="font-size:.9rem;font-weight:600">${t.full_name||'Unknown tenant'}</div>
-          <div style="font-size:.75rem;color:var(--tm);margin-top:.15rem">${t.nationality||''} ${t.emprent?'· '+t.emprent:''}</div>
-        </div>
-        <div style="text-align:center;min-width:60px">
-          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:${color}">${score}%</div>
-          <div style="font-size:.65rem;color:var(--td)">match</div>
-        </div>
-        <div style="display:flex;gap:.5rem">
-          <span class="badge ${score>75?'b-green':score>50?'b-gold':'b-red'}">${score>75?'Excellent':score>50?'Good':'Incomplete'}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
 }
 
 async function showCommissionPayment(bookingId,listingId,tenantId,monthlyRent){
