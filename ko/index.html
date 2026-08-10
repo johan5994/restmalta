@@ -1292,9 +1292,6 @@ function updN(){
 function go(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');window.scrollTo(0,0);}
 function stl(){go('home');setTimeout(()=>document.getElementById('la').scrollIntoView({behavior:'smooth'}),100);}
 
-function swAuth(btn,tab){document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('alog').style.display=tab==='login'?'block':'none';document.getElementById('areg').style.display=tab==='reg'?'block':'none';}
-function setR(btn,r){document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('sr').value=r;}
-
 async function signInWithGoogle(){
   try { clerk.openSignIn({}); } catch(e) { toast('❌ '+e.message); }
 }
@@ -1307,74 +1304,6 @@ function goToDash(){
   else if(P?.role==='agent') window.location.href='/agent-dashboard.html';
   else if(P?.role==='agency') window.location.href='/agency-dashboard.html';
   else window.location.href='/tenant-dashboard.html';
-}
-
-async function doLogin(){
-  const e=document.getElementById('le2').value.trim(),p=document.getElementById('lp').value,err=document.getElementById('le');
-  err.style.display='none';
-  if(!e||!p){sA(err,'Please fill in all fields');return;}
-  sA(err,'⏳ Signing in...');
-  err.style.background='rgba(46,107,138,0.1)';err.style.color='var(--sea)';err.style.borderColor='rgba(46,107,138,0.2)';
-  try {
-    const signIn = await clerk.client.signIn.create({ identifier: e, password: p });
-    if (signIn.status === 'complete') {
-      await clerk.setActive({ session: signIn.createdSessionId });
-      err.style.display='none';
-      toast('✅ Welcome back!');
-      await sU(clerk.user);
-      go('home'); updN(); loadL();
-    } else {
-      sA(err,'❌ Sign in incomplete. Please try again.');
-    }
-  } catch(ex) {
-    err.style.background='rgba(201,85,58,0.08)';err.style.color='var(--terra)';err.style.borderColor='rgba(201,85,58,0.15)';
-    const msg = ex.errors?.[0]?.longMessage || ex.errors?.[0]?.message || ex.message || 'Login failed';
-    sA(err,'❌ '+msg);
-  }
-}
-
-async function doReg(){
-  const n=document.getElementById('rn').value.trim(),e=document.getElementById('re2').value.trim(),ph=document.getElementById('rph').value.trim(),p=document.getElementById('rp').value,r=document.getElementById('sr').value,err=document.getElementById('re'),ok=document.getElementById('rok');
-  err.style.display='none';ok.style.display='none';
-  if(!n||!e||!p){sA(err,'Please fill in all required fields');return;}
-  if(p.length<8){sA(err,'Password must be at least 8 characters');return;}
-  sA(ok,'⏳ Creating your account...');ok.style.display='block';
-  try {
-    const parts = n.split(' ');
-    const firstName = parts[0];
-    const lastName = parts.slice(1).join(' ') || '';
-    const signUp = await clerk.client.signUp.create({
-      emailAddress: e,
-      password: p,
-      firstName,
-      lastName
-    });
-    if (signUp.status === 'missing_requirements') {
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      const code = prompt('📧 Check your email and enter the verification code:');
-      if (!code) { ok.style.display='none'; return; }
-      const result = await signUp.attemptEmailAddressVerification({ code });
-      if (result.status === 'complete') {
-        await clerk.setActive({ session: result.createdSessionId });
-        await sb.from('profiles').upsert({ id: result.createdUserId, full_name: n, email: e, phone: ph, role: r });
-        ok.style.display='none';
-        toast('🎉 Welcome to RestMalta!');
-        await sU(clerk.user);
-        setTimeout(()=>go('home'),1000);
-      }
-    } else if (signUp.status === 'complete') {
-      await clerk.setActive({ session: signUp.createdSessionId });
-      await sb.from('profiles').upsert({ id: signUp.createdUserId, full_name: n, email: e, phone: ph, role: r });
-      ok.style.display='none';
-      toast('🎉 Welcome to RestMalta!');
-      await sU(clerk.user);
-      setTimeout(()=>go('home'),1000);
-    }
-  } catch(ex) {
-    ok.style.display='none';
-    const msg = ex.errors?.[0]?.longMessage || ex.errors?.[0]?.message || ex.message || 'Registration failed';
-    sA(err,'❌ '+msg);
-  }
 }
 
 async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
