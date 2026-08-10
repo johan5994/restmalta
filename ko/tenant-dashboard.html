@@ -233,6 +233,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
         <!-- Sub-tab: Payments -->
         <div id="ml-tab-payments" style="display:none">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem">
+            <div class="card" style="margin-bottom:0"><div class="cb" style="text-align:center;padding:.85rem .5rem">
+              <div style="font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.25rem">Total paid</div>
+              <div id="pay-total" style="font-size:1.15rem;font-weight:700;color:var(--txt)">€0</div>
+            </div></div>
+            <div class="card" style="margin-bottom:0"><div class="cb" style="text-align:center;padding:.85rem .5rem">
+              <div style="font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.25rem">Pending</div>
+              <div id="pay-pend" style="font-size:1.15rem;font-weight:700;color:var(--gold)">0</div>
+            </div></div>
+            <div class="card" style="margin-bottom:0"><div class="cb" style="text-align:center;padding:.85rem .5rem">
+              <div style="font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.25rem">Next due</div>
+              <div id="pay-next" style="font-size:1.15rem;font-weight:700;color:var(--txt)">—</div>
+            </div></div>
+          </div>
           <div id="pay-due-now"></div>
           <div class="card"><div class="ch"><div class="ct">Payment history</div></div><div id="pay-list"><div class="ld"><div class="sp"></div></div></div></div>
         </div>
