@@ -1,0 +1,80 @@
+const Stripe = require('stripe');
+
+// Abonnement mensuel récurrent pour les agences — donne accès à la
+// plateforme (annuaire, publication gratuite, canal messages, etc.)
+const AGENCY_PLANS = {
+  starter: { amountCents: 4900, name: 'Starter Plan' },
+  pro: { amountCents: 12900, name: 'Professional Plan' },
+  enterprise: { amountCents: 29900, name: 'Enterprise Plan' }
+};
+
+exports.handler = async (event) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Method not allowed' };
+
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const { plan, agency_id, agency_email, agency_name } = JSON.parse(event.body);
+
+    if (!plan || !AGENCY_PLANS[plan] || !agency_id || !agency_email) {
+      return { statusCode: 400, headers, body: JSON.stringify({ success: false, error: 'Missing or invalid plan/agency_id/agency_email' }) };
+    }
+
+    const planInfo = AGENCY_PLANS[plan];
+
+    // Client Stripe — un par agence, réutilisé
+    let customerId;
+    const existing = await stripe.customers.list({ email: agency_email, limit: 1 });
+    if (existing.data.length > 0) {
+      customerId = existing.data[0].id;
+    } else {
+      const customer = await stripe.customers.create({
+        email: agency_email,
+        name: agency_name || 'Agency',
+        metadata: { agency_id }
+      });
+      customerId = customer.id;
+    }
+
+    const SITE = process.env.URL || 'https://restmalta.netlify.app';
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          unit_amount: planInfo.amountCents,
+          recurring: { interval: 'month' },
+          product_data: { name: 'RestMalta Agency — ' + planInfo.name }
+        },
+        quantity: 1
+      }],
+      success_url: `${SITE}/agency-dashboard.html?subscription_activated=${plan}`,
+      cancel_url: `${SITE}/agency-dashboard.html?subscription_cancelled=1`,
+      metadata: {
+        type: 'agency_subscription',
+        agency_id,
+        plan
+      },
+      subscription_data: {
+        metadata: { type: 'agency_subscription', agency_id, plan }
+      }
+    });
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ success: true, checkout_url: session.url })
+    };
+
+  } catch (e) {
+    console.error('create-agency-subscription error:', e);
+    return { statusCode: 500, headers, body: JSON.stringify({ success: false, error: e.message }) };
+  }
+};
