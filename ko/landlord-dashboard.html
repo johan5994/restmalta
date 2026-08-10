@@ -453,12 +453,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card">
         <div class="ch"><div class="ct">Leave a review for a tenant</div></div>
         <div class="cb">
-          <div class="fgrid2">
-            <div class="fg"><label class="fl">Tenant email</label><input class="fi" id="rev-tenant" placeholder="tenant@email.com"></div>
+          <div class="fg"><label class="fl">Which tenant?</label><select class="fsel" id="rev-tenant-select"><option value="">Loading...</option></select></div>
+          <div id="rev-no-tenants" style="display:none;font-size:.82rem;color:var(--tm);margin-bottom:.5rem">You'll be able to review a tenant once they've actually moved in.</div>
+          <div id="rev-tenant-form" style="display:none">
             <div class="fg"><label class="fl">Rating (1-5)</label><select class="fsel" id="rev-rating"><option value="5">⭐⭐⭐⭐⭐ Excellent</option><option value="4">⭐⭐⭐⭐ Good</option><option value="3">⭐⭐⭐ Average</option><option value="2">⭐⭐ Poor</option><option value="1">⭐ Very poor</option></select></div>
+            <div class="fg"><label class="fl">Comment</label><textarea class="fta" id="rev-comment" rows="3" placeholder="Share your experience with this tenant..."></textarea></div>
+            <button class="btn bp" onclick="submitReview()">Submit review →</button>
           </div>
-          <div class="fg"><label class="fl">Comment</label><textarea class="fta" id="rev-comment" rows="3" placeholder="Share your experience with this tenant..."></textarea></div>
-          <button class="btn bp" onclick="submitReview()">Submit review →</button>
         </div>
       </div>
     </div>
@@ -3446,6 +3447,7 @@ async function loadReviews(){
   const wrap=document.getElementById('reviews-list');
   wrap.innerHTML=(data||[]).map(r=>`<div class="rcard"><div class="stars">${'⭐'.repeat(r.rating)}</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">${r.comment||'No comment'}</div><div class="rauthor">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div></div>`).join('')||'<div class="empty"><div class="em">⭐</div><p>No reviews yet</p></div>';
   loadRateAgentsCard();
+  loadReviewableTenants();
 }
 
 async function loadRateAgentsCard(){
@@ -3503,28 +3505,62 @@ async function submitAgentReview(listingId,agentId){
   }catch(e){toast('❌ '+e.message);}
 }
 
+async function loadReviewableTenants(){
+  const sel=document.getElementById('rev-tenant-select');
+  const noneEl=document.getElementById('rev-no-tenants');
+  const formEl=document.getElementById('rev-tenant-form');
+  if(!sel)return;
+  try{
+    // Seuls les baux réellement conclus avec CE propriétaire (au moins emménagé)
+    const{data:bookings}=await sb.from('bookings').select('tenant_id,tenant_name').eq('landlord_id',U.id).in('status',['move_in_ready','completed','active']);
+    const tenantIds=[...new Set((bookings||[]).map(b=>b.tenant_id).filter(Boolean))];
+    if(!tenantIds.length){
+      sel.innerHTML='';sel.style.display='none';
+      if(noneEl)noneEl.style.display='block';
+      if(formEl)formEl.style.display='none';
+      return;
+    }
+    // Exclure ceux déjà notés — un seul avis par personne
+    const{data:already}=await sb.from('reviews').select('target_id').eq('reviewer_id',U.id).eq('type','landlord_to_tenant').in('target_id',tenantIds);
+    const reviewedIds=new Set((already||[]).map(r=>r.target_id));
+    const remaining=tenantIds.filter(id=>!reviewedIds.has(id));
+    if(!remaining.length){
+      sel.innerHTML='';sel.style.display='none';
+      if(noneEl){noneEl.style.display='block';noneEl.textContent='You\'ve already reviewed all your tenants. Thanks for the feedback!';}
+      if(formEl)formEl.style.display='none';
+      return;
+    }
+    const nameMap={};(bookings||[]).forEach(b=>{if(b.tenant_id)nameMap[b.tenant_id]=b.tenant_name;});
+    sel.innerHTML='<option value="">Select a tenant...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Tenant'}</option>`).join('');
+    sel.style.display='block';
+    if(noneEl)noneEl.style.display='none';
+    if(formEl)formEl.style.display='block';
+  }catch(e){
+    sel.innerHTML='<option value="">Could not load</option>';
+  }
+}
+
 async function submitReview(){
-  const email=document.getElementById('rev-tenant')?.value.trim();
+  const tenantId=document.getElementById('rev-tenant-select')?.value;
   const rating=parseInt(document.getElementById('rev-rating').value);
   const comment=document.getElementById('rev-comment').value.trim();
-  if(!email||!email.includes('@')){toast('⚠️ Enter the tenant\'s email');return;}
+  if(!tenantId){toast('⚠️ Select a tenant');return;}
   if(!comment){toast('Please write a comment');return;}
 
-  let tenantId=null;
-  try{
-    const{data:tp}=await sb.from('profiles').select('clerk_id').eq('email',email).maybeSingle();
-    tenantId=tp?.clerk_id||null;
-  }catch(e){}
+  const{data:realBooking}=await sb.from('bookings').select('id').eq('landlord_id',U.id).eq('tenant_id',tenantId).in('status',['move_in_ready','completed','active']).limit(1).maybeSingle();
+  if(!realBooking){toast('❌ You can only review a tenant who actually rented from you');return;}
+  const{data:existingReview}=await sb.from('reviews').select('id').eq('reviewer_id',U.id).eq('target_id',tenantId).eq('type','landlord_to_tenant').maybeSingle();
+  if(existingReview){toast('❌ You already reviewed this tenant');return;}
 
   const{error}=await sb.from('reviews').insert({
     reviewer_id:U.id,rating,comment,type:'landlord_to_tenant',
-    landlord_id:U.id,tenant_id:tenantId,tenant_email:email,target_id:tenantId
+    landlord_id:U.id,tenant_id:tenantId,target_id:tenantId
   });
   if(error){toast('❌ '+error.message);return;}
-  toast(tenantId?'✅ Review submitted!':'✅ Review saved — will link once they create a RestMalta account.');
+  toast('✅ Review submitted!');
   document.getElementById('rev-comment').value='';
-  document.getElementById('rev-tenant').value='';
   loadReviews();
+  loadReviewableTenants();
 }
 
 /* PROFILE */
