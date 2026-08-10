@@ -424,19 +424,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">Review your landlord</div></div>
         <div class="cb">
-          <div class="fg"><label class="fl">Landlord email</label><input class="fi" id="rev-landlord" placeholder="landlord@email.com"></div>
-          <div class="fg"><label class="fl">Rating</label>
-            <div style="display:flex;gap:.5rem;margin-bottom:.5rem" id="stars-wrap">
-              <span class="star-btn active" onclick="setRating(1)">⭐</span>
-              <span class="star-btn active" onclick="setRating(2)">⭐</span>
-              <span class="star-btn active" onclick="setRating(3)">⭐</span>
-              <span class="star-btn active" onclick="setRating(4)">⭐</span>
-              <span class="star-btn active" onclick="setRating(5)">⭐</span>
+          <div class="fg"><label class="fl">Which landlord?</label><select class="fsel" id="rev-landlord-select"><option value="">Loading...</option></select></div>
+          <div id="rev-no-landlords" style="display:none;font-size:.82rem;color:var(--tm);margin-bottom:.5rem">You'll be able to review a landlord once you've actually rented from them.</div>
+          <div id="rev-landlord-form" style="display:none">
+            <div class="fg"><label class="fl">Rating</label>
+              <div style="display:flex;gap:.5rem;margin-bottom:.5rem" id="stars-wrap">
+                <span class="star-btn active" onclick="setRating(1)">⭐</span>
+                <span class="star-btn active" onclick="setRating(2)">⭐</span>
+                <span class="star-btn active" onclick="setRating(3)">⭐</span>
+                <span class="star-btn active" onclick="setRating(4)">⭐</span>
+                <span class="star-btn active" onclick="setRating(5)">⭐</span>
+              </div>
+              <input type="hidden" id="rev-rating" value="5">
             </div>
-            <input type="hidden" id="rev-rating" value="5">
+            <div class="fg"><label class="fl">Your experience</label><textarea class="fta" id="rev-comment" rows="4" placeholder="Was the landlord responsive? Was the flat as described?"></textarea></div>
+            <button class="btn bp" onclick="submitReview()">Submit review →</button>
           </div>
-          <div class="fg"><label class="fl">Your experience</label><textarea class="fta" id="rev-comment" rows="4" placeholder="Was the landlord responsive? Was the flat as described?"></textarea></div>
-          <button class="btn bp" onclick="submitReview()">Submit review →</button>
         </div>
       </div>
       <div class="card">
@@ -3115,30 +3118,68 @@ function setRating(r){
   document.querySelectorAll('.star-btn').forEach((s,i)=>s.classList.toggle('active',i<r));
 }
 
+async function loadReviewableLandlords(){
+  const sel=document.getElementById('rev-landlord-select');
+  const noneEl=document.getElementById('rev-no-landlords');
+  const formEl=document.getElementById('rev-landlord-form');
+  if(!sel)return;
+  try{
+    // Seuls les baux réellement conclus (au moins emménagé) donnent le droit de laisser un avis
+    const{data:bookings}=await sb.from('bookings').select('landlord_id').eq('tenant_id',U.id).in('status',['move_in_ready','completed','active']);
+    const landlordIds=[...new Set((bookings||[]).map(b=>b.landlord_id).filter(Boolean))];
+    if(!landlordIds.length){
+      sel.innerHTML='';sel.style.display='none';
+      if(noneEl)noneEl.style.display='block';
+      if(formEl)formEl.style.display='none';
+      return;
+    }
+    // Exclure ceux déjà notés — un seul avis par personne
+    const{data:already}=await sb.from('reviews').select('target_id').eq('reviewer_id',U.id).eq('type','tenant_to_landlord').in('target_id',landlordIds);
+    const reviewedIds=new Set((already||[]).map(r=>r.target_id));
+    const remaining=landlordIds.filter(id=>!reviewedIds.has(id));
+    if(!remaining.length){
+      sel.innerHTML='';sel.style.display='none';
+      if(noneEl){noneEl.style.display='block';noneEl.textContent='You\'ve already reviewed all your landlords. Thanks for the feedback!';}
+      if(formEl)formEl.style.display='none';
+      return;
+    }
+    const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name').in('clerk_id',remaining);
+    const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.clerk_id]=p.full_name;});
+    sel.innerHTML='<option value="">Select a landlord...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Landlord'}</option>`).join('');
+    sel.style.display='block';
+    if(noneEl)noneEl.style.display='none';
+    if(formEl)formEl.style.display='block';
+  }catch(e){
+    sel.innerHTML='<option value="">Could not load</option>';
+  }
+}
+
 async function submitReview(){
-  const email=document.getElementById('rev-landlord')?.value.trim();
+  const landlordId=document.getElementById('rev-landlord-select')?.value;
   const comment=document.getElementById('rev-comment').value.trim();
-  if(!email||!email.includes('@')){toast('⚠️ Enter your landlord\'s email');return;}
+  if(!landlordId){toast('⚠️ Select a landlord');return;}
   if(!comment){toast('Please write a comment');return;}
   if(!selectedRating){toast('⚠️ Select a rating');return;}
 
-  let landlordId=null;
-  try{
-    const{data:lp}=await sb.from('profiles').select('clerk_id').eq('email',email).maybeSingle();
-    landlordId=lp?.clerk_id||null;
-  }catch(e){}
+  // Double vérification — s'assurer qu'un bail réel existe bien avec ce
+  // propriétaire, et qu'aucun avis n'a déjà été laissé (protège même contre
+  // un id manipulé directement, en plus du filtre déjà appliqué côté select)
+  const{data:realBooking}=await sb.from('bookings').select('id').eq('tenant_id',U.id).eq('landlord_id',landlordId).in('status',['move_in_ready','completed','active']).limit(1).maybeSingle();
+  if(!realBooking){toast('❌ You can only review a landlord you\'ve actually rented from');return;}
+  const{data:existingReview}=await sb.from('reviews').select('id').eq('reviewer_id',U.id).eq('target_id',landlordId).eq('type','tenant_to_landlord').maybeSingle();
+  if(existingReview){toast('❌ You already reviewed this landlord');return;}
 
   const{error}=await sb.from('reviews').insert({
     reviewer_id:U.id,rating:selectedRating,comment,type:'tenant_to_landlord',
-    landlord_id:landlordId,landlord_email:email,target_id:landlordId
+    landlord_id:landlordId,target_id:landlordId
   });
   if(error){toast('❌ '+error.message);return;}
-  toast(landlordId?'✅ Review submitted! Thank you.':'✅ Review saved — will link once they create a RestMalta account.');
+  toast('✅ Review submitted! Thank you.');
   document.getElementById('rev-comment').value='';
-  document.getElementById('rev-landlord').value='';
   selectedRating=0;
   document.querySelectorAll('.star-btn').forEach(s=>s.classList.remove('active'));
   loadMyReviews();
+  loadReviewableLandlords();
 }
 
 async function loadMyReviews(){
@@ -3146,6 +3187,7 @@ async function loadMyReviews(){
   document.getElementById('my-reviews').innerHTML=(data||[]).map(r=>'<div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem"><div style="color:var(--gold);font-size:1rem;letter-spacing:2px">'+'⭐'.repeat(r.rating)+'</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">'+r.comment+'</div><div style="font-size:.72rem;color:var(--td);margin-top:.3rem">'+new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</div></div>').join('')||'<div style="font-size:.85rem;color:var(--tm);text-align:center;padding:1rem">No reviews submitted yet</div>';
   loadReviewsAboutMe();
   loadRateAgentCard();
+  loadReviewableLandlords();
 }
 
 async function loadRateAgentCard(){
