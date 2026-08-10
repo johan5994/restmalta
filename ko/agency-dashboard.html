@@ -319,6 +319,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
     </div>
     <div id="listings-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+
+    <!-- Modal: Edit Listing -->
+    <div id="edit-listing-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target.id==='edit-listing-modal')closeEditListing()">
+      <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:480px;width:100%;max-height:85vh;overflow-y:auto">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">✏️ Edit listing</div>
+        <div class="fg"><label class="fl">Title</label><input class="fi" id="edit-title"></div>
+        <div class="fgrid2">
+          <div class="fg" id="edit-price-wrap"><label class="fl" id="edit-price-label">Price (€)</label><input class="fi" type="number" id="edit-price"></div>
+          <div class="fg"><label class="fl">Bedrooms</label><input class="fi" type="number" id="edit-beds"></div>
+        </div>
+        <div class="fg"><label class="fl">Description</label><textarea class="fi" id="edit-desc" rows="4"></textarea></div>
+        <div class="fg"><label class="fl">Full Address</label><input class="fi" id="edit-address"></div>
+        <div class="fg"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="checkbox" id="edit-active"> <span class="fl" style="margin:0">Active (visible in search)</span></label></div>
+        <button class="btn bterr" style="width:100%;justify-content:center;margin-top:.5rem" onclick="saveEditedListing()">Save changes →</button>
+        <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeEditListing()">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- ── IMPORT ── -->
@@ -1250,6 +1267,49 @@ async function loadListingVisitCount(listingId){
   }catch(e){}
 }
 
+async function editListing(id){
+  try{
+    const{data:l,error}=await sb.from('listings').select('*').eq('id',id).single();
+    if(error||!l){toast('❌ Could not load listing');return;}
+    document.getElementById('edit-listing-modal').dataset.listingId=id;
+    document.getElementById('edit-title').value=l.title||'';
+    document.getElementById('edit-price').value=(l.type==='for_sale'?l.sale_price:l.price)||'';
+    document.getElementById('edit-price-label').textContent=l.type==='for_sale'?'Sale Price (€)':'Monthly Rent (€)';
+    document.getElementById('edit-beds').value=l.bedrooms||'';
+    document.getElementById('edit-desc').value=l.description||'';
+    document.getElementById('edit-address').value=l.full_address||'';
+    document.getElementById('edit-active').checked=!!l.active;
+    document.getElementById('edit-listing-modal').style.display='flex';
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function closeEditListing(){
+  document.getElementById('edit-listing-modal').style.display='none';
+}
+
+async function saveEditedListing(){
+  const id=document.getElementById('edit-listing-modal').dataset.listingId;
+  if(!id)return;
+  try{
+    const{data:l}=await sb.from('listings').select('type').eq('id',id).single();
+    const isSale=l?.type==='for_sale';
+    const price=parseFloat(document.getElementById('edit-price').value)||0;
+    const updates={
+      title:document.getElementById('edit-title').value.trim(),
+      description:document.getElementById('edit-desc').value.trim(),
+      full_address:document.getElementById('edit-address').value.trim(),
+      bedrooms:parseInt(document.getElementById('edit-beds').value)||0,
+      active:document.getElementById('edit-active').checked
+    };
+    if(isSale)updates.sale_price=price;else updates.price=price;
+    const{error}=await sb.from('listings').update(updates).eq('id',id);
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Listing updated');
+    closeEditListing();
+    loadListings();
+  }catch(e){toast('❌ '+e.message);}
+}
+
 async function deleteListing(id, title, btn){
   // Empêcher de supprimer une annonce qui a un locataire actif
   const{data:activeBooking}=await sb.from('bookings').select('id,tenant_name').eq('listing_id',id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1).maybeSingle();
@@ -1663,53 +1723,65 @@ async function loadAnalytics(){
 }
 
 // ── CRM ───────────────────────────────────────────────────────
+let crmVisitsCache=[];
 async function loadCRM(){
   const wrap=document.getElementById('crm-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
     const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-    let v=visits||[];
-    if(currentCRMTab==='new')v=v.filter(x=>x.status==='awaiting_landlord');
-    else if(currentCRMTab==='visiting')v=v.filter(x=>x.status==='confirmed'||x.status==='agent_assigned');
-    else if(currentCRMTab==='interested')v=v.filter(x=>x.status==='booking_pending'||x.status==='pending');
-    else if(currentCRMTab==='signed')v=v.filter(x=>['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(x.status));
+    crmVisitsCache=visits||[];
 
     const nb=document.getElementById('nb-leads');
-    const newCount=(visits||[]).filter(x=>x.status==='awaiting_landlord').length;
+    const newCount=crmVisitsCache.filter(x=>x.status==='awaiting_landlord').length;
     if(nb){nb.textContent=newCount;nb.style.display=newCount>0?'inline':'none';}
 
-    if(!v.length){wrap.innerHTML='<div class="empty"><div class="em">👥</div><p>No clients in this category yet.</p></div>';return;}
-
-    const statusLabels={awaiting_landlord:'🆕 New',confirmed:'📅 Visit scheduled',agent_assigned:'📅 Visit confirmed',
-      booking_pending:'🏠 Wants to rent',pending:'🏠 Wants to rent',accepted:'✅ Accepted',
-      lease_pending:'📄 Signing lease',edl_scheduled:'📋 EDL',signing_day:'🎉 Move-in',
-      move_in_ready:'🏠 Moved in',declined:'❌ Declined',tenant_declined:'❌ Not interested',
-      cancelled:'❌ Cancelled'};
-    const statusCls={awaiting_landlord:'b-gold',confirmed:'b-sea',agent_assigned:'b-green',
-      booking_pending:'b-gold',pending:'b-gold',accepted:'b-green',lease_pending:'b-sea',
-      edl_scheduled:'b-green',signing_day:'b-green',move_in_ready:'b-green',
-      declined:'b-dim',tenant_declined:'b-dim',cancelled:'b-dim'};
-
-    wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+v.map(x=>`
-      <div class="crm-row">
-        <div class="crm-av">${(x.tenant_name||'?')[0].toUpperCase()}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.85rem;font-weight:600">${x.tenant_name||'—'}</div>
-          <div style="font-size:.7rem;color:var(--td)">${x.listing_title||'—'} · ${x.visit_date?new Date(x.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''}</div>
-        </div>
-        <span class="badge ${statusCls[x.status]||'b-dim'}" style="font-size:.62rem">${statusLabels[x.status]||x.status}</span>
-      </div>`).join('')+'</div></div>';
+    renderCRM(document.querySelector('#page-crm input[placeholder*="Search"]')?.value||'');
   }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading CRM</div>';}
+}
+
+function renderCRM(searchQuery){
+  const wrap=document.getElementById('crm-list');
+  if(!wrap)return;
+  let v=crmVisitsCache;
+  if(currentCRMTab==='new')v=v.filter(x=>x.status==='awaiting_landlord');
+  else if(currentCRMTab==='visiting')v=v.filter(x=>x.status==='confirmed'||x.status==='agent_assigned');
+  else if(currentCRMTab==='interested')v=v.filter(x=>x.status==='booking_pending'||x.status==='pending');
+  else if(currentCRMTab==='signed')v=v.filter(x=>['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(x.status));
+
+  const q=(searchQuery||'').trim().toLowerCase();
+  if(q)v=v.filter(x=>(x.tenant_name||'').toLowerCase().includes(q)||(x.listing_title||'').toLowerCase().includes(q));
+
+  if(!v.length){wrap.innerHTML=`<div class="empty"><div class="em">👥</div><p>${q?'No clients match your search.':'No clients in this category yet.'}</p></div>`;return;}
+
+  const statusLabels={awaiting_landlord:'🆕 New',confirmed:'📅 Visit scheduled',agent_assigned:'📅 Visit confirmed',
+    booking_pending:'🏠 Wants to rent',pending:'🏠 Wants to rent',accepted:'✅ Accepted',
+    lease_pending:'📄 Signing lease',edl_scheduled:'📋 EDL',signing_day:'🎉 Move-in',
+    move_in_ready:'🏠 Moved in',declined:'❌ Declined',tenant_declined:'❌ Not interested',
+    cancelled:'❌ Cancelled'};
+  const statusCls={awaiting_landlord:'b-gold',confirmed:'b-sea',agent_assigned:'b-green',
+    booking_pending:'b-gold',pending:'b-gold',accepted:'b-green',lease_pending:'b-sea',
+    edl_scheduled:'b-green',signing_day:'b-green',move_in_ready:'b-green',
+    declined:'b-dim',tenant_declined:'b-dim',cancelled:'b-dim'};
+
+  wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+v.map(x=>`
+    <div class="crm-row">
+      <div class="crm-av">${(x.tenant_name||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.85rem;font-weight:600">${x.tenant_name||'—'}</div>
+        <div style="font-size:.7rem;color:var(--td)">${x.listing_title||'—'} · ${x.visit_date?new Date(x.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''}</div>
+      </div>
+      <span class="badge ${statusCls[x.status]||'b-dim'}" style="font-size:.62rem">${statusLabels[x.status]||x.status}</span>
+    </div>`).join('')+'</div></div>';
 }
 
 function setCRMTab(tab, btn){
   currentCRMTab=tab;
   document.querySelectorAll('#page-crm .tab').forEach(t=>t.classList.remove('act'));
   btn.classList.add('act');
-  loadCRM();
+  renderCRM(document.querySelector('#page-crm input[placeholder*="Search"]')?.value||'');
 }
 
-function filterCRM(q){/* TODO: filter CRM list */}
+function filterCRM(q){renderCRM(q);}
 
 // ── Visits ────────────────────────────────────────────────────
 async function loadAgencyMessages(){
@@ -1913,23 +1985,41 @@ async function loadVisits(){
 async function loadSubscription(){
   const wrap=document.getElementById('current-sub');
   const plan=agencyData?.plan||'starter';
+  const status=agencyData?.subscription_status||'inactive';
   const planNames={starter:'Starter — €49/month',pro:'Professional — €129/month',enterprise:'Enterprise — €299/month'};
+  const statusBadge=status==='active'?'<span class="badge b-agency">Active</span>'
+    :status==='past_due'?'<span class="badge b-gold">⚠️ Payment issue</span>'
+    :status==='cancelled'?'<span class="badge b-dim">Cancelled</span>'
+    :'<span class="badge b-dim">Not activated</span>';
   wrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between">
     <div>
       <div style="font-weight:700;font-size:.9rem">${planNames[plan]||'Starter'}</div>
-      <div style="font-size:.75rem;color:var(--td);margin-top:.2rem">Next billing: 1st of next month</div>
+      <div style="font-size:.75rem;color:var(--td);margin-top:.2rem">${status==='active'?'Billed monthly':'Select a plan below to activate'}</div>
     </div>
-    <span class="badge b-agency">Active</span>
+    ${statusBadge}
   </div>`;
   // Highlight current plan
   document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('current'));
   const curr=document.getElementById('plan-'+plan);
-  if(curr)curr.classList.add('current');
+  if(curr&&status==='active')curr.classList.add('current');
 }
 
 async function selectPlan(plan){
-  // TODO: integrate Stripe subscription
-  toast('💳 Redirecting to checkout... (Stripe integration pending)');
+  const btn=event?.target;
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳ Redirecting...';}
+  toast('💳 Redirecting to checkout...');
+  try{
+    const res=await fetch('/.netlify/functions/create-agency-subscription',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plan,agency_id:U.id,agency_email:U.email,agency_name:agencyData?.agency_name||''})
+    });
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Could not start checkout');
+    window.location.href=data.checkout_url;
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'Select plan';}
+  }
 }
 
 function agencySelectAllZones(){
@@ -2026,6 +2116,17 @@ function toast(msg){
   await loadAgencyProfile();
   checkTeamMemberIdentity();
   loadAll();
+
+  // Retour depuis Stripe après (dés)activation de l'abonnement agence
+  const urlParams=new URLSearchParams(window.location.search);
+  if(urlParams.get('subscription_activated')){
+    toast('✅ Subscription activated!');
+    window.history.replaceState({},'','agency-dashboard.html');
+    setTimeout(()=>{sp('subscription',null);},600);
+  }else if(urlParams.get('subscription_cancelled')){
+    toast('Checkout cancelled — you can try again anytime from Subscription.');
+    window.history.replaceState({},'','agency-dashboard.html');
+  }
 })();
 </script>
 </body>
