@@ -57,10 +57,26 @@ exports.handler = async (event) => {
       }
       return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
     }
+
+    // ── Abonnement agence — active le plan choisi au premier paiement ──
+    if (session.metadata?.type === 'agency_subscription') {
+      const agencyId = session.metadata.agency_id;
+      const plan = session.metadata.plan;
+      if (agencyId) {
+        await sb.from('agency_profiles').update({
+          plan: plan || 'starter',
+          subscription_status: 'active',
+          subscription_id: session.subscription || null
+        }).eq('clerk_id', agencyId);
+        console.log(`Agency ${agencyId} subscribed to ${plan}`);
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
+    }
   }
 
   // ── Abonnement hebdomadaire "For sale" — paiement raté ou abonnement annulé
   // → l'annonce repasse hors ligne (visibilité seulement, rien d'autre) ──
+  // Gère aussi les abonnements agence dans le même événement.
   if (stripeEvent.type === 'invoice.payment_failed' || stripeEvent.type === 'customer.subscription.deleted') {
     const obj = stripeEvent.data.object;
     const subscriptionId = stripeEvent.type === 'invoice.payment_failed' ? obj.subscription : obj.id;
@@ -72,6 +88,14 @@ exports.handler = async (event) => {
           sale_subscription_status: stripeEvent.type === 'invoice.payment_failed' ? 'past_due' : 'cancelled'
         }).eq('id', listing.id);
         console.log(`Sale listing ${listing.id} deactivated — ${stripeEvent.type}`);
+      }
+
+      const { data: agency } = await sb.from('agency_profiles').select('clerk_id').eq('subscription_id', subscriptionId).maybeSingle();
+      if (agency) {
+        await sb.from('agency_profiles').update({
+          subscription_status: stripeEvent.type === 'invoice.payment_failed' ? 'past_due' : 'cancelled'
+        }).eq('clerk_id', agency.clerk_id);
+        console.log(`Agency ${agency.clerk_id} subscription — ${stripeEvent.type}`);
       }
     }
     return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
