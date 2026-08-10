@@ -379,6 +379,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="ch"><span class="ct">🏠 Properties I manage</span><span class="badge b-green" id="managed-listings-count">0</span></div>
         <div class="cb" id="managed-listings-list"><div class="empty"><div class="em">🏠</div><p>No properties yet — accept a request above to get started</p></div></div>
       </div>
+
+      <!-- Modal: Edit Listing -->
+      <div id="edit-listing-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target.id==='edit-listing-modal')closeEditListing()">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:480px;width:100%;max-height:85vh;overflow-y:auto">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">✏️ Edit listing</div>
+          <div class="fg"><label class="fl">Title</label><input class="fi" id="edit-title"></div>
+          <div class="fgrid2">
+            <div class="fg" id="edit-price-wrap"><label class="fl" id="edit-price-label">Price (€)</label><input class="fi" type="number" id="edit-price"></div>
+            <div class="fg"><label class="fl">Bedrooms</label><input class="fi" type="number" id="edit-beds"></div>
+          </div>
+          <div class="fg"><label class="fl">Description</label><textarea class="fi" id="edit-desc" rows="4"></textarea></div>
+          <div class="fg"><label class="fl">Full Address</label><input class="fi" id="edit-address"></div>
+          <div class="fg"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="checkbox" id="edit-active"> <span class="fl" style="margin:0">Active (visible in search)</span></label></div>
+          <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" onclick="saveEditedListing()">Save changes →</button>
+          <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeEditListing()">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <!-- REVENUE -->
@@ -1100,8 +1117,6 @@ function sp(id,btn){
 }
 
 // ── Agent Identity Verification ───────────────────────────────
-let agIdData=null,agSelfieData=null,agStream=null,agModels=false;
-async function agLoadModels(){if(agModels)return true;try{const M='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(M),faceapi.nets.faceLandmark68TinyNet.loadFromUri(M),faceapi.nets.faceRecognitionNet.loadFromUri(M)]);agModels=true;return true;}catch(e){return false;}}
 
 (async()=>{
   clerk=window.Clerk;
@@ -1545,6 +1560,7 @@ async function loadListings(){
             </div>
             <div style="display:flex;gap:.4rem;flex-shrink:0">
               ${l.landlord_id?`<button onclick="openAgentMsg('${l.id}','${l.landlord_id}','Landlord')" style="background:var(--terra);color:white;border:none;border-radius:8px;padding:.4rem .7rem;font-size:.72rem;cursor:pointer">💬 Landlord</button>`:''}
+              <button onclick="editListing('${l.id}')" style="background:var(--s2);color:var(--tm);border:1px solid var(--b2);border-radius:8px;padding:.4rem .7rem;font-size:.72rem;cursor:pointer">✏️ Edit</button>
               <a href="./?listing=${l.id}" target="_blank" style="background:var(--s2);color:var(--tm);border:1px solid var(--b2);border-radius:8px;padding:.4rem .7rem;font-size:.72rem;text-decoration:none">View →</a>
             </div>
           </div>`).join('');
@@ -1553,6 +1569,49 @@ async function loadListings(){
   }catch(e){}
 }
 
+
+async function editListing(id){
+  try{
+    const{data:l,error}=await sb.from('listings').select('*').eq('id',id).single();
+    if(error||!l){toast('❌ Could not load listing');return;}
+    document.getElementById('edit-listing-modal').dataset.listingId=id;
+    document.getElementById('edit-title').value=l.title||'';
+    document.getElementById('edit-price').value=(l.type==='for_sale'?l.sale_price:l.price)||'';
+    document.getElementById('edit-price-label').textContent=l.type==='for_sale'?'Sale Price (€)':'Monthly Rent (€)';
+    document.getElementById('edit-beds').value=l.bedrooms||'';
+    document.getElementById('edit-desc').value=l.description||'';
+    document.getElementById('edit-address').value=l.full_address||'';
+    document.getElementById('edit-active').checked=!!l.active;
+    document.getElementById('edit-listing-modal').style.display='flex';
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function closeEditListing(){
+  document.getElementById('edit-listing-modal').style.display='none';
+}
+
+async function saveEditedListing(){
+  const id=document.getElementById('edit-listing-modal').dataset.listingId;
+  if(!id)return;
+  try{
+    const{data:l}=await sb.from('listings').select('type').eq('id',id).single();
+    const isSale=l?.type==='for_sale';
+    const price=parseFloat(document.getElementById('edit-price').value)||0;
+    const updates={
+      title:document.getElementById('edit-title').value.trim(),
+      description:document.getElementById('edit-desc').value.trim(),
+      full_address:document.getElementById('edit-address').value.trim(),
+      bedrooms:parseInt(document.getElementById('edit-beds').value)||0,
+      active:document.getElementById('edit-active').checked
+    };
+    if(isSale)updates.sale_price=price;else updates.price=price;
+    const{error}=await sb.from('listings').update(updates).eq('id',id);
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Listing updated');
+    closeEditListing();
+    if(typeof loadListings==='function')loadListings();
+  }catch(e){toast('❌ '+e.message);}
+}
 
 async function startSigningDay(visitId){
   if(!confirm('Start Signing Day for this visit?'))return;
@@ -1831,6 +1890,99 @@ async function generateAnnexAndComplete(){
 }
 
 
+
+async function showVisitIssueOptions(visitId,listingId,tenantId,landlordId){
+  const modal=document.createElement('div');
+  modal.id='visit-issue-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:380px;width:100%">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">⚠️ Report an issue with this visit</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <button class="btn bg" style="justify-content:flex-start" onclick="reportVisitNoShow('${visitId}','${listingId}','${tenantId}','${landlordId}')">❌ Tenant didn't show up</button>
+        <button class="btn bg" style="justify-content:flex-start" onclick="reportPropertyIssue('${visitId}','${listingId}','${landlordId}')">🔑 Can't access the property</button>
+        <button class="btn bg" style="justify-content:flex-start" onclick="rescheduleVisitPrompt('${visitId}','${listingId}','${tenantId}','${landlordId}')">📅 Need to reschedule</button>
+        <button class="btn bg" style="justify-content:flex-start;color:var(--red)" onclick="cancelVisitAsAgent('${visitId}','${listingId}','${tenantId}','${landlordId}')">🚫 Cancel this visit</button>
+      </div>
+      <button class="btn bg" style="width:100%;justify-content:center;margin-top:1rem" onclick="document.getElementById('visit-issue-modal').remove()">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function reportVisitNoShow(visitId,listingId,tenantId,landlordId){
+  document.getElementById('visit-issue-modal')?.remove();
+  if(!confirm('Mark the tenant as a no-show for this visit?'))return;
+  try{
+    await sb.from('visits').update({status:'no_show'}).eq('id',visitId);
+    if(landlordId){
+      await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:landlordId,content:'❌ The tenant did not show up for their scheduled visit. Let us know if you\'d like to reschedule or move on to other candidates.',type:'visit_no_show'}).catch(()=>{});
+    }
+    toast('✅ Visit marked as no-show');
+    loadVisits();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function reportPropertyIssue(visitId,listingId,landlordId){
+  document.getElementById('visit-issue-modal')?.remove();
+  const details=prompt('What\'s the access issue? (e.g. keys not where expected, landlord unreachable)');
+  if(details===null)return;
+  try{
+    if(landlordId){
+      await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:landlordId,content:`🔑 Your agent couldn't access the property for a scheduled visit.\n\n${details||'No further details given.'}\n\nPlease follow up so the visit can be rescheduled.`,type:'visit_property_issue'}).catch(()=>{});
+    }
+    toast('✅ Landlord notified');
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function rescheduleVisitPrompt(visitId,listingId,tenantId,landlordId){
+  document.getElementById('visit-issue-modal')?.remove();
+  const newDate=prompt('New visit date (YYYY-MM-DD):');
+  if(!newDate)return;
+  const newTime=prompt('New visit time (e.g. 14:00):','14:00');
+  if(newTime===null)return;
+  try{
+    await sb.from('visits').update({visit_date:newDate,visit_time:newTime,status:'agent_assigned'}).eq('id',visitId);
+    const dateLabel=new Date(newDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    if(tenantId){
+      await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:tenantId,content:`📅 Your visit has been rescheduled to ${dateLabel} at ${newTime}.`,type:'visit_rescheduled'}).catch(()=>{});
+    }
+    if(landlordId){
+      await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:landlordId,content:`📅 The visit for this property has been rescheduled to ${dateLabel} at ${newTime}.`,type:'visit_rescheduled'}).catch(()=>{});
+    }
+    toast('✅ Visit rescheduled');
+    loadVisits();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function cancelVisitAsAgent(visitId,listingId,tenantId,landlordId){
+  document.getElementById('visit-issue-modal')?.remove();
+  if(!confirm('Cancel this visit? Both parties will be notified.'))return;
+  try{
+    await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);
+    const msg='🚫 This scheduled visit has been cancelled by the agent.';
+    if(tenantId)await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:tenantId,content:msg,type:'visit_cancelled'}).catch(()=>{});
+    if(landlordId)await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:landlordId,content:msg,type:'visit_cancelled'}).catch(()=>{});
+    toast('✅ Visit cancelled');
+    loadVisits();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function loadVisitsPage(){
+  // La vue "Signing Day" remplace tout le HTML de #page-visits — il faut
+  // remettre la structure d'origine avant de pouvoir la re-remplir,
+  // sinon loadVisits() ne trouve plus les éléments qu'elle cherche à
+  // peupler (all-visits-list, req-count, etc.) et ne fait rien.
+  const page=document.getElementById('page-visits');
+  if(page){
+    page.innerHTML=`
+      <div id="visit-groups-agent"></div>
+      <div class="card">
+        <div class="ch"><span class="ct">All visits</span><span class="badge b-gold" id="req-count" style="display:none">0 pending</span></div>
+        <div class="cb" id="all-visits-list"><div class="empty"><div class="em">📅</div><p>No visits yet</p></div></div>
+      </div>`;
+  }
+  loadVisits();
+}
 
 async function markVisitDone(visitId){
   if(!confirm('Mark this visit as done?'))return;
@@ -2392,7 +2544,7 @@ function renderAllVisitsDirect(){
               <div style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Landlord confirmed — this visit is yours</div>
             </div>
             <button class="btn bp bsm" style="flex:1;justify-content:center" onclick="confirmMyVisit('${m.id}','${m.listing_id}','${m.visit_id||''}')">✅ Confirm visit</button>
-            <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="propertyUnavailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Can't make it</button>`
+            <button class="btn bsm" style="flex:1;justify-content:center;background:var(--rdim);color:var(--red);border:1px solid rgba(224,90,90,.3)" onclick="agentNotAvailable('${m.id}','${m.listing_id}','${m.visit_id||''}')">❌ Can't make it</button>`
         }
       </div>
     </div>`;
