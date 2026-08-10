@@ -2045,6 +2045,24 @@ function handlePhotos(files) {
   updatePhotoArea();
 }
 
+function handleVideo(input){
+  const file=input.files?.[0];
+  if(!file)return;
+  if(!file.type.startsWith('video/')){toast('❌ Please select a video file');input.value='';return;}
+  if(file.size>50*1024*1024){toast('❌ Video too large — max 50MB');input.value='';return;}
+  const preview=document.getElementById('video-preview');
+  preview.innerHTML=`<div style="display:flex;align-items:center;gap:.5rem;background:var(--warm);border-radius:8px;padding:.5rem .75rem">
+    <span style="font-size:1.2rem">🎥</span>
+    <span style="font-size:.8rem;color:var(--stone);flex:1">${file.name}</span>
+    <button onclick="removeVideo()" style="background:var(--terra);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:.7rem;cursor:pointer">✕</button>
+  </div>`;
+}
+
+function removeVideo(){
+  document.getElementById('video-preview').innerHTML='';
+  document.getElementById('video-input').value='';
+}
+
 function removePhoto(btn, idx) {
   uploadedPhotos.splice(idx, 1);
   btn.parentElement.remove();
@@ -2273,7 +2291,7 @@ async function doPost(){
     spots:parseInt(document.getElementById('psp').value)||1,
     baths:parseInt(document.getElementById('p-baths')?.value)||1,
     sqm:parseInt(document.getElementById('p-sqm')?.value)||null,
-    video_url:document.getElementById('p-video-url')?.value.trim()||null,
+    video_url:null, // rempli juste après via uploadVisitVideo() si une vidéo est fournie
     available_from:document.getElementById('pfr').value||null,
     available_until:document.getElementById('pun')?.value||null,
     description:document.getElementById('pde').value,
