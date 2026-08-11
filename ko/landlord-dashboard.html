@@ -3449,7 +3449,6 @@ async function loadRentedProperties(){
           ${bk.lease_tenant_embed||bk.lease_landlord_embed?`<a href="${bk.lease_landlord_embed||bk.lease_tenant_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📄 Lease</a>`:''}
           ${bk.edl_landlord_embed?`<a href="${bk.edl_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📋 EDL ${bk.edl_signed_landlord?'✅':'⏳'}</a>`:bk.edl_completed_at?`<button onclick="retryEdlGeneration('${bk.id}')" class="btn bp bsm">⚠️ Retry EDL signature</button>`:''}
           ${bk.edl_completed_at?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📷 Inventory + photos</button>`:''}
-          ${bk.renewal_landlord_embed?`<a href="${bk.renewal_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">🔄 Renewal ${bk.renewal_signed_landlord?'✅':'⏳'}</a>`:bk.lease_end?`<button onclick="openRenewalModal('${bk.id}','landlord')" class="btn bg bsm">🔄 Renew lease</button>`:''}
           <button onclick="openMsgChatById('${bk.tenant_id||''}','${bk.listing_id||''}')" class="btn bg bsm">💬 Message tenant</button>
           <button onclick="sp('maintenance',document.querySelector('.ni[onclick*=maintenance]'))" class="btn bg bsm" ${openTickets.length?'style="border-color:var(--red);color:var(--red)"':''}>🔧 Maintenance${openTickets.length?` (${openTickets.length})`:''}</button>
           <button onclick="sp('payments',document.querySelector('.ni[onclick*=payments]'))" class="btn bg bsm">💶 Full payment history</button>
@@ -4242,134 +4241,6 @@ function collectEdlRoomsLL(){
   }));
 }
 
-async function openRenewalModal(bookingId,initiator){
-  const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
-  if(!bk){toast('❌ Could not load booking');return;}
-  const{data:listing}=await sb.from('listings').select('full_address,zone,price').eq('id',bk.listing_id).single();
-
-  const currentEnd=bk.lease_end?new Date(bk.lease_end):new Date();
-
-  const modal=document.createElement('div');
-  modal.id='renewal-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
-  modal.innerHTML=`
-    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:420px;width:100%">
-      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🔄 Renew lease</div>
-      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">Quick renewal addendum for ${bk.tenant_name||'this tenant'} — references the original lease instead of rebuilding it from scratch.</div>
-      <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">Current lease ends: <strong>${bk.lease_end?new Date(bk.lease_end).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—'}</strong></div>
-      <div class="fg" style="margin-bottom:.75rem">
-        <label class="fl">Renew for *</label>
-        <select class="fsel" id="renewal-duration" onchange="updateRenewalEndPreview('${currentEnd.toISOString()}')" style="width:100%">
-          <option value="1">1 year</option>
-          <option value="2">2 years</option>
-          <option value="3">3 years</option>
-          <option value="custom">Custom end date</option>
-        </select>
-        <div style="font-size:.7rem;color:var(--td);margin-top:.3rem" id="renewal-end-preview"></div>
-      </div>
-      <div class="fg" id="renewal-custom-date-wrap" style="display:none;margin-bottom:.75rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="renewal-new-end" min="${currentEnd.toISOString().split('T')[0]}"></div>
-      <div class="fg" style="margin-bottom:1rem"><label class="fl">New monthly rent (€) <span style="font-size:.65rem;color:var(--td)">(leave as-is if unchanged — max +5%/year by law)</span></label><input class="fi" type="number" id="renewal-new-rent" value="${bk.monthly_rent||listing?.price||''}"></div>
-      <button id="renewal-submit-btn" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="submitRenewal('${bookingId}','${initiator||'landlord'}')">📎 Generate & send for signature →</button>
-      <button class="btn bg" style="width:100%;justify-content:center" onclick="document.getElementById('renewal-modal').remove()">Cancel</button>
-    </div>`;
-  document.body.appendChild(modal);
-  updateRenewalEndPreview(currentEnd.toISOString());
-}
-
-function updateRenewalEndPreview(currentEndIso){
-  const duration=document.getElementById('renewal-duration')?.value;
-  const customWrap=document.getElementById('renewal-custom-date-wrap');
-  const preview=document.getElementById('renewal-end-preview');
-  if(duration==='custom'){
-    if(customWrap)customWrap.style.display='block';
-    if(preview)preview.textContent='';
-    return;
-  }
-  if(customWrap)customWrap.style.display='none';
-  const newEnd=new Date(currentEndIso);
-  newEnd.setFullYear(newEnd.getFullYear()+parseInt(duration));
-  if(preview)preview.textContent=`New end date: ${newEnd.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
-  // Stocker pour submitRenewal
-  window._renewalComputedEnd=newEnd.toISOString().split('T')[0];
-}
-
-async function submitRenewal(bookingId,initiator){
-  const duration=document.getElementById('renewal-duration')?.value;
-  const newEnd=duration==='custom'?document.getElementById('renewal-new-end')?.value:window._renewalComputedEnd;
-  const newRent=document.getElementById('renewal-new-rent')?.value;
-  if(!newEnd){toast('⚠️ Pick a new end date');return;}
-
-  // Vraie vérification JS — l'attribut min="" en HTML se contourne facilement
-  const{data:bkCheck}=await sb.from('bookings').select('lease_end').eq('id',bookingId).maybeSingle();
-  const currentEndCheck=bkCheck?.lease_end?new Date(bkCheck.lease_end):new Date();
-  if(new Date(newEnd)<=currentEndCheck){
-    toast('⚠️ The new end date must be after the current lease end date ('+currentEndCheck.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+')');
-    return;
-  }
-
-  const btn=document.getElementById('renewal-submit-btn');
-  if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
-
-  try{
-    const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
-    const{data:listing}=await sb.from('listings').select('full_address,zone,price,landlord_id').eq('id',bk.listing_id).single();
-    const{data:landlordProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.landlord_id).maybeSingle();
-    const{data:tenantProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.tenant_id).maybeSingle();
-
-    let coTenants=[];
-    try{coTenants=(bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[]).map(ct=>({name:ct.name,email:ct.email}));}catch(e){}
-
-    const res=await fetch('/.netlify/functions/generate-renewal',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        landlord:{name:landlordProfile?.full_name||'',passport:landlordProfile?.passport_number||'',email:landlordProfile?.email||''},
-        tenant:{name:bk.tenant_name||tenantProfile?.full_name||'',passport:tenantProfile?.passport_number||'',email:tenantProfile?.email||bk.tenant_email},
-        coTenants,
-        listing:{address:listing?.full_address||listing?.zone||''},
-        original_start_date:bk.lease_start||bk.move_in_date,
-        original_end_date:bk.lease_end,
-        new_end_date:newEnd,
-        original_rent:bk.monthly_rent||listing?.price||0,
-        new_rent:newRent||bk.monthly_rent||listing?.price||0
-      })
-    });
-    const data=await res.json();
-    if(!data.success)throw new Error(data.error||'Could not generate renewal');
-
-    await sb.from('bookings').update({
-      renewal_landlord_embed:data.lessor_embed_src,
-      renewal_tenant_embed:data.lessee_embed_src,
-      renewal_submission_id:data.submission_id?String(data.submission_id):null,
-      renewal_new_end_date:newEnd,
-      renewal_signed_landlord:false,
-      renewal_signed_tenant:false
-    }).eq('id',bookingId);
-
-    // Notifier l'AUTRE partie — peu importe qui a lancé la demande
-    const newEndLabel=new Date(newEnd).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-    if(initiator==='tenant'&&bk.landlord_id){
-      await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
-        content:`🔄 Your tenant has requested a lease renewal — the lease would extend to ${newEndLabel}. Check Rented Properties to review and sign.`,
-        type:'renewal_sent'
-      }).catch(()=>{});
-    }else if(bk.tenant_id){
-      await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-        content:`🔄 Your landlord has sent a lease renewal for signature — the lease would extend to ${newEndLabel}. Check your visits page to review and sign.`,
-        type:'renewal_sent'
-      }).catch(()=>{});
-    }
-
-    document.getElementById('renewal-modal')?.remove();
-    toast('✅ Renewal sent for signature!');
-    loadRentedProperties();
-  }catch(e){
-    toast('❌ '+e.message);
-    if(btn){btn.textContent='📎 Generate & send for signature →';btn.disabled=false;}
-  }
-}
-
 async function retryEdlGeneration(bookingId){
   toast('⏳ Retrying EDL signature generation...');
   try{
@@ -4551,11 +4422,16 @@ async function generateAnnexAndCompleteLL(){
 // month after).
 async function generateRentScheduleLL(ctx,monthsAhead=12){
   const bk=ctx.booking;
-  if(!bk?.tenant_id||!bk?.listing_id||!bk?.monthly_rent)return;
+  console.log('[generateRentScheduleLL] booking:',bk);
+  if(!bk?.tenant_id||!bk?.listing_id||!bk?.monthly_rent){
+    console.warn('[generateRentScheduleLL] missing required field — tenant_id:',bk?.tenant_id,'listing_id:',bk?.listing_id,'monthly_rent:',bk?.monthly_rent);
+    return;
+  }
 
   // Avoid duplicating the schedule if this runs more than once for the same booking
-  const{data:existing}=await sb.from('payments').select('id').eq('tenant_id',bk.tenant_id).eq('listing_id',bk.listing_id).eq('type','rent').limit(1);
-  if(existing&&existing.length)return;
+  const{data:existing,error:checkErr}=await sb.from('payments').select('id').eq('tenant_id',bk.tenant_id).eq('listing_id',bk.listing_id).eq('type','rent').limit(1);
+  if(checkErr)console.warn('[generateRentScheduleLL] dedup check failed:',checkErr);
+  if(existing&&existing.length){console.log('[generateRentScheduleLL] schedule already exists, skipping');return;}
 
   const rows=[];
   const base=new Date(bk.move_in_date||bk.start_date||Date.now());
@@ -4566,6 +4442,7 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
       landlord_id:U.id,
       tenant_id:bk.tenant_id,
       listing_id:bk.listing_id,
+      booking_id:bk.id,
       tenant_name:ctx.tenant?.full_name||null,
       tenant_email:ctx.tenant?.email||null,
       amount:bk.monthly_rent,
@@ -4574,8 +4451,48 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
       due_date:due.toISOString().split('T')[0]
     });
   }
-  await sb.from('payments').insert(rows);
+  const{error:insErr}=await sb.from('payments').insert(rows);
+  if(insErr){
+    console.error('[generateRentScheduleLL] insert FAILED:',insErr);
+    toast('⚠️ Rent schedule generation failed: '+insErr.message);
+    return null;
+  }
+  console.log('[generateRentScheduleLL] inserted',rows.length,'rent rows, first due:',rows[0]?.due_date);
   return rows[0]?.due_date||null; // date du tout premier loyer récurrent, utile pour informer le locataire
+}
+
+async function generateFirstPaymentReceiptLL(bk,listingTitle,tenantName){
+  try{
+    const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+      body{font-family:Georgia,serif;max-width:650px;margin:0 auto;padding:40px;color:#1a1a1a}
+      h1{font-size:1.4rem;border-bottom:2px solid #C9553A;padding-bottom:.5rem}
+      .row{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #eee}
+      .total{font-weight:700;font-size:1.1rem;padding-top:.75rem}
+      </style></head><body>
+      <h1>🧾 Payment Receipt</h1>
+      <p>Date issued: ${today}</p>
+      <p><strong>Landlord:</strong> ${P?.full_name||'—'}</p>
+      <p><strong>Tenant:</strong> ${tenantName||'—'}</p>
+      <p><strong>Property:</strong> ${listingTitle||'—'}</p>
+      <div style="margin-top:1.5rem">
+        <div class="row"><span>Security deposit</span><span>€${bk.monthly_rent||0}</span></div>
+        <div class="row"><span>First month's rent</span><span>€${bk.monthly_rent||0}</span></div>
+        <div class="row total"><span>Total received</span><span>€${(bk.monthly_rent||0)*2}</span></div>
+      </div>
+      <p style="margin-top:2rem;font-size:.85rem;color:#666">This receipt confirms that the above amounts were received directly by the landlord. It is issued for the tenant's records and does not constitute a RestMalta payment (RestMalta does not hold or process rent/deposit funds).</p>
+    </body></html>`;
+
+    const blob=new Blob([html],{type:'text/html'});
+    const path=`receipts/${bk.id}_${Date.now()}.html`;
+    const{error:upErr}=await sb.storage.from('listings').upload(path,blob,{contentType:'text/html',upsert:true});
+    if(upErr){console.warn('Receipt upload:',upErr);return;}
+    const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+    const receiptUrl=urlData?.publicUrl;
+    if(receiptUrl){
+      await sb.from('payments').update({receipt_url:receiptUrl}).eq('booking_id',bk.id).eq('status','paid').is('receipt_url',null);
+    }
+  }catch(e){console.warn('generateFirstPaymentReceiptLL:',e);}
 }
 
 async function confirmTenantPayment(bookingId){
@@ -4606,8 +4523,8 @@ async function confirmTenantPayment(bookingId){
     const today=new Date().toISOString().split('T')[0];
     try{
       await sb.from('payments').insert([
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
       ]);
     }catch(e){console.warn('Payments record:',e);}
   }
@@ -4687,16 +4604,19 @@ async function acceptDirectBooking(listingId, tenantId){
       });
     }catch(e){console.warn('Commission capture:',e.message);}
 
-    // Récupérer la date de visite
+    // Récupérer la date de visite (utilisée seulement si aucune date
+    // d'emménagement n'a été renseignée, en tout dernier recours)
     const{data:visitInfo}=await sb.from('visits').select('visit_date,visit_time').eq('listing_id',listingId).eq('tenant_id',tenantId).maybeSingle();
 
-    // Mettre à jour le booking avec edl_date = visit_date
+    // Mettre à jour le booking — edl_date doit correspondre à la vraie date
+    // d'emménagement convenue, pas à la date de la visite initiale du bien
+    // (qui a souvent lieu bien avant et n'a aucun rapport)
     await sb.from('bookings').update({
       status:'accepted',
       accepted_at:new Date().toISOString(),
       landlord_id:U.id,
       total_tenants:totalTenants,
-      edl_date:visitInfo?.visit_date||null
+      edl_date:booking.move_in_date||visitInfo?.visit_date||null
     }).eq('id',booking.id);
 
     // Générer le bail avec co-tenants (gère aussi le update booking)
