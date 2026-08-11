@@ -4496,16 +4496,17 @@ async function generateFirstPaymentReceiptLL(bk,listingTitle,tenantName){
 }
 
 async function confirmTenantPayment(bookingId){
-  if(!bookingId){toast('❌ No booking ID');return;}
+  if(!bookingId){alert('❌ No booking ID');return;}
   if(!confirm('Confirm you received the tenant\'s payment?')) return;
 
   let bk=null,listing=null,tenantProfile=null;
-  try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();bk=b;}catch(e){}
+  try{const{data:b,error:bErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();bk=b;if(bErr)alert('⚠️ Could not load booking: '+bErr.message);}catch(e){alert('⚠️ Booking load error: '+e.message);}
+  if(!bk){alert('❌ No booking found for this ID — stopping.');return;}
   if(bk?.listing_id){try{const{data:l}=await sb.from('listings').select('title').eq('id',bk.listing_id).single();listing=l;}catch(e){}}
   if(bk?.tenant_id){try{const{data:t}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenantProfile=t;}catch(e){}}
 
   const{error}=await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
-  if(error){toast('❌ '+error.message);return;}
+  if(error){alert('❌ '+error.message);return;}
 
   // Prochaine échéance — règle maltaise : le loyer se paie chaque mois à la
   // date d'entrée dans le logement, pas le 1er du mois.
@@ -4519,14 +4520,17 @@ async function confirmTenantPayment(bookingId){
   // Record the deposit and first month's rent as clearly labeled payments —
   // 'first_rent' (not 'rent') so it doesn't get counted twice by the
   // recurring monthly schedule generator, which only looks for 'rent'.
-  if(bk?.tenant_id&&bk?.listing_id&&bk?.monthly_rent){
+  if(!bk?.tenant_id||!bk?.listing_id||!bk?.monthly_rent){
+    alert(`⚠️ Payments NOT created — missing data on this booking:\ntenant_id: ${bk?.tenant_id?'✓ '+bk.tenant_id:'❌ MISSING'}\nlisting_id: ${bk?.listing_id?'✓ '+bk.listing_id:'❌ MISSING'}\nmonthly_rent: ${bk?.monthly_rent?'✓ '+bk.monthly_rent:'❌ MISSING'}`);
+  }else{
     const today=new Date().toISOString().split('T')[0];
-    try{
-      await sb.from('payments').insert([
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
-      ]);
-    }catch(e){console.warn('Payments record:',e);}
+    const{error:payErr}=await sb.from('payments').insert([
+      {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
+      {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
+    ]);
+    if(payErr){
+      alert('❌ Payments insert FAILED:\n'+payErr.message+'\n\nCode: '+(payErr.code||'—')+'\nDetails: '+(payErr.details||'—'));
+    }
   }
 
   // Informer le locataire (payment confirmé + date du prochain loyer)
