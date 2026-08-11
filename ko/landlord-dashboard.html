@@ -3658,16 +3658,24 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
     form.setAttribute('data-send-copy-email','false');
     form.style.cssText='width:100%;display:block;min-height:100vh';
     form.addEventListener('completed',async()=>{
-      toast('✅ Signed!');
+      let updateOk=false;
       try{
-        await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
+        const{error:updErr}=await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
+        if(updErr){
+          alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nField: '+dbField+'\nBooking ID: '+bookingId);
+        }else{
+          updateOk=true;
+        }
         if(bk.tenant_id){
           await sb.from('messages').insert({
             listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
             content:'✅ Landlord signed '+title,type:dbField
           });
         }
-      }catch(e){}
+      }catch(e){
+        alert('❌ Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);
+      }
+      if(updateOk)toast('✅ Signed!');
       setTimeout(()=>{modal.remove();loadVisitsPage();},1200);
     });
     body.appendChild(form);
