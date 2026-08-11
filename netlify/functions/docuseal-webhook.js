@@ -103,6 +103,11 @@ exports.handler = async (event) => {
             edlUpdate = { edl_signed_tenant: true };
           }
           if (Object.keys(edlUpdate).length) {
+            // Capturer le vrai PDF signé — rouvrir le lien de signature après
+            // coup ne montre pas l'état signé, il faut le vrai document fini
+            const pdfUrl = submission.documents?.[0]?.url || submission.audit_log_url || null;
+            if (pdfUrl) edlUpdate.edl_pdf_url = pdfUrl;
+
             await sb3.from('bookings').update(edlUpdate).eq('id', edlBooking.id);
             if (edlUpdate.edl_signed_landlord && !edlBooking.edl_signed_landlord) {
               await sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.tenant_id, content: '✍️ The landlord signed the move-in inventory (EDL)! Your turn — go to your visits page to sign.', type: 'edl_signed_landlord' }).catch(() => {});
