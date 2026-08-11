@@ -2201,18 +2201,24 @@ async function loadTenantVisits(){
       if(bk.status==='pending'||bk.status==='booking_pending') status='booking_pending';
       else if(bk.status==='accepted') status='accepted';
       else if(bk.status==='declined') status='declined';
-      else if(['edl_scheduled','signing_day','move_in_ready'].includes(bk.status)) status=bk.status;
+      else if(['lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(bk.status)) status=bk.status;
     }
     return{...v,booking:bk,status};
   });
 
   // Bookings sans visite correspondante
-  const orphanBookings=bookings.filter(b=>!usedBookingIds.has(b.id)&&!['declined','cancelled_by_tenant'].includes(b.status)).map(b=>({
-    id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:U.id,
-    listing_title:b.listing_title,listing_zone:b.zone||'Malta',
-    status:b.status==='accepted'?'accepted':'booking_pending',
-    booking:b,has_agent:false
-  }));
+  const orphanBookings=bookings.filter(b=>!usedBookingIds.has(b.id)&&!['declined','cancelled_by_tenant'].includes(b.status)).map(b=>{
+    let status='booking_pending';
+    if(b.status==='pending'||b.status==='booking_pending')status='booking_pending';
+    else if(b.status==='accepted')status='accepted';
+    else if(b.status==='declined')status='declined';
+    else if(['lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(b.status))status=b.status;
+    return{
+      id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:U.id,
+      listing_title:b.listing_title,listing_zone:b.zone||'Malta',
+      status,booking:b,has_agent:false
+    };
+  });
   visits=[...visits,...orphanBookings];
 
   const doneStatuses=['cancelled','declined','tenant_declined','no_show','date_rejected'];
@@ -2555,14 +2561,22 @@ function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
   form.setAttribute('data-send-copy-email','false');
   form.style.cssText='width:100%;display:block;min-height:100vh';
   form.addEventListener('completed',async()=>{
-    toast('✅ Signed!');
+    let updateOk=false;
     try{
-      await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
+      const{error:updErr}=await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
+      if(updErr){
+        alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nField: '+dbField+'\nBooking ID: '+bookingId);
+      }else{
+        updateOk=true;
+      }
       await sb.from('messages').insert({
         listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
         content:'✅ Tenant signed '+title,type:dbField
       });
-    }catch(e){}
+    }catch(e){
+      alert('❌ Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);
+    }
+    if(updateOk)toast('✅ Signed!');
     modal.remove();
     loadTenantVisits();
   });
