@@ -263,13 +263,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
         <!-- Sub-tab: Extend or Stop -->
         <div id="ml-tab-manage" style="display:none">
-          <div class="card" style="margin-bottom:1rem">
-            <div class="ch"><div class="ct">🔄 Extend your lease</div></div>
-            <div class="cb">
-              <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Want to stay longer? Send your landlord a renewal request — they'll review and sign, same as you. Nothing changes until you've both signed.</p>
-              <div id="ml-renewal-status"></div>
-            </div>
-          </div>
           <div class="card">
             <div class="ch"><div class="ct">📤 Generate notice to leave</div></div>
             <div class="cb">
@@ -1346,33 +1339,6 @@ function showMlTab(tab){
       btn.style.color=t===tab?'white':'var(--tm)';
     }
   });
-  if(tab==='manage')loadRenewalStatus();
-}
-
-async function loadRenewalStatus(){
-  const wrap=document.getElementById('ml-renewal-status');
-  if(!wrap)return;
-  wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
-  const activeStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
-  try{
-    const{data:bk}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',activeStatuses).order('created_at',{ascending:false}).limit(1).maybeSingle();
-    if(!bk||!bk.lease_end){
-      wrap.innerHTML='<div style="font-size:.78rem;color:var(--td)">No active lease with an end date yet.</div>';
-      return;
-    }
-    if(bk.renewal_tenant_embed){
-      wrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.5rem .7rem">
-        <span style="font-size:.8rem">Renewal to ${bk.renewal_new_end_date?new Date(bk.renewal_new_end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span>
-        ${bk.renewal_signed_tenant
-          ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.renewal_tenant_embed}" target="_blank" style="font-size:.7rem;color:var(--td);text-decoration:none">📄 View</a></div>`
-          :`<button onclick="openTenantRenewalDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.3rem .7rem;font-size:.74rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
-      </div>`;
-    }else{
-      wrap.innerHTML=`<button onclick="openTenantRenewalModal('${bk.id}')" class="btn bp" style="width:100%;justify-content:center">🔄 Request lease renewal →</button>`;
-    }
-  }catch(e){
-    wrap.innerHTML='<div style="font-size:.78rem;color:var(--red)">Could not load renewal status</div>';
-  }
 }
 
 async function loadMyLocation(){
@@ -2475,14 +2441,6 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       </div>
       <button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.7rem;color:var(--gold);margin-bottom:.75rem">📝 Reminder: submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. This is separate from your RestMalta lease/EDL.</div>`:''}
-      ${bk.renewal_tenant_embed?`
-      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">🔄 Lease Renewal</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.75rem">
-        <span style="font-size:.78rem">Renewal to ${bk.renewal_new_end_date?new Date(bk.renewal_new_end_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span>
-        ${bk.renewal_signed_tenant
-          ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.renewal_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
-          :`<button onclick="openTenantRenewalDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
-      </div>`:''}
 
       <!-- Paiement -->
       ${!payConfirmed?`
@@ -2575,134 +2533,6 @@ async function openTenantEdlDoc(bookingId){
     const s=document.createElement('script');
     s.src='https://cdn.docuseal.com/js/form.js';
     s.onload=()=>{window.docusealLoaded=true;doOpenTenantDoc(bk,bookingId,bk.edl_tenant_embed,'edl_signed_tenant','📋 Move-in Inventory (Annex A)');};
-    document.head.appendChild(s);
-  }
-}
-
-async function openTenantRenewalModal(bookingId){
-  const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
-  if(!bk){toast('❌ Could not load booking');return;}
-  const{data:listing}=await sb.from('listings').select('full_address,zone,price').eq('id',bk.listing_id).single();
-
-  const currentEnd=bk.lease_end?new Date(bk.lease_end):new Date();
-
-  const modal=document.createElement('div');
-  modal.id='tenant-renewal-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
-  modal.innerHTML=`
-    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:420px;width:100%">
-      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🔄 Request lease renewal</div>
-      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">Your landlord will receive this and can review and sign — it doesn't renew the lease until both of you sign.</div>
-      <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">Current lease ends: <strong>${bk.lease_end?new Date(bk.lease_end).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—'}</strong></div>
-      <div class="fg" style="margin-bottom:.75rem">
-        <label class="fl">Renew for *</label>
-        <select class="fsel" id="t-renewal-duration" onchange="updateTenantRenewalEndPreview('${currentEnd.toISOString()}')" style="width:100%">
-          <option value="1">1 year</option>
-          <option value="2">2 years</option>
-          <option value="3">3 years</option>
-          <option value="custom">Custom end date</option>
-        </select>
-        <div style="font-size:.7rem;color:var(--td);margin-top:.3rem" id="t-renewal-end-preview"></div>
-      </div>
-      <div class="fg" id="t-renewal-custom-date-wrap" style="display:none;margin-bottom:1rem"><label class="fl">Custom end date</label><input class="fi" type="date" id="t-renewal-new-end" min="${currentEnd.toISOString().split('T')[0]}"></div>
-      <button id="t-renewal-submit-btn" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="submitTenantRenewal('${bookingId}')">📎 Request renewal →</button>
-      <button class="btn bg" style="width:100%;justify-content:center" onclick="document.getElementById('tenant-renewal-modal').remove()">Cancel</button>
-    </div>`;
-  document.body.appendChild(modal);
-  updateTenantRenewalEndPreview(currentEnd.toISOString());
-}
-
-function updateTenantRenewalEndPreview(currentEndIso){
-  const duration=document.getElementById('t-renewal-duration')?.value;
-  const customWrap=document.getElementById('t-renewal-custom-date-wrap');
-  const preview=document.getElementById('t-renewal-end-preview');
-  if(duration==='custom'){
-    if(customWrap)customWrap.style.display='block';
-    if(preview)preview.textContent='';
-    return;
-  }
-  if(customWrap)customWrap.style.display='none';
-  const newEnd=new Date(currentEndIso);
-  newEnd.setFullYear(newEnd.getFullYear()+parseInt(duration));
-  if(preview)preview.textContent=`New end date: ${newEnd.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
-  window._tenantRenewalComputedEnd=newEnd.toISOString().split('T')[0];
-}
-
-async function submitTenantRenewal(bookingId){
-  const duration=document.getElementById('t-renewal-duration')?.value;
-  const newEnd=duration==='custom'?document.getElementById('t-renewal-new-end')?.value:window._tenantRenewalComputedEnd;
-  if(!newEnd){toast('⚠️ Pick a new end date');return;}
-
-  const{data:bkCheck}=await sb.from('bookings').select('lease_end').eq('id',bookingId).maybeSingle();
-  const currentEndCheck=bkCheck?.lease_end?new Date(bkCheck.lease_end):new Date();
-  if(new Date(newEnd)<=currentEndCheck){
-    toast('⚠️ The new end date must be after the current lease end date ('+currentEndCheck.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+')');
-    return;
-  }
-
-  const btn=document.getElementById('t-renewal-submit-btn');
-  if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
-
-  try{
-    const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
-    const{data:listing}=await sb.from('listings').select('full_address,zone,price').eq('id',bk.listing_id).single();
-    const{data:landlordProfile}=await sb.from('profiles').select('*').eq('clerk_id',bk.landlord_id).maybeSingle();
-    const{data:tenantProfile}=await sb.from('profiles').select('*').eq('clerk_id',U.id).maybeSingle();
-
-    let coTenants=[];
-    try{coTenants=(bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[]).map(ct=>({name:ct.name,email:ct.email}));}catch(e){}
-
-    const res=await fetch('/.netlify/functions/generate-renewal',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        landlord:{name:landlordProfile?.full_name||'',passport:landlordProfile?.passport_number||'',email:landlordProfile?.email||''},
-        tenant:{name:tenantProfile?.full_name||P?.full_name||'',passport:tenantProfile?.passport_number||'',email:tenantProfile?.email||U.email},
-        coTenants,
-        listing:{address:listing?.full_address||listing?.zone||''},
-        original_start_date:bk.lease_start||bk.move_in_date,
-        original_end_date:bk.lease_end,
-        new_end_date:newEnd,
-        original_rent:bk.monthly_rent||listing?.price||0,
-        new_rent:bk.monthly_rent||listing?.price||0
-      })
-    });
-    const data=await res.json();
-    if(!data.success)throw new Error(data.error||'Could not generate renewal');
-
-    await sb.from('bookings').update({
-      renewal_landlord_embed:data.lessor_embed_src,
-      renewal_tenant_embed:data.lessee_embed_src,
-      renewal_submission_id:data.submission_id?String(data.submission_id):null,
-      renewal_new_end_date:newEnd,
-      renewal_signed_landlord:false,
-      renewal_signed_tenant:false
-    }).eq('id',bookingId);
-
-    if(bk.landlord_id){
-      await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
-        content:`🔄 Your tenant has requested a lease renewal — the lease would extend to ${new Date(newEnd).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}. Check Rented Properties to review and sign.`,
-        type:'renewal_sent'
-      }).catch(()=>{});
-    }
-
-    document.getElementById('tenant-renewal-modal')?.remove();
-    toast('✅ Renewal request sent to your landlord!');
-    loadTenantVisits();
-  }catch(e){
-    toast('❌ '+e.message);
-    if(btn){btn.textContent='📎 Request renewal →';btn.disabled=false;}
-  }
-}
-
-async function openTenantRenewalDoc(bookingId){
-  const{data:bk}=await sb.from('bookings').select('renewal_tenant_embed,id,listing_id,landlord_id').eq('id',bookingId).single();
-  if(!bk?.renewal_tenant_embed){toast('❌ Document not ready yet');return;}
-  if(window.docusealLoaded){doOpenTenantDoc(bk,bookingId,bk.renewal_tenant_embed,'renewal_signed_tenant','🔄 Lease Renewal');}
-  else{
-    const s=document.createElement('script');
-    s.src='https://cdn.docuseal.com/js/form.js';
-    s.onload=()=>{window.docusealLoaded=true;doOpenTenantDoc(bk,bookingId,bk.renewal_tenant_embed,'renewal_signed_tenant','🔄 Lease Renewal');};
     document.head.appendChild(s);
   }
 }
