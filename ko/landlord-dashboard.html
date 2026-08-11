@@ -3447,7 +3447,7 @@ async function loadRentedProperties(){
         <div id="rp-cotenants-${bk.id}"></div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
           ${bk.lease_tenant_embed||bk.lease_landlord_embed?`<a href="${bk.lease_landlord_embed||bk.lease_tenant_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📄 Lease</a>`:''}
-          ${bk.edl_landlord_embed?`<a href="${bk.edl_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📋 EDL ${bk.edl_signed_landlord?'✅':'⏳'}</a>`:bk.edl_completed_at?`<button onclick="retryEdlGeneration('${bk.id}')" class="btn bp bsm">⚠️ Retry EDL signature</button>`:''}
+          ${bk.edl_landlord_embed?`<a href="${bk.edl_pdf_url||bk.edl_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📋 EDL ${bk.edl_signed_landlord?'✅':'⏳'}</a>`:bk.edl_completed_at?`<button onclick="retryEdlGeneration('${bk.id}')" class="btn bp bsm">⚠️ Retry EDL signature</button>`:''}
           ${bk.edl_completed_at?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📷 Inventory + photos</button>`:''}
           <button onclick="openMsgChatById('${bk.tenant_id||''}','${bk.listing_id||''}')" class="btn bg bsm">💬 Message tenant</button>
           <button onclick="sp('maintenance',document.querySelector('.ni[onclick*=maintenance]'))" class="btn bg bsm" ${openTickets.length?'style="border-color:var(--red);color:var(--red)"':''}>🔧 Maintenance${openTickets.length?` (${openTickets.length})`:''}</button>
@@ -3813,7 +3813,7 @@ function renderLeaseSection(g){
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.76rem">📋 Move-in Inventory (Annex A)</span>
           ${bk.edl_signed_landlord
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_pdf_url||bk.edl_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
             :`<button onclick="openLandlordEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.7rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
         </div>
       </div>`:''}
