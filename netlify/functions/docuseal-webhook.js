@@ -115,46 +115,6 @@ exports.handler = async (event) => {
       }
     }
 
-    // ── Gestion signatures Renouvellement de bail ───────────────────────────
-    if (eventType === 'submitter_completed' || eventType === 'submission_completed') {
-      const submission = payload.data || payload;
-      const submissionId = String(submission.id || submission.submission_id || '');
-      if (submissionId) {
-        const sb4 = createClient(SUPABASE_URL, SUPABASE_KEY);
-        const { data: renewalBooking } = await sb4.from('bookings').select('*').eq('renewal_submission_id', submissionId).maybeSingle().catch(() => ({ data: null }));
-        if (renewalBooking) {
-          let renewalUpdate = {};
-          const submitter = (submission.submitters || []).find(s => s.status === 'completed');
-          const role = submitter?.role || '';
-          if (eventType === 'submission_completed') {
-            renewalUpdate = { renewal_signed_landlord: true, renewal_signed_tenant: true };
-          } else if (role === 'Lessor') {
-            renewalUpdate = { renewal_signed_landlord: true };
-          } else if (role === 'Lessee') {
-            renewalUpdate = { renewal_signed_tenant: true };
-          }
-          if (Object.keys(renewalUpdate).length) {
-            await sb4.from('bookings').update(renewalUpdate).eq('id', renewalBooking.id);
-            const landlordDone = renewalUpdate.renewal_signed_landlord || renewalBooking.renewal_signed_landlord;
-            const tenantDone = renewalUpdate.renewal_signed_tenant || renewalBooking.renewal_signed_tenant;
-            if (renewalUpdate.renewal_signed_landlord && !renewalBooking.renewal_signed_landlord) {
-              await sb4.from('messages').insert({ listing_id: renewalBooking.listing_id, sender_id: 'system', receiver_id: renewalBooking.tenant_id, content: '✍️ The landlord signed the lease renewal! Your turn — go to your visits page to sign.', type: 'renewal_signed_landlord' }).catch(() => {});
-            }
-            if (renewalUpdate.renewal_signed_tenant && !renewalBooking.renewal_signed_tenant) {
-              await sb4.from('messages').insert({ listing_id: renewalBooking.listing_id, sender_id: 'system', receiver_id: renewalBooking.landlord_id, content: '✍️ The tenant signed the lease renewal!', type: 'renewal_signed_tenant' }).catch(() => {});
-            }
-            // Une fois les deux parties signées, la nouvelle date de fin devient officielle
-            if (landlordDone && tenantDone && renewalBooking.renewal_new_end_date) {
-              await sb4.from('bookings').update({ lease_end: renewalBooking.renewal_new_end_date }).eq('id', renewalBooking.id);
-              const bothSignedMsg = `🎉 Lease renewal fully signed! The lease now runs until ${new Date(renewalBooking.renewal_new_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.`;
-              await sb4.from('messages').insert({ listing_id: renewalBooking.listing_id, sender_id: 'system', receiver_id: renewalBooking.tenant_id, content: bothSignedMsg, type: 'renewal_fully_signed' }).catch(() => {});
-              await sb4.from('messages').insert({ listing_id: renewalBooking.listing_id, sender_id: 'system', receiver_id: renewalBooking.landlord_id, content: bothSignedMsg, type: 'renewal_fully_signed' }).catch(() => {});
-            }
-          }
-        }
-      }
-    }
-
     if (eventType === 'submission.completed' || eventType === 'form.completed') {
       const submission = payload.data || payload.submission || payload;
       const submissionId = submission.id || payload.id;
