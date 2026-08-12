@@ -223,7 +223,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <button class="ml-tab act" id="ml-tabbtn-lease" onclick="showMlTab('lease')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--terra);color:white">📄 Bail & EDL</button>
           <button class="ml-tab" id="ml-tabbtn-payments" onclick="showMlTab('payments')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">💶 Payments</button>
           <button class="ml-tab" id="ml-tabbtn-maintenance" onclick="showMlTab('maintenance')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🔧 Maintenance</button>
-          <button class="ml-tab" id="ml-tabbtn-manage" onclick="showMlTab('manage')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🔄 Extend or Stop</button>
+          <button class="ml-tab" id="ml-tabbtn-manage" onclick="showMlTab('manage')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🚪 Leave</button>
         </div>
 
         <!-- Sub-tab: Bail & EDL -->
@@ -233,11 +233,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
         <!-- Sub-tab: Payments -->
         <div id="ml-tab-payments" style="display:none">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem">
-            <div class="card" style="margin-bottom:0"><div class="cb" style="text-align:center;padding:.85rem .5rem">
-              <div style="font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.25rem">Total paid</div>
-              <div id="pay-total" style="font-size:1.15rem;font-weight:700;color:var(--txt)">€0</div>
-            </div></div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1rem">
             <div class="card" style="margin-bottom:0"><div class="cb" style="text-align:center;padding:.85rem .5rem">
               <div style="font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.25rem">Pending</div>
               <div id="pay-pend" style="font-size:1.15rem;font-weight:700;color:var(--gold)">0</div>
@@ -2435,7 +2431,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       </div>
       ${bk.status==='edl_scheduled'?`
       <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your landlord is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
-      ${bk.status==='move_in_ready'&&bk.edl_tenant_embed?`
+      ${bk.edl_tenant_embed?`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
@@ -2885,15 +2881,18 @@ async function loadPaymentsData(){
     data=[...(d1||[]),...(d2||[])].filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true;});
   }catch(e){data=[];}
   const payments=data||[];
-  const total=payments.filter(p=>p.status==='paid').reduce((s,p)=>s+(p.amount||0),0);
-  const pend=payments.filter(p=>p.status==='pending'||p.status==='late').length;
+  // "Pending" — seulement ce qui est vraiment imminent (2 jours avant
+  // l'échéance ou déjà en retard), pas les 12 mois d'échéances futures
+  const soonThreshold=new Date();soonThreshold.setDate(soonThreshold.getDate()+2);
+  const isSoonOrLate=p=>p.due_date&&new Date(p.due_date)<=soonThreshold;
+  const pend=payments.filter(p=>(p.status==='pending'||p.status==='late')&&isSoonOrLate(p)).length;
   const next=payments.find(p=>(p.status==='pending'||p.status==='late')&&p.due_date);
-  if(document.getElementById('pay-total'))document.getElementById('pay-total').textContent='€'+total.toLocaleString();
   if(document.getElementById('pay-pend'))document.getElementById('pay-pend').textContent=pend||'0';
   if(document.getElementById('pay-next'))document.getElementById('pay-next').textContent=next?new Date(next.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
 
-  // "Rent due" — seulement la toute prochaine échéance, pas toutes les futures
-  const allDue=payments.filter(p=>p.status==='pending'||p.status==='late'||p.status==='declared').sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
+  // "Rent due" — seulement la toute prochaine échéance, et seulement si
+  // elle est vraiment imminente (2 jours avant ou déjà en retard)
+  const allDue=payments.filter(p=>p.status==='declared'||((p.status==='pending'||p.status==='late')&&isSoonOrLate(p))).sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
   const dueNow=allDue.length?[allDue[0]]:[];
   const dueWrap=document.getElementById('pay-due-now');
   if(dueWrap&&dueNow.length){
