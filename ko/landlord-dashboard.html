@@ -1539,9 +1539,18 @@ async function loadBookingDossier(booking){
       }
       if(booking.first_payment_confirmed){
         const paidDiv=document.createElement('div');
+        paidDiv.id='paycheck-'+booking.id;
         paidDiv.style.cssText='margin-top:.4rem;font-size:.72rem;color:#4CAF7D;font-weight:600';
         paidDiv.textContent='✅ Payment confirmed';
         container.appendChild(paidDiv);
+        // Vérifier que les paiements existent VRAIMENT — un ancien clic
+        // fait avant certains correctifs a pu confirmer sans rien créer
+        sb.from('payments').select('id').eq('booking_id',booking.id).eq('type','deposit').limit(1).then(({data})=>{
+          if(!data||!data.length){
+            const el=document.getElementById('paycheck-'+booking.id);
+            if(el)el.innerHTML='✅ Payment confirmed <button onclick="retryCreatePaymentRecords(\''+booking.id+'\')" style="margin-left:.4rem;background:var(--gold);color:#1a1a1a;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:700;cursor:pointer">⚠️ Fix missing records</button>';
+          }
+        });
       }
       container.appendChild(sigDiv);
     }
@@ -3707,13 +3716,39 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
 async function confirmFirstPaymentReceived(bookingId,received){
   try{
     if(received){
+      const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+      if(!bk){alert('❌ Booking not found');return;}
       await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
-      const{data:b}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
-      if(b?.tenant_id){
-        await sb.from('messages').insert({listing_id:b.listing_id,sender_id:'system',receiver_id:b.tenant_id,content:'✅ Payment confirmed by landlord!\n\nEverything is set for your move-in. Your agent will contact you for the entry inventory.',type:'payment_confirmed'});
 
+      let listing=null,tenantProfile=null;
+      if(bk.listing_id){try{const{data:l}=await sb.from('listings').select('title').eq('id',bk.listing_id).single();listing=l;}catch(e){}}
+      if(bk.tenant_id){try{const{data:t}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenantProfile=t;}catch(e){}}
+
+      // Prochaine échéance — règle maltaise : le loyer se paie chaque mois à la
+      // date d'entrée dans le logement, pas le 1er du mois.
+      let nextDueLabel='—';
+      if(bk.move_in_date){
+        const moveIn=new Date(bk.move_in_date);
+        const nextDue=new Date(moveIn.getFullYear(),moveIn.getMonth()+1,moveIn.getDate());
+        nextDueLabel=nextDue.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+      }
+
+      if(!bk.tenant_id||!bk.listing_id||!bk.monthly_rent){
+        alert(`⚠️ Payments NOT created — missing data on this booking:\ntenant_id: ${bk.tenant_id?'✓':'❌ MISSING'}\nlisting_id: ${bk.listing_id?'✓':'❌ MISSING'}\nmonthly_rent: ${bk.monthly_rent?'✓ '+bk.monthly_rent:'❌ MISSING'}`);
+      }else{
+        const today=new Date().toISOString().split('T')[0];
+        const{error:payErr}=await sb.from('payments').insert([
+          {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
+          {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
+        ]);
+        if(payErr)alert('❌ Payments insert FAILED:\n'+payErr.message+'\n\nCode: '+(payErr.code||'—')+'\nDetails: '+(payErr.details||'—'));
+      }
+
+      if(bk.tenant_id){
+        await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,content:`✅ Payment confirmed by landlord!\n\nEverything is set for your move-in. Your agent will contact you for the entry inventory.\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,type:'payment_confirmed'});
       }
       toast('✅ Payment confirmed! Tenant notified.');
+      if(bk)generateFirstPaymentReceiptLL(bk,listing?.title,tenantProfile?.full_name);
     }else{
       await sb.from('bookings').update({first_payment_sent:false}).eq('id',bookingId);
       const{data:b}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
@@ -3723,7 +3758,12 @@ async function confirmFirstPaymentReceived(bookingId,received){
       toast('⚠️ Tenant notified — payment not received.');
     }
     loadVisitsPage();
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){alert('❌ '+e.message);}
+}
+
+async function retryCreatePaymentRecords(bookingId){
+  if(!confirm('Create the missing deposit + first month payment records for this booking?'))return;
+  await confirmFirstPaymentReceived(bookingId,true);
 }
 
 async function loadTenantDocuments(tenantId,bookingId){
