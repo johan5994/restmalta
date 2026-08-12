@@ -2382,6 +2382,17 @@ async function submitRentEntry(){
 async function loadPayments(filter){
   const{data}=await sb.from('payments').select('*').eq('landlord_id',U.id).order('due_date',{ascending:false});
   let filtered=data||[];
+
+  // Ne pas encombrer la vue avec des échéances "pending" à des mois de
+  // distance — seulement celles vraiment imminentes (2 jours avant ou déjà
+  // en retard). Les paiements déjà déclarés/payés restent toujours visibles.
+  const soonThreshold=new Date();soonThreshold.setDate(soonThreshold.getDate()+2);
+  filtered=filtered.filter(p=>{
+    if(p.status==='paid'||p.status==='declared')return true;
+    if((p.status==='pending'||p.status==='late')&&p.due_date)return new Date(p.due_date)<=soonThreshold;
+    return true;
+  });
+
   if(filter&&filter!=='all')filtered=filtered.filter(p=>p.status===filter);
   const sc={paid:'b-green',declared:'b-gold',pending:'b-dim',late:'b-red'};
   const sl={paid:'✅ Confirmed',declared:'💬 Declared paid',pending:'⏳ Pending',late:'⚠️ Overdue'};
@@ -2409,13 +2420,43 @@ function loadDeposits(pays){
   wrap.innerHTML=deps.map(d=>`<div class="prow"><div class="pinf"><div class="pname">Deposit — ${d.tenant_name||d.tenant_id?.substring(0,8)||'Tenant'}</div><div class="psub">Held since ${new Date(d.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div></div><span style="font-weight:700;color:var(--sea);flex-shrink:0">€${(d.amount||0).toLocaleString()}</span></div>`).join('')||'<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No deposits held yet</div>';
 }
 
-async function sendReminder(id){toast('📧 Rent reminder sent to tenant!');}
+async function sendReminder(id){
+  try{
+    const{data:pay}=await sb.from('payments').select('*').eq('id',id).single();
+    if(!pay){toast('❌ Payment not found');return;}
+    if(!pay.tenant_id){toast('❌ No tenant linked to this payment');return;}
+    const dueLabel=pay.due_date?new Date(pay.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'soon';
+    const{error}=await sb.from('messages').insert({
+      listing_id:pay.listing_id,sender_id:U.id,receiver_id:pay.tenant_id,
+      content:`💶 Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
+      type:'rent_reminder'
+    });
+    if(error){toast('❌ '+error.message);return;}
+    toast('📧 Reminder sent to tenant!');
+  }catch(e){toast('❌ '+e.message);}
+}
 async function downloadReceipt(id){
   const{data:pay}=await sb.from('payments').select('*').eq('id',id).single();
   if(!pay){toast('❌ Payment not found');return;}
   generateQuittance(pay);
 }
-function sendAllReminders(){toast('📧 Reminders sent to all tenants with pending payments!');}
+async function sendAllReminders(){
+  try{
+    const soonThreshold=new Date();soonThreshold.setDate(soonThreshold.getDate()+2);
+    const{data:due}=await sb.from('payments').select('*').eq('landlord_id',U.id).in('status',['pending','late']);
+    const toRemind=(due||[]).filter(p=>p.due_date&&new Date(p.due_date)<=soonThreshold&&p.tenant_id);
+    if(!toRemind.length){toast('No tenants with imminent pending payments right now.');return;}
+    for(const pay of toRemind){
+      const dueLabel=pay.due_date?new Date(pay.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'soon';
+      await sb.from('messages').insert({
+        listing_id:pay.listing_id,sender_id:U.id,receiver_id:pay.tenant_id,
+        content:`💶 Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
+        type:'rent_reminder'
+      }).catch(()=>{});
+    }
+    toast(`📧 Reminders sent to ${toRemind.length} tenant${toRemind.length>1?'s':''} with pending payments!`);
+  }catch(e){toast('❌ '+e.message);}
+}
 function generateAllReceipts(){toast('🧾 Receipts generated!');}
 function exportPayments(){toast('📥 CSV export downloaded!');}
 function exportData(){toast('📥 Data exported!');}
