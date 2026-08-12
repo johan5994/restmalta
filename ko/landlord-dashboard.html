@@ -1050,10 +1050,21 @@ function renderChart(collected){
 /* LISTINGS */
 async function loadListings(){
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-  myListings=data||[];
+
+  // Une fois le bail signé des deux côtés, le bien est loué — il disparaît
+  // de My Listings (reste dans Rented Properties). Le statut "active" du
+  // bien lui-même (visible en recherche ou non) ne change pas ici, c'est
+  // déjà géré ailleurs au moment de l'acceptation.
+  let rentedListingIds=new Set();
+  try{
+    const{data:signedBookings}=await sb.from('bookings').select('listing_id').eq('landlord_id',U.id).eq('lease_signed_landlord',true).eq('lease_signed_tenant',true);
+    rentedListingIds=new Set((signedBookings||[]).map(b=>b.listing_id));
+  }catch(e){}
+
+  myListings=(data||[]).filter(l=>!rentedListingIds.has(l.id));
   const tb=document.getElementById('listings-tbody');
   const tl={short:'🏠 Short-let',sublet:'🔑 Sous-loc',long:'📅 Long-let',both:'🔄 Les deux',for_sale:'🏷️ For sale'};
-  tb.innerHTML=(data||[]).map(l=>{
+  tb.innerHTML=myListings.map(l=>{
     const isSale=l.type==='for_sale';
     const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
     const pendingSale=isSale&&l.sale_subscription_status!=='active';
