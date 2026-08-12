@@ -223,14 +223,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="window.location.href='/'"><span class="nico">🌐</span>Back to site</button>
   </div>
 
-  <!-- Plan indicator -->
-  <div class="sb-plan">
-    <div class="plan-name" id="sb-plan-name">Starter Plan</div>
-    <div class="plan-quota" id="sb-plan-quota">3/5 listings used</div>
-    <div class="plan-bar"><div class="plan-bar-fill" id="sb-plan-bar" style="width:60%"></div></div>
-    <a href="#" onclick="sp('subscription',null)" class="plan-upgrade">⬆ Upgrade plan →</a>
-  </div>
-
   <div class="sb-user">
     <div class="uav" id="uav">A</div>
     <div>
@@ -967,7 +959,6 @@ async function loadAgencyProfile(){
         const preview=document.getElementById('logo-preview');
         if(preview)preview.innerHTML=`<img src="${p.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
       }
-      updatePlanBar(p.plan||'starter',p.listing_count||0);
     } else {
       // Créer le profil agence
       try{
@@ -1077,16 +1068,6 @@ async function addTeamMemberFromSettings(){
     renderTeamMembersSettings();
     toast('✅ Added');
   }catch(e){toast('❌ '+e.message);}
-}
-
-function updatePlanBar(plan,count){
-  const limits={starter:5,pro:25,enterprise:999};
-  const limit=limits[plan]||5;
-  const pct=Math.min(100,Math.round(count/limit*100));
-  document.getElementById('sb-plan-name').textContent=plan==='starter'?'Starter Plan':plan==='pro'?'Professional':plan==='enterprise'?'Enterprise':'Starter Plan';
-  document.getElementById('sb-plan-quota').textContent=`${count}/${limit==='999'?'∞':limit} listings used`;
-  document.getElementById('sb-plan-bar').style.width=pct+'%';
-  if(pct>=90)document.getElementById('sb-plan-bar').style.background='linear-gradient(90deg,var(--gold),var(--terra))';
 }
 
 // ── Navigation ────────────────────────────────────────────────
