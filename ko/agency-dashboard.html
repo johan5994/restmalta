@@ -1206,7 +1206,20 @@ async function loadListings(){
   const wrap=document.getElementById('listings-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:listings}=await sb.from('listings').select('*').eq('agent_id',U.id).order('created_at',{ascending:false});
+    const{data:allListings}=await sb.from('listings').select('*').eq('agent_id',U.id).order('created_at',{ascending:false});
+
+    // Une fois le bail signé des deux côtés, le bien est loué — il disparaît
+    // de My Listings (reste géré depuis Rented Properties côté propriétaire).
+    let rentedListingIds=new Set();
+    const listingIds=(allListings||[]).map(l=>l.id);
+    if(listingIds.length){
+      try{
+        const{data:signedBookings}=await sb.from('bookings').select('listing_id').in('listing_id',listingIds).eq('lease_signed_landlord',true).eq('lease_signed_tenant',true);
+        rentedListingIds=new Set((signedBookings||[]).map(b=>b.listing_id));
+      }catch(e){}
+    }
+    const listings=(allListings||[]).filter(l=>!rentedListingIds.has(l.id));
+
     const count=document.getElementById('listings-count');
     if(count)count.textContent=`${(listings||[]).length} listing${(listings||[]).length!==1?'s':''} published`;
     const nb=document.getElementById('nb-listings');
