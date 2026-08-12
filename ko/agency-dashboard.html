@@ -220,6 +220,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Account</div>
     <button class="ni" onclick="sp('subscription',this)"><span class="nico">💳</span>Subscription</button>
     <button class="ni" onclick="sp('profile',this)"><span class="nico">⚙️</span>Agency Profile</button>
+    <button class="ni" onclick="window.location.href='/'"><span class="nico">🌐</span>Back to site</button>
   </div>
 
   <!-- Plan indicator -->
@@ -608,55 +609,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div style="font-size:.78rem;color:var(--td)">Choose the plan that fits your agency. All plans include the RestMalta 🏢 Agency badge on your listings.</div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
-        <!-- Starter -->
-        <div class="plan-card" id="plan-starter">
-          <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--td);margin-bottom:.75rem">STARTER</div>
-          <div style="display:flex;align-items:baseline;gap:.3rem;margin-bottom:.5rem">
-            <div class="plan-price">€49</div><div class="plan-period">/month</div>
+      <div style="max-width:480px;margin:0 auto 1.5rem">
+        <div class="plan-card" id="plan-agency" style="text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--agencybright);margin-bottom:.75rem">RESTMALTA AGENCY</div>
+          <div style="display:flex;align-items:baseline;justify-content:center;gap:.3rem;margin-bottom:.5rem">
+            <div class="plan-price">€300</div><div class="plan-period">/month</div>
           </div>
-          <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">Perfect for small agencies</div>
-          <div class="plan-feature">✅ Up to 5 listings</div>
-          <div class="plan-feature">✅ RestMalta badge</div>
-          <div class="plan-feature">✅ Basic analytics</div>
-          <div class="plan-feature">✅ 2 agents</div>
-          <div class="plan-feature" style="color:var(--td)">❌ Import tools</div>
-          <div class="plan-feature" style="color:var(--td)">❌ CRM</div>
-          <button class="btn bg" style="width:100%;justify-content:center;margin-top:1rem" onclick="selectPlan('starter')">Select Starter</button>
-        </div>
-
-        <!-- Pro -->
-        <div class="plan-card" id="plan-pro">
-          <div class="crown">MOST POPULAR</div>
-          <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--agencybright);margin-bottom:.75rem">PROFESSIONAL</div>
-          <div style="display:flex;align-items:baseline;gap:.3rem;margin-bottom:.5rem">
-            <div class="plan-price">€129</div><div class="plan-period">/month</div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:1.2rem">One plan, everything included — no limits, no tiers</div>
+          <div style="text-align:left;display:inline-block">
+            <div class="plan-feature">✅ Unlimited listings, rentals & sales</div>
+            <div class="plan-feature">✅ Sale listings posted free for your clients</div>
+            <div class="plan-feature">✅ Quick Import — from URL, PDF or bulk CSV</div>
+            <div class="plan-feature">✅ CRM — full client pipeline, new to signed</div>
+            <div class="plan-feature">✅ Visit scheduling & tracking</div>
+            <div class="plan-feature">✅ Direct messaging with every client</div>
+            <div class="plan-feature">✅ Unlimited estimation requests</div>
+            <div class="plan-feature">✅ Agency directory profile</div>
+            <div class="plan-feature">✅ Analytics dashboard</div>
+            <div class="plan-feature">✅ Unlimited team members</div>
           </div>
-          <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">For growing agencies</div>
-          <div class="plan-feature">✅ Up to 25 listings</div>
-          <div class="plan-feature">✅ RestMalta badge</div>
-          <div class="plan-feature">✅ Full analytics</div>
-          <div class="plan-feature">✅ 10 agents</div>
-          <div class="plan-feature">✅ Import tools (URL/PDF)</div>
-          <div class="plan-feature">✅ CRM pipeline</div>
-          <button class="btn bp" style="width:100%;justify-content:center;margin-top:1rem" onclick="selectPlan('pro')">Select Pro</button>
-        </div>
-
-        <!-- Enterprise -->
-        <div class="plan-card" id="plan-enterprise">
-          <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:.75rem">ENTERPRISE</div>
-          <div style="display:flex;align-items:baseline;gap:.3rem;margin-bottom:.5rem">
-            <div class="plan-price">€299</div><div class="plan-period">/month</div>
-          </div>
-          <div style="font-size:.72rem;color:var(--td);margin-bottom:1rem">For large agencies</div>
-          <div class="plan-feature">✅ Unlimited listings</div>
-          <div class="plan-feature">✅ Premium badge + featured</div>
-          <div class="plan-feature">✅ Advanced analytics + API</div>
-          <div class="plan-feature">✅ Unlimited agents</div>
-          <div class="plan-feature">✅ All import tools + API</div>
-          <div class="plan-feature">✅ CRM + bulk export</div>
-          <div class="plan-feature">✅ Priority support</div>
-          <button class="btn bg" style="width:100%;justify-content:center;margin-top:1rem;border-color:rgba(212,168,71,.3);color:var(--gold)" onclick="selectPlan('enterprise')">Select Enterprise</button>
+          <button class="btn bp" style="width:100%;justify-content:center;margin-top:1.2rem" onclick="selectPlan('agency')">Subscribe →</button>
         </div>
       </div>
 
@@ -1257,7 +1229,6 @@ async function loadListings(){
             <div style="display:flex;gap:.3rem">
               <a href="https://restmalta.netlify.app/#listing-${l.id}" target="_blank" class="btn bg bsm" style="font-size:.68rem;text-decoration:none">👁</a>
               <button onclick="editListing('${l.id}')" class="btn bg bsm" style="font-size:.68rem">✏️</button>
-              <button onclick="startBoostPaymentAgency('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')" class="btn bg bsm" style="font-size:.68rem;${l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now()?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}">${l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now()?'🔥':'🚀'}</button>
               <button onclick="deleteListing('${l.id}','${(l.title||'').replace(/'/g,"\\'")}',this)" class="btn bg bsm" style="font-size:.68rem;color:var(--red)">🗑</button>
             </div>
           </td>
@@ -1472,7 +1443,26 @@ async function publishImportedListing(){
   await createListing(data);
 }
 
+// Bloque une action si l'agence n'a pas d'abonnement actif — évite que le
+// service reste utilisable gratuitement sans jamais payer.
+function requireActiveSubscription(actionLabel){
+  if(agencyData?.subscription_status==='active')return true;
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.75rem;max-width:380px;width:100%;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">🔒</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Active subscription required</div>
+      <div style="font-size:.82rem;color:var(--td);margin-bottom:1.2rem;line-height:1.6">You need an active RestMalta plan to ${actionLabel||'use this feature'}. Choose a plan to get started.</div>
+      <button class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="this.closest('div[style*=fixed]').remove();sp('subscription',null)">View plans →</button>
+      <button class="btn bg" style="width:100%;justify-content:center" onclick="this.closest('div[style*=fixed]').remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+  return false;
+}
+
 async function createListing(data){
+  if(!requireActiveSubscription('publish a listing'))return;
   const isSale=data.lease_type==='for_sale';
   try{
     const{data:l,error}=await sb.from('listings').insert({
@@ -1905,6 +1895,7 @@ function closeAgencyMsg(){
 }
 
 async function sendAgencyMsg(){
+  if(!requireActiveSubscription('message clients'))return;
   const input=document.getElementById('agency-msg-input');
   const content=input?.value.trim();
   if(!content||!agencyChatOtherId)return;
@@ -1917,24 +1908,6 @@ async function sendAgencyMsg(){
     if(error){toast('❌ '+error.message);return;}
     openAgencyMsg(agencyChatListingId,agencyChatOtherId,document.getElementById('agency-msg-title').textContent);
   }catch(e){toast('❌ '+e.message);}
-}
-
-async function startBoostPaymentAgency(listingId,listingTitle,listingType){
-  const btn=event?.target;
-  if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳';}
-  toast('💳 Redirecting to payment...');
-  try{
-    const res=await fetch('/.netlify/functions/create-boost-payment',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({listing_id:listingId,listing_title:listingTitle,listing_type:listingType,payer_email:U.email,payer_name:agencyData?.agency_name||''})
-    });
-    const data=await res.json();
-    if(!data.success)throw new Error(data.error||'Could not start payment');
-    window.location.href=data.checkout_url;
-  }catch(e){
-    toast('❌ '+e.message);
-    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'🚀';}
-  }
 }
 
 async function loadEstimations(){
@@ -1997,24 +1970,20 @@ async function loadVisits(){
 // ── Subscription ──────────────────────────────────────────────
 async function loadSubscription(){
   const wrap=document.getElementById('current-sub');
-  const plan=agencyData?.plan||'starter';
   const status=agencyData?.subscription_status||'inactive';
-  const planNames={starter:'Starter — €49/month',pro:'Professional — €129/month',enterprise:'Enterprise — €299/month'};
   const statusBadge=status==='active'?'<span class="badge b-agency">Active</span>'
     :status==='past_due'?'<span class="badge b-gold">⚠️ Payment issue</span>'
     :status==='cancelled'?'<span class="badge b-dim">Cancelled</span>'
     :'<span class="badge b-dim">Not activated</span>';
   wrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between">
     <div>
-      <div style="font-weight:700;font-size:.9rem">${planNames[plan]||'Starter'}</div>
-      <div style="font-size:.75rem;color:var(--td);margin-top:.2rem">${status==='active'?'Billed monthly':'Select a plan below to activate'}</div>
+      <div style="font-weight:700;font-size:.9rem">RestMalta Agency — €300/month</div>
+      <div style="font-size:.75rem;color:var(--td);margin-top:.2rem">${status==='active'?'Billed monthly':'Subscribe below to activate'}</div>
     </div>
     ${statusBadge}
   </div>`;
-  // Highlight current plan
-  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('current'));
-  const curr=document.getElementById('plan-'+plan);
-  if(curr&&status==='active')curr.classList.add('current');
+  const curr=document.getElementById('plan-agency');
+  if(curr)curr.classList.toggle('current',status==='active');
 }
 
 async function selectPlan(plan){
