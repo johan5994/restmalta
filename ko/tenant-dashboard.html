@@ -2892,8 +2892,9 @@ async function loadPaymentsData(){
   if(document.getElementById('pay-pend'))document.getElementById('pay-pend').textContent=pend||'0';
   if(document.getElementById('pay-next'))document.getElementById('pay-next').textContent=next?new Date(next.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
 
-  // Show "I paid" button for pending/late payments
-  const dueNow=payments.filter(p=>p.status==='pending'||p.status==='late');
+  // "Rent due" — seulement la toute prochaine échéance, pas toutes les futures
+  const allDue=payments.filter(p=>p.status==='pending'||p.status==='late'||p.status==='declared').sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
+  const dueNow=allDue.length?[allDue[0]]:[];
   const dueWrap=document.getElementById('pay-due-now');
   if(dueWrap&&dueNow.length){
     dueWrap.innerHTML=dueNow.map(p=>`
@@ -2911,10 +2912,12 @@ async function loadPaymentsData(){
     dueWrap.innerHTML='';
   }
 
+  // "Payment history" — seulement ce qui est réellement confirmé payé
+  const confirmedPayments=payments.filter(p=>p.status==='paid');
   const sc={paid:'b-green',declared:'b-gold',pending:'b-dim',late:'b-red'};
   const sl={paid:'✅ Confirmed',declared:'💬 Déclaré — en attente landlord',pending:'⏳ Pending',late:'⚠️ En retard'};
-  document.getElementById('pay-list').innerHTML=payments.length
-    ?'<div style="padding:0 1.2rem">'+payments.map(p=>`
+  document.getElementById('pay-list').innerHTML=confirmedPayments.length
+    ?'<div style="padding:0 1.2rem">'+confirmedPayments.map(p=>`
       <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:600">€${(p.amount||0).toLocaleString()} ${p.type==='deposit'?'(dépôt)':p.type==='first_rent'?'(1er mois de loyer)':p.type==='rent'?'(loyer)':p.type==='commission'?'(commission RestMalta)':''}</div>
@@ -2922,10 +2925,9 @@ async function loadPaymentsData(){
           ${p.paid_at?`<div style="font-size:.68rem;color:var(--green);margin-top:.1rem">✅ Confirmed le ${new Date(p.paid_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>`:''}
         </div>
         <span class="badge ${sc[p.status]||'b-dim'}">${sl[p.status]||p.status}</span>
-        ${p.status==='pending'||p.status==='late'?`<button class="btn bp bsm" onclick="declarePaid('${p.id}')">I paid →</button>`:''}
-        ${p.status==='paid'?`<button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Receipt</button>`:''}
+        <button class="btn bg bsm" onclick="downloadTenantReceipt('${p.id}','${(p.amount||0)}','${p.paid_at||p.created_at}')">🧾 Receipt</button>
       </div>`).join('')+'</div>'
-    :'<div class="empty"><div class="em">💶</div><p>None paiement enregistré</p></div>';
+    :'<div class="empty"><div class="em">💶</div><p>No confirmed payments yet.</p></div>';
 }
 
 function downloadTenantReceipt(paymentId,amount,date){
