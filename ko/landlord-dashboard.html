@@ -2163,9 +2163,10 @@ async function loadPaymentsData(){
     window._llListingTitles={};(listings||[]).forEach(l=>window._llListingTitles[l.id]=l.title);
   }
   const thisMonth=new Date();thisMonth.setDate(1);
+  const soonThreshold=new Date();soonThreshold.setDate(soonThreshold.getDate()+2);
   const collected=(data||[]).filter(p=>p.status==='paid'&&new Date(p.paid_at||p.created_at)>=thisMonth).reduce((s,p)=>s+(p.amount||0),0);
   const declared=(data||[]).filter(p=>p.status==='declared').length;
-  const pending=(data||[]).filter(p=>p.status==='pending'||p.status==='late').length;
+  const pending=(data||[]).filter(p=>(p.status==='pending'||p.status==='late')&&p.due_date&&new Date(p.due_date)<=soonThreshold).length;
   document.getElementById('pay-collected').textContent=`€${collected.toLocaleString()}`;
   document.getElementById('pay-declared').textContent=declared||'0';
   document.getElementById('pay-pending').textContent=pending||'0';
@@ -3482,12 +3483,12 @@ async function loadRentedProperties(){
     // Tickets de maintenance ouverts pour ce bien
     const openTickets=ticketsByListing[bk.listing_id]||[];
 
-    const recentPays=pays.slice(0,5);
+    const recentPays=pays.filter(p=>p.status==='paid').sort((a,b)=>new Date(b.paid_at||b.due_date)-new Date(a.paid_at||a.due_date)).slice(0,5);
     const receiptsHtml=recentPays.length?recentPays.map(p=>`
       <div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--b);font-size:.75rem">
         <span style="color:var(--tm)">${p.type==='first_rent'?'First month':p.type==='deposit'?'Deposit':p.type==='rent'?'Rent':p.type} — ${p.due_date?new Date(p.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span>
-        <span style="font-weight:600">€${p.amount||0} ${p.status==='paid'?'✅':p.status==='pending'&&p.due_date<today?'⚠️':'⏳'}</span>
-      </div>`).join(''):'<div style="font-size:.75rem;color:var(--td);padding:.5rem 0">No payment history yet</div>';
+        <span style="font-weight:600">€${p.amount||0} ✅</span>
+      </div>`).join(''):'<div style="font-size:.75rem;color:var(--td);padding:.5rem 0">No confirmed payments yet</div>';
 
     return `<div class="card" style="margin-bottom:1rem">
       <div class="ch" style="display:flex;align-items:center;gap:.75rem">
@@ -3842,6 +3843,7 @@ function renderLeaseSection(g){
   const tSigned=bk?.lease_signed_tenant;
   const payDeclared=bk?.first_payment_sent;
   const payConfirmed=bk?.first_payment_confirmed;
+  if(payConfirmed&&bk?.id)checkPaymentRecordsExist(bk.id);
   const moveIn=bk?.move_in_date||g.move_in_date||null; // date choisie par le tenant à la candidature
   const edlDate=bk?.edl_date||moveIn||g.visit_date||null; // par défaut, même date que le move-in — le proprio peut la changer
 
@@ -3887,7 +3889,7 @@ function renderLeaseSection(g){
       </div>
 
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
-      <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
+      <div id="payrow-${bk?.id||''}" style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:.78rem">${payConfirmed?'✅ Payment confirmed':payDeclared?'💶 Tenant declared payment':'⏳ Waiting for payment'}</span>
         ${payDeclared&&!payConfirmed
           ?`<button onclick="confirmTenantPayment('${bk?.id||''}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✅ Confirm received</button>`
@@ -3913,6 +3915,31 @@ function renderLeaseSection(g){
 
     </div>
   </div>`;
+}
+
+// Vérifie, une fois le HTML de renderLeaseSection() inséré dans la page,
+// que les paiements existent vraiment quand le statut dit "confirmé" —
+// un ancien clic fait avant certains correctifs a pu confirmer sans
+// jamais créer les lignes de paiement correspondantes.
+function checkPaymentRecordsExist(bookingId){
+  if(!bookingId)return;
+  setTimeout(async()=>{
+    const{data}=await sb.from('payments').select('id').eq('booking_id',bookingId).eq('type','deposit').limit(1);
+    if(!data||!data.length){
+      const el=document.getElementById('payrow-'+bookingId);
+      if(el){
+        const span=el.querySelector('span');
+        if(span)span.outerHTML='<span style="font-size:.78rem">✅ Payment confirmed</span>';
+        const actionSlot=el.querySelectorAll('span,button')[1]||el.lastElementChild;
+        const btn=document.createElement('button');
+        btn.textContent='⚠️ Fix missing records';
+        btn.style.cssText='background:var(--gold);color:#1a1a1a;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer';
+        btn.onclick=()=>retryCreatePaymentRecords(bookingId);
+        if(actionSlot&&actionSlot.parentElement===el)el.replaceChild(btn,actionSlot);
+        else el.appendChild(btn);
+      }
+    }
+  },300);
 }
 
 function renderLeasePayStatus(bk){
