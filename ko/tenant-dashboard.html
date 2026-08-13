@@ -219,6 +219,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
         <div id="ml-lease-progress"></div>
 
+        <div id="ml-no-tracking-notice" style="display:none;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:10px;padding:.75rem 1rem;margin:.75rem 0;font-size:.8rem;color:var(--sea);line-height:1.5">ℹ️ This property's owner doesn't have a RestMalta account, so payments, maintenance requests and lease management aren't tracked here — coordinate those directly with your agency.</div>
+
         <div style="display:flex;gap:.4rem;margin:1rem 0;overflow-x:auto;padding-bottom:.2rem">
           <button class="ml-tab act" id="ml-tabbtn-lease" onclick="showMlTab('lease')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--terra);color:white">📄 Bail & EDL</button>
           <button class="ml-tab" id="ml-tabbtn-payments" onclick="showMlTab('payments')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">💶 Payments</button>
@@ -1364,6 +1366,17 @@ async function loadMyLocation(){
 
   const docEl=document.getElementById('ml-lease-doc');
   if(docEl)docEl.innerHTML=renderLeaseDocCard(bk,listing);
+
+  // Ce bien est géré par une agence sans propriétaire lié à un vrai compte
+  // RestMalta — personne côté RestMalta pour suivre paiements/gestion.
+  // On cache ces onglets plutôt que d'afficher des écrans qui ne servent à rien.
+  const noTracking=!!bk.no_landlord_tracking;
+  ['ml-tabbtn-payments','ml-tabbtn-maintenance','ml-tabbtn-manage'].forEach(id=>{
+    const btn=document.getElementById(id);
+    if(btn)btn.style.display=noTracking?'none':'inline-block';
+  });
+  const noticeEl=document.getElementById('ml-no-tracking-notice');
+  if(noticeEl)noticeEl.style.display=noTracking?'block':'none';
 
   loadPaymentsData();
   showMlTab('lease');
