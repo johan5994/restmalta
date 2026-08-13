@@ -921,61 +921,6 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=window.supabase.createClient(SU,SK,{auth:{persistSession:false}});
 
 // ── Lease Generation via Netlify Function ──────────────────────
-async function generateLease(listingId, tenantEmail, landlordEmail, type) {
-  try {
-    const res = await fetch('/.netlify/functions/generate-lease', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: type || 'long',
-        landlord: {
-          email: landlordEmail,
-          name: AL?.landlord_name || 'Landlord',
-          address: AL?.full_address || AL?.zone || '',
-          price: AL?.price || 0
-        },
-        tenant: {
-          email: tenantEmail,
-          name: P?.full_name || 'Tenant',
-          passport: P?.passport_number || '',
-          nationality: P?.nationality || '',
-          dob: P?.date_of_birth || '',
-          address: P?.home_address || '',
-          phone: P?.phone || ''
-        },
-        listing: {
-          address: AL?.full_address || AL?.zone || '',
-          price: AL?.price || 0,
-          deposit: AL?.deposit || 0,
-          payment_due_day: new Date().getDate(),
-          notice_period: AL?.notice_period || '1 month',
-          bills: AL?.bills_situation || 'excluded'
-        },
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date(Date.now()+365*24*3600*1000).toISOString().split('T')[0]
-      })
-    });
-    const data = await res.json();
-    if (data.success) {
-      await sb.from('leases').insert({
-        listing_id: listingId,
-        tenant_id: U?.id,
-        landlord_id: AL?.landlord_id,
-        listing_title: AL?.title,
-        type,
-        rent: AL?.price,
-        docuseal_id: String(data.submission_id || ''),
-        status: 'pending'
-      });
-      return data;
-    }
-    return null;
-  } catch(e) {
-    console.error('Lease error:', e);
-    return null;
-  }
-}
-
 // ── Clerk Auth ────────────────────────────────────────────────
 let clerk, U=null, P=null, AL=null, AMI=null;
 
@@ -1841,12 +1786,6 @@ function updateAgentOpt(val){
     const radio=document.getElementById(`agent-opt-${o}`);
     if(radio)radio.checked=(o===val);
   });
-}
-
-function toggleIndefinite(cb){
-  const input=document.getElementById('pun');
-  input.disabled=cb.checked;
-  if(cb.checked)input.value='';
 }
 
 // Auto-update end date when start date changes
