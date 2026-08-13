@@ -3241,6 +3241,95 @@ async function uploadDoc(input,type){
   toast(`✅ ${type==='id'?'ID':'Property proof'} uploaded!`);
 }
 
+async function loadAgencyManaged(targetId,append,countBadgeId){
+  const wrap=document.getElementById(targetId||'agencymanaged-list');
+  if(!wrap)return;
+  if(!append)wrap.innerHTML='<div class="ld"><div class="sp"></div></div>';
+  try{
+    const{data:listings}=await sb.from('listings').select('*').eq('real_landlord_id',U.id);
+    const nb=document.getElementById('nb-agencymanaged');
+    if(nb){nb.textContent=(listings||[]).length;nb.style.display=(listings||[]).length>0?'inline':'none';}
+
+    if(!(listings||[]).length){
+      if(!append)wrap.innerHTML='<div class="empty"><div class="em">🏢</div><p>No agency-managed properties linked to your account yet.</p></div>';
+      return;
+    }
+
+    const listingIds=listings.map(l=>l.id);
+    const{data:bookings}=await sb.from('bookings').select('*').in('listing_id',listingIds).order('created_at',{ascending:false});
+    const{data:visits}=await sb.from('visits').select('*').in('listing_id',listingIds);
+    const{data:agencies}=await sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',listings.map(l=>l.agent_id).filter(Boolean));
+    const agencyMap={};(agencies||[]).forEach(a=>{agencyMap[a.clerk_id]=a.agency_name;});
+
+    const statusLabels={pending:'🆕 New application',booking_pending:'🆕 New application',accepted:'✅ Accepted — lease in progress',lease_pending:'📄 Lease being signed',edl_scheduled:'📋 Move-in inventory scheduled',signing_day:'🎉 Signing day',move_in_ready:'🏠 Tenant moved in',declined:'❌ Declined',cancelled:'Cancelled'};
+
+    const html=listings.map(l=>{
+      const listingBookings=(bookings||[]).filter(b=>b.listing_id===l.id).filter(b=>!['declined','cancelled_by_tenant'].includes(b.status));
+      const listingVisits=(visits||[]).filter(v=>v.listing_id===l.id);
+      const activeBooking=listingBookings.find(b=>['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(b.status))||listingBookings[0];
+      const needsLeaseSign=activeBooking?.lease_landlord_embed&&!activeBooking?.lease_signed_landlord;
+      const needsEdlSign=activeBooking?.edl_tenant_embed&&!activeBooking?.edl_signed_landlord&&activeBooking?.edl_landlord_embed;
+      const needsPaymentConfirm=activeBooking?.first_payment_sent&&!activeBooking?.first_payment_confirmed;
+
+      return`<div class="card" style="margin-bottom:1rem">
+        <div class="cb">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+            <div>
+              <div style="font-weight:700;font-size:.92rem">${l.title||'Property'}</div>
+              <div style="font-size:.76rem;color:var(--td)">📍 ${l.zone||''} · 🏢 Managed by ${agencyMap[l.agent_id]||'your agency'}</div>
+            </div>
+            <span class="badge b-sea" style="font-size:.65rem">🏢 Agency-managed</span>
+          </div>
+
+          ${activeBooking?`<div style="background:var(--s2);border-radius:8px;padding:.6rem .75rem;margin-bottom:.5rem">
+            <div style="font-size:.8rem;font-weight:600">${statusLabels[activeBooking.status]||activeBooking.status}</div>
+            ${activeBooking.tenant_name?`<div style="font-size:.74rem;color:var(--td);margin-top:.15rem">Tenant: ${activeBooking.tenant_name}</div>`:''}
+          </div>`:`<div style="font-size:.78rem;color:var(--td);margin-bottom:.5rem">${listingVisits.length?`${listingVisits.length} visit${listingVisits.length>1?'s':''} so far, no application yet`:'No activity yet'}</div>`}
+
+          ${needsLeaseSign?`<button onclick="signAgencyManagedDoc('${activeBooking.id}','${activeBooking.lease_landlord_embed}','lease_signed_landlord','📄 Lease Agreement')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">✍️ Sign lease now →</button>`:''}
+          ${needsEdlSign?`<button onclick="signAgencyManagedDoc('${activeBooking.id}','${activeBooking.edl_landlord_embed}','edl_signed_landlord','📋 Move-in Inventory (Annex A)')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">✍️ Sign move-in inventory →</button>`:''}
+          ${needsPaymentConfirm?`<button onclick="confirmTenantPaymentAgencyManaged('${activeBooking.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">✅ Confirm payment received</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+
+    if(append){
+      // Retirer le message "vide" par défaut de Rented Properties s'il y en avait un
+      const emptyMsg=wrap.querySelector('.empty');
+      if(emptyMsg&&wrap.children.length===1)wrap.innerHTML='';
+      wrap.insertAdjacentHTML('beforeend',html);
+      if(countBadgeId){
+        const cb=document.getElementById(countBadgeId);
+        if(cb)cb.textContent=(parseInt(cb.textContent)||0)+listings.length;
+      }
+    }else{
+      wrap.innerHTML=html;
+    }
+  }catch(e){if(!append)wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading properties</div>';console.error(e);}
+}
+
+async function signAgencyManagedDoc(bookingId,embedSrc,dbField,title){
+  const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+  if(!bk){toast('❌ Booking not found');return;}
+  doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title);
+}
+
+async function confirmTenantPaymentAgencyManaged(bookingId){
+  await confirmTenantPayment(bookingId);
+  loadRentedProperties();
+}
+
+// doOpenLandlordDoc()/confirmTenantPayment() se terminent par
+// loadVisitsPage() par défaut (le flow normal) — quand on est sur
+// Agency-managed à la place, il faut rafraîchir CETTE page-là, pas Visits.
+function refreshCurrentBookingView(){
+  if(document.getElementById('page-properties')?.classList.contains('act')){
+    loadRentedProperties();
+  }else{
+    loadVisitsPage();
+  }
+}
+
 async function loadRentedProperties(){
   const wrap=document.getElementById('rp-list');
   const countBadge=document.getElementById('rp-count');
@@ -3347,6 +3436,9 @@ async function loadRentedProperties(){
     if(!coTenants.length)return;
     el.innerHTML=`<div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">👥 ${coTenants.length} co-tenant${coTenants.length>1?'s':''}: ${coTenants.map(ct=>`${ct.name||'—'}${ct.phone?' ('+ct.phone+')':''}`).join(', ')}</div>`;
   });
+  // Ajouter aussi les biens gérés par une agence à la même liste — un seul
+  // endroit à vérifier, peu importe comment le bien a été mis en location
+  loadAgencyManaged('rp-list',true,'rp-count');
 }
 
 async function regenLease(bookingId, listingId, tenantId){
@@ -3414,7 +3506,7 @@ function openSigningDocLL(embedSrc,title,bookingId){
     const closeBtn=document.createElement('button');
     closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
     closeBtn.textContent='✕';
-    closeBtn.onclick=()=>{modal.remove();loadVisitsPage();};
+    closeBtn.onclick=()=>{modal.remove();refreshCurrentBookingView();};
     header.appendChild(closeBtn);
     const body=document.createElement('div');
     body.style.cssText='flex:1;overflow:auto;background:white';
@@ -3424,10 +3516,15 @@ function openSigningDocLL(embedSrc,title,bookingId){
     form.style.cssText='width:100%;display:block;min-height:100vh';
     // Quand signé — mettre à jour Supabase directement
     form.addEventListener('completed', async () => {
-      toast('✅ Signed! Updating status...');
+      let updateOk=false;
       if(bookingId){
         try{
-          await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId);
+          const{error:updErr}=await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId);
+          if(updErr){
+            alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nBooking ID: '+bookingId);
+          }else{
+            updateOk=true;
+          }
           // Notifier tenant
           let bk=null;
           try{const{data:d}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();bk=d;}catch(e){}
@@ -3440,9 +3537,10 @@ function openSigningDocLL(embedSrc,title,bookingId){
               });
             }catch(e){}
           }
-        }catch(e){console.warn('Update error:',e);}
+        }catch(e){alert('❌ Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);}
       }
-      setTimeout(()=>{modal.remove();loadVisitsPage();},1500);
+      if(updateOk)toast('✅ Signed!');
+      setTimeout(()=>{modal.remove();refreshCurrentBookingView();},1500);
     });
     body.appendChild(form);
     modal.appendChild(header);
@@ -3475,7 +3573,7 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
     const closeBtn=document.createElement('button');
     closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
     closeBtn.textContent='✕';
-    closeBtn.onclick=()=>{modal.remove();loadVisitsPage();};
+    closeBtn.onclick=()=>{modal.remove();refreshCurrentBookingView();};
     header.appendChild(closeBtn);
     const body=document.createElement('div');
     body.style.cssText='flex:1;overflow:auto;background:white';
