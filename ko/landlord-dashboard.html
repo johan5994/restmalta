@@ -976,8 +976,9 @@ async function loadDash(){
   
   // KPIs
   const thisMonth=new Date();thisMonth.setDate(1);
+  const soonThreshold=new Date();soonThreshold.setDate(soonThreshold.getDate()+2);
   const collected=(pays||[]).filter(p=>p.status==='paid'&&new Date(p.paid_at)>=thisMonth).reduce((s,p)=>s+p.amount,0);
-  const pending=(pays||[]).filter(p=>p.status==='pending'||p.status==='late').length;
+  const pending=(pays||[]).filter(p=>(p.status==='pending'||p.status==='late')&&p.due_date&&new Date(p.due_date)<=soonThreshold).length;
   document.getElementById('k-rev').textContent=collected?`€${collected.toLocaleString()}`:'€0';
   document.getElementById('k-list').textContent=(listings||[]).filter(l=>l.active).length;
   document.getElementById('k-pend').textContent=pending||'0';
@@ -2288,36 +2289,56 @@ async function confirmPaymentReceived(id){
 function generateQuittance(pay){
   const today=new Date();
   const month=today.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-  const text=`RENT RECEIPT — QUITTANCE DE LOYER
-RestMalta Platform
+  const build=()=>{
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF();
+    const pageW=doc.internal.pageSize.getWidth();
+    let y=25;
 
-Date: ${today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+    doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(40,40,40);
+    doc.text('RestMalta',20,y);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text('Malta rental platform',20,y+6);
+    y+=22;
 
-Landlord: ${P?.full_name||'Landlord'}
-ID/Passport: ${P?.passport_number||''}
-Address: ${P?.home_address||''}
+    doc.setDrawColor(220,220,220);doc.line(20,y,pageW-20,y);y+=12;
 
-Tenant: ${pay.tenant_name||'Tenant'}
-Property: ${pay.listing_title||''}
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(30,30,30);
+    doc.text('RENT RECEIPT — QUITTANCE DE LOYER',20,y);y+=12;
 
-I confirm receipt of the sum of €${(pay.amount||0).toLocaleString()} 
-for rent payment for the period of ${month}.
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(80,80,80);
+    doc.text(`Date: ${today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,20,y);y+=8;
+    doc.text(`Landlord: ${P?.full_name||'Landlord'}`,20,y);y+=6;
+    if(P?.passport_number){doc.text(`ID/Passport: ${P.passport_number}`,20,y);y+=6;}
+    if(P?.home_address){doc.text(`Address: ${P.home_address}`,20,y);y+=6;}
+    y+=4;
+    doc.text(`Tenant: ${pay.tenant_name||'Tenant'}`,20,y);y+=6;
+    if(pay.listing_title){doc.text(`Property: ${pay.listing_title}`,20,y);y+=6;}
+    y+=8;
 
-Payment method: Bank transfer / Revolut
-Payment date: ${today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+    doc.setFontSize(11);doc.setTextColor(40,40,40);
+    doc.text(`I confirm receipt of the sum of €${(pay.amount||0).toLocaleString()}`,20,y);y+=7;
+    doc.text(`for rent payment for the period of ${month}.`,20,y);y+=14;
 
-This receipt serves as proof of rent payment.
-Generated automatically by RestMalta — restmalta.com
+    doc.setFontSize(10);doc.setTextColor(80,80,80);
+    doc.text('Payment method: Bank transfer / Revolut',20,y);y+=6;
+    doc.text(`Payment date: ${today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,20,y);y+=18;
 
-Landlord signature: ${P?.full_name||''}`;
-  const blob=new Blob([text],{type:'text/plain'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`Quittance_rent_${month.replace(' ','_')}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-  setTimeout(()=>toast('🧾 Receipt downloaded automatically!'),1500);
+    doc.setDrawColor(220,220,220);doc.line(20,y,pageW-20,y);y+=10;
+    doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(140,140,140);
+    doc.text('This receipt serves as proof of rent payment. Generated automatically by RestMalta — restmalta.com',20,y);y+=14;
+
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(60,60,60);
+    doc.text(`Landlord signature: ${P?.full_name||''}`,20,y);
+
+    doc.save(`Quittance_rent_${month.replace(' ','_')}.pdf`);
+    toast('🧾 Receipt downloaded!');
+  };
+  if(window.jspdf){build();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload=build;
+  document.head.appendChild(s);
 }
 
 async function addRentEntry(){
