@@ -1539,11 +1539,22 @@ async function loadListings(){
     const sel=document.getElementById('vm-listing');
     if(sel){sel.innerHTML='<option value="">Select listing</option>'+(listings.map(l=>`<option value="${l.id}">${l.title||'—'} — ${l.zone||''}</option>`).join(''));}
 
+    // Une fois le bail signé des deux côtés, le bien est loué — il disparaît
+    // de "Properties I manage", même logique que My Listings côté propriétaire/agence.
+    let rentedListingIds=new Set();
+    const listingIds=listings.map(l=>l.id);
+    if(listingIds.length){
+      try{
+        const{data:signedBookings}=await sb.from('bookings').select('listing_id').in('listing_id',listingIds).eq('lease_signed_landlord',true).eq('lease_signed_tenant',true);
+        rentedListingIds=new Set((signedBookings||[]).map(b=>b.listing_id));
+      }catch(e){}
+    }
+
     // Rendu de la page "Listings" — uniquement les biens publiés (les en attente
     // de complétion sont déjà dans la carte "Requests to manage" au-dessus)
     const wrap=document.getElementById('managed-listings-list');
     const countBadge=document.getElementById('managed-listings-count');
-    const activeListings=listings.filter(l=>l.active===true);
+    const activeListings=listings.filter(l=>l.active===true&&!rentedListingIds.has(l.id));
     if(countBadge)countBadge.textContent=activeListings.length;
     if(wrap){
       if(!activeListings.length){
@@ -2858,7 +2869,7 @@ let _agIdFile=null,_agSelfieFile=null;
 function agOnIDSelected(input){_agIdFile=input.files?.[0];if(!_agIdFile)return;const l=document.getElementById('ag-id-upload-label');const p=document.getElementById('ag-id-preview-small');const i=document.getElementById('ag-id-preview-img');if(l)l.textContent=_agIdFile.name.substring(0,20);if(p&&i){i.src=URL.createObjectURL(_agIdFile);p.style.display='block';}agCheckBothReady();}
 function agOnSelfieSelected(input){_agSelfieFile=input.files?.[0];if(!_agSelfieFile)return;const l=document.getElementById('ag-selfie-upload-label');const p=document.getElementById('ag-selfie-preview-small');const i=document.getElementById('ag-selfie-preview-img');if(l)l.textContent=_agSelfieFile.name.substring(0,20);if(p&&i){i.src=URL.createObjectURL(_agSelfieFile);p.style.display='block';}agCheckBothReady();}
 function agCheckBothReady(){const btn=document.getElementById('ag-submit-verify-btn');if(btn){const ok=_agIdFile&&_agSelfieFile;btn.disabled=!ok;btn.style.opacity=ok?'1':'.5';}}
-async function agSubmitIDForVerification(){if(!_agIdFile||!_agSelfieFile){toast('Please upload both your ID and a selfie');return;}const status=document.getElementById('ag-upload-status');const btn=document.getElementById('ag-submit-verify-btn');if(status){status.style.display='block';status.innerHTML='<div style="color:var(--gold)">⏳ Uploading...</div>';}if(btn){btn.disabled=true;btn.style.opacity='.5';}try{const idExt=_agIdFile.name.split('.').pop();const selfieExt=_agSelfieFile.name.split('.').pop();const{error:e1}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`,_agIdFile,{upsert:true});if(e1)throw new Error(e1.message);const{error:e2}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`,_agSelfieFile,{upsert:true});if(e2)throw new Error(e2.message);await sb.from('profiles').update({id_submitted:true,id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);if(status)status.innerHTML='<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted!</div><div style="font-size:.78rem;color:var(--td)">Verification within 24 hours.</div></div>';toast('✅ Submitted!');const b=document.getElementById('agent-verify-badge');if(b){b.textContent='⏳ Pending';b.style.cssText='background:rgba(212,168,71,.15);color:var(--gold);';}}catch(e){if(status)status.innerHTML='<div style="color:var(--red)">❌ '+e.message+'</div>';if(btn){btn.disabled=false;btn.style.opacity='1';}toast('❌ '+e.message);}}
+async function agSubmitIDForVerification(){if(!_agIdFile||!_agSelfieFile){toast('Please upload both your ID and a selfie');return;}const status=document.getElementById('ag-upload-status');const btn=document.getElementById('ag-submit-verify-btn');if(status){status.style.display='block';status.innerHTML='<div style="color:var(--gold)">⏳ Uploading...</div>';}if(btn){btn.disabled=true;btn.style.opacity='.5';}try{const idExt=_agIdFile.name.split('.').pop();const selfieExt=_agSelfieFile.name.split('.').pop();const{error:e1}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`,_agIdFile,{upsert:true});if(e1)throw new Error(e1.message);const{error:e2}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`,_agSelfieFile,{upsert:true});if(e2)throw new Error(e2.message);await sb.from('profiles').update({id_submitted:true,id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);if(P)P.id_submitted=true;updateAgentProfileCompleteness();if(status)status.innerHTML='<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted!</div><div style="font-size:.78rem;color:var(--td)">Verification within 24 hours.</div></div>';toast('✅ Submitted!');const b=document.getElementById('agent-verify-badge');if(b){b.textContent='⏳ Pending';b.style.cssText='background:rgba(212,168,71,.15);color:var(--gold);';}}catch(e){if(status)status.innerHTML='<div style="color:var(--red)">❌ '+e.message+'</div>';if(btn){btn.disabled=false;btn.style.opacity='1';}toast('❌ '+e.message);}}
 
 async function acceptRemoteRequest(visitId, listingId, tenantId, listingTitle, price){
   toast('⏳ Accepting client...');
