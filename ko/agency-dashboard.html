@@ -1443,7 +1443,9 @@ function requireActiveSubscription(actionLabel){
 }
 
 async function createListing(data){
-  if(!requireActiveSubscription('publish a listing'))return;
+  // Vérification d'abonnement retirée temporairement pour le lancement —
+  // requireActiveSubscription('publish a listing') existe toujours plus
+  // bas dans le fichier, remettre cette ligne pour la réactiver.
   const isSale=data.lease_type==='for_sale';
   try{
     const{data:l,error}=await sb.from('listings').insert({
@@ -1876,7 +1878,9 @@ function closeAgencyMsg(){
 }
 
 async function sendAgencyMsg(){
-  if(!requireActiveSubscription('message clients'))return;
+  // Vérification d'abonnement retirée temporairement pour le lancement —
+  // requireActiveSubscription('message clients') existe toujours plus
+  // bas dans le fichier, remettre cette ligne pour la réactiver.
   const input=document.getElementById('agency-msg-input');
   const content=input?.value.trim();
   if(!content||!agencyChatOtherId)return;
