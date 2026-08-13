@@ -2932,25 +2932,43 @@ async function loadPaymentsData(){
 function downloadTenantReceipt(paymentId,amount,date){
   const d=date?new Date(date):new Date();
   const month=d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-  const text=`RENT RECEIPT — QUITTANCE DE LOYER
-RestMalta Platform
+  const build=()=>{
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF();
+    const pageW=doc.internal.pageSize.getWidth();
+    let y=25;
 
-Date: ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+    doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(40,40,40);
+    doc.text('RestMalta',20,y);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text('Malta rental platform',20,y+6);
+    y+=22;
 
-Tenant: ${P?.full_name||'Tenant'}
+    doc.setDrawColor(220,220,220);doc.line(20,y,pageW-20,y);y+=12;
 
-I confirm payment of the sum of €${(parseFloat(amount)||0).toLocaleString()}
-for rent payment for the period of ${month}.
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(30,30,30);
+    doc.text('RENT RECEIPT — QUITTANCE DE LOYER',20,y);y+=12;
 
-This receipt was generated automatically by RestMalta — restmalta.com`;
-  const blob=new Blob([text],{type:'text/plain'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`Quittance_rent_${month.replace(' ','_')}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('🧾 Receipt downloaded!');
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(80,80,80);
+    doc.text(`Date: ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,20,y);y+=8;
+    doc.text(`Tenant: ${P?.full_name||'Tenant'}`,20,y);y+=14;
+
+    doc.setFontSize(11);doc.setTextColor(40,40,40);
+    doc.text(`I confirm payment of the sum of €${(parseFloat(amount)||0).toLocaleString()}`,20,y);y+=7;
+    doc.text(`for rent payment for the period of ${month}.`,20,y);y+=18;
+
+    doc.setDrawColor(220,220,220);doc.line(20,y,pageW-20,y);y+=10;
+    doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(140,140,140);
+    doc.text('This receipt was generated automatically by RestMalta — restmalta.com',20,y);
+
+    doc.save(`Quittance_rent_${month.replace(' ','_')}.pdf`);
+    toast('🧾 Receipt downloaded!');
+  };
+  if(window.jspdf){build();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload=build;
+  document.head.appendChild(s);
 }
 
 async function declarePaid(paymentId){
