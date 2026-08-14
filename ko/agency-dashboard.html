@@ -1882,11 +1882,25 @@ async function loadAgencyMessages(){
   const wrap=document.getElementById('agency-messages-wrap');
   if(!wrap)return;
   try{
-    const{data:msgs}=await sb.from('messages')
-      .select('*')
-      .eq('receiver_id',U.id)
-      .order('created_at',{ascending:false})
-      .limit(50);
+    // Deux façons de retrouver ses messages : ceux correctement adressés
+    // (receiver_id) ET ceux liés à une de mes annonces (via listing_id) —
+    // cette deuxième voie rattrape les messages envoyés avant que les
+    // données de l'annonce soient corrigées, sans devoir les corriger un par un
+    const{data:myListings}=await sb.from('listings').select('id').eq('agent_id',U.id);
+    const myListingIds=(myListings||[]).map(l=>l.id);
+
+    const{data:byReceiver}=await sb.from('messages').select('*').eq('receiver_id',U.id).order('created_at',{ascending:false}).limit(50);
+    let byListing=[];
+    if(myListingIds.length){
+      const{data}=await sb.from('messages').select('*').in('listing_id',myListingIds).neq('sender_id',U.id).order('created_at',{ascending:false}).limit(50);
+      byListing=data||[];
+    }
+    const seen=new Set();
+    const msgs=[...(byReceiver||[]),...byListing].filter(m=>{
+      if(seen.has(m.id))return false;
+      seen.add(m.id);
+      return true;
+    }).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
     // Filtré côté JS plutôt qu'avec .not() en base — .not() exclut aussi
     // par erreur les messages sans type du tout, très courants ici
@@ -2885,7 +2899,22 @@ async function loadVisits(){
   const wrap=document.getElementById('visits-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    const{data:myListings}=await sb.from('listings').select('id').eq('agent_id',U.id);
+    const myListingIds=(myListings||[]).map(l=>l.id);
+
+    const{data:byLandlord}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+    let byListing=[];
+    if(myListingIds.length){
+      const{data}=await sb.from('visits').select('*').in('listing_id',myListingIds).order('created_at',{ascending:false});
+      byListing=data||[];
+    }
+    const seen=new Set();
+    const visits=[...(byLandlord||[]),...byListing].filter(v=>{
+      if(seen.has(v.id))return false;
+      seen.add(v.id);
+      return true;
+    }).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
     if(!(visits||[]).length){wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet.</p></div>';return;}
     const nb=document.getElementById('nb-visits');
     const pending=(visits||[]).filter(v=>v.status==='awaiting_landlord').length;
