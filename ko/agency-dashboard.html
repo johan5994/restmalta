@@ -2448,7 +2448,7 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
 
     // landlord_id reste l'agence pour la messagerie/le suivi au quotidien —
     // ça n'a aucun rapport avec qui signe légalement le bail en tant que Lessor
-    await sb.from('bookings').update({
+    const{error:updateErr}=await sb.from('bookings').update({
       status:'accepted',
       accepted_at:new Date().toISOString(),
       landlord_id:U.id,
@@ -2465,6 +2465,10 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
       // RestMalta. Le clarifier dès l'acceptation évite toute confusion plus tard.
       no_landlord_tracking:!(listing?.landlord_has_account)
     }).eq('id',bookingId);
+    if(updateErr){
+      alert('❌ Could not accept the booking:\n\n'+updateErr.message+'\n\nCode: '+(updateErr.code||'—')+'\nDetails: '+(updateErr.details||'—'));
+      return;
+    }
 
     try{await sb.from('listings').update({status:'reserved'}).eq('id',listingId);}catch(e){}
 
