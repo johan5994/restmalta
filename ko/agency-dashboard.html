@@ -626,7 +626,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
   <!-- ── MESSAGES ── -->
   <div class="page" id="page-messages">
-    <div class="card"><div class="ch"><div class="ct">💬 My conversations</div></div><div class="cb" id="agency-messages-wrap"><div class="empty"><div class="em">💬</div><p>Loading...</p></div></div></div>
+    <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+      <button class="tab act" id="msg-tab-tenants" onclick="setAgencyMsgTab('tenants',this)" style="border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--agencybright);color:white;border-color:var(--agencybright)">🎒 Tenants<span class="nbadge" id="nb-msg-tenants" style="display:none">0</span></button>
+      <button class="tab" id="msg-tab-landlords" onclick="setAgencyMsgTab('landlords',this)" style="border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🏠 Landlords<span class="nbadge" id="nb-msg-landlords" style="display:none">0</span></button>
+    </div>
+    <div class="card"><div class="ch"><div class="ct" id="agency-messages-title">💬 Conversations with tenants</div></div><div class="cb" id="agency-messages-wrap"><div class="empty"><div class="em">💬</div><p>Loading...</p></div></div></div>
 
     <!-- Modal chat -->
     <div class="modal" id="agency-msg-modal" onclick="if(event.target.id==='agency-msg-modal')closeAgencyMsg()">
@@ -1859,6 +1863,21 @@ function setCRMTab(tab, btn){
 function filterCRM(q){renderCRM(q);}
 
 // ── Visits ────────────────────────────────────────────────────
+let currentAgencyMsgTab='tenants';
+let _agencyMsgCache=null;
+
+function setAgencyMsgTab(tab,btn){
+  currentAgencyMsgTab=tab;
+  document.querySelectorAll('#page-messages .tab').forEach(t=>{
+    t.classList.remove('act');
+    t.style.background='var(--s2)';t.style.color='var(--tm)';t.style.borderColor='var(--b)';
+  });
+  btn.classList.add('act');
+  btn.style.background='var(--agencybright)';btn.style.color='white';btn.style.borderColor='var(--agencybright)';
+  document.getElementById('agency-messages-title').textContent=tab==='tenants'?'💬 Conversations with tenants':'🏠 Conversations with landlords';
+  renderAgencyMessages();
+}
+
 async function loadAgencyMessages(){
   const wrap=document.getElementById('agency-messages-wrap');
   if(!wrap)return;
@@ -1866,45 +1885,81 @@ async function loadAgencyMessages(){
     const{data:msgs}=await sb.from('messages')
       .select('*')
       .eq('receiver_id',U.id)
-      .not('type','eq','visit_request')
       .order('created_at',{ascending:false})
       .limit(50);
 
-    const nb=document.getElementById('nb-agency-msg');
-    const unread=(msgs||[]).filter(m=>!m.read).length;
-    if(nb){nb.textContent=unread;nb.style.display=unread>0?'inline':'none';}
+    // Filtré côté JS plutôt qu'avec .not() en base — .not() exclut aussi
+    // par erreur les messages sans type du tout, très courants ici
+    const filtered=(msgs||[]).filter(m=>m.type!=='visit_request');
 
-    if(!msgs?.length){
-      wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet</p></div>';
-      return;
+    // Séparer locataires / propriétaires — selon le rôle du profil de l'autre
+    // personne dans chaque conversation, une seule requête par personne distincte
+    const otherIds=[...new Set(filtered.map(m=>m.sender_id===U.id?m.receiver_id:m.sender_id).filter(id=>id&&id!=='system'))];
+    let roleMap={};
+    if(otherIds.length){
+      try{
+        const{data:profiles}=await sb.from('profiles').select('clerk_id,role').in('clerk_id',otherIds);
+        (profiles||[]).forEach(p=>{roleMap[p.clerk_id]=p.role;});
+      }catch(e){}
     }
 
-    const typeLabels={
-      'landlord_to_agency':'🏠 Landlord inquiry',
-      'message':'💬 Message',
-    };
+    _agencyMsgCache={filtered,roleMap};
 
-    wrap.innerHTML=msgs.map(m=>{
-      const date=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-      const label=typeLabels[m.type]||m.type||'Message';
-      const lines=m.content.split('\n');
-      const preview=lines[0]||'';
-      const otherParty=m.sender_id===U.id?m.receiver_id:m.sender_id;
-      const canReply=otherParty&&otherParty!=='system';
-      return`<div style="padding:.75rem 1rem;background:${m.read?'var(--s2)':'rgba(76,175,125,.06)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="${canReply?`openAgencyMsg('${m.listing_id||''}','${otherParty}','${label.replace(/'/g,"\\'")}')`:''}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
-          <span style="font-size:.75rem;font-weight:700;color:${m.read?'var(--td)':'#4CAF7D'}">${label}</span>
-          <span style="font-size:.65rem;color:var(--td)">${date}</span>
-        </div>
-        <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
-      </div>`;
-    }).join('');
+    const unread=filtered.filter(m=>!m.read).length;
+    const tenantUnread=filtered.filter(m=>{const o=m.sender_id===U.id?m.receiver_id:m.sender_id;return!m.read&&roleMap[o]!=='landlord';}).length;
+    const landlordUnread=filtered.filter(m=>{const o=m.sender_id===U.id?m.receiver_id:m.sender_id;return!m.read&&roleMap[o]==='landlord';}).length;
+    const nbT=document.getElementById('nb-msg-tenants'),nbL=document.getElementById('nb-msg-landlords');
+    if(nbT){nbT.textContent=tenantUnread;nbT.style.display=tenantUnread>0?'inline':'none';}
+    if(nbL){nbL.textContent=landlordUnread;nbL.style.display=landlordUnread>0?'inline':'none';}
+    const nb=document.getElementById('nb-agency-msg');
+    if(nb){nb.textContent=unread;nb.style.display=unread>0?'inline':'none';}
+
+    renderAgencyMessages();
 
     try{await sb.from('messages').update({read:true}).eq('receiver_id',U.id).eq('read',false);}catch(e){}
   }catch(e){
     if(wrap)wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>Error loading messages</p></div>';
     console.error('loadAgencyMessages:',e);
   }
+}
+
+function renderAgencyMessages(){
+  const wrap=document.getElementById('agency-messages-wrap');
+  if(!wrap||!_agencyMsgCache)return;
+  const{filtered,roleMap}=_agencyMsgCache;
+
+  const isLandlordTab=currentAgencyMsgTab==='landlords';
+  const shown=filtered.filter(m=>{
+    const o=m.sender_id===U.id?m.receiver_id:m.sender_id;
+    const isLandlordConvo=roleMap[o]==='landlord';
+    return isLandlordTab?isLandlordConvo:!isLandlordConvo;
+  });
+
+  if(!shown.length){
+    wrap.innerHTML=`<div class="empty"><div class="em">💬</div><p>No ${isLandlordTab?'landlord':'tenant'} conversations yet</p></div>`;
+    return;
+  }
+
+  const typeLabels={
+    'landlord_to_agency':'🏠 Landlord inquiry',
+    'message':'💬 Message',
+  };
+
+  wrap.innerHTML=shown.map(m=>{
+    const date=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const label=typeLabels[m.type]||m.type||'Message';
+    const lines=m.content.split('\n');
+    const preview=lines[0]||'';
+    const otherParty=m.sender_id===U.id?m.receiver_id:m.sender_id;
+    const canReply=otherParty&&otherParty!=='system';
+    return`<div style="padding:.75rem 1rem;background:${m.read?'var(--s2)':'rgba(76,175,125,.06)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="${canReply?`openAgencyMsg('${m.listing_id||''}','${otherParty}','${label.replace(/'/g,"\\'")}')`:''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
+        <span style="font-size:.75rem;font-weight:700;color:${m.read?'var(--td)':'#4CAF7D'}">${label}</span>
+        <span style="font-size:.65rem;color:var(--td)">${date}</span>
+      </div>
+      <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
+    </div>`;
+  }).join('');
 }
 
 let agencyChatListingId=null,agencyChatOtherId=null;
