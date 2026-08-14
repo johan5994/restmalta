@@ -1222,7 +1222,7 @@ async function loadOverview(){
             <div style="font-size:.83rem;font-weight:600">${v.tenant_name||'—'}</div>
             <div style="font-size:.7rem;color:var(--td)">${v.listing_title||'—'}</div>
           </div>
-          <span class="badge ${v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.6rem">${v.status||'—'}</span>
+          <span class="badge ${v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.6rem">${v.status==='awaiting_landlord'?'🆕 New':v.status==='confirmed'?'✅ Confirmed':v.status||'—'}</span>
         </div>`).join('');
     }
 
@@ -2919,15 +2919,48 @@ async function loadVisits(){
     const nb=document.getElementById('nb-visits');
     const pending=(visits||[]).filter(v=>v.status==='awaiting_landlord').length;
     if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
-    wrap.innerHTML='<table class="tbl"><thead><tr><th>Tenant</th><th>Property</th><th>Date</th><th>Status</th><th>Agent</th></tr></thead><tbody>'+
+    wrap.innerHTML='<table class="tbl"><thead><tr><th>Tenant</th><th>Property</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
       (visits||[]).map(v=>`<tr>
         <td style="font-weight:600">${v.tenant_name||'—'}</td>
         <td style="color:var(--td)">${v.listing_title||'—'}</td>
         <td style="font-size:.78rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-'}</td>
-        <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status||'—'}</span></td>
-        <td style="font-size:.78rem;color:var(--td)">${v.agent_name||'—'}</td>
+        <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status==='awaiting_landlord'?'🆕 New':v.status==='confirmed'?'✅ Confirmed':v.status||'—'}</span></td>
+        <td>${v.status==='awaiting_landlord'?`
+          <div style="display:flex;gap:.3rem">
+            <button onclick="agencyConfirmVisit('${v.id}','yes','${v.listing_id}','${v.tenant_id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer">✅ Confirm</button>
+            <button onclick="agencyConfirmVisit('${v.id}','wrong_date','${v.listing_id}','${v.tenant_id}')" style="background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer">❌ Can't do it</button>
+          </div>`:'—'}</td>
       </tr>`).join('')+'</tbody></table>';
   }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error</div>';}
+}
+
+async function agencyConfirmVisit(visitId,response,listingId,tenantId){
+  try{
+    if(response==='yes'){
+      await sb.from('visits').update({status:'confirmed'}).eq('id',visitId);
+      if(tenantId){
+        await sb.from('messages').insert({
+          listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+          visit_id:visitId,
+          content:'✅ Your visit is confirmed! Your agency has confirmed the date.',
+          type:'visit_confirmed'
+        }).catch(()=>{});
+      }
+      toast('✅ Visit confirmed! Tenant notified.');
+    }else{
+      await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);
+      if(tenantId){
+        await sb.from('messages').insert({
+          listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+          visit_id:visitId,
+          content:'❌ Sorry, we can\'t make this visit date work. Please suggest another date or contact us to reschedule.',
+          type:'visit_declined'
+        }).catch(()=>{});
+      }
+      toast('Tenant notified — visit not confirmed for this date.');
+    }
+    loadVisits();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 // ── Subscription ──────────────────────────────────────────────
