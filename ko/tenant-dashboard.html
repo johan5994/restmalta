@@ -1451,6 +1451,21 @@ async function loadMessages(){
       if(oid&&oid!=='system'&&!listingOtherParty.has(m.listing_id)) listingOtherParty.set(m.listing_id,oid);
     });
 
+    // Filet de sécurité — si TOUS les messages d'une annonce viennent du
+    // système (ex: candidature acceptée directement, jamais de message
+    // humain avant), aller chercher landlord_id directement sur l'annonce
+    // plutôt que de laisser le thread pointer vers "system"
+    const unresolvedListingIds=[...new Set(all.filter(m=>{
+      const oid=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      return oid==='system'&&m.listing_id&&!listingOtherParty.has(m.listing_id);
+    }).map(m=>m.listing_id))];
+    if(unresolvedListingIds.length){
+      try{
+        const{data:fallbackListings}=await sb.from('listings').select('id,landlord_id').in('id',unresolvedListingIds);
+        (fallbackListings||[]).forEach(l=>{if(l.landlord_id)listingOtherParty.set(l.id,l.landlord_id);});
+      }catch(e){}
+    }
+
     // Grouper par annonce + interlocuteur — un seul chat par annonce par personne
     const threadMap=new Map();
     all.forEach(m=>{
