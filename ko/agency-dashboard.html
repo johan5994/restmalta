@@ -2174,7 +2174,7 @@ async function declineApplicationAgency(bookingId,listingId,tenantId){
   try{
     await sb.from('bookings').update({status:'declined'}).eq('id',bookingId);
     if(tenantId){
-      await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:tenantId,content:'Your rental application was not accepted this time. Keep browsing — more properties are added regularly!',type:'booking_declined'}).catch(()=>{});
+      await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:tenantId,content:'Your rental application was not accepted this time. Keep browsing — more properties are added regularly!',type:'booking_declined'});
     }
     toast('Application declined');
     loadApplications();
@@ -2944,7 +2944,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
           visit_id:visitId,
           content:'✅ Your visit is confirmed! Your agency has confirmed the date.',
           type:'visit_confirmed'
-        }).catch(()=>{});
+        });
       }
       toast('✅ Visit confirmed! Tenant notified.');
     }else{
@@ -2955,7 +2955,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
           visit_id:visitId,
           content:'❌ Sorry, we can\'t make this visit date work. Please suggest another date or contact us to reschedule.',
           type:'visit_declined'
-        }).catch(()=>{});
+        });
       }
       toast('Tenant notified — visit not confirmed for this date.');
     }
