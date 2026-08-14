@@ -2118,6 +2118,34 @@ async function loadApplications(){
         const listing=listingMap[b.listing_id]||{};
         const tenant=tenantMap[b.tenant_id]||{};
         const edlDone=!!b.edl_completed_at;
+        const leaseSigned=b.lease_signed_landlord&&b.lease_signed_tenant;
+        const paymentConfirmed=!!b.first_payment_confirmed;
+
+        let statusBadge,actionHtml;
+        if(!leaseSigned){
+          statusBadge='<span class="badge b-gold" style="font-size:.65rem">✍️ Lease being signed</span>';
+          const waitingOn=!b.lease_signed_landlord&&!b.lease_signed_tenant?'both parties':!b.lease_signed_landlord?'the landlord':'the tenant';
+          actionHtml=`<div style="background:var(--s2);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:var(--td)">⏳ Waiting on ${waitingOn} to sign. ${!b.lease_signed_landlord&&!listing.landlord_has_account?'If the landlord hasn\'t received the signing link, use the ⋮ menu on this listing to review or resend it.':''}</div>`;
+        }else if(!paymentConfirmed){
+          statusBadge='<span class="badge b-sea" style="font-size:.65rem">💶 Awaiting payment</span>';
+          if(b.no_landlord_tracking){
+            // Pas de compte propriétaire lié = RestMalta ne suit aucun paiement pour
+            // cette location, le locataire n'a donc aucun moyen de "déclarer avoir payé"
+            // ici — l'agence confirme directement dès qu'elle a reçu les fonds, en dehors de la plateforme
+            actionHtml=`<button onclick="agencyConfirmPaymentReceived('${b.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Confirm funds received</button>`;
+          }else{
+            actionHtml=b.first_payment_sent
+              ?`<button onclick="agencyConfirmPaymentReceived('${b.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Confirm funds received</button>`
+              :`<div style="background:var(--s2);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:var(--td)">⏳ Waiting for the tenant to send the deposit + first month's rent.</div>`;
+          }
+        }else if(!edlDone){
+          statusBadge='<span class="badge b-gold" style="font-size:.65rem">📋 Ready for move-in</span>';
+          actionHtml=`<button onclick="openAgencyEDL('${b.id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>`;
+        }else{
+          statusBadge='<span class="badge b-green" style="font-size:.65rem">✅ Move-in done</span>';
+          actionHtml=`<button onclick="viewEdlDossier('${b.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">📋 View inventory dossier</button>`;
+        }
+
         return`<div class="card" style="margin-bottom:.85rem">
           <div class="cb">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
@@ -2125,10 +2153,9 @@ async function loadApplications(){
                 <div style="font-weight:700;font-size:.92rem">${tenant.full_name||b.tenant_name||'Tenant'}</div>
                 <div style="font-size:.75rem;color:var(--td)">🏠 ${listing.title||'Property'} — ${listing.zone||''}</div>
               </div>
-              <span class="badge ${edlDone?'b-green':'b-gold'}" style="font-size:.65rem">${edlDone?'✅ Move-in done':'📄 Lease in progress'}</span>
+              ${statusBadge}
             </div>
-            ${!edlDone?`<button onclick="openAgencyEDL('${b.id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>`
-              :`<button onclick="viewEdlDossier('${b.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">📋 View inventory dossier</button>`}
+            ${actionHtml}
           </div>
         </div>`;
       }).join('');
@@ -2221,6 +2248,27 @@ async function viewTenantDocAgency(path){
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
     else toast('❌ Could not open document');
   }catch(e){toast('❌ '+e.message);}
+}
+
+async function agencyConfirmPaymentReceived(bookingId){
+  if(!confirm('Confirm the deposit + first month\'s rent have been received?'))return;
+  try{
+    const{data:bk,error:fetchErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();
+    if(fetchErr||!bk){alert('❌ Could not load booking: '+(fetchErr?.message||'not found'));return;}
+
+    const{error:updErr}=await sb.from('bookings').update({first_payment_confirmed:true,first_payment_sent:true}).eq('id',bookingId);
+    if(updErr){alert('❌ Could not confirm payment:\n\n'+updErr.message+'\n\nCode: '+(updErr.code||'—'));return;}
+
+    if(bk.tenant_id){
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
+        content:'✅ Your agency confirmed receiving your payment!\n\nEverything is set for your move-in — you\'ll be contacted for the entry inventory.',
+        type:'payment_confirmed'
+      });
+    }
+    toast('✅ Payment confirmed! Ready for move-in.');
+    loadApplications();
+  }catch(e){alert('❌ '+e.message);}
 }
 
 async function declineApplicationAgency(bookingId,listingId,tenantId){
