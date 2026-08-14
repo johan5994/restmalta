@@ -3407,7 +3407,26 @@ async function submitIDForVerification(){
 
 async function showNegotiationModal(listingId, listingTitle, contactId, price){
   const hasCard=!!(P?.stripe_customer_id);
-  const commission=Math.round((price||0)*0.10);
+  let commissionRate=0.10,commissionLabel='10%';
+  try{
+    const{data:listingInfo}=await sb.from('listings').select('agency_listing,agency_name,agent_id,wants_agent,agent_service').eq('id',listingId).maybeSingle();
+    // Détection robuste — ne se fie pas qu'au seul champ agency_listing, qui
+    // a pu ne pas être renseigné sur une annonce créée avant sa mise en place
+    let isAgency=!!listingInfo?.agency_listing||!!listingInfo?.agency_name;
+    if(!isAgency&&listingInfo?.agent_id){
+      try{
+        const{data:agencyCheck}=await sb.from('agency_profiles').select('clerk_id').eq('clerk_id',listingInfo.agent_id).maybeSingle();
+        isAgency=!!agencyCheck;
+      }catch(e){}
+    }
+    const hasAgent=listingInfo?.wants_agent&&listingInfo?.agent_service==='full'&&!isAgency;
+    // Une agence paie déjà son propre abonnement fixe — le locataire ne doit
+    // rien à RestMalta dans ce cas, contrairement à un agent individuel (40%)
+    // ou une location directe sans agent (10%)
+    commissionRate=isAgency?0:hasAgent?0.40:0.10;
+    commissionLabel=isAgency?'0%':hasAgent?'40%':'10%';
+  }catch(e){}
+  const commission=Math.round((price||0)*commissionRate);
   const modal=document.createElement('div');
   modal.id='nego-modal-overlay';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
@@ -3474,12 +3493,19 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
           </div>
         </div>
       </div>
+      ${commission>0?`
         <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">💳 Platform fee authorization</div>
-        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (10%)</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
+        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (${commissionLabel})</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
         <div id="nego-card-status">${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}</div>
       </div>
       <div style="display:flex;gap:.5rem" id="nego-action-buttons">
         ${hasCard?`<button id="nego-submit-btn" onclick="this.disabled=true;this.textContent='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed">🚀 Send application →</button>`}
+      `:`
+        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">🏢 This property is managed by an agency — you pay nothing to RestMalta to apply.</div>
+      </div>
+      <div style="display:flex;gap:.5rem" id="nego-action-buttons">
+        <button id="nego-submit-btn" onclick="this.disabled=true;this.textContent='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer">🚀 Send application →</button>
+      `}
         <button onclick="document.getElementById('nego-modal-overlay').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
       </div>
     </div>`;
@@ -3775,14 +3801,84 @@ function collectCoTenantManualFields(slotId){
 }
 
 async function openDirectRentPayment(listingId, listingTitle, landlordId, price, negotiationNote='', extras=[], moveIn=null, coTenantsFull=[]){
-  let listing=null,hasAgent=false;
+  let listing=null,hasAgent=false,isAgency=false;
   try{
     const{data:l}=await sb.from('listings').select('*').eq('id',listingId).single();
     listing=l;
-    hasAgent=l?.wants_agent&&l?.agent_service==='full';
+    isAgency=!!l?.agency_listing||!!l?.agency_name;
+    if(!isAgency&&l?.agent_id){
+      try{
+        const{data:agencyCheck}=await sb.from('agency_profiles').select('clerk_id').eq('clerk_id',l.agent_id).maybeSingle();
+        isAgency=!!agencyCheck;
+      }catch(e){}
+    }
+    hasAgent=l?.wants_agent&&l?.agent_service==='full'&&!isAgency;
   }catch(e){}
   price=listing?.price||price||0; // toujours faire confiance au prix réel en base, pas à ce qui a été passé
   if(!price){toast('❌ This listing has no price set — contact RestMalta support.');return;}
+
+  const coTenantIds=coTenantsFull.filter(c=>c.hasAccount&&c.tenant_id).map(c=>c.tenant_id);
+
+  // Une agence gérée directement — pas de frais RestMalta côté locataire,
+  // donc pas besoin de carte ni de Stripe, on envoie la candidature directement
+  if(isAgency){
+    const modal=document.createElement('div');
+    modal.id='rent-pay-modal-overlay';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+    modal.innerHTML=`
+      <div style="background:var(--s);border:1px solid var(--b);border-radius:20px;padding:1.5rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto">
+        <div style="font-size:1rem;font-weight:800;margin-bottom:.3rem">🏠 Confirm your request</div>
+        <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem"><strong style="color:var(--txt)">€${price}/mo</strong> · ${listingTitle||''}</div>
+        <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.78rem">
+          <div style="font-weight:700;color:#4CAF7D">🏢 This property is managed by an agency</div>
+          <div style="font-size:.7rem;color:var(--td);margin-top:.3rem">You pay nothing to RestMalta to apply — no card needed.</div>
+        </div>
+        <div id="rent-pay-error" style="color:var(--red);font-size:.78rem;margin-bottom:.5rem;display:none"></div>
+        <div style="display:flex;gap:.5rem">
+          <button id="rent-pay-btn" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">🚀 Send application →</button>
+          <button onclick="document.getElementById('rent-pay-modal-overlay').remove()" style="background:var(--s2);color:var(--tm);border:1px solid var(--b);border-radius:10px;padding:.7rem .9rem;font-size:.82rem;cursor:pointer">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    document.getElementById('rent-pay-btn').onclick=async()=>{
+      const btn=document.getElementById('rent-pay-btn');
+      const errEl=document.getElementById('rent-pay-error');
+      errEl.style.display='none';
+      btn.textContent='Sending...';btn.disabled=true;
+      try{
+        const{error:bookingError}=await sb.from('bookings').insert({
+          listing_id:listingId,tenant_id:U.id,landlord_id:landlordId,
+          tenant_name:P?.full_name||'',tenant_email:P?.email||'',
+          commission_amount:0,total_amount:0,
+          monthly_rent:price,status:'pending',has_agent:false,
+          move_in_date:moveIn||null,
+          negotiation_note:negotiationNote||null,
+          requested_extras:extras.length?JSON.stringify(extras):null,
+          co_tenant_ids:coTenantIds.length?JSON.stringify(coTenantIds):null,
+          co_tenants_data:coTenantsFull.length?JSON.stringify(coTenantsFull):null
+        });
+        if(bookingError)throw new Error(bookingError.message);
+        try{await sb.from('listings').update({status:'reserved',reserved_by:U.id}).eq('id',listingId);}catch(e){}
+        try{
+          await sb.from('messages').insert({
+            listing_id:listingId,sender_id:'system',receiver_id:landlordId,
+            content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nCheck your Applications page to review their dossier and accept or decline.',
+            type:'wants_to_rent'
+          });
+        }catch(e){}
+        modal.remove();
+        toast('✅ Application sent! Track it in My Visits.');
+        sp('visits',document.querySelector('.ni[onclick*="visits"]'));
+        loadTenantVisits();
+      }catch(e){
+        errEl.textContent='❌ '+e.message;
+        errEl.style.display='block';
+        btn.textContent='🚀 Send application →';btn.disabled=false;
+      }
+    };
+    return;
+  }
 
   const agentMustCreate=listing?.agent_must_create||false;
   const tenantRate=agentMustCreate?0.00:0.10; // l'agent construit tout → RestMalta ne prend rien côté locataire ici, tout va à l'agent
@@ -3837,10 +3933,6 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
 
       const{error,paymentIntent}=await stripeInstance.confirmCardPayment(data.client_secret,{payment_method:{card}});
       if(error)throw new Error(error.message);
-
-      // Co-locataires déjà résolus (comptes trouvés + saisis manuellement) — passés
-      // en paramètre car leur formulaire vivait dans la modal de négociation précédente.
-      const coTenantIds=coTenantsFull.filter(c=>c.hasAccount&&c.tenant_id).map(c=>c.tenant_id);
 
       const{error:bookingError}=await sb.from('bookings').insert({
         listing_id:listingId,tenant_id:U.id,landlord_id:landlordId,
