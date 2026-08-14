@@ -2924,14 +2924,23 @@ async function loadVisits(){
         <td style="font-weight:600">${v.tenant_name||'—'}</td>
         <td style="color:var(--td)">${v.listing_title||'—'}</td>
         <td style="font-size:.78rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-'}</td>
-        <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status==='awaiting_landlord'?'🆕 New':v.status==='confirmed'?'✅ Confirmed':v.status||'—'}</span></td>
+        <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='completed'?'b-sea':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status==='awaiting_landlord'?'🆕 New':v.status==='confirmed'?'✅ Confirmed':v.status==='completed'?'🏁 Visit done':v.status||'—'}</span></td>
         <td>${v.status==='awaiting_landlord'?`
           <div style="display:flex;gap:.3rem">
             <button onclick="agencyConfirmVisit('${v.id}','yes','${v.listing_id}','${v.tenant_id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer">✅ Confirm</button>
             <button onclick="agencyConfirmVisit('${v.id}','wrong_date','${v.listing_id}','${v.tenant_id}')" style="background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer">❌ Can't do it</button>
-          </div>`:'—'}</td>
+          </div>`:v.status==='confirmed'?`
+          <button onclick="agencyMarkVisitDone('${v.id}')" style="background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer">🏁 Visit done</button>`:'—'}</td>
       </tr>`).join('')+'</tbody></table>';
   }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error</div>';}
+}
+
+async function agencyMarkVisitDone(visitId){
+  try{
+    await sb.from('visits').update({status:'completed'}).eq('id',visitId);
+    toast('✅ Visit marked as done. Tenant will be asked if they\'re interested.');
+    loadVisits();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function agencyConfirmVisit(visitId,response,listingId,tenantId){
