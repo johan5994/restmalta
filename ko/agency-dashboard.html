@@ -2127,45 +2127,61 @@ async function loadApplications(){
         const leaseSigned=b.lease_signed_landlord&&b.lease_signed_tenant;
         const paymentConfirmed=!!b.first_payment_confirmed;
 
-        let statusBadge,actionHtml;
-        if(!leaseSigned){
-          statusBadge='<span class="badge b-gold" style="font-size:.65rem">✍️ Lease being signed</span>';
-          const waitingOn=!b.lease_signed_landlord&&!b.lease_signed_tenant?'both parties':!b.lease_signed_landlord?'the landlord':'the tenant';
-          if(!b.lease_signed_landlord&&listing.agency_authorized_to_sign&&b.lease_landlord_embed){
-            actionHtml=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✍️ Sign as authorized representative →</button>`;
-          }else{
-            actionHtml=`<div style="background:var(--s2);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:var(--td)">⏳ Waiting on ${waitingOn} to sign. ${!b.lease_signed_landlord&&!listing.landlord_has_account?'If the landlord hasn\'t received the signing link, use the ⋮ menu on this listing to review or resend it.':''}</div>`;
-          }
-        }else if(!paymentConfirmed){
-          statusBadge='<span class="badge b-sea" style="font-size:.65rem">💶 Awaiting payment</span>';
-          if(b.no_landlord_tracking){
-            // Pas de compte propriétaire lié = RestMalta ne suit aucun paiement pour
-            // cette location, le locataire n'a donc aucun moyen de "déclarer avoir payé"
-            // ici — l'agence confirme directement dès qu'elle a reçu les fonds, en dehors de la plateforme
-            actionHtml=`<button onclick="agencyConfirmPaymentReceived('${b.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Confirm funds received</button>`;
-          }else{
-            actionHtml=b.first_payment_sent
-              ?`<button onclick="agencyConfirmPaymentReceived('${b.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Confirm funds received</button>`
-              :`<div style="background:var(--s2);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:var(--td)">⏳ Waiting for the tenant to send the deposit + first month's rent.</div>`;
-          }
-        }else if(!edlDone){
-          statusBadge='<span class="badge b-gold" style="font-size:.65rem">📋 Ready for move-in</span>';
-          actionHtml=`<button onclick="openAgencyEDL('${b.id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>`;
+        // Ligne "propriétaire" des signatures — 3 cas possibles
+        let landlordSignRow;
+        if(b.lease_signed_landlord){
+          landlordSignRow=`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${b.lease_landlord_embed?` <a href="${b.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`;
+        }else if(listing.agency_authorized_to_sign&&b.lease_landlord_embed){
+          landlordSignRow=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`;
+        }else if(listing.landlord_has_account){
+          landlordSignRow='<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting — notified to sign in their dashboard</span>';
         }else{
-          statusBadge='<span class="badge b-green" style="font-size:.65rem">✅ Move-in done</span>';
-          actionHtml=`<button onclick="viewEdlDossier('${b.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">📋 View inventory dossier</button>`;
+          landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="showLandlordRelayScreen('${b.lease_landlord_embed||''}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Resend link</button>`;
+        }
+
+        const paymentRow=paymentConfirmed
+          ?'<span style="font-size:.78rem">✅ Payment confirmed</span>'
+          :b.no_landlord_tracking
+            ?`<span style="font-size:.78rem">⏳ Waiting for funds</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem">✅ Confirm received</button>`
+            :b.first_payment_sent
+              ?`<span style="font-size:.78rem">💶 Tenant declared payment</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem">✅ Confirm received</button>`
+              :'<span style="font-size:.78rem">⏳ Waiting for the tenant to send funds</span>';
+
+        let nextStepHtml='';
+        if(leaseSigned&&paymentConfirmed&&!edlDone){
+          nextStepHtml=`<button onclick="openAgencyEDL('${b.id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-top:.6rem">📋 Move-in inventory (EDL) & keys →</button>`;
+        }else if(edlDone){
+          nextStepHtml=`<div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.4rem">✅ Move-in inventory completed — tenant has the keys</div><button onclick="viewEdlDossier('${b.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">📋 View full inventory dossier (with photos) →</button>`;
         }
 
         return`<div class="card" style="margin-bottom:.85rem">
           <div class="cb">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">
               <div>
                 <div style="font-weight:700;font-size:.92rem">${tenant.full_name||b.tenant_name||'Tenant'}</div>
                 <div style="font-size:.75rem;color:var(--td)">🏠 ${listing.title||'Property'} — ${listing.zone||''}</div>
               </div>
-              ${statusBadge}
+              <span class="badge ${edlDone?'b-green':leaseSigned&&paymentConfirmed?'b-gold':'b-sea'}" style="font-size:.65rem">${edlDone?'✅ Move-in done':leaseSigned&&paymentConfirmed?'📋 Ready for move-in':leaseSigned?'💶 Awaiting payment':'✍️ Lease pending'}</span>
             </div>
-            ${actionHtml}
+
+            <div style="font-size:.68rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Signatures</div>
+            <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.6rem">
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+                <span style="font-size:.78rem">🏠 Landlord</span>
+                ${landlordSignRow}
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+                <span style="font-size:.78rem">👤 Tenant</span>
+                ${b.lease_signed_tenant?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${b.lease_tenant_embed?` <a href="${b.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`:'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+              </div>
+            </div>
+
+            <div style="font-size:.68rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Payment</div>
+            <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
+              ${paymentRow}
+            </div>
+
+            ${nextStepHtml}
           </div>
         </div>`;
       }).join('');
