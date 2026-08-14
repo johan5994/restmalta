@@ -602,6 +602,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="li-email"></div>
         <div class="fg"><label class="fl">Phone</label><input class="fi" id="li-phone"></div>
       </div>
+      <div class="fg" style="background:var(--s2);border-radius:10px;padding:.7rem .85rem">
+        <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
+          <input type="checkbox" id="li-authorized" style="margin-top:.15rem">
+          <span style="font-size:.78rem;line-height:1.4">I'm authorized by this landlord to sign the lease on their behalf (mandate/management agreement)</span>
+        </label>
+      </div>
       <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" id="li-submit-btn" onclick="submitLandlordInfoAndAccept()">Save & Accept application →</button>
       <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeLandlordInfoModal()">Cancel</button>
     </div>
@@ -2095,7 +2101,7 @@ async function loadApplications(){
   if(!wrap)return;
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:myListings}=await sb.from('listings').select('id,title,zone,price,landlord_has_account').eq('agent_id',U.id);
+    const{data:myListings}=await sb.from('listings').select('id,title,zone,price,landlord_has_account,agency_authorized_to_sign,manual_landlord_email,manual_landlord_phone,manual_landlord_name').eq('agent_id',U.id);
     const listingIds=(myListings||[]).map(l=>l.id);
     if(!listingIds.length){wrap.innerHTML='<div class="empty"><div class="em">📋</div><p>No listings yet — publish one first.</p></div>';return;}
     const listingMap={};(myListings||[]).forEach(l=>{listingMap[l.id]=l;});
@@ -2125,7 +2131,11 @@ async function loadApplications(){
         if(!leaseSigned){
           statusBadge='<span class="badge b-gold" style="font-size:.65rem">✍️ Lease being signed</span>';
           const waitingOn=!b.lease_signed_landlord&&!b.lease_signed_tenant?'both parties':!b.lease_signed_landlord?'the landlord':'the tenant';
-          actionHtml=`<div style="background:var(--s2);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:var(--td)">⏳ Waiting on ${waitingOn} to sign. ${!b.lease_signed_landlord&&!listing.landlord_has_account?'If the landlord hasn\'t received the signing link, use the ⋮ menu on this listing to review or resend it.':''}</div>`;
+          if(!b.lease_signed_landlord&&listing.agency_authorized_to_sign&&b.lease_landlord_embed){
+            actionHtml=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✍️ Sign as authorized representative →</button>`;
+          }else{
+            actionHtml=`<div style="background:var(--s2);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:var(--td)">⏳ Waiting on ${waitingOn} to sign. ${!b.lease_signed_landlord&&!listing.landlord_has_account?'If the landlord hasn\'t received the signing link, use the ⋮ menu on this listing to review or resend it.':''}</div>`;
+          }
         }else if(!paymentConfirmed){
           statusBadge='<span class="badge b-sea" style="font-size:.65rem">💶 Awaiting payment</span>';
           if(b.no_landlord_tracking){
@@ -2401,7 +2411,8 @@ async function resolveLandlordAndAccept(bookingId,listingId,tenantId,fields){
     manual_landlord_email:fields.email||null,
     manual_landlord_phone:fields.phone||null,
     landlord_has_account:!!realLandlordId,
-    real_landlord_id:realLandlordId
+    real_landlord_id:realLandlordId,
+    agency_authorized_to_sign:fields.authorized||false
   };
 
   try{
@@ -2427,7 +2438,8 @@ async function submitLandlordInfoAndAccept(){
     nationality:document.getElementById('li-nationality').value.trim(),
     address:document.getElementById('li-address').value.trim(),
     email:document.getElementById('li-email').value.trim(),
-    phone:document.getElementById('li-phone').value.trim()
+    phone:document.getElementById('li-phone').value.trim(),
+    authorized:document.getElementById('li-authorized').checked
   });
   if(btn){btn.disabled=false;btn.textContent='Save & Accept application →';}
 }
@@ -2542,13 +2554,64 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
       });}catch(e){}
     }
 
-    if(!listing?.landlord_has_account&&lessorEmbed){
+    if(listing?.landlord_has_account&&lessorEmbed){
+      toast(lesseeEmbed?'🎉 Accepted! Tenant can now sign the lease.':'🎉 Accepted! Tenant notified.');
+    }else if(listing?.agency_authorized_to_sign&&lessorEmbed){
+      // Agence mandatée par le propriétaire — elle signe directement en tant que Lessor
+      signAsAgencyLessor(bookingId,lessorEmbed);
+    }else if(lessorEmbed){
       showLandlordRelayScreen(lessorEmbed,listing?.manual_landlord_email||listing?.manual_landlord_name||'',listing?.title||'the property',listing?.manual_landlord_phone||'');
     }else{
       toast(lesseeEmbed?'🎉 Accepted! Tenant can now sign the lease.':'🎉 Accepted! Tenant notified.');
     }
     loadApplications();
   }catch(e){toast('❌ '+e.message);console.error(e);}
+}
+
+function signAsAgencyLessor(bookingId,embedSrc){
+  const doOpen=()=>{
+    const modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+    const header=document.createElement('div');
+    header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
+    header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Sign lease on behalf of the landlord</div>';
+    const closeBtn=document.createElement('button');
+    closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
+    closeBtn.textContent='✕';
+    closeBtn.onclick=()=>{modal.remove();loadApplications();};
+    header.appendChild(closeBtn);
+    const body=document.createElement('div');
+    body.style.cssText='flex:1;overflow:auto;background:white';
+    const form=document.createElement('docuseal-form');
+    form.setAttribute('data-src',embedSrc);
+    form.setAttribute('data-send-copy-email','false');
+    form.style.cssText='width:100%;display:block;min-height:100vh';
+    form.addEventListener('completed',async()=>{
+      let updateOk=false;
+      try{
+        const{error:updErr}=await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId);
+        if(updErr){
+          alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message);
+        }else{
+          updateOk=true;
+        }
+      }catch(e){alert('❌ '+e.message);}
+      if(updateOk)toast('✅ Signed as authorized representative!');
+      setTimeout(()=>{modal.remove();loadApplications();},1200);
+    });
+    body.appendChild(form);
+    modal.appendChild(header);
+    modal.appendChild(body);
+    document.body.appendChild(modal);
+  };
+
+  if(window.docusealLoaded){doOpen();}
+  else{
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;doOpen();};
+    document.head.appendChild(s);
+  }
 }
 
 function showLandlordRelayScreen(signLink,landlordEmail,propertyTitle,landlordPhone){
