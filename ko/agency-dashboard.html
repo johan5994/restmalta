@@ -2136,7 +2136,7 @@ async function loadApplications(){
         }else if(listing.landlord_has_account){
           landlordSignRow='<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting — notified to sign in their dashboard</span>';
         }else{
-          landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="showLandlordRelayScreen('${b.lease_landlord_embed||''}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Resend link</button>`;
+          landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="resendOrRegenerateLease('${b.id}','${b.listing_id}','${b.tenant_id}','${b.lease_landlord_embed||''}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Resend link</button>`;
         }
 
         const paymentRow=paymentConfirmed
@@ -2460,6 +2460,18 @@ async function submitLandlordInfoAndAccept(){
   if(btn){btn.disabled=false;btn.textContent='Save & Accept application →';}
 }
 
+async function resendOrRegenerateLease(bookingId,listingId,tenantId,existingEmbed,landlordEmail,propertyTitle,landlordPhone){
+  if(existingEmbed){
+    // Un lien existe déjà — on relaie simplement
+    showLandlordRelayScreen(existingEmbed,landlordEmail,propertyTitle,landlordPhone);
+    return;
+  }
+  // Aucun lien n'a jamais été créé (la génération initiale a dû échouer
+  // silencieusement) — on relance vraiment la génération avant de proposer le relais
+  toast('⏳ No lease link found — generating it now...');
+  await generateLeaseFromBookingAgency(bookingId,listingId,tenantId);
+}
+
 async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
   toast('⏳ Processing acceptance...');
   try{
@@ -2516,11 +2528,19 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
             const match=coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
             return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
           });
+          if(!lessorEmbed&&!lesseeEmbed){
+            alert('⚠️ The lease function ran but returned no signing links.\n\nMessage: '+(docuData.message||'—')+'\n\nThis usually means DocuSeal isn\'t configured correctly on the server (missing API key) — check the Netlify environment variables.');
+          }
         }else{
-          toast('⚠️ Lease generation issue: '+(docuData.error||'Unknown error'));
+          alert('❌ Lease generation failed:\n\n'+(docuData.error||docuData.message||'Unknown error'));
         }
+      }else{
+        const errText=await docuRes.text().catch(()=>'');
+        alert('❌ The lease server function returned an error (HTTP '+docuRes.status+'):\n\n'+errText.slice(0,300));
       }
-    }catch(e){console.warn('Lease generation:',e.message);}
+    }catch(e){
+      alert('❌ Could not reach the lease generation function:\n\n'+e.message);
+    }
 
     // landlord_id reste l'agence pour la messagerie/le suivi au quotidien —
     // ça n'a aucun rapport avec qui signe légalement le bail en tant que Lessor
