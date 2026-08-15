@@ -2101,7 +2101,7 @@ async function loadApplications(){
   if(!wrap)return;
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:myListings}=await sb.from('listings').select('id,title,zone,price,landlord_has_account,agency_authorized_to_sign,manual_landlord_email,manual_landlord_phone,manual_landlord_name').eq('agent_id',U.id);
+    const{data:myListings}=await sb.from('listings').select('id,title,zone,price,landlord_has_account,agency_authorized_to_sign,manual_landlord_email,manual_landlord_phone,manual_landlord_name,real_landlord_id').eq('agent_id',U.id);
     const listingIds=(myListings||[]).map(l=>l.id);
     if(!listingIds.length){wrap.innerHTML='<div class="empty"><div class="em">📋</div><p>No listings yet — publish one first.</p></div>';return;}
     const listingMap={};(myListings||[]).forEach(l=>{listingMap[l.id]=l;});
@@ -2236,6 +2236,7 @@ async function loadApplications(){
                 </div>
               </div>
             </div>
+            ${listing.manual_landlord_email||listing.real_landlord_id?`<button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>`:''}
             <div style="display:flex;gap:.5rem;margin-top:.6rem">
               <button onclick="acceptApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
               <button onclick="declineApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer">Decline</button>
@@ -2279,6 +2280,57 @@ async function loadTenantDossierForAgency(tenantId){
         </div>`).join('');
     }
   }catch(e){}
+}
+
+async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlordEmail,landlordPhone){
+  toast('⏳ Preparing dossier...');
+  try{
+    const{data:p}=await sb.from('profiles').select('full_name,nationality,phone,verified,documents').eq('clerk_id',tenantId).maybeSingle();
+    if(!p){toast('❌ Could not load tenant profile');return;}
+
+    let lines=[`Candidate for ${propertyTitle}:`,``,`Name: ${p.full_name||'—'}`,`Nationality: ${p.nationality||'—'}`,`Phone: ${p.phone||'—'}`,`Verified: ${p.verified?'Yes ✅':'Not yet'}`,``];
+
+    if(p.documents){
+      const docMap=typeof p.documents==='string'?JSON.parse(p.documents):p.documents;
+      const docLabels={id:'ID/Passport',bank_statement:'Bank statement',emprent_letter:'Employment letter',reference_letter:'Reference letter',rent1:'Rent receipt 1',rent2:'Rent receipt 2',rent3:'Rent receipt 3'};
+      const entries=Object.entries(docMap).filter(([,d])=>d?.path);
+      lines.push('Documents:');
+      for(const[key,doc] of entries){
+        // Lien longue durée (7 jours) — contrairement à la consultation
+        // immédiate dans le dashboard qui n'a besoin que de 5 minutes
+        try{
+          const{data:signed}=await sb.storage.from('tenant-documents').createSignedUrl(doc.path,604800);
+          if(signed?.signedUrl)lines.push(`- ${docLabels[key]||key}: ${signed.signedUrl}`);
+        }catch(e){}
+      }
+    }
+
+    const dossierText=lines.join('\n');
+    showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,landlordPhone);
+  }catch(e){toast('❌ '+e.message);}
+}
+
+function showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,landlordPhone){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  const mailBody=encodeURIComponent(dossierText+'\n\nLet me know what you think!');
+  const mailSubject=encodeURIComponent(`Candidate to review — ${propertyTitle}`);
+  const mailtoHref=landlordEmail&&landlordEmail.includes('@')?`mailto:${landlordEmail}?subject=${mailSubject}&body=${mailBody}`:`mailto:?subject=${mailSubject}&body=${mailBody}`;
+  const waText=encodeURIComponent(dossierText+'\n\nLet me know what you think!');
+  const waPhone=landlordPhone?landlordPhone.replace(/[^0-9+]/g,'').replace(/^\+/,''):'';
+  const waHref=`https://wa.me/${waPhone}?text=${waText}`;
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.75rem;max-width:440px;width:100%;max-height:85vh;overflow-y:auto">
+      <div style="font-size:1.6rem;margin-bottom:.5rem">📤</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Ask the owner's opinion</div>
+      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Share this candidate's dossier before deciding — document links stay valid for 7 days.</div>
+      <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.72rem;color:var(--td);white-space:pre-wrap;word-break:break-all;margin-bottom:.75rem;max-height:200px;overflow-y:auto">${dossierText.replace(/</g,'&lt;')}</div>
+      <button onclick="navigator.clipboard.writeText(\`${dossierText.replace(/`/g,'\\`')}\`);this.innerHTML='✅ Copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy text</button>
+      <a href="${waHref}" target="_blank" onclick="setTimeout(()=>{this.innerHTML='✅ Sent via WhatsApp';this.style.opacity='.7';},300)" class="btn bg" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem;background:#25D366;color:white;border:none">💬 Send via WhatsApp</a>
+      <a href="${mailtoHref}" onclick="setTimeout(()=>{this.innerHTML='✅ Email opened';this.style.opacity='.7';},300)" class="btn bp" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem">✉️ Send by email</a>
+      <button onclick="this.closest('div[style*=fixed]').remove()" class="btn bg" style="width:100%;justify-content:center">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
 }
 
 async function viewTenantDocAgency(path){
