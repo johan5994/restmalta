@@ -3137,7 +3137,7 @@ async function loadRentedProperties(){
   const agencyListingIds=(agencyListings||[]).map(l=>l.id);
   let agencyBookings=[];
   if(agencyListingIds.length){
-    const{data}=await sb.from('bookings').select('*').in('listing_id',agencyListingIds).eq('landlord_transferred',true).in('status',occupiedStatuses).order('created_at',{ascending:false});
+    const{data}=await sb.from('bookings').select('*').in('listing_id',agencyListingIds).eq('lease_signed_landlord',true).eq('lease_signed_tenant',true).in('status',occupiedStatuses).order('created_at',{ascending:false});
     agencyBookings=data||[];
   }
   const agentByListing={};(agencyListings||[]).forEach(l=>{agentByListing[l.id]=l.agent_id;});
