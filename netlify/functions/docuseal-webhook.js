@@ -28,7 +28,12 @@ exports.handler = async (event) => {
         const { data: booking } = await sb2.from('bookings').select('*').eq('lease_submission_id', submissionId).maybeSingle().catch(() => ({ data: null }));
         if (booking) {
           let updateData = {};
-          const submitter = (submission.submitters || []).find(s => s.status === 'completed');
+          // Prendre le signataire le PLUS RÉCEMMENT complété, pas le premier
+          // trouvé — si le locataire avait déjà signé avant, .find() retombait
+          // toujours sur lui même quand c'est le propriétaire qui vient de finir
+          const completedSubmitters = (submission.submitters || []).filter(s => s.status === 'completed');
+          completedSubmitters.sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+          const submitter = completedSubmitters[0];
           const role = submitter?.role || '';
 
           if (eventType === 'submission.completed') {
@@ -98,7 +103,9 @@ exports.handler = async (event) => {
         const { data: edlBooking } = await sb3.from('bookings').select('*').eq('edl_submission_id', submissionId).maybeSingle().catch(() => ({ data: null }));
         if (edlBooking) {
           let edlUpdate = {};
-          const submitter = (submission.submitters || []).find(s => s.status === 'completed');
+          const completedEdlSubmitters = (submission.submitters || []).filter(s => s.status === 'completed');
+          completedEdlSubmitters.sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+          const submitter = completedEdlSubmitters[0];
           const role = submitter?.role || '';
           if (eventType === 'submission.completed') {
             edlUpdate = { edl_signed_landlord: true, edl_signed_tenant: true };
