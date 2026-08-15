@@ -20,7 +20,7 @@ exports.handler = async (event) => {
     const eventType = payload.event_type || payload.event;
 
     // ── Gestion signatures bookings (nouveau flow) ──────────────────────────
-    if (eventType === 'submitter_completed' || eventType === 'submission_completed') {
+    if (eventType === 'form.completed' || eventType === 'submission.completed') {
       const submission = payload.data || payload;
       const submissionId = String(submission.id || submission.submission_id || '');
       if (submissionId) {
@@ -31,7 +31,7 @@ exports.handler = async (event) => {
           const submitter = (submission.submitters || []).find(s => s.status === 'completed');
           const role = submitter?.role || '';
 
-          if (eventType === 'submission_completed') {
+          if (eventType === 'submission.completed') {
             updateData = { lease_signed_landlord: true, lease_signed_tenant: true };
           } else if (role === 'Lessor') {
             updateData = { lease_signed_landlord: true };
@@ -53,7 +53,12 @@ exports.handler = async (event) => {
           }
 
           if (Object.keys(updateData).length) {
-            await sb2.from('bookings').update(updateData).eq('id', booking.id);
+            const { data: updResult, error: updErr } = await sb2.from('bookings').update(updateData).eq('id', booking.id).select();
+            if (updErr) {
+              console.error('❌ Webhook could not update booking', booking.id, ':', updErr.message);
+            } else if (!updResult || !updResult.length) {
+              console.error('❌ Webhook update affected 0 rows for booking', booking.id, '— check RLS on the bookings table.');
+            }
             // Notifier selon qui a signé
             if (updateData.lease_signed_landlord && !booking.lease_signed_landlord) {
               await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '✍️ The landlord signed the lease!\n\nIt\'s your turn — go to your visits page to sign.', type: 'lease_signed_landlord' }).catch(() => {});
@@ -85,7 +90,7 @@ exports.handler = async (event) => {
     }
 
     // ── Gestion signatures EDL (état des lieux) ─────────────────────────────
-    if (eventType === 'submitter_completed' || eventType === 'submission_completed') {
+    if (eventType === 'form.completed' || eventType === 'submission.completed') {
       const submission = payload.data || payload;
       const submissionId = String(submission.id || submission.submission_id || '');
       if (submissionId) {
@@ -95,7 +100,7 @@ exports.handler = async (event) => {
           let edlUpdate = {};
           const submitter = (submission.submitters || []).find(s => s.status === 'completed');
           const role = submitter?.role || '';
-          if (eventType === 'submission_completed') {
+          if (eventType === 'submission.completed') {
             edlUpdate = { edl_signed_landlord: true, edl_signed_tenant: true };
           } else if (role === 'Lessor') {
             edlUpdate = { edl_signed_landlord: true };
