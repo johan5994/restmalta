@@ -1301,7 +1301,7 @@ async function loadBookingDossier(booking){
     ?'<span style="background:rgba(76,175,125,.15);color:#4CAF7D;padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">✅ ID Verified</span>'
     :'<span style="background:rgba(212,168,71,.15);color:var(--gold);padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700">⚠️ Not verified</span>';
 
-  const fields=[profile.full_name,profile.passport_number,profile.nationality,profile.date_of_birth,profile.phone,profile.email,profile.emprent,profile.reason_for_stay];
+  const fields=[profile.full_name,profile.passport_number,profile.nationality,profile.date_of_birth,profile.phone,profile.email,profile.emprent];
   const pct=Math.round(fields.filter(Boolean).length/fields.length*100);
   const progressColor=pct>=80?'#4CAF7D':pct>=50?'var(--gold)':'var(--red)';
 
@@ -1349,7 +1349,6 @@ async function loadBookingDossier(booking){
     <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:.7rem;margin-bottom:.5rem">
       <div style="font-size:.63rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">🇲🇹 Situation in Malta</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;font-size:.77rem">
-        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Reason for stay</div><div style="font-weight:600">${profile.reason_for_stay||'—'}</div></div>
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Planned duration</div><div style="font-weight:600">${profile.stay_duration||'—'}</div></div>
         ${profile.emprent?`<div style="grid-column:1/-1"><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Employer / University</div><div style="font-weight:600">${profile.emprent}</div></div>`:''}
         ${profile.needs_attestation?`<div style="grid-column:1/-1"><div style="background:rgba(58,143,181,.1);border:1px solid rgba(58,143,181,.2);border-radius:6px;padding:.3rem .6rem;font-size:.7rem;color:var(--sea)">ℹ️ Requires notarised lease attestation (non-EU)</div></div>`:''}
