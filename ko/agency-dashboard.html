@@ -486,28 +486,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div id="photo-previews" style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap"></div>
           </div>
 
-          <!-- Owner details — optionnel, rempli calmement à la création plutôt
-               que sous pression au moment d'accepter une candidature -->
-          <div class="fg" style="background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:.85rem 1rem">
-            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
-              <input type="checkbox" id="nl-owner-toggle" onchange="document.getElementById('nl-owner-fields').style.display=this.checked?'block':'none'">
-              <span class="fl" style="margin:0">This property's owner doesn't have a RestMalta account</span>
-            </label>
-            <div id="nl-owner-fields" style="display:none">
-              <div style="font-size:.72rem;color:var(--td);margin-bottom:.6rem">Add their details now so accepting a tenant later is a single click — no need to look this up under pressure.</div>
-              <div class="fg"><label class="fl">Owner full name</label><input class="fi" id="nl-owner-name"></div>
-              <div class="fgrid2">
-                <div class="fg"><label class="fl">ID/Passport number</label><input class="fi" id="nl-owner-passport"></div>
-                <div class="fg"><label class="fl">Nationality</label><input class="fi" id="nl-owner-nationality"></div>
-              </div>
-              <div class="fg"><label class="fl">Address</label><input class="fi" id="nl-owner-address"></div>
-              <div class="fgrid2">
-                <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="nl-owner-email"></div>
-                <div class="fg"><label class="fl">Phone</label><input class="fi" id="nl-owner-phone"></div>
-              </div>
-            </div>
-          </div>
-
           <div style="display:flex;gap:.5rem;margin-top:.5rem">
             <button class="btn bp" onclick="publishNewListing()" style="flex:1;justify-content:center">🚀 Publish Listing →</button>
             <button class="btn bg bsm" onclick="saveDraft()">💾 Save Draft</button>
@@ -601,12 +579,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="fgrid2">
         <div class="fg"><label class="fl">Email * <span style="font-size:.68rem;color:var(--td)">(required — DocuSeal needs a valid email to create the signature request)</span></label><input class="fi" type="email" id="li-email"></div>
         <div class="fg"><label class="fl">Phone</label><input class="fi" id="li-phone"></div>
-      </div>
-      <div class="fg" style="background:var(--s2);border-radius:10px;padding:.7rem .85rem">
-        <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
-          <input type="checkbox" id="li-authorized" style="margin-top:.15rem">
-          <span style="font-size:.78rem;line-height:1.4">I'm authorized by this landlord to sign the lease on their behalf (mandate/management agreement)</span>
-        </label>
       </div>
       <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" id="li-submit-btn" onclick="submitLandlordInfoAndAccept()">Save & Accept application →</button>
       <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeLandlordInfoModal()">Cancel</button>
@@ -1735,12 +1707,6 @@ async function publishNewListing(){
     sda:document.getElementById('nl-sda')?.checked||false,
     features,
     photos:uploadedPhotos,
-    manual_landlord_name:document.getElementById('nl-owner-toggle')?.checked?document.getElementById('nl-owner-name').value.trim()||null:null,
-    manual_landlord_passport:document.getElementById('nl-owner-toggle')?.checked?document.getElementById('nl-owner-passport').value.trim()||null:null,
-    manual_landlord_nationality:document.getElementById('nl-owner-toggle')?.checked?document.getElementById('nl-owner-nationality').value.trim()||null:null,
-    manual_landlord_address:document.getElementById('nl-owner-toggle')?.checked?document.getElementById('nl-owner-address').value.trim()||null:null,
-    manual_landlord_email:document.getElementById('nl-owner-toggle')?.checked?document.getElementById('nl-owner-email').value.trim()||null:null,
-    manual_landlord_phone:document.getElementById('nl-owner-toggle')?.checked?document.getElementById('nl-owner-phone').value.trim()||null:null,
   });
 }
 
@@ -2101,7 +2067,7 @@ async function loadApplications(){
   if(!wrap)return;
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:myListings}=await sb.from('listings').select('id,title,zone,price,landlord_has_account,agency_authorized_to_sign,manual_landlord_email,manual_landlord_phone,manual_landlord_name,real_landlord_id').eq('agent_id',U.id);
+    const{data:myListings}=await sb.from('listings').select('id,title,zone,price,landlord_has_account,manual_landlord_email,manual_landlord_phone,manual_landlord_name,real_landlord_id').eq('agent_id',U.id);
     const listingIds=(myListings||[]).map(l=>l.id);
     if(!listingIds.length){wrap.innerHTML='<div class="empty"><div class="em">📋</div><p>No listings yet — publish one first.</p></div>';return;}
     const listingMap={};(myListings||[]).forEach(l=>{listingMap[l.id]=l;});
@@ -2127,14 +2093,13 @@ async function loadApplications(){
         const leaseSigned=b.lease_signed_landlord&&b.lease_signed_tenant;
         const paymentConfirmed=!!b.first_payment_confirmed;
 
-        // Ligne "propriétaire" des signatures — 3 cas possibles
+        // Ligne "propriétaire" des signatures — toujours les deux options
+        // ensemble une fois signé, c'est l'agence qui choisit à chaque fois
         let landlordSignRow;
         if(b.lease_signed_landlord){
           landlordSignRow=`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${b.lease_landlord_embed?` <a href="${b.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`;
-        }else if(listing.agency_authorized_to_sign&&b.lease_landlord_embed){
-          landlordSignRow=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`;
-        }else if(listing.landlord_has_account){
-          landlordSignRow='<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting — notified to sign in their dashboard</span>';
+        }else if(b.lease_landlord_embed){
+          landlordSignRow=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button> <button onclick="showLeaseSigningOptionsScreen('${b.id}','${b.lease_landlord_embed}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.25rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Send to landlord</button>`;
         }else{
           landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="resendOrRegenerateLease('${b.id}','${b.listing_id}','${b.tenant_id}','${b.lease_landlord_embed||''}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Resend link</button>`;
         }
@@ -2236,7 +2201,7 @@ async function loadApplications(){
                 </div>
               </div>
             </div>
-            ${listing.manual_landlord_email||listing.real_landlord_id?`<button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>`:''}
+            <button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>
             <div style="display:flex;gap:.5rem;margin-top:.6rem">
               <button onclick="acceptApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
               <button onclick="declineApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer">Decline</button>
@@ -2288,7 +2253,7 @@ async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlor
     const{data:p}=await sb.from('profiles').select('full_name,nationality,phone,verified,documents').eq('clerk_id',tenantId).maybeSingle();
     if(!p){toast('❌ Could not load tenant profile');return;}
 
-    let lines=[`Candidate for ${propertyTitle}:`,``,`Name: ${p.full_name||'—'}`,`Nationality: ${p.nationality||'—'}`,`Phone: ${p.phone||'—'}`,`Verified: ${p.verified?'Yes ✅':'Not yet'}`,``];
+    let lines=[`Candidate for ${propertyTitle}:`,``,`Name: ${p.full_name||'—'}`,`Nationality: ${p.nationality||'—'}`,`Verified: ${p.verified?'Yes ✅':'Not yet'}`,``];
 
     if(p.documents){
       const docMap=typeof p.documents==='string'?JSON.parse(p.documents):p.documents;
@@ -2599,8 +2564,7 @@ async function resolveLandlordAndAccept(bookingId,listingId,tenantId,fields){
     manual_landlord_email:fields.email||null,
     manual_landlord_phone:fields.phone||null,
     landlord_has_account:!!realLandlordId,
-    real_landlord_id:realLandlordId,
-    agency_authorized_to_sign:fields.authorized||false
+    real_landlord_id:realLandlordId
   };
 
   try{
@@ -2632,16 +2596,15 @@ async function submitLandlordInfoAndAccept(){
     nationality:document.getElementById('li-nationality').value.trim(),
     address:document.getElementById('li-address').value.trim(),
     email,
-    phone:document.getElementById('li-phone').value.trim(),
-    authorized:document.getElementById('li-authorized').checked
+    phone:document.getElementById('li-phone').value.trim()
   });
   if(btn){btn.disabled=false;btn.textContent='Save & Accept application →';}
 }
 
 async function resendOrRegenerateLease(bookingId,listingId,tenantId,existingEmbed,landlordEmail,propertyTitle,landlordPhone){
   if(existingEmbed){
-    // Un lien existe déjà — on relaie simplement
-    showLandlordRelayScreen(existingEmbed,landlordEmail,propertyTitle,landlordPhone);
+    // Un lien existe déjà — proposer les deux options, pas juste le relais
+    showLeaseSigningOptionsScreen(bookingId,existingEmbed,landlordEmail,propertyTitle,landlordPhone);
     return;
   }
   // Aucun lien n'a jamais été créé (la génération initiale a dû échouer
@@ -2780,18 +2743,38 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
       });}catch(e){}
     }
 
-    if(listing?.landlord_has_account&&lessorEmbed){
-      toast(lesseeEmbed?'🎉 Accepted! Tenant can now sign the lease.':'🎉 Accepted! Tenant notified.');
-    }else if(listing?.agency_authorized_to_sign&&lessorEmbed){
-      // Agence mandatée par le propriétaire — elle signe directement en tant que Lessor
-      signAsAgencyLessor(bookingId,lessorEmbed);
-    }else if(lessorEmbed){
-      showLandlordRelayScreen(lessorEmbed,listing?.manual_landlord_email||listing?.manual_landlord_name||'',listing?.title||'the property',listing?.manual_landlord_phone||'');
+    if(lessorEmbed){
+      showLeaseSigningOptionsScreen(bookingId,lessorEmbed,listing?.manual_landlord_email||listing?.manual_landlord_name||'',listing?.title||'the property',listing?.manual_landlord_phone||'');
     }else{
       toast(lesseeEmbed?'🎉 Accepted! Tenant can now sign the lease.':'🎉 Accepted! Tenant notified.');
     }
     loadApplications();
   }catch(e){toast('❌ '+e.message);console.error(e);}
+}
+
+function showLeaseSigningOptionsScreen(bookingId,signLink,landlordEmail,propertyTitle,landlordPhone){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  const mailBody=encodeURIComponent(`Hello,\n\nPlease review and sign the lease for ${propertyTitle} using the link below:\n\n${signLink}\n\nThank you!`);
+  const mailSubject=encodeURIComponent(`Lease to sign — ${propertyTitle}`);
+  const mailtoHref=landlordEmail&&landlordEmail.includes('@')?`mailto:${landlordEmail}?subject=${mailSubject}&body=${mailBody}`:`mailto:?subject=${mailSubject}&body=${mailBody}`;
+  const waText=encodeURIComponent(`Hello! Please review and sign the lease for ${propertyTitle} using this link:\n\n${signLink}`);
+  const waPhone=landlordPhone?landlordPhone.replace(/[^0-9+]/g,'').replace(/^\+/,''):'';
+  const waHref=`https://wa.me/${waPhone}?text=${waText}`;
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.75rem;max-width:440px;width:100%">
+      <div style="font-size:1.6rem;margin-bottom:.5rem">🎉</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Lease generated — who signs as Lessor?</div>
+      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Sign it yourself now if you're authorized to, or send it to the landlord to sign themselves.</div>
+      <button onclick="this.closest('div[style*=fixed]').remove();signAsAgencyLessor('${bookingId}','${signLink}')" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.75rem">✍️ Sign now myself</button>
+      <div style="text-align:center;font-size:.72rem;color:var(--td);margin-bottom:.75rem">— or send it to the landlord —</div>
+      <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;color:var(--td);word-break:break-all;margin-bottom:.75rem">${signLink}</div>
+      <button onclick="navigator.clipboard.writeText('${signLink}');this.innerHTML='✅ Link copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy link</button>
+      <a href="${waHref}" target="_blank" onclick="setTimeout(()=>{this.innerHTML='✅ Sent via WhatsApp';this.style.opacity='.7';},300)" class="btn bg" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem;background:#25D366;color:white;border:none">💬 Send via WhatsApp</a>
+      <a href="${mailtoHref}" onclick="setTimeout(()=>{this.innerHTML='✅ Email opened';this.style.opacity='.7';},300)" class="btn bp" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem">✉️ Send by email</a>
+      <button onclick="this.closest('div[style*=fixed]').remove()" class="btn bg" style="width:100%;justify-content:center">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
 }
 
 function signAsAgencyLessor(bookingId,embedSrc){
