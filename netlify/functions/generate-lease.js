@@ -76,31 +76,19 @@ exports.handler = async (event) => {
   <p>This, day of <span class="field-long">${today}</span></p>
 
   <p>By the present private writing there appear on the one part <span class="field-long">${landlord?.name || '_______________'}</span>, 
-  son/daughter of <span class="field">${landlord?.father_name || '_______________'}</span> 
-  and <span class="field">${landlord?.mother_name || '_______________'}</span> 
-  neè <span class="field">${landlord?.mother_maiden || '_______________'}</span>, 
-  born in <span class="field">${landlord?.place_of_birth || '_______________'}</span> 
-  and residing at <span class="field-long">${landlord?.address || '_______________'}</span>, 
+  residing at <span class="field-long">${landlord?.address || '_______________'}</span>, 
   holder of a legally valid identification document number <span class="field">${landlord?.passport || '_______________'}</span> 
   and user of e-mail address <span class="field-long">${landlord?.email || '_______________'}</span>, 
   hereinafter referred to as the <strong>lessor</strong>.</p>
 
   <p>And on the other part <span class="field-long">${tenant?.name || '_______________'}</span>, 
-  son/daughter of <span class="field">${tenant?.father_name || '_______________'}</span> 
-  and <span class="field">${tenant?.mother_name || '_______________'}</span> 
-  neè <span class="field">${tenant?.mother_maiden || '_______________'}</span>, 
-  born in <span class="field">${tenant?.place_of_birth || '_______________'}</span> 
-  and residing at <span class="field-long">${tenant?.address || '_______________'}</span>, 
+  residing at <span class="field-long">${tenant?.address || '_______________'}</span>, 
   holder of a legally valid identification document number <span class="field">${tenant?.passport || '_______________'}</span> 
   and user of e-mail address <span class="field-long">${tenant?.email || '_______________'}</span>${coTenants?.length ? ', hereinafter referred to as <strong>Lessee 1</strong>' : ', hereinafter referred to as the <strong>lessee</strong>'}.</p>
 
   ${(coTenants || []).map((ct, i) => `
   <p>And on the other part <span class="field-long">${ct?.name || '_______________'}</span>, 
-  son/daughter of <span class="field">${ct?.father_name || '_______________'}</span> 
-  and <span class="field">${ct?.mother_name || '_______________'}</span> 
-  neè <span class="field">${ct?.mother_maiden || '_______________'}</span>, 
-  born in <span class="field">${ct?.place_of_birth || '_______________'}</span> 
-  and residing at <span class="field-long">${ct?.address || '_______________'}</span>, 
+  residing at <span class="field-long">${ct?.address || '_______________'}</span>, 
   holder of a legally valid identification document number <span class="field">${ct?.passport || '_______________'}</span> 
   and user of e-mail address <span class="field-long">${ct?.email || '_______________'}</span>, 
   hereinafter referred to as <strong>Lessee ${i + 2}</strong>.</p>`).join('')}
@@ -109,7 +97,7 @@ exports.handler = async (event) => {
 
   <p>And hereby the lessor is granting by title of lease to the lessee who under the same title of lease accepts 
   <span class="field-long">${listing?.address || '_______________'}</span> 
-  hereinafter referred to as the premises, subject to the following terms and conditions:</p>
+  hereinafter referred to as the premises, to be used exclusively for <strong>private residential purposes</strong>, subject to the following terms and conditions:</p>
 </div>
 
 <div class="section">
@@ -128,7 +116,7 @@ exports.handler = async (event) => {
 
   <li>The monthly rent payable by the lessee to the lessor for the use and enjoyment of the premises is 
   <strong>€${listing?.price || '___'}/month</strong>, 
-  payable on or before the <strong>${listing?.payment_due_day || '1st'}</strong> day of each month.</li>
+  payable on or before the <strong>${listing?.payment_due_day || '1st'}</strong> day of each month, by means of <strong>bank transfer or other electronic payment method</strong> agreed between the parties.</li>
 
   ${type === 'long' ? `
   <li>After the first year of the agreement the monthly rent may increase in proportion to the yearly adjustment of the Property Price Index (PPI), published by the National Statistics Office (NSO). Any annual increase in rent shall not exceed five percent (5%) of the rent established.</li>
