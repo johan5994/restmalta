@@ -2389,12 +2389,16 @@ async function saveManualLandlordEdit(){
     return;
   }
   try{
-    const{error}=await sb.from('listings').update({
+    const{data,error}=await sb.from('listings').update({
       manual_landlord_name:document.getElementById('oli-name').value.trim(),
       manual_landlord_email:email,
       manual_landlord_phone:document.getElementById('oli-phone').value.trim()
-    }).eq('id',_ownerLinkListingId);
+    }).eq('id',_ownerLinkListingId).select();
     if(error){toast('❌ '+error.message);return;}
+    if(!data||!data.length){
+      alert('❌ The save reported no error but changed 0 rows.\n\nThis usually means a database security rule (RLS) is silently blocking updates on the listings table — ask the developer to check/disable RLS on it.');
+      return;
+    }
     toast('✅ Owner details updated — you can now retry generating the lease');
     closeOwnerLinkModal();
     loadListings();
