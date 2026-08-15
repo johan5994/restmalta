@@ -659,141 +659,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
             <div class="fg"><label class="fl">ID / Passport number *</label><input class="fi" id="prof-id" placeholder="e.g. 12345678A" oninput="updateLLCompleteness()"></div>
             <div class="fg"><label class="fl">Date of birth *</label><input class="fi" type="date" id="prof-dob" oninput="updateLLCompleteness()"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Place of birth *</label>
-              <div style="display:flex;gap:.5rem">
-                <input class="fi" id="prof-pob-city" placeholder="City" style="flex:1" oninput="updateLLCompleteness()">
-                <select class="fsel" id="prof-pob-country" style="flex:1" oninput="updateLLCompleteness()">
-                  <option value="">Country...</option>
-                  <option value="Afghanistan">Afghanistan</option>
-<option value="Albania">Albania</option>
-<option value="Algeria">Algeria</option>
-<option value="Andorra">Andorra</option>
-<option value="Angola">Angola</option>
-<option value="Argentina">Argentina</option>
-<option value="Armenia">Armenia</option>
-<option value="Australia">Australia</option>
-<option value="Austria">Austria</option>
-<option value="Azerbaijan">Azerbaijan</option>
-<option value="Bahrain">Bahrain</option>
-<option value="Bangladesh">Bangladesh</option>
-<option value="Belgium">Belgium</option>
-<option value="Bolivia">Bolivia</option>
-<option value="Bosnia">Bosnia</option>
-<option value="Brazil">Brazil</option>
-<option value="Bulgaria">Bulgaria</option>
-<option value="Cambodia">Cambodia</option>
-<option value="Cameroon">Cameroon</option>
-<option value="Canada">Canada</option>
-<option value="Chile">Chile</option>
-<option value="China">China</option>
-<option value="Colombia">Colombia</option>
-<option value="Croatia">Croatia</option>
-<option value="Cuba">Cuba</option>
-<option value="Cyprus">Cyprus</option>
-<option value="Czech Republic">Czech Republic</option>
-<option value="Denmark">Denmark</option>
-<option value="Dominican Republic">Dominican Republic</option>
-<option value="Ecuador">Ecuador</option>
-<option value="Egypt">Egypt</option>
-<option value="El Salvador">El Salvador</option>
-<option value="Estonia">Estonia</option>
-<option value="Ethiopia">Ethiopia</option>
-<option value="Finland">Finland</option>
-<option value="France">France</option>
-<option value="Georgia">Georgia</option>
-<option value="Germany">Germany</option>
-<option value="Ghana">Ghana</option>
-<option value="Greece">Greece</option>
-<option value="Guatemala">Guatemala</option>
-<option value="Honduras">Honduras</option>
-<option value="Hungary">Hungary</option>
-<option value="Iceland">Iceland</option>
-<option value="India">India</option>
-<option value="Indonesia">Indonesia</option>
-<option value="Iran">Iran</option>
-<option value="Iraq">Iraq</option>
-<option value="Ireland">Ireland</option>
-<option value="Israel">Israel</option>
-<option value="Italy">Italy</option>
-<option value="Jamaica">Jamaica</option>
-<option value="Japan">Japan</option>
-<option value="Jordan">Jordan</option>
-<option value="Kazakhstan">Kazakhstan</option>
-<option value="Kenya">Kenya</option>
-<option value="Kuwait">Kuwait</option>
-<option value="Latvia">Latvia</option>
-<option value="Lebanon">Lebanon</option>
-<option value="Libya">Libya</option>
-<option value="Lithuania">Lithuania</option>
-<option value="Luxembourg">Luxembourg</option>
-<option value="Malaysia">Malaysia</option>
-<option value="Malta">Malta</option>
-<option value="Mexico">Mexico</option>
-<option value="Moldova">Moldova</option>
-<option value="Mongolia">Mongolia</option>
-<option value="Montenegro">Montenegro</option>
-<option value="Morocco">Morocco</option>
-<option value="Namibia">Namibia</option>
-<option value="Nepal">Nepal</option>
-<option value="Netherlands">Netherlands</option>
-<option value="New Zealand">New Zealand</option>
-<option value="Nicaragua">Nicaragua</option>
-<option value="Nigeria">Nigeria</option>
-<option value="Norway">Norway</option>
-<option value="Oman">Oman</option>
-<option value="Pakistan">Pakistan</option>
-<option value="Panama">Panama</option>
-<option value="Paraguay">Paraguay</option>
-<option value="Peru">Peru</option>
-<option value="Philippines">Philippines</option>
-<option value="Poland">Poland</option>
-<option value="Portugal">Portugal</option>
-<option value="Qatar">Qatar</option>
-<option value="Romania">Romania</option>
-<option value="Russia">Russia</option>
-<option value="Saudi Arabia">Saudi Arabia</option>
-<option value="Senegal">Senegal</option>
-<option value="Serbia">Serbia</option>
-<option value="Singapore">Singapore</option>
-<option value="Slovakia">Slovakia</option>
-<option value="Slovenia">Slovenia</option>
-<option value="South Africa">South Africa</option>
-<option value="South Korea">South Korea</option>
-<option value="Spain">Spain</option>
-<option value="Sri Lanka">Sri Lanka</option>
-<option value="Sudan">Sudan</option>
-<option value="Sweden">Sweden</option>
-<option value="Switzerland">Switzerland</option>
-<option value="Syria">Syria</option>
-<option value="Taiwan">Taiwan</option>
-<option value="Tanzania">Tanzania</option>
-<option value="Thailand">Thailand</option>
-<option value="Tunisia">Tunisia</option>
-<option value="Turkey">Turkey</option>
-<option value="Uganda">Uganda</option>
-<option value="Ukraine">Ukraine</option>
-<option value="United Kingdom">United Kingdom</option>
-<option value="United States">United States</option>
-<option value="Uruguay">Uruguay</option>
-<option value="Uzbekistan">Uzbekistan</option>
-<option value="Venezuela">Venezuela</option>
-<option value="Vietnam">Vietnam</option>
-<option value="Yemen">Yemen</option>
-<option value="Zambia">Zambia</option>
-<option value="Zimbabwe">Zimbabwe</option>
-                </select>
-              </div>
-            </div>
           </div>
 
           <!-- 📄 Required for lease -->
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">📄 Required for lease</div>
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">Required by Maltese law (PRL Act Cap. 604) — included in lease agreements.</div>
           <div class="fgrid2">
-            <div class="fg"><label class="fl">Father's first name *</label><input class="fi" id="prof-father" placeholder="Pierre" oninput="updateLLCompleteness()"></div>
-            <div class="fg"><label class="fl">Father's last name *</label><input class="fi" id="prof-father-last" placeholder="Dupont" oninput="updateLLCompleteness()"></div>
-            <div class="fg"><label class="fl">Mother's first name *</label><input class="fi" id="prof-mother" placeholder="Marie" oninput="updateLLCompleteness()"></div>
-            <div class="fg"><label class="fl">Mother's maiden name *</label><input class="fi" id="prof-mother-maiden" placeholder="Martin" oninput="updateLLCompleteness()"></div>
             <div class="fg" style="grid-column:1/-1"><label class="fl">Home / residence address * <span style="font-size:.68rem;color:var(--td)">(appears on the lease as your legal residence)</span></label><input class="fi" id="prof-home-address" placeholder="12 Triq il-Kbira, St. Julian's STJ 1234, Malta" oninput="updateLLCompleteness()"></div>
           </div>
           <div style="font-size:.75rem;font-weight:700;color:var(--terra);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0">💶 Financial</div>
@@ -1459,11 +1330,10 @@ async function loadBookingDossier(booking){
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Full name</div><div style="font-weight:700">${profile.full_name||'—'}</div></div>
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Age</div><div style="font-weight:600">${age}</div></div>
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Date of birth</div><div style="font-weight:600">${profile.date_of_birth||'—'}</div></div>
-        <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Place of birth</div><div style="font-weight:600">${profile.place_of_birth||'—'}</div></div>
+
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Nationality</div><div style="font-weight:600">${profile.nationality||'—'}</div></div>
         <div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Passport / ID No.</div><div style="font-weight:600">${profile.passport_number||'—'}</div></div>
-        ${profile.father_name&&profile.father_name.length>1?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Father's name</div><div style="font-weight:600">${profile.father_name}</div></div>`:''}
-        ${profile.mother_name&&profile.mother_name.length>1?`<div><div style="color:var(--td);font-size:.62rem;margin-bottom:.1rem">Mother's name</div><div style="font-weight:600">${profile.mother_name}${profile.mother_maiden?` (née ${profile.mother_maiden})`:''}</div></div>`:''}
+
       </div>
     </div>
 
@@ -1659,9 +1529,9 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:leaseType,
-          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||'',father_name:landlordProfile?.father_name||'',mother_name:landlordProfile?.mother_name||'',mother_maiden:landlordProfile?.mother_maiden||'',place_of_birth:landlordProfile?.place_of_birth||''},
-          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||'',father_name:tenantProfile?.father_name||'',mother_name:tenantProfile?.mother_name||'',mother_maiden:tenantProfile?.mother_maiden||'',place_of_birth:tenantProfile?.place_of_birth||''},
-          coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||'',address:ct.address||'',father_name:ct.father_name||'',mother_name:ct.mother_name||'',mother_maiden:ct.mother_maiden||'',place_of_birth:ct.place_of_birth||''})),
+          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||'',address:ct.address||''})),
           listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
           start_date:startDate,end_date:endDate,
           inventory_notes:negotiationClause||undefined
@@ -2639,8 +2509,8 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing.type==='short'?'short':'long',
-        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||'',father_name:landlordProfile.father_name||'',mother_name:landlordProfile.mother_name||'',mother_maiden:landlordProfile.mother_maiden||'',place_of_birth:landlordProfile.place_of_birth||''},
-        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||'',father_name:tenantProfile.father_name||'',mother_name:tenantProfile.mother_name||'',mother_maiden:tenantProfile.mother_maiden||'',place_of_birth:tenantProfile.place_of_birth||''},
+        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
         coTenants:[],
         listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
         start_date:startDate,end_date:endDate
@@ -2743,8 +2613,8 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:listing.type==='short'?'short':'long',
-          landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||'',father_name:landlordProfile.father_name||'',mother_name:landlordProfile.mother_name||'',mother_maiden:landlordProfile.mother_maiden||'',place_of_birth:landlordProfile.place_of_birth||''},
-          tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||'',father_name:tenantProfile.father_name||'',mother_name:tenantProfile.mother_name||'',mother_maiden:tenantProfile.mother_maiden||'',place_of_birth:tenantProfile.place_of_birth||''},
+          landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+          tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
           coTenants:[],
           listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
           start_date:startDate,
@@ -3087,10 +2957,6 @@ function updateLLCompleteness(){
     {id:'prof-nat',label:'Nationality'},
     {id:'prof-id',label:'ID/Passport'},
     {id:'prof-dob',label:'Date of birth'},
-    {id:'prof-pob-city',label:'Place of birth'},
-    {id:'prof-father',label:"Father's first name"},
-    {id:'prof-mother',label:"Mother's first name"},
-    {id:'prof-mother-maiden',label:"Mother's maiden name"},
     {id:'prof-home-address',label:'Home address'},
     {id:'prof-iban',label:'IBAN'},
   ];
@@ -3101,10 +2967,6 @@ function updateLLCompleteness(){
     'prof-nat': document.getElementById('prof-nat')?.value?.trim() || P?.nationality,
     'prof-id': document.getElementById('prof-id')?.value?.trim() || P?.passport_number,
     'prof-dob': document.getElementById('prof-dob')?.value?.trim() || P?.date_of_birth,
-    'prof-pob-city': document.getElementById('prof-pob-city')?.value?.trim() || (P?.place_of_birth||'').split(',')[0]?.trim(),
-    'prof-father': document.getElementById('prof-father')?.value?.trim() || P?.father_name,
-    'prof-mother': document.getElementById('prof-mother')?.value?.trim() || P?.mother_name,
-    'prof-mother-maiden': document.getElementById('prof-mother-maiden')?.value?.trim() || P?.mother_maiden,
     'prof-home-address': document.getElementById('prof-home-address')?.value?.trim() || P?.home_address,
     'prof-iban': document.getElementById('prof-iban')?.value?.trim() || P?.iban,
   };
@@ -3131,7 +2993,7 @@ function updateLLCompleteness(){
 }
 
 function checkLLProfileComplete(){
-  const req=[P?.full_name,P?.phone,P?.nationality,P?.passport_number,P?.date_of_birth,P?.place_of_birth,P?.father_name,P?.mother_name,P?.mother_maiden,P?.home_address,P?.iban];
+  const req=[P?.full_name,P?.phone,P?.nationality,P?.passport_number,P?.date_of_birth,P?.home_address,P?.iban];
   return req.every(Boolean);
 }
 
@@ -3165,11 +3027,6 @@ async function loadProfilee(){
   }
   document.getElementById('prof-id').value=P.passport_number||'';
   document.getElementById('prof-dob').value=P.date_of_birth||'';
-  if(document.getElementById('prof-pob-city')){const pob=(P.place_of_birth||'').split(',');document.getElementById('prof-pob-city').value=pob[0]?.trim()||'';if(document.getElementById('prof-pob-country')&&pob[1])document.getElementById('prof-pob-country').value=pob[1]?.trim()||'';}
-  document.getElementById('prof-father').value=P.father_name||'';
-  if(document.getElementById('prof-father-last'))document.getElementById('prof-father-last').value=P.father_last_name||'';
-  document.getElementById('prof-mother').value=P.mother_name||'';
-  document.getElementById('prof-mother-maiden').value=P.mother_maiden||'';
   document.getElementById('prof-home-address').value=P.home_address||'';
   document.getElementById('prof-iban').value=P.iban||'';
   document.getElementById('prof-revolut').value=P.revolut_tag||P.bank_details||'';
@@ -3193,12 +3050,6 @@ async function loadProfilee(){
     if(prefix){phoneCountry.value=prefix;phoneInput.value=ph.slice(prefix.length);}
     else{phoneInput.value=ph;}
   }
-  // Place of birth
-  if(document.getElementById('prof-pob-city')){
-    const pob=(P.place_of_birth||'').split(',');
-    document.getElementById('prof-pob-city').value=pob[0]?.trim()||'';
-    if(document.getElementById('prof-pob-country')&&pob[1])document.getElementById('prof-pob-country').value=pob[1]?.trim()||'';
-  }
   updateLLCompleteness();
 }
 
@@ -3209,11 +3060,6 @@ async function saveProfilee(){
     nationality:document.getElementById('prof-nat').value.trim(),
     passport_number:document.getElementById('prof-id').value.trim(),
     date_of_birth:document.getElementById('prof-dob').value||null,
-    place_of_birth:((document.getElementById('prof-pob-city')?.value.trim()||'')+(document.getElementById('prof-pob-country')?.value?', '+document.getElementById('prof-pob-country').value:'')).trim(),
-    father_name:document.getElementById('prof-father').value.trim(),
-    father_last_name:document.getElementById('prof-father-last')?.value.trim(),
-    mother_name:document.getElementById('prof-mother').value.trim(),
-    mother_maiden:document.getElementById('prof-mother-maiden').value.trim(),
     home_address:document.getElementById('prof-home-address').value.trim(),
     iban:document.getElementById('prof-iban').value.trim(),
     revolut_tag:document.getElementById('prof-revolut').value.trim(),
@@ -3289,6 +3135,7 @@ async function loadAgencyManaged(targetId,append,countBadgeId){
           ${needsLeaseSign?`<button onclick="signAgencyManagedDoc('${activeBooking.id}','${activeBooking.lease_landlord_embed}','lease_signed_landlord','📄 Lease Agreement')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">✍️ Sign lease now →</button>`:''}
           ${needsEdlSign?`<button onclick="signAgencyManagedDoc('${activeBooking.id}','${activeBooking.edl_landlord_embed}','edl_signed_landlord','📋 Move-in Inventory (Annex A)')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">✍️ Sign move-in inventory →</button>`:''}
           ${needsPaymentConfirm?`<button onclick="confirmTenantPaymentAgencyManaged('${activeBooking.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">✅ Confirm payment received</button>`:''}
+          <button onclick="messageAgencyAboutProperty('${l.agent_id}','${l.id}','${(l.title||'Property').replace(/'/g,"\\'")}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer">💬 Message agency</button>
         </div>
       </div>`;
     }).join('');
@@ -3312,6 +3159,20 @@ async function signAgencyManagedDoc(bookingId,embedSrc,dbField,title){
   const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
   if(!bk){toast('❌ Booking not found');return;}
   doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title);
+}
+
+async function messageAgencyAboutProperty(agentId,listingId,propertyTitle){
+  if(!agentId){toast('❌ No agency linked');return;}
+  const content=prompt(`Message your agency about "${propertyTitle}":`);
+  if(!content||!content.trim())return;
+  try{
+    const{error}=await sb.from('messages').insert({
+      listing_id:listingId,sender_id:U.id,receiver_id:agentId,
+      content:content.trim(),type:'landlord_to_agency'
+    });
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Message sent to your agency');
+  }catch(e){toast('❌ '+e.message);}
 }
 
 async function confirmTenantPaymentAgencyManaged(bookingId){
@@ -3458,8 +3319,8 @@ async function regenLease(bookingId, listingId, tenantId){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing?.type==='short'?'short':'long',
-        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||'',father_name:landlordProfile?.father_name||'',mother_name:landlordProfile?.mother_name||'',mother_maiden:landlordProfile?.mother_maiden||'',place_of_birth:landlordProfile?.place_of_birth||''},
-        tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||'',father_name:tenantProfile?.father_name||'',mother_name:tenantProfile?.mother_name||'',mother_maiden:tenantProfile?.mother_maiden||'',place_of_birth:tenantProfile?.place_of_birth||''},
+        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+        tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
         listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:new Date(startDate).getDate()},
         start_date:startDate,end_date:endDate
       })
