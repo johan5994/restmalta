@@ -2349,20 +2349,28 @@ async function agencyConfirmPaymentReceived(bookingId){
     const{data:bk,error:fetchErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();
     if(fetchErr||!bk){alert('❌ Could not load booking: '+(fetchErr?.message||'not found'));return;}
 
-    const{error:updErr}=await sb.from('bookings').update({first_payment_confirmed:true,first_payment_sent:true}).eq('id',bookingId);
+    // Utiliser directement le compte du vrai propriétaire s'il est déjà lié —
+    // sinon les rattacher à l'agence en attendant qu'un compte existe
+    // (elles seront alors transférées via "Activate payment tracking")
+    const{data:listing}=await sb.from('listings').select('real_landlord_id,landlord_has_account').eq('id',bk.listing_id).maybeSingle();
+    const paymentLandlordId=(listing?.landlord_has_account&&listing?.real_landlord_id)?listing.real_landlord_id:U.id;
+
+    const{error:updErr}=await sb.from('bookings').update({
+      first_payment_confirmed:true,
+      first_payment_sent:true,
+      // Si le compte propriétaire existe déjà à ce moment, tout s'active
+      // d'un coup — pas besoin d'un second clic séparé plus tard
+      ...(listing?.landlord_has_account&&listing?.real_landlord_id?{no_landlord_tracking:false,landlord_transferred:true}:{})
+    }).eq('id',bookingId);
     if(updErr){alert('❌ Could not confirm payment:\n\n'+updErr.message+'\n\nCode: '+(updErr.code||'—'));return;}
 
-    // Créer les vraies lignes de paiement — sans compte propriétaire, on les
-    // rattache d'abord à l'agence elle-même. Si un propriétaire crée un compte
-    // plus tard et se lie à ce bien, ces lignes lui sont automatiquement
-    // transférées (voir linkAgencyManagedProperties côté landlord-dashboard).
     if(bk.tenant_id&&bk.listing_id&&bk.monthly_rent){
       let tenant=null;
       try{const{data:tp}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenant=tp;}catch(e){}
       const today=new Date().toISOString().split('T')[0];
       const{error:payErr}=await sb.from('payments').insert([
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
+        {landlord_id:paymentLandlordId,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
+        {landlord_id:paymentLandlordId,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
       ]);
       if(payErr)console.error('Payment record creation failed:',payErr.message);
     }
