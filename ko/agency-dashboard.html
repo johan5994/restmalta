@@ -565,26 +565,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div id="applications-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
-  <!-- Modal: Landlord info for lease generation (property has no linked RestMalta account) -->
-  <div id="landlord-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target.id==='landlord-info-modal')closeLandlordInfoModal()">
-    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:460px;width:100%;max-height:85vh;overflow-y:auto">
-      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🏠 Landlord details needed</div>
-      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">This property's owner doesn't have a RestMalta account, so RestMalta won't track payments for this tenancy — that stays between you, the landlord, and the tenant. We still need these details to fill in the lease as the Lessor.</div>
-      <div class="fg"><label class="fl">Full name *</label><input class="fi" id="li-name"></div>
-      <div class="fgrid2">
-        <div class="fg"><label class="fl">ID/Passport number</label><input class="fi" id="li-passport"></div>
-        <div class="fg"><label class="fl">Nationality</label><input class="fi" id="li-nationality"></div>
-      </div>
-      <div class="fg"><label class="fl">Address</label><input class="fi" id="li-address"></div>
-      <div class="fgrid2">
-        <div class="fg"><label class="fl">Email * <span style="font-size:.68rem;color:var(--td)">(required — DocuSeal needs a valid email to create the signature request)</span></label><input class="fi" type="email" id="li-email"></div>
-        <div class="fg"><label class="fl">Phone</label><input class="fi" id="li-phone"></div>
-      </div>
-      <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" id="li-submit-btn" onclick="submitLandlordInfoAndAccept()">Save & Accept application →</button>
-      <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeLandlordInfoModal()">Cancel</button>
-    </div>
-  </div>
-
   <!-- Modal: Review/unlink the owner account linked to a listing -->
   <div id="owner-link-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target.id==='owner-link-modal')closeOwnerLinkModal()">
     <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:420px;width:100%">
@@ -2201,6 +2181,32 @@ async function loadApplications(){
                 </div>
               </div>
             </div>
+            ${!listing.manual_landlord_name&&!listing.landlord_has_account?`
+            <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.75rem;margin-bottom:.6rem">
+              <div style="font-size:.76rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">🏠 You need to fill this in to accept this tenant and generate the lease</div>
+              <div id="li-lookup-${b.id}">
+                <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Owner email</label>
+                  <div style="display:flex;gap:.4rem">
+                    <input class="fi" type="email" id="li-lookup-email-${b.id}" placeholder="owner@email.com" style="flex:1">
+                    <button onclick="checkLandlordEmailInline('${b.id}')" class="btn bg bsm" style="white-space:nowrap">🔍 Check</button>
+                  </div>
+                  <div style="font-size:.66rem;color:var(--td);margin-top:.3rem">Type their email and check — if they already have a RestMalta account, we'll use it directly.</div>
+                </div>
+              </div>
+              <div id="li-manual-${b.id}" style="display:none">
+                <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Owner full name *</label><input class="fi" id="li-name-${b.id}"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.4rem">
+                  <div class="fg"><label class="fl" style="font-size:.68rem">ID/Passport</label><input class="fi" id="li-passport-${b.id}"></div>
+                  <div class="fg"><label class="fl" style="font-size:.68rem">Nationality</label><input class="fi" id="li-nationality-${b.id}"></div>
+                </div>
+                <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Address</label><input class="fi" id="li-address-${b.id}"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+                  <div class="fg"><label class="fl" style="font-size:.68rem">Email * <span style="font-size:.62rem;color:var(--td)">(required for signing)</span></label><input class="fi" type="email" id="li-email-${b.id}"></div>
+                  <div class="fg"><label class="fl" style="font-size:.68rem">Phone</label><input class="fi" id="li-phone-${b.id}"></div>
+                </div>
+              </div>
+              <div id="li-found-${b.id}" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:#4CAF7D"></div>
+            </div>`:''}
             <button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>
             <div style="display:flex;gap:.5rem;margin-top:.6rem">
               <button onclick="acceptApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
@@ -2366,18 +2372,9 @@ async function agencyConfirmPaymentReceived(bookingId){
     const{data:bk,error:fetchErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();
     if(fetchErr||!bk){alert('❌ Could not load booking: '+(fetchErr?.message||'not found'));return;}
 
-    // Utiliser directement le compte du vrai propriétaire s'il est déjà lié —
-    // sinon les rattacher à l'agence en attendant qu'un compte existe
-    // (elles seront alors transférées via "Activate payment tracking")
-    const{data:listing}=await sb.from('listings').select('real_landlord_id,landlord_has_account').eq('id',bk.listing_id).maybeSingle();
-    const paymentLandlordId=(listing?.landlord_has_account&&listing?.real_landlord_id)?listing.real_landlord_id:U.id;
-
     const{error:updErr}=await sb.from('bookings').update({
       first_payment_confirmed:true,
-      first_payment_sent:true,
-      // Si le compte propriétaire existe déjà à ce moment, tout s'active
-      // d'un coup — pas besoin d'un second clic séparé plus tard
-      ...(listing?.landlord_has_account&&listing?.real_landlord_id?{no_landlord_tracking:false,landlord_transferred:true}:{})
+      first_payment_sent:true
     }).eq('id',bookingId);
     if(updErr){alert('❌ Could not confirm payment:\n\n'+updErr.message+'\n\nCode: '+(updErr.code||'—'));return;}
 
@@ -2386,8 +2383,8 @@ async function agencyConfirmPaymentReceived(bookingId){
       try{const{data:tp}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenant=tp;}catch(e){}
       const today=new Date().toISOString().split('T')[0];
       const{error:payErr}=await sb.from('payments').insert([
-        {landlord_id:paymentLandlordId,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
-        {landlord_id:paymentLandlordId,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
       ]);
       if(payErr)console.error('Payment record creation failed:',payErr.message);
     }
@@ -2418,6 +2415,36 @@ async function declineApplicationAgency(bookingId,listingId,tenantId){
 
 let _pendingAccept=null; // {bookingId,listingId,tenantId} en attente de la saisie des infos propriétaire
 
+async function checkLandlordEmailInline(bookingId){
+  const email=document.getElementById('li-lookup-email-'+bookingId)?.value.trim();
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    toast('⚠️ Enter a valid email first');
+    return;
+  }
+  toast('⏳ Checking...');
+  try{
+    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name,phone,nationality,passport_number,home_address').ilike('email',email).maybeSingle();
+    const lookupEl=document.getElementById('li-lookup-'+bookingId);
+    const foundEl=document.getElementById('li-found-'+bookingId);
+    const manualEl=document.getElementById('li-manual-'+bookingId);
+    if(profile){
+      // Trouvé — on utilise directement ce compte, plus besoin de tout retaper
+      lookupEl.style.display='none';
+      foundEl.style.display='block';
+      foundEl.innerHTML=`✅ Found: <strong>${profile.full_name||'this account'}</strong> — will be linked directly, no need to fill in the rest.
+        <button onclick="document.getElementById('li-found-${bookingId}').style.display='none';document.getElementById('li-lookup-${bookingId}').style.display='block';" style="display:block;margin-top:.4rem;background:none;border:none;color:var(--td);text-decoration:underline;font-size:.68rem;cursor:pointer">Not the right person? Search again</button>`;
+      foundEl.dataset.foundClerkId=profile.clerk_id;
+      foundEl.dataset.foundEmail=email;
+    }else{
+      // Pas trouvé — remplir directement à la main
+      lookupEl.style.display='none';
+      manualEl.style.display='block';
+      document.getElementById('li-email-'+bookingId).value=email;
+      toast('No account found for this email — fill in the details manually below');
+    }
+  }catch(e){toast('❌ '+e.message);}
+}
+
 async function acceptApplicationAgency(bookingId,listingId,tenantId){
   const{data:listing}=await sb.from('listings').select('landlord_has_account,manual_landlord_name,manual_landlord_passport,manual_landlord_nationality,manual_landlord_address,manual_landlord_email,manual_landlord_phone').eq('id',listingId).maybeSingle();
 
@@ -2442,19 +2469,43 @@ async function acceptApplicationAgency(bookingId,listingId,tenantId){
     return;
   }
 
-  // Rien renseigné du tout — demander maintenant
-  _pendingAccept={bookingId,listingId,tenantId};
-  document.getElementById('li-name').value='';
-  document.getElementById('li-passport').value='';
-  document.getElementById('li-nationality').value='';
-  document.getElementById('li-address').value='';
-  document.getElementById('li-email').value='';
-  document.getElementById('li-phone').value='';
-  document.getElementById('landlord-info-modal').style.display='flex';
+  // Un compte a déjà été trouvé via la recherche par email inline — l'utiliser directement
+  const foundEl=document.getElementById('li-found-'+bookingId);
+  if(foundEl&&foundEl.dataset.foundClerkId){
+    try{
+      const{error}=await sb.from('listings').update({
+        real_landlord_id:foundEl.dataset.foundClerkId,
+        landlord_has_account:true,
+        manual_landlord_email:foundEl.dataset.foundEmail
+      }).eq('id',listingId);
+      if(error){toast('❌ '+error.message);return;}
+    }catch(e){toast('❌ '+e.message);return;}
+    await generateLeaseFromBookingAgency(bookingId,listingId,tenantId);
+    return;
+  }
+
+  // Rien renseigné du tout — lire directement les champs affichés sur la carte
+  const name=document.getElementById('li-name-'+bookingId)?.value.trim();
+  const email=document.getElementById('li-email-'+bookingId)?.value.trim();
+  if(!name){toast('⚠️ Landlord full name is required');return;}
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    toast('⚠️ A valid landlord email is required — DocuSeal needs it to create the signature request');
+    document.getElementById('li-email-'+bookingId)?.focus();
+    return;
+  }
+  await resolveLandlordAndAccept(bookingId,listingId,tenantId,{
+    name,
+    passport:document.getElementById('li-passport-'+bookingId)?.value.trim(),
+    nationality:document.getElementById('li-nationality-'+bookingId)?.value.trim(),
+    address:document.getElementById('li-address-'+bookingId)?.value.trim(),
+    email,
+    phone:document.getElementById('li-phone-'+bookingId)?.value.trim()
+  });
 }
 
 function closeLandlordInfoModal(){
-  document.getElementById('landlord-info-modal').style.display='none';
+  const m=document.getElementById('landlord-info-modal');
+  if(m)m.style.display='none';
   _pendingAccept=null;
 }
 
@@ -2573,32 +2624,6 @@ async function resolveLandlordAndAccept(bookingId,listingId,tenantId,fields){
     if(realLandlordId)toast('✅ Found this landlord\'s RestMalta account — they\'ll be able to follow along.');
     await generateLeaseFromBookingAgency(bookingId,listingId,tenantId);
   }catch(e){toast('❌ '+e.message);}
-}
-
-async function submitLandlordInfoAndAccept(){
-  if(!_pendingAccept)return;
-  const name=document.getElementById('li-name').value.trim();
-  if(!name){toast('⚠️ Landlord full name is required');return;}
-  const email=document.getElementById('li-email').value.trim();
-  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    toast('⚠️ A valid landlord email is required — DocuSeal needs it to create the signature request');
-    document.getElementById('li-email').focus();
-    return;
-  }
-  const btn=document.getElementById('li-submit-btn');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Saving...';}
-
-  const{bookingId,listingId,tenantId}=_pendingAccept;
-  closeLandlordInfoModal();
-  await resolveLandlordAndAccept(bookingId,listingId,tenantId,{
-    name,
-    passport:document.getElementById('li-passport').value.trim(),
-    nationality:document.getElementById('li-nationality').value.trim(),
-    address:document.getElementById('li-address').value.trim(),
-    email,
-    phone:document.getElementById('li-phone').value.trim()
-  });
-  if(btn){btn.disabled=false;btn.textContent='Save & Accept application →';}
 }
 
 async function resendOrRegenerateLease(bookingId,listingId,tenantId,existingEmbed,landlordEmail,propertyTitle,landlordPhone){
