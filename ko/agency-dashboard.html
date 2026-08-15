@@ -599,7 +599,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
       <div class="fg"><label class="fl">Address</label><input class="fi" id="li-address"></div>
       <div class="fgrid2">
-        <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="li-email"></div>
+        <div class="fg"><label class="fl">Email * <span style="font-size:.68rem;color:var(--td)">(required — DocuSeal needs a valid email to create the signature request)</span></label><input class="fi" type="email" id="li-email"></div>
         <div class="fg"><label class="fl">Phone</label><input class="fi" id="li-phone"></div>
       </div>
       <div class="fg" style="background:var(--s2);border-radius:10px;padding:.7rem .85rem">
@@ -1294,7 +1294,7 @@ async function loadListings(){
             <div id="listing-menu-${l.id}" style="display:none;position:absolute;right:0;top:38px;background:var(--s);border:1px solid var(--b);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);min-width:190px;z-index:50;overflow:hidden">
               <a href="https://restmalta.netlify.app/#listing-${l.id}" target="_blank" style="display:flex;align-items:center;gap:.5rem;padding:.65rem .85rem;font-size:.8rem;color:var(--txt);text-decoration:none;border-bottom:1px solid var(--b)">👁 View listing</a>
               <div onclick="editListing('${l.id}')" style="display:flex;align-items:center;gap:.5rem;padding:.65rem .85rem;font-size:.8rem;cursor:pointer;border-bottom:1px solid var(--b)">✏️ Edit</div>
-              ${l.landlord_has_account&&l.real_landlord_id?`<div onclick="openOwnerLinkModal('${l.id}')" style="display:flex;align-items:center;gap:.5rem;padding:.65rem .85rem;font-size:.8rem;cursor:pointer;border-bottom:1px solid var(--b)">🏠 Owner account</div>`:''}
+              ${l.landlord_has_account||l.manual_landlord_name?`<div onclick="openOwnerLinkModal('${l.id}')" style="display:flex;align-items:center;gap:.5rem;padding:.65rem .85rem;font-size:.8rem;cursor:pointer;border-bottom:1px solid var(--b)">🏠 Owner account</div>`:''}
               <div onclick="deleteListing('${l.id}','${(l.title||'').replace(/'/g,"\\'")}',this)" style="display:flex;align-items:center;gap:.5rem;padding:.65rem .85rem;font-size:.8rem;cursor:pointer;color:var(--red)">🗑 Delete</div>
             </div>
           </td>
@@ -2359,10 +2359,16 @@ async function openOwnerLinkModal(listingId){
   detailsEl.innerHTML='<div style="text-align:center;font-size:.8rem;color:var(--td)">Loading...</div>';
   document.getElementById('owner-link-modal').style.display='flex';
   try{
-    const{data:listing}=await sb.from('listings').select('real_landlord_id,manual_landlord_email').eq('id',listingId).maybeSingle();
+    const{data:listing}=await sb.from('listings').select('*').eq('id',listingId).maybeSingle();
     if(!listing?.real_landlord_id){
-      detailsEl.innerHTML='<div style="font-size:.8rem;color:var(--td)">No account currently linked.</div>';
+      // Pas de vrai compte lié — permettre de corriger les infos saisies à la main
       document.getElementById('owner-unlink-btn').style.display='none';
+      detailsEl.innerHTML=`
+        <div style="font-size:.76rem;color:var(--td);margin-bottom:.75rem">No RestMalta account linked. Edit the details entered manually for this property's owner:</div>
+        <div class="fg"><label class="fl">Full name</label><input class="fi" id="oli-name" value="${(listing?.manual_landlord_name||'').replace(/"/g,'&quot;')}"></div>
+        <div class="fg"><label class="fl">Email * <span style="font-size:.68rem;color:var(--td)">(required for signing)</span></label><input class="fi" type="email" id="oli-email" value="${(listing?.manual_landlord_email||'').replace(/"/g,'&quot;')}"></div>
+        <div class="fg"><label class="fl">Phone</label><input class="fi" id="oli-phone" value="${(listing?.manual_landlord_phone||'').replace(/"/g,'&quot;')}"></div>
+        <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" onclick="saveManualLandlordEdit()">💾 Save</button>`;
       return;
     }
     document.getElementById('owner-unlink-btn').style.display='block';
@@ -2373,6 +2379,26 @@ async function openOwnerLinkModal(listingId){
   }catch(e){
     detailsEl.innerHTML='<div style="font-size:.8rem;color:var(--red)">Could not load owner details</div>';
   }
+}
+
+async function saveManualLandlordEdit(){
+  if(!_ownerLinkListingId)return;
+  const email=document.getElementById('oli-email').value.trim();
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    toast('⚠️ A valid email is required');
+    return;
+  }
+  try{
+    const{error}=await sb.from('listings').update({
+      manual_landlord_name:document.getElementById('oli-name').value.trim(),
+      manual_landlord_email:email,
+      manual_landlord_phone:document.getElementById('oli-phone').value.trim()
+    }).eq('id',_ownerLinkListingId);
+    if(error){toast('❌ '+error.message);return;}
+    toast('✅ Owner details updated — you can now retry generating the lease');
+    closeOwnerLinkModal();
+    loadListings();
+  }catch(e){toast('❌ '+e.message);}
 }
 
 function closeOwnerLinkModal(){
@@ -2443,6 +2469,12 @@ async function submitLandlordInfoAndAccept(){
   if(!_pendingAccept)return;
   const name=document.getElementById('li-name').value.trim();
   if(!name){toast('⚠️ Landlord full name is required');return;}
+  const email=document.getElementById('li-email').value.trim();
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    toast('⚠️ A valid landlord email is required — DocuSeal needs it to create the signature request');
+    document.getElementById('li-email').focus();
+    return;
+  }
   const btn=document.getElementById('li-submit-btn');
   if(btn){btn.disabled=true;btn.textContent='⏳ Saving...';}
 
@@ -2453,7 +2485,7 @@ async function submitLandlordInfoAndAccept(){
     passport:document.getElementById('li-passport').value.trim(),
     nationality:document.getElementById('li-nationality').value.trim(),
     address:document.getElementById('li-address').value.trim(),
-    email:document.getElementById('li-email').value.trim(),
+    email,
     phone:document.getElementById('li-phone').value.trim(),
     authorized:document.getElementById('li-authorized').checked
   });
@@ -2494,6 +2526,14 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
         email:listing?.manual_landlord_email||'',
         phone:listing?.manual_landlord_phone||''
       };
+    }
+
+    // DocuSeal exige un email valide pour chaque signataire — vérifier avant
+    // d'appeler l'API plutôt que d'envoyer une requête vouée à l'échec
+    if(!landlordInfo?.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(landlordInfo.email)){
+      alert('❌ Cannot generate the lease: the landlord\'s email is missing or invalid.\n\nGo to My Listings → ⋮ menu → Owner account, and add a valid email for this property\'s owner before trying again.');
+      toast('❌ Missing or invalid landlord email');
+      return;
     }
 
     const startDate=booking?.move_in_date||new Date().toISOString().split('T')[0];
@@ -2625,9 +2665,11 @@ function signAsAgencyLessor(bookingId,embedSrc){
     form.addEventListener('completed',async()=>{
       let updateOk=false;
       try{
-        const{error:updErr}=await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId);
+        const{data:updData,error:updErr}=await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId).select();
         if(updErr){
           alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message);
+        }else if(!updData||!updData.length){
+          alert('❌ Signed on DocuSeal, but the status update affected 0 rows in RestMalta.\n\nThis usually means a database security rule (RLS) is silently blocking this update — ask the developer to check/disable RLS on the bookings table.\n\nBooking ID: '+bookingId);
         }else{
           updateOk=true;
         }
