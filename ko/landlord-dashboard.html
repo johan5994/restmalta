@@ -799,6 +799,7 @@ let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingI
   if(!P||P.role!=='landlord'){window.location.href='/tenant-dashboard.html';return;}
   initUI();
   loadAll();
+  linkAgencyManagedProperties();
 
   // Gérer le paramètre ?tab=profile (redirection depuis chkPost)
   const urlParams=new URLSearchParams(window.location.search);
@@ -810,6 +811,63 @@ let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingI
     },800);
   }
 })();
+
+async function linkAgencyManagedProperties(){
+  if(!P?.email)return;
+  try{
+    const{data:matches}=await sb.from('listings')
+      .select('*')
+      .ilike('manual_landlord_email',P.email)
+      .is('real_landlord_id',null)
+      .eq('agency_listing',true);
+
+    if(!matches||!matches.length)return;
+
+    let linkedCount=0;
+    for(const listing of matches){
+      const{error:linkErr}=await sb.from('listings').update({
+        real_landlord_id:U.id,
+        landlord_has_account:true
+      }).eq('id',listing.id);
+      if(linkErr){console.error('linkAgencyManagedProperties — could not link listing',listing.id,linkErr.message);continue;}
+      linkedCount++;
+
+      // Débloquer le suivi côté locataire (Payments/Maintenance/Leave) pour
+      // toute réservation active sur ce bien qui était jusque-là marquée
+      // "pas de compte propriétaire, RestMalta ne suit rien"
+      const{data:bookings}=await sb.from('bookings').select('*').eq('listing_id',listing.id).eq('no_landlord_tracking',true).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']);
+      for(const bk of bookings||[]){
+        await sb.from('bookings').update({no_landlord_tracking:false}).eq('id',bk.id);
+
+        // Si le bail est déjà signé et le paiement déjà confirmé mais qu'aucune
+        // échéance de loyer n'a jamais été créée (impossible avant, sans compte
+        // propriétaire), la générer maintenant rétroactivement
+        if(bk.lease_signed_landlord&&bk.lease_signed_tenant&&bk.first_payment_confirmed){
+          let tenant=null;
+          try{const{data:tp}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenant=tp;}catch(e){}
+          try{await generateRentScheduleLL({booking:bk,tenant});}catch(e){}
+        }
+
+        // Prévenir le locataire que le suivi RestMalta est maintenant actif
+        if(bk.tenant_id){
+          try{
+            await sb.from('messages').insert({
+              listing_id:listing.id,sender_id:'system',receiver_id:bk.tenant_id,
+              content:`✅ Good news — your landlord created a RestMalta account!\n\nPayments, maintenance requests, and lease management are now tracked here for your tenancy at ${listing.title||'your property'}.`,
+              type:'landlord_account_linked'
+            });
+          }catch(e){}
+        }
+      }
+    }
+
+    if(linkedCount>0){
+      toast(`🏠 Found ${linkedCount} propert${linkedCount>1?'ies':'y'} already managed by an agency on your behalf — linked to your account!`);
+      loadRentedProperties();
+      loadListings();
+    }
+  }catch(e){console.error('linkAgencyManagedProperties:',e);}
+}
 
 function initUI(){
   const n=P.full_name||'Landlord';
