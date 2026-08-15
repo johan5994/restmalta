@@ -825,11 +825,12 @@ async function linkAgencyManagedProperties(){
 
     let linkedCount=0;
     for(const listing of matches){
-      const{error:linkErr}=await sb.from('listings').update({
+      const{data:linkResult,error:linkErr}=await sb.from('listings').update({
         real_landlord_id:U.id,
         landlord_has_account:true
-      }).eq('id',listing.id);
+      }).eq('id',listing.id).select();
       if(linkErr){console.error('linkAgencyManagedProperties — could not link listing',listing.id,linkErr.message);continue;}
+      if(!linkResult||!linkResult.length){console.error('linkAgencyManagedProperties — update affected 0 rows for listing',listing.id,'— check RLS on the listings table.');continue;}
       linkedCount++;
 
       // Débloquer le suivi côté locataire (Payments/Maintenance/Leave) pour
@@ -865,6 +866,8 @@ async function linkAgencyManagedProperties(){
       toast(`🏠 Found ${linkedCount} propert${linkedCount>1?'ies':'y'} already managed by an agency on your behalf — linked to your account!`);
       loadRentedProperties();
       loadListings();
+    }else if(matches.length>0){
+      alert('⚠️ Found '+matches.length+' propert'+(matches.length>1?'ies':'y')+' matching your email, but could not link '+(matches.length>1?'them':'it')+' to your account.\n\nThis usually means a database security rule (RLS) is silently blocking updates on the listings table — ask the developer to check/disable RLS on it.');
     }
   }catch(e){console.error('linkAgencyManagedProperties:',e);}
 }
@@ -3257,8 +3260,11 @@ async function loadRentedProperties(){
   const{data:bookings}=await sb.from('bookings').select('*').eq('landlord_id',U.id).in('status',occupiedStatuses);
 
   if(!bookings||!bookings.length){
-    wrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>No rented properties yet</p></div>';
+    // Pas de bien géré en direct — mais il peut quand même avoir des biens
+    // gérés par une agence, donc on continue plutôt que de s'arrêter ici
+    wrap.innerHTML='';
     if(countBadge)countBadge.textContent='0';
+    loadAgencyManaged('rp-list',true,'rp-count');
     return;
   }
   if(countBadge)countBadge.textContent=bookings.length;
