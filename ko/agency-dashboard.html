@@ -207,14 +207,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('analytics',this)"><span class="nico">📈</span>Analytics</button>
 
     <div class="nl">Listings</div>
-    <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My Listings<span class="nbadge" id="nb-listings" style="display:none">0</span></button>
     <button class="ni" onclick="sp('import',this)"><span class="nico">⚡</span>Quick Import</button>
     <button class="ni" onclick="sp('new-listing',this)"><span class="nico">➕</span>New Listing</button>
+    <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My Listings<span class="nbadge" id="nb-listings" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('applications',this)"><span class="nico">📋</span>Applications<span class="nbadge" id="nb-applications" style="display:none">0</span></button>
 
     <div class="nl">Clients</div>
     <button class="ni" onclick="sp('crm',this)"><span class="nico">👥</span>CRM Clients<span class="nbadge" id="nb-leads" style="display:none">0</span></button>
-    <button class="ni" onclick="sp('applications',this)"><span class="nico">📋</span>Applications<span class="nbadge" id="nb-applications" style="display:none">0</span></button>
-    <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
     <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-agency-msg" style="display:none">0</span></button>
     <button class="ni" onclick="sp('estimations',this)"><span class="nico">📐</span>Estimation Requests<span class="nbadge" id="nb-estimations" style="display:none">0</span></button>
 
@@ -563,42 +563,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="page" id="page-applications">
     <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📋 Rental Applications</div><div style="font-size:.78rem;color:var(--td);margin-top:.2rem">Tenants who applied to rent one of your listings</div></div>
     <div id="applications-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
-  </div>
-
-  <!-- Modal: Landlord info for lease generation (property has no linked RestMalta account) -->
-  <div id="landlord-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target.id==='landlord-info-modal')closeLandlordInfoModal()">
-    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.5rem;max-width:460px;width:100%;max-height:85vh;overflow-y:auto">
-      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🏠 Landlord details needed</div>
-      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Enter their email first — if they already have a RestMalta account, we'll use it directly. Otherwise fill in the rest below.</div>
-
-      <div id="li-lookup">
-        <div class="fg" style="margin-bottom:.75rem">
-          <label class="fl">Owner email</label>
-          <div style="display:flex;gap:.4rem">
-            <input class="fi" type="email" id="li-lookup-email" placeholder="owner@email.com" style="flex:1">
-            <button onclick="checkLandlordEmailInline()" class="btn bg" style="white-space:nowrap">🔍 Check</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="li-found" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.6rem .75rem;font-size:.78rem;color:#4CAF7D;margin-bottom:.75rem"></div>
-
-      <div id="li-manual" style="display:none">
-        <div class="fg"><label class="fl">Full name *</label><input class="fi" id="li-name"></div>
-        <div class="fgrid2">
-          <div class="fg"><label class="fl">ID/Passport number</label><input class="fi" id="li-passport"></div>
-          <div class="fg"><label class="fl">Nationality</label><input class="fi" id="li-nationality"></div>
-        </div>
-        <div class="fg"><label class="fl">Address</label><input class="fi" id="li-address"></div>
-        <div class="fgrid2">
-          <div class="fg"><label class="fl">Email * <span style="font-size:.68rem;color:var(--td)">(required — DocuSeal needs a valid email to create the signature request)</span></label><input class="fi" type="email" id="li-email"></div>
-          <div class="fg"><label class="fl">Phone</label><input class="fi" id="li-phone"></div>
-        </div>
-      </div>
-
-      <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" id="li-submit-btn" onclick="submitLandlordInfoAndAccept()">Save & Accept application →</button>
-      <button class="btn bg" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeLandlordInfoModal()">Cancel</button>
-    </div>
   </div>
 
   <!-- Modal: Review/unlink the owner account linked to a listing -->
@@ -2194,7 +2158,30 @@ async function loadApplications(){
                 </div>
               </div>
             </div>
-            <button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>
+            ${!listing.manual_landlord_name&&!listing.landlord_has_account?`
+            <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.75rem;margin-bottom:.6rem">
+              <div style="font-size:.76rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">🏠 Fill this in to accept this tenant and generate the lease</div>
+              <div class="fg" style="margin-bottom:.5rem">
+                <label class="fl" style="font-size:.68rem">Owner email — check if they already have a RestMalta account</label>
+                <div style="display:flex;gap:.4rem">
+                  <input class="fi" type="email" id="li-lookup-email-${b.id}" placeholder="owner@email.com" style="flex:1">
+                  <button onclick="checkLandlordEmailInline('${b.id}')" class="btn bg bsm" style="white-space:nowrap">🔍 Check</button>
+                </div>
+              </div>
+              <div id="li-found-${b.id}" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;margin-bottom:.5rem"></div>
+              <div style="font-size:.66rem;color:var(--td);margin:.3rem 0">— or fill in their details directly below —</div>
+              <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Owner full name *</label><input class="fi" id="li-name-${b.id}"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.4rem">
+                <div class="fg"><label class="fl" style="font-size:.68rem">ID/Passport</label><input class="fi" id="li-passport-${b.id}"></div>
+                <div class="fg"><label class="fl" style="font-size:.68rem">Nationality</label><input class="fi" id="li-nationality-${b.id}"></div>
+              </div>
+              <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Address</label><input class="fi" id="li-address-${b.id}"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+                <div class="fg"><label class="fl" style="font-size:.68rem">Email * <span style="font-size:.62rem;color:var(--td)">(required for signing)</span></label><input class="fi" type="email" id="li-email-${b.id}"></div>
+                <div class="fg"><label class="fl" style="font-size:.68rem">Phone</label><input class="fi" id="li-phone-${b.id}"></div>
+              </div>
+            </div>`:''}
+            <button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}','${listing.real_landlord_id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>
             <div style="display:flex;gap:.5rem;margin-top:.6rem">
               <button onclick="acceptApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
               <button onclick="declineApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer">Decline</button>
@@ -2240,7 +2227,7 @@ async function loadTenantDossierForAgency(tenantId){
   }catch(e){}
 }
 
-async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlordEmail,landlordPhone){
+async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlordEmail,landlordPhone,realLandlordId){
   toast('⏳ Preparing dossier...');
   try{
     const{data:p}=await sb.from('profiles').select('full_name,nationality,phone,verified,documents').eq('clerk_id',tenantId).maybeSingle();
@@ -2264,11 +2251,11 @@ async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlor
     }
 
     const dossierText=lines.join('\n');
-    showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,landlordPhone);
+    showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,landlordPhone,realLandlordId,listingId);
   }catch(e){toast('❌ '+e.message);}
 }
 
-function showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,landlordPhone){
+function showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,landlordPhone,realLandlordId,listingId){
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
   const mailBody=encodeURIComponent(dossierText+'\n\nLet me know what you think!');
@@ -2283,12 +2270,27 @@ function showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,la
       <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Ask the owner's opinion</div>
       <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Share this candidate's dossier before deciding — document links stay valid for 7 days.</div>
       <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.72rem;color:var(--td);white-space:pre-wrap;word-break:break-all;margin-bottom:.75rem;max-height:200px;overflow-y:auto">${dossierText.replace(/</g,'&lt;')}</div>
+      ${realLandlordId?`<button onclick="sendDossierViaRestMalta('${realLandlordId}','${listingId}',\`${dossierText.replace(/`/g,'\\`')}\`,this)" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem;background:var(--agencybright)">📱 Send via RestMalta</button>`:''}
       <button onclick="navigator.clipboard.writeText(\`${dossierText.replace(/`/g,'\\`')}\`);this.innerHTML='✅ Copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy text</button>
       <a href="${waHref}" target="_blank" onclick="setTimeout(()=>{this.innerHTML='✅ Sent via WhatsApp';this.style.opacity='.7';},300)" class="btn bg" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem;background:#25D366;color:white;border:none">💬 Send via WhatsApp</a>
       <a href="${mailtoHref}" onclick="setTimeout(()=>{this.innerHTML='✅ Email opened';this.style.opacity='.7';},300)" class="btn bp" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem">✉️ Send by email</a>
       <button onclick="this.closest('div[style*=fixed]').remove()" class="btn bg" style="width:100%;justify-content:center">Close</button>
     </div>`;
   document.body.appendChild(modal);
+}
+
+async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn){
+  if(btn){btn.disabled=true;btn.textContent='⏳ Sending...';}
+  try{
+    const{error}=await sb.from('messages').insert({
+      listing_id:listingId,sender_id:U.id,receiver_id:realLandlordId,
+      content:'📤 Your agency wants your opinion on a candidate:\n\n'+dossierText,
+      type:'candidate_review'
+    });
+    if(error){toast('❌ '+error.message);if(btn){btn.disabled=false;btn.textContent='📱 Send via RestMalta';}return;}
+    if(btn){btn.innerHTML='✅ Sent via RestMalta';}
+    toast('✅ Sent to the owner on RestMalta');
+  }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='📱 Send via RestMalta';}}
 }
 
 async function viewTenantDocAgency(path){
@@ -2346,34 +2348,32 @@ async function declineApplicationAgency(bookingId,listingId,tenantId){
   }catch(e){toast('❌ '+e.message);}
 }
 
-let _pendingAccept=null; // {bookingId,listingId,tenantId} en attente de la saisie des infos propriétaire
 
-async function checkLandlordEmailInline(){
-  const email=document.getElementById('li-lookup-email')?.value.trim();
+async function checkLandlordEmailInline(bookingId){
+  const email=document.getElementById('li-lookup-email-'+bookingId)?.value.trim();
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     toast('⚠️ Enter a valid email first');
     return;
   }
   toast('⏳ Checking...');
   try{
-    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name,phone,nationality,passport_number,home_address').ilike('email',email).maybeSingle();
-    const lookupEl=document.getElementById('li-lookup');
-    const foundEl=document.getElementById('li-found');
-    const manualEl=document.getElementById('li-manual');
+    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
+    const foundEl=document.getElementById('li-found-'+bookingId);
     if(profile){
-      // Trouvé — on utilise directement ce compte, plus besoin de tout retaper
-      lookupEl.style.display='none';
       foundEl.style.display='block';
-      foundEl.innerHTML=`✅ Found: <strong>${profile.full_name||'this account'}</strong> — will be linked directly, no need to fill in the rest.
-        <button onclick="document.getElementById('li-found').style.display='none';document.getElementById('li-lookup').style.display='block';" style="display:block;margin-top:.4rem;background:none;border:none;color:var(--td);text-decoration:underline;font-size:.68rem;cursor:pointer">Not the right person? Search again</button>`;
+      foundEl.innerHTML=`✅ Found: <strong>${profile.full_name||'this account'}</strong> — will be linked directly if you accept without filling in the fields below.`;
       foundEl.dataset.foundClerkId=profile.clerk_id;
       foundEl.dataset.foundEmail=email;
     }else{
-      // Pas trouvé — remplir directement à la main
-      lookupEl.style.display='none';
-      manualEl.style.display='block';
-      document.getElementById('li-email').value=email;
-      toast('No account found for this email — fill in the details manually below');
+      foundEl.style.display='block';
+      foundEl.style.background='rgba(224,90,90,.08)';
+      foundEl.style.borderColor='rgba(224,90,90,.25)';
+      foundEl.style.color='var(--red)';
+      foundEl.innerHTML='No account found for this email — fill in the details manually below.';
+      delete foundEl.dataset.foundClerkId;
+      delete foundEl.dataset.foundEmail;
+      const emailField=document.getElementById('li-email-'+bookingId);
+      if(emailField&&!emailField.value)emailField.value=email;
     }
   }catch(e){toast('❌ '+e.message);}
 }
@@ -2388,9 +2388,8 @@ async function acceptApplicationAgency(bookingId,listingId,tenantId){
   }
 
   if(listing?.manual_landlord_name){
-    // Déjà renseigné à la création de l'annonce — pas besoin de rouvrir la
-    // modale, on enchaîne directement (avec la même vérification de
-    // liaison de compte, faite une seule fois puis mémorisée)
+    // Déjà renseigné à la création de l'annonce ou une précédente candidature —
+    // pas besoin de remplir à nouveau, on enchaîne directement
     await resolveLandlordAndAccept(bookingId,listingId,tenantId,{
       name:listing.manual_landlord_name,
       passport:listing.manual_landlord_passport,
@@ -2402,70 +2401,40 @@ async function acceptApplicationAgency(bookingId,listingId,tenantId){
     return;
   }
 
-  // Rien renseigné du tout — ouvrir la modale, réinitialisée à son état de départ
-  _pendingAccept={bookingId,listingId,tenantId};
-  document.getElementById('li-lookup-email').value='';
-  document.getElementById('li-lookup').style.display='block';
-  document.getElementById('li-found').style.display='none';
-  document.getElementById('li-manual').style.display='none';
-  document.getElementById('li-name').value='';
-  document.getElementById('li-passport').value='';
-  document.getElementById('li-nationality').value='';
-  document.getElementById('li-address').value='';
-  document.getElementById('li-email').value='';
-  document.getElementById('li-phone').value='';
-  document.getElementById('landlord-info-modal').style.display='flex';
-}
-
-function closeLandlordInfoModal(){
-  const m=document.getElementById('landlord-info-modal');
-  if(m)m.style.display='none';
-  _pendingAccept=null;
-}
-
-async function submitLandlordInfoAndAccept(){
-  if(!_pendingAccept)return;
-  const{bookingId,listingId,tenantId}=_pendingAccept;
-  const btn=document.getElementById('li-submit-btn');
-
-  // Un compte a déjà été trouvé via la recherche par email — l'utiliser directement
-  const foundEl=document.getElementById('li-found');
-  if(foundEl&&foundEl.style.display!=='none'&&foundEl.dataset.foundClerkId){
-    if(btn){btn.disabled=true;btn.textContent='⏳ Saving...';}
+  // Un compte a déjà été trouvé via la recherche par email inline — l'utiliser directement
+  const foundEl=document.getElementById('li-found-'+bookingId);
+  if(foundEl&&foundEl.dataset.foundClerkId){
     try{
       const{error}=await sb.from('listings').update({
         real_landlord_id:foundEl.dataset.foundClerkId,
         landlord_has_account:true,
         manual_landlord_email:foundEl.dataset.foundEmail
       }).eq('id',listingId);
-      if(error){toast('❌ '+error.message);if(btn){btn.disabled=false;btn.textContent='Save & Accept application →';}return;}
-    }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='Save & Accept application →';}return;}
-    closeLandlordInfoModal();
+      if(error){toast('❌ '+error.message);return;}
+    }catch(e){toast('❌ '+e.message);return;}
     await generateLeaseFromBookingAgency(bookingId,listingId,tenantId);
     return;
   }
 
-  // Pas de compte trouvé — remplir à la main
-  const name=document.getElementById('li-name').value.trim();
+  // Rien trouvé via la recherche — lire les champs manuels remplis directement sur la carte
+  const name=document.getElementById('li-name-'+bookingId)?.value.trim();
   if(!name){toast('⚠️ Landlord full name is required');return;}
-  const email=document.getElementById('li-email').value.trim();
+  const email=document.getElementById('li-email-'+bookingId)?.value.trim();
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     toast('⚠️ A valid landlord email is required — DocuSeal needs it to create the signature request');
-    document.getElementById('li-email').focus();
+    document.getElementById('li-email-'+bookingId)?.focus();
     return;
   }
-  if(btn){btn.disabled=true;btn.textContent='⏳ Saving...';}
-  closeLandlordInfoModal();
   await resolveLandlordAndAccept(bookingId,listingId,tenantId,{
     name,
-    passport:document.getElementById('li-passport').value.trim(),
-    nationality:document.getElementById('li-nationality').value.trim(),
-    address:document.getElementById('li-address').value.trim(),
+    passport:document.getElementById('li-passport-'+bookingId)?.value.trim(),
+    nationality:document.getElementById('li-nationality-'+bookingId)?.value.trim(),
+    address:document.getElementById('li-address-'+bookingId)?.value.trim(),
     email,
-    phone:document.getElementById('li-phone').value.trim()
+    phone:document.getElementById('li-phone-'+bookingId)?.value.trim()
   });
-  if(btn){btn.disabled=false;btn.textContent='Save & Accept application →';}
 }
+
 
 let _ownerLinkListingId=null;
 
