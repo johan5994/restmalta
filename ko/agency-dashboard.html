@@ -2264,13 +2264,49 @@ function showTenantDossierRelayScreen(dossierText,landlordEmail,propertyTitle,la
       <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Ask the owner's opinion</div>
       <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Share this candidate's dossier before deciding — document links stay valid for 7 days.</div>
       <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.72rem;color:var(--td);white-space:pre-wrap;word-break:break-all;margin-bottom:.75rem;max-height:200px;overflow-y:auto">${dossierText.replace(/</g,'&lt;')}</div>
-      ${realLandlordId?`<button onclick="sendDossierViaRestMalta('${realLandlordId}','${listingId}',\`${dossierText.replace(/`/g,'\\`')}\`,this)" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.5rem;background:var(--agencybright)">📱 Send via RestMalta</button>`:''}
+      <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:.6rem .75rem;margin-bottom:.75rem">
+        <div style="font-size:.72rem;font-weight:600;margin-bottom:.4rem">📱 Or send directly on RestMalta</div>
+        <div style="display:flex;gap:.4rem">
+          <input class="fi" type="email" id="dossier-rm-email" placeholder="owner@email.com" value="${(landlordEmail||'').replace(/"/g,'&quot;')}" style="flex:1;font-size:.78rem">
+          <button onclick="checkAndSendDossierViaRestMalta('${listingId}',\`${dossierText.replace(/`/g,'\\`')}\`,this)" class="btn bg bsm" style="white-space:nowrap">🔍 Check</button>
+        </div>
+        <div id="dossier-rm-result" style="font-size:.7rem;margin-top:.4rem"></div>
+      </div>
       <button onclick="navigator.clipboard.writeText(\`${dossierText.replace(/`/g,'\\`')}\`);this.innerHTML='✅ Copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy text</button>
       <a href="${waHref}" target="_blank" onclick="setTimeout(()=>{this.innerHTML='✅ Sent via WhatsApp';this.style.opacity='.7';},300)" class="btn bg" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem;background:#25D366;color:white;border:none">💬 Send via WhatsApp</a>
       <a href="${mailtoHref}" onclick="setTimeout(()=>{this.innerHTML='✅ Email opened';this.style.opacity='.7';},300)" class="btn bp" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem">✉️ Send by email</a>
       <button onclick="this.closest('div[style*=fixed]').remove()" class="btn bg" style="width:100%;justify-content:center">Close</button>
     </div>`;
   document.body.appendChild(modal);
+}
+
+async function checkAndSendDossierViaRestMalta(listingId,dossierText,btn){
+  const email=document.getElementById('dossier-rm-email')?.value.trim();
+  const resultEl=document.getElementById('dossier-rm-result');
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='⚠️ Enter a valid email first';}
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent='⏳...';}
+  try{
+    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
+    if(btn){btn.disabled=false;btn.textContent='🔍 Check';}
+    if(profile){
+      resultEl.style.color='#4CAF7D';
+      resultEl.innerHTML=`✅ Found: <strong>${profile.full_name||'this account'}</strong> — `;
+      const sendBtn=document.createElement('button');
+      sendBtn.textContent='📱 Send';
+      sendBtn.style.cssText='background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem';
+      sendBtn.onclick=()=>sendDossierViaRestMalta(profile.clerk_id,listingId,dossierText,sendBtn);
+      resultEl.appendChild(sendBtn);
+    }else{
+      resultEl.style.color='var(--red)';
+      resultEl.textContent='No RestMalta account found for this email.';
+    }
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='🔍 Check';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='❌ '+e.message;}
+  }
 }
 
 async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn){
@@ -2281,10 +2317,10 @@ async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn)
       content:'📤 Your agency wants your opinion on a candidate:\n\n'+dossierText,
       type:'candidate_review'
     });
-    if(error){toast('❌ '+error.message);if(btn){btn.disabled=false;btn.textContent='📱 Send via RestMalta';}return;}
-    if(btn){btn.innerHTML='✅ Sent via RestMalta';}
+    if(error){toast('❌ '+error.message);if(btn){btn.disabled=false;btn.textContent='📱 Send';}return;}
+    if(btn){btn.innerHTML='✅ Sent';}
     toast('✅ Sent to the owner on RestMalta');
-  }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='📱 Send via RestMalta';}}
+  }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='📱 Send';}}
 }
 
 async function viewTenantDocAgency(path){
