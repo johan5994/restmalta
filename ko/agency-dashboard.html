@@ -2158,6 +2158,7 @@ async function loadApplications(){
                 </div>
               </div>
             </div>
+            <button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}','${listing.real_landlord_id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>
             ${!listing.manual_landlord_name&&!listing.landlord_has_account?`
             <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.75rem;margin-bottom:.6rem">
               <div style="font-size:.76rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">🏠 Fill this in to accept this tenant and generate the lease</div>
@@ -2171,17 +2172,10 @@ async function loadApplications(){
               <div id="li-found-${b.id}" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;margin-bottom:.5rem"></div>
               <div style="font-size:.66rem;color:var(--td);margin:.3rem 0">— or fill in their details directly below —</div>
               <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Owner full name *</label><input class="fi" id="li-name-${b.id}"></div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.4rem">
-                <div class="fg"><label class="fl" style="font-size:.68rem">ID/Passport</label><input class="fi" id="li-passport-${b.id}"></div>
-                <div class="fg"><label class="fl" style="font-size:.68rem">Nationality</label><input class="fi" id="li-nationality-${b.id}"></div>
-              </div>
+              <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">ID/Passport</label><input class="fi" id="li-passport-${b.id}"></div>
               <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Address</label><input class="fi" id="li-address-${b.id}"></div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
-                <div class="fg"><label class="fl" style="font-size:.68rem">Email * <span style="font-size:.62rem;color:var(--td)">(required for signing)</span></label><input class="fi" type="email" id="li-email-${b.id}"></div>
-                <div class="fg"><label class="fl" style="font-size:.68rem">Phone</label><input class="fi" id="li-phone-${b.id}"></div>
-              </div>
+              <div class="fg"><label class="fl" style="font-size:.68rem">Email * <span style="font-size:.62rem;color:var(--td)">(required for signing)</span></label><input class="fi" type="email" id="li-email-${b.id}"></div>
             </div>`:''}
-            <button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}','${listing.real_landlord_id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>
             <div style="display:flex;gap:.5rem;margin-top:.6rem">
               <button onclick="acceptApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer">✅ Accept & Generate Lease</button>
               <button onclick="declineApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer">Decline</button>
@@ -2428,10 +2422,8 @@ async function acceptApplicationAgency(bookingId,listingId,tenantId){
   await resolveLandlordAndAccept(bookingId,listingId,tenantId,{
     name,
     passport:document.getElementById('li-passport-'+bookingId)?.value.trim(),
-    nationality:document.getElementById('li-nationality-'+bookingId)?.value.trim(),
     address:document.getElementById('li-address-'+bookingId)?.value.trim(),
-    email,
-    phone:document.getElementById('li-phone-'+bookingId)?.value.trim()
+    email
   });
 }
 
