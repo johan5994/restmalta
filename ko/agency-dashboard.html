@@ -169,7 +169,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .crm-av{width:34px;height:34px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:var(--agencybright);flex-shrink:0}
 
 /* ── Responsive note ── */
-@media(max-width:900px){.kgrid{grid-template-columns:1fr 1fr}.main{margin-left:0}}
+@media(max-width:900px){.kgrid{grid-template-columns:1fr 1fr}.main{margin-left:0}.sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0)!important;box-shadow:0 0 40px rgba(0,0,0,.5)}#mob-menu{display:inline-flex}}
+#mob-menu{display:none}
 .tag-suggest{cursor:pointer;text-decoration:underline;color:var(--agencybright)}
 .tag-suggest:hover{opacity:.8}
 </style>
@@ -244,6 +245,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div style="display:flex;gap:.5rem;flex-shrink:0">
       <button class="btn bg bsm" onclick="sp('import',null)">⚡ Quick Import</button>
       <button class="btn bterr bsm" onclick="sp('new-listing',null)">➕ New Listing</button>
+      <button class="btn bg bsm" id="mob-menu" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
     </div>
   </div>
 
@@ -251,7 +253,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="page act" id="page-overview">
     <div class="kgrid">
       <div class="kcard blue"><div class="klabel">Active Listings</div><div class="kval" id="k-listings">—</div><div class="ksub">Published on RestMalta</div></div>
-      <div class="kcard green"><div class="klabel">Leads this month</div><div class="kval" id="k-leads">—</div><div class="ksub">Tenant inquiries</div></div>
+      <div class="kcard green"><div class="klabel">Leads this month</div><div class="kval" id="k-leads">—</div><div class="ksub">Lessee inquiries</div></div>
       <div class="kcard gold"><div class="klabel">Visits booked</div><div class="kval" id="k-visits">—</div><div class="ksub">This month</div></div>
       <div class="kcard terra"><div class="klabel">Commissions due</div><div class="kval" id="k-commission">€—</div><div class="ksub">Pending collection</div></div>
     </div>
@@ -312,6 +314,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <button class="btn bterr bsm" onclick="sp('new-listing',null)">➕ New</button>
       </div>
     </div>
+    <div id="listings-team-toggle"></div>
     <div id="listings-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
 
     <!-- Modal: Edit Listing -->
@@ -556,12 +559,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <button class="tab" onclick="setCRMTab('signed',this)">✅ Signed</button>
     </div>
 
+    <div id="crm-team-toggle" style="margin-top:.75rem"></div>
     <div id="crm-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
   <!-- ── VISITS ── -->
   <div class="page" id="page-applications">
-    <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📋 Rental Applications</div><div style="font-size:.78rem;color:var(--td);margin-top:.2rem">Tenants who applied to rent one of your listings</div></div>
+    <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📋 Rental Applications</div><div style="font-size:.78rem;color:var(--td);margin-top:.2rem">Lessees who applied to rent one of your listings</div></div>
+    <div id="applications-team-toggle"></div>
     <div id="applications-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
@@ -579,16 +584,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
   <div class="page" id="page-visits">
     <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📅 All Visits</div></div>
+    <div id="visits-team-toggle"></div>
     <div id="visits-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
   <!-- ── MESSAGES ── -->
   <div class="page" id="page-messages">
     <div style="display:flex;gap:.5rem;margin-bottom:1rem">
-      <button class="tab act" id="msg-tab-tenants" onclick="setAgencyMsgTab('tenants',this)" style="border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--agencybright);color:white;border-color:var(--agencybright)">🎒 Tenants<span class="nbadge" id="nb-msg-tenants" style="display:none">0</span></button>
-      <button class="tab" id="msg-tab-landlords" onclick="setAgencyMsgTab('landlords',this)" style="border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🏠 Landlords<span class="nbadge" id="nb-msg-landlords" style="display:none">0</span></button>
+      <button class="tab act" id="msg-tab-tenants" onclick="setAgencyMsgTab('lessees',this)" style="border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--agencybright);color:white;border-color:var(--agencybright)">🎒 Lessees<span class="nbadge" id="nb-msg-lessees" style="display:none">0</span></button>
+      <button class="tab" id="msg-tab-landlords" onclick="setAgencyMsgTab('lessors',this)" style="border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">🏠 Lessors<span class="nbadge" id="nb-msg-lessors" style="display:none">0</span></button>
     </div>
-    <div class="card"><div class="ch"><div class="ct" id="agency-messages-title">💬 Conversations with tenants</div></div><div class="cb" id="agency-messages-wrap"><div class="empty"><div class="em">💬</div><p>Loading...</p></div></div></div>
+    <div id="messages-team-toggle"></div>
+    <div class="card"><div class="ch"><div class="ct" id="agency-messages-title">💬 Conversations with lessees</div></div><div class="cb" id="agency-messages-wrap"><div class="empty"><div class="em">💬</div><p>Loading...</p></div></div></div>
 
     <!-- Modal chat -->
     <div class="modal" id="agency-msg-modal" onclick="if(event.target.id==='agency-msg-modal')closeAgencyMsg()">
@@ -669,10 +676,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div class="fg"><label class="fl">Phone</label><input class="fi" id="ag-phone" placeholder="+356 2123 4567"></div>
             <div class="fg" style="grid-column:1/-1"><label class="fl">Website</label><input class="fi" id="ag-website" placeholder="https://your-agency.com"></div>
             <div class="fg" style="grid-column:1/-1"><label class="fl">Address</label><input class="fi" id="ag-address" placeholder="123 Main Street, Sliema"></div>
-            <div class="fg" style="grid-column:1/-1"><label class="fl">Current offer <span style="font-size:.68rem;color:var(--td)">(shown to landlords browsing agencies — optional)</span></label><input class="fi" id="ag-offer" placeholder="e.g. First year of management free"></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Current offer <span style="font-size:.68rem;color:var(--td)">(shown to lessors browsing agencies — optional)</span></label><input class="fi" id="ag-offer" placeholder="e.g. First year of management free"></div>
             <div class="fg" style="grid-column:1/-1">
               <label class="fl">Zones covered</label>
-              <div style="font-size:.72rem;color:var(--td);margin-bottom:.5rem">Landlords searching for an agency near their property will only see you if it's in one of these zones.</div>
+              <div style="font-size:.72rem;color:var(--td);margin-bottom:.5rem">Lessors searching for an agency near their property will only see you if it's in one of these zones.</div>
               <div style="max-height:260px;overflow-y:auto;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem;columns:2;column-gap:.5rem">
               <label style="display:flex;align-items:center;gap:.5rem;padding:.3rem .5rem;border-radius:6px;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
                 <input type="checkbox" class="ag-zone-cb" value="Valletta" style="accent-color:#6366F1;width:14px;height:14px;cursor:pointer">
@@ -1011,6 +1018,54 @@ async function loadAgencyProfile(){
 // Le compte agence est un login unique partagé par toute l'équipe.
 // Pour attribuer un minimum les actions sans multiplier les comptes,
 // on demande une fois par session (par navigateur) qui est connecté.
+// ── Attribution par membre de l'équipe ──────────────────────────
+// Chaque annonce est taguée avec qui l'a créée (created_by). Toutes
+// les pages qui en dérivent (CRM, Messages, Visits, Applications)
+// filtrent ensuite selon l'annonce concernée — un locataire qui écrit
+// pour un bien précis arrive donc chez la bonne personne, pas dans
+// une boîte commune. Une annonce non taguée (créée avant ce système,
+// ou avec personne sélectionné) reste visible pour tout le monde
+// plutôt que de disparaître dans un trou noir.
+let _listingOwnerMap=null;
+
+async function loadListingOwnerMap(force){
+  if(_listingOwnerMap&&!force)return _listingOwnerMap;
+  const{data}=await sb.from('listings').select('id,created_by').eq('agent_id',U.id);
+  _listingOwnerMap={};
+  (data||[]).forEach(l=>{_listingOwnerMap[l.id]=l.created_by||null;});
+  return _listingOwnerMap;
+}
+
+function getCurrentTeamMember(){
+  return sessionStorage.getItem('rm_team_member')||null;
+}
+
+function belongsToCurrentMember(listingId){
+  const me=getCurrentTeamMember();
+  if(!me||!_listingOwnerMap)return true;
+  const owner=_listingOwnerMap[listingId];
+  if(!owner)return true; // pas taguée — visible par tous, pas de trou noir
+  return owner===me;
+}
+
+// État du filtre par page — "mine" par défaut sur chaque page (restriction
+// réelle demandée), avec "Everyone" comme vue d'ensemble accessible à tous
+let _teamFilterMode={};
+
+function getTeamFilterMode(page){
+  return _teamFilterMode[page]||'mine';
+}
+
+function renderTeamFilterToggle(page,reloadFn){
+  const mode=getTeamFilterMode(page);
+  const me=getCurrentTeamMember();
+  if(!me)return''; // Personne de sélectionné — rien à filtrer, pas de bouton inutile
+  return`<div style="display:flex;gap:.4rem;margin-bottom:.75rem">
+    <button onclick="_teamFilterMode['${page}']='mine';${reloadFn}()" style="flex:1;padding:.45rem;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;border:1px solid ${mode==='mine'?'var(--agencybright)':'var(--b)'};background:${mode==='mine'?'var(--agencybright)':'var(--s2)'};color:${mode==='mine'?'white':'var(--tm)'}">👤 My clients (${me})</button>
+    <button onclick="_teamFilterMode['${page}']='all';${reloadFn}()" style="flex:1;padding:.45rem;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;border:1px solid ${mode==='all'?'var(--agencybright)':'var(--b)'};background:${mode==='all'?'var(--agencybright)':'var(--s2)'};color:${mode==='all'?'white':'var(--tm)'}">👥 Everyone</button>
+  </div>`;
+}
+
 function getTeamMembers(){
   try{return agencyData?.team_members?JSON.parse(agencyData.team_members):[];}catch(e){return[];}
 }
@@ -1138,7 +1193,7 @@ function sp(id, btn){
 function getPageSub(id){
   const subs={overview:'Agency overview',analytics:'Performance metrics',listings:'Manage your listings',
     import:'Add listings quickly',crm:'Client pipeline management',
-    visits:'All visit requests',messages:'Your conversations',estimations:'Property estimation requests from landlords',subscription:'Plan & billing',profile:'Agency settings'};
+    visits:'All visit requests',messages:'Your conversations',estimations:'Property estimation requests from lessors',subscription:'Plan & billing',profile:'Agency settings'};
   return subs[id]||'';
 }
 
@@ -1206,7 +1261,19 @@ async function loadListings(){
         rentedListingIds=new Set((signedBookings||[]).map(b=>b.listing_id));
       }catch(e){}
     }
-    const listings=(allListings||[]).filter(l=>!rentedListingIds.has(l.id));
+    let listings=(allListings||[]).filter(l=>!rentedListingIds.has(l.id));
+
+    // Mettre à jour la carte d'attribution — cette page charge déjà toutes
+    // les annonces, autant en profiter pour la carte utilisée ailleurs
+    _listingOwnerMap={};(allListings||[]).forEach(l=>{_listingOwnerMap[l.id]=l.created_by||null;});
+
+    const me=getCurrentTeamMember();
+    if(me&&getTeamFilterMode('listings')==='mine'){
+      listings=listings.filter(l=>!l.created_by||l.created_by===me);
+    }
+
+    const toggleEl=document.getElementById('listings-team-toggle');
+    if(toggleEl)toggleEl.innerHTML=renderTeamFilterToggle('listings','loadListings');
 
     const count=document.getElementById('listings-count');
     if(count)count.textContent=`${(listings||[]).length} listing${(listings||[]).length!==1?'s':''} published`;
@@ -1316,7 +1383,7 @@ async function deleteListing(id, title, btn){
   // Empêcher de supprimer une annonce qui a un locataire actif
   const{data:activeBooking}=await sb.from('bookings').select('id,tenant_name').eq('listing_id',id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1).maybeSingle();
   if(activeBooking){
-    toast(`❌ Can't delete — ${activeBooking.tenant_name||'a tenant'} has an active tenancy on this property.`);
+    toast(`❌ Can't delete — ${activeBooking.tenant_name||'a lessee'} has an active tenancy on this property.`);
     return;
   }
   if(!confirm(`Delete listing "${title}"? This cannot be undone.`)) return;
@@ -1423,7 +1490,7 @@ function showImportPreview(data){
               <img src="${p}" style="width:90px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--b2)" onerror="this.closest('label').style.display='none'">
             </label>`).join('')}
         </div>
-        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Best effort — found via the page's meta tags / HTML. Decoche celles qui ne sont pas de vraies photos du bien.</div>`
+        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Best effort — found via the page's meta tags / HTML. Uncheck any that aren't real photos of the property.</div>`
         :`<div style="font-size:.78rem;color:var(--td)">No photos could be found automatically — you can add them after publishing, from My Listings.</div>`}
       </div>
     </div>`;
@@ -1504,6 +1571,7 @@ async function createListing(data){
       photos:data.photos&&data.photos.length?data.photos:null,
       wants_agent:true,agent_service:'full',
       agent_id:U.id,landlord_id:U.id,agency_listing:true,
+      created_by:sessionStorage.getItem('rm_team_member')||null,
       agency_logo_url:agencyData?.logo_url||null,
       agency_name:agencyData?.agency_name||null,
       sale_price:isSale?(data.price||0):null,
@@ -1759,8 +1827,12 @@ async function loadCRM(){
   const wrap=document.getElementById('crm-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
+    await loadListingOwnerMap();
     const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
     crmVisitsCache=visits||[];
+
+    const toggleEl=document.getElementById('crm-team-toggle');
+    if(toggleEl)toggleEl.innerHTML=renderTeamFilterToggle('crm','loadCRM');
 
     const nb=document.getElementById('nb-leads');
     const newCount=crmVisitsCache.filter(x=>x.status==='awaiting_landlord').length;
@@ -1774,6 +1846,7 @@ function renderCRM(searchQuery){
   const wrap=document.getElementById('crm-list');
   if(!wrap)return;
   let v=crmVisitsCache;
+  if(getTeamFilterMode('crm')==='mine')v=v.filter(x=>belongsToCurrentMember(x.listing_id));
   if(currentCRMTab==='new')v=v.filter(x=>x.status==='awaiting_landlord');
   else if(currentCRMTab==='visiting')v=v.filter(x=>x.status==='confirmed'||x.status==='agent_assigned');
   else if(currentCRMTab==='interested')v=v.filter(x=>x.status==='booking_pending'||x.status==='pending');
@@ -1815,7 +1888,7 @@ function setCRMTab(tab, btn){
 function filterCRM(q){renderCRM(q);}
 
 // ── Visits ────────────────────────────────────────────────────
-let currentAgencyMsgTab='tenants';
+let currentAgencyMsgTab='lessees';
 let _agencyMsgCache=null;
 
 function setAgencyMsgTab(tab,btn){
@@ -1826,7 +1899,7 @@ function setAgencyMsgTab(tab,btn){
   });
   btn.classList.add('act');
   btn.style.background='var(--agencybright)';btn.style.color='white';btn.style.borderColor='var(--agencybright)';
-  document.getElementById('agency-messages-title').textContent=tab==='tenants'?'💬 Conversations with tenants':'🏠 Conversations with landlords';
+  document.getElementById('agency-messages-title').textContent=tab==='lessees'?'💬 Conversations with lessees':'🏠 Conversations with lessors';
   renderAgencyMessages();
 }
 
@@ -1838,43 +1911,71 @@ async function loadAgencyMessages(){
     // (receiver_id) ET ceux liés à une de mes annonces (via listing_id) —
     // cette deuxième voie rattrape les messages envoyés avant que les
     // données de l'annonce soient corrigées, sans devoir les corriger un par un
-    const{data:myListings}=await sb.from('listings').select('id').eq('agent_id',U.id);
+    const{data:myListings}=await sb.from('listings').select('id, title, zone, created_by').eq('agent_id',U.id);
     const myListingIds=(myListings||[]).map(l=>l.id);
+    _listingOwnerMap={};(myListings||[]).forEach(l=>{_listingOwnerMap[l.id]=l.created_by||null;});
+    const listingMap={};(myListings||[]).forEach(l=>{listingMap[l.id]=l;});
 
-    const{data:byReceiver}=await sb.from('messages').select('*').eq('receiver_id',U.id).order('created_at',{ascending:false}).limit(50);
+    const{data:byReceiver}=await sb.from('messages').select('*').eq('receiver_id',U.id).order('created_at',{ascending:false}).limit(200);
+    const{data:bySender}=await sb.from('messages').select('*').eq('sender_id',U.id).order('created_at',{ascending:false}).limit(200);
     let byListing=[];
     if(myListingIds.length){
-      const{data}=await sb.from('messages').select('*').in('listing_id',myListingIds).neq('sender_id',U.id).order('created_at',{ascending:false}).limit(50);
+      const{data}=await sb.from('messages').select('*').in('listing_id',myListingIds).order('created_at',{ascending:false}).limit(200);
       byListing=data||[];
     }
     const seen=new Set();
-    const msgs=[...(byReceiver||[]),...byListing].filter(m=>{
+    const all=[...(byReceiver||[]),...(bySender||[]),...byListing].filter(m=>{
       if(seen.has(m.id))return false;
       seen.add(m.id);
       return true;
-    }).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    });
 
     // Filtré côté JS plutôt qu'avec .not() en base — .not() exclut aussi
     // par erreur les messages sans type du tout, très courants ici
-    const filtered=(msgs||[]).filter(m=>m.type!=='visit_request');
+    const filtered=all.filter(m=>m.type!=='visit_request');
 
-    // Séparer locataires / propriétaires — selon le rôle du profil de l'autre
-    // personne dans chaque conversation, une seule requête par personne distincte
-    const otherIds=[...new Set(filtered.map(m=>m.sender_id===U.id?m.receiver_id:m.sender_id).filter(id=>id&&id!=='system'))];
-    let roleMap={};
+    // Trouver le vrai interlocuteur (non-system) pour chaque annonce, pour
+    // pouvoir y rattacher les messages système auto-envoyés (sender='system',
+    // receiver=moi) qui sinon créent un thread fantôme "system" séparé et
+    // inclicable — c'est exactement ce qui rendait certains messages
+    // impossibles à ouvrir avant ce correctif.
+    const listingOtherParty=new Map();
+    filtered.forEach(m=>{
+      const oid=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      if(oid&&oid!=='system'&&!listingOtherParty.has(m.listing_id)) listingOtherParty.set(m.listing_id,oid);
+    });
+
+    // Grouper par conversation : listing_id + interlocuteur — une seule
+    // entrée par bien par personne, comme côté propriétaire
+    const convMap=new Map();
+    filtered.forEach(m=>{
+      let otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      if(otherId==='system') otherId=listingOtherParty.get(m.listing_id)||'system';
+      if(!otherId||otherId==='system')return; // rien de vraiment exploitable, ignorer
+      const key=`${m.listing_id||'none'}-${otherId}`;
+      if(!convMap.has(key)||new Date(m.created_at)>new Date(convMap.get(key).created_at)){
+        convMap.set(key,{...m,_other_id:otherId});
+      }
+    });
+
+    const conversations=Array.from(convMap.values()).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
+    // Rôle de l'interlocuteur — pour séparer les onglets locataires/propriétaires
+    const otherIds=[...new Set(conversations.map(m=>m._other_id).filter(Boolean))];
+    let roleMap={},nameMap={};
     if(otherIds.length){
       try{
-        const{data:profiles}=await sb.from('profiles').select('clerk_id,role').in('clerk_id',otherIds);
-        (profiles||[]).forEach(p=>{roleMap[p.clerk_id]=p.role;});
+        const{data:profiles}=await sb.from('profiles').select('clerk_id,role,full_name').in('clerk_id',otherIds);
+        (profiles||[]).forEach(p=>{roleMap[p.clerk_id]=p.role;nameMap[p.clerk_id]=p.full_name;});
       }catch(e){}
     }
 
-    _agencyMsgCache={filtered,roleMap};
+    _agencyMsgCache={conversations,roleMap,nameMap,listingMap};
 
-    const unread=filtered.filter(m=>!m.read).length;
-    const tenantUnread=filtered.filter(m=>{const o=m.sender_id===U.id?m.receiver_id:m.sender_id;return!m.read&&roleMap[o]!=='landlord';}).length;
-    const landlordUnread=filtered.filter(m=>{const o=m.sender_id===U.id?m.receiver_id:m.sender_id;return!m.read&&roleMap[o]==='landlord';}).length;
-    const nbT=document.getElementById('nb-msg-tenants'),nbL=document.getElementById('nb-msg-landlords');
+    const unread=conversations.filter(m=>!m.read&&m.receiver_id===U.id).length;
+    const tenantUnread=conversations.filter(m=>!m.read&&m.receiver_id===U.id&&roleMap[m._other_id]!=='lessor').length;
+    const landlordUnread=conversations.filter(m=>!m.read&&m.receiver_id===U.id&&roleMap[m._other_id]==='lessor').length;
+    const nbT=document.getElementById('nb-msg-lessees'),nbL=document.getElementById('nb-msg-lessors');
     if(nbT){nbT.textContent=tenantUnread;nbT.style.display=tenantUnread>0?'inline':'none';}
     if(nbL){nbL.textContent=landlordUnread;nbL.style.display=landlordUnread>0?'inline':'none';}
     const nb=document.getElementById('nb-agency-msg');
@@ -1892,38 +1993,36 @@ async function loadAgencyMessages(){
 function renderAgencyMessages(){
   const wrap=document.getElementById('agency-messages-wrap');
   if(!wrap||!_agencyMsgCache)return;
-  const{filtered,roleMap}=_agencyMsgCache;
+  const{conversations,roleMap,nameMap,listingMap}=_agencyMsgCache;
 
-  const isLandlordTab=currentAgencyMsgTab==='landlords';
-  const shown=filtered.filter(m=>{
-    const o=m.sender_id===U.id?m.receiver_id:m.sender_id;
-    const isLandlordConvo=roleMap[o]==='landlord';
+  const toggleEl=document.getElementById('messages-team-toggle');
+  if(toggleEl)toggleEl.innerHTML=renderTeamFilterToggle('messages','renderAgencyMessages');
+
+  const isLandlordTab=currentAgencyMsgTab==='lessors';
+  const teamMine=getTeamFilterMode('messages')==='mine';
+  const shown=conversations.filter(m=>{
+    const isLandlordConvo=roleMap[m._other_id]==='lessor';
+    if(teamMine&&!belongsToCurrentMember(m.listing_id))return false;
     return isLandlordTab?isLandlordConvo:!isLandlordConvo;
   });
 
   if(!shown.length){
-    wrap.innerHTML=`<div class="empty"><div class="em">💬</div><p>No ${isLandlordTab?'landlord':'tenant'} conversations yet</p></div>`;
+    wrap.innerHTML=`<div class="empty"><div class="em">💬</div><p>No ${isLandlordTab?'lessor':'lessee'} conversations yet</p></div>`;
     return;
   }
 
-  const typeLabels={
-    'landlord_to_agency':'🏠 Landlord inquiry',
-    'message':'💬 Message',
-  };
-
   wrap.innerHTML=shown.map(m=>{
     const date=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    const label=typeLabels[m.type]||m.type||'Message';
-    const lines=m.content.split('\n');
-    const preview=lines[0]||'';
-    const otherParty=m.sender_id===U.id?m.receiver_id:m.sender_id;
-    const canReply=otherParty&&otherParty!=='system';
-    return`<div style="padding:.75rem 1rem;background:${m.read?'var(--s2)':'rgba(76,175,125,.06)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="${canReply?`openAgencyMsg('${m.listing_id||''}','${otherParty}','${label.replace(/'/g,"\\'")}')`:''}">
+    const listing=listingMap[m.listing_id];
+    const displayName=listing?.title||nameMap[m._other_id]||'Conversation';
+    const preview=(m.content||'').split('\n')[0]||'';
+    const isUnread=!m.read&&m.receiver_id===U.id;
+    return`<div style="padding:.75rem 1rem;background:${isUnread?'rgba(76,175,125,.06)':'var(--s2)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="openAgencyMsg('${m.listing_id||''}','${m._other_id}','${displayName.replace(/'/g,"\\'")}')">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
-        <span style="font-size:.75rem;font-weight:700;color:${m.read?'var(--td)':'#4CAF7D'}">${label}</span>
+        <span style="font-size:.8rem;font-weight:700;color:${isUnread?'#4CAF7D':'var(--txt)'}">${displayName}</span>
         <span style="font-size:.65rem;color:var(--td)">${date}</span>
       </div>
-      <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
+      <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.sender_id===U.id?'You: ':''}${preview}</div>
     </div>`;
   }).join('');
 }
@@ -1960,7 +2059,8 @@ async function openAgencyMsg(listingId,otherPartyId,fallbackTitle){
     const{data}=await query;
     const history=(data||[]).filter(m=>
       (m.sender_id===U.id&&m.receiver_id===otherPartyId)||
-      (m.sender_id===otherPartyId&&m.receiver_id===U.id)
+      (m.sender_id===otherPartyId&&m.receiver_id===U.id)||
+      (m.sender_id==='system'&&m.receiver_id===U.id&&(!listingId||m.listing_id===listingId))
     );
 
     if(!history.length){
@@ -2015,13 +2115,13 @@ async function loadEstimations(){
     const nb=document.getElementById('nb-estimations');
     const pending=(reqs||[]).filter(r=>r.status==='pending').length;
     if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
-    if(!(reqs||[]).length){wrap.innerHTML='<div class="empty"><div class="em">📐</div><p>No estimation requests yet.<br>Landlords browsing the agency directory can request one from your profile.</p></div>';return;}
+    if(!(reqs||[]).length){wrap.innerHTML='<div class="empty"><div class="em">📐</div><p>No estimation requests yet.<br>Lessors browsing the agency directory can request one from your profile.</p></div>';return;}
     wrap.innerHTML=(reqs||[]).map(r=>`
       <div class="card" style="margin-bottom:.75rem">
         <div class="cb" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">
-              <span style="font-weight:700">${r.landlord_name||'Landlord'}</span>
+              <span style="font-weight:700">${r.landlord_name||'Lessor'}</span>
               <span class="badge ${r.request_type==='sale'?'b-gold':'b-sea'}" style="font-size:.62rem">${r.request_type==='sale'?'🏷️ Sale estimation':'🏠 Rental estimation'}</span>
               <span class="badge ${r.status==='pending'?'b-gold':r.status==='contacted'?'b-sea':'b-dim'}" style="font-size:.62rem">${r.status||'pending'}</span>
             </div>
@@ -2047,7 +2147,16 @@ async function loadApplications(){
   if(!wrap)return;
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:myListings}=await sb.from('listings').select('id,title,zone,price,landlord_has_account,manual_landlord_email,manual_landlord_phone,manual_landlord_name,real_landlord_id').eq('agent_id',U.id);
+    const{data:myListingsAll}=await sb.from('listings').select('id,title,zone,price,landlord_has_account,manual_landlord_email,manual_landlord_phone,manual_landlord_name,real_landlord_id,created_by').eq('agent_id',U.id);
+
+    _listingOwnerMap={};(myListingsAll||[]).forEach(l=>{_listingOwnerMap[l.id]=l.created_by||null;});
+    const toggleEl=document.getElementById('applications-team-toggle');
+    if(toggleEl)toggleEl.innerHTML=renderTeamFilterToggle('applications','loadApplications');
+
+    const myListings=getTeamFilterMode('applications')==='mine'
+      ?(myListingsAll||[]).filter(l=>!l.created_by||l.created_by===getCurrentTeamMember())
+      :(myListingsAll||[]);
+
     const listingIds=(myListings||[]).map(l=>l.id);
     if(!listingIds.length){wrap.innerHTML='<div class="empty"><div class="em">📋</div><p>No listings yet — publish one first.</p></div>';return;}
     const listingMap={};(myListings||[]).forEach(l=>{listingMap[l.id]=l;});
@@ -2059,8 +2168,8 @@ async function loadApplications(){
     if(nb){nb.textContent=(pendingBookings||[]).length;nb.style.display=(pendingBookings||[]).length>0?'inline':'none';}
 
     const allTenantIds=[...new Set([...(pendingBookings||[]),...(acceptedBookings||[])].map(b=>b.tenant_id).filter(Boolean))];
-    const{data:tenants}=await sb.from('profiles').select('*').in('clerk_id',allTenantIds);
-    const tenantMap={};(tenants||[]).forEach(t=>{tenantMap[t.clerk_id]=t;});
+    const{data:lessees}=await sb.from('profiles').select('*').in('clerk_id',allTenantIds);
+    const tenantMap={};(lessees||[]).forEach(t=>{tenantMap[t.clerk_id]=t;});
 
     let html='';
 
@@ -2068,7 +2177,7 @@ async function loadApplications(){
       html+='<div style="font-size:.78rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem">🏠 Accepted — Ready for move-in</div>';
       html+=acceptedBookings.map(b=>{
         const listing=listingMap[b.listing_id]||{};
-        const tenant=tenantMap[b.tenant_id]||{};
+        const lessee=tenantMap[b.tenant_id]||{};
         const leaseSigned=b.lease_signed_landlord&&b.lease_signed_tenant;
         const paymentConfirmed=!!b.first_payment_confirmed;
 
@@ -2078,7 +2187,7 @@ async function loadApplications(){
         if(b.lease_signed_landlord){
           landlordSignRow=`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${b.lease_landlord_embed?` <a href="${b.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`;
         }else if(b.lease_landlord_embed){
-          landlordSignRow=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button> <button onclick="showLeaseSigningOptionsScreen('${b.id}','${b.lease_landlord_embed}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.25rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Send to landlord</button>`;
+          landlordSignRow=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button> <button onclick="showLeaseSigningOptionsScreen('${b.id}','${b.lease_landlord_embed}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.25rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Send to lessor</button>`;
         }else{
           landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="resendOrRegenerateLease('${b.id}','${b.listing_id}','${b.tenant_id}','${b.lease_landlord_embed||''}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Resend link</button>`;
         }
@@ -2088,14 +2197,14 @@ async function loadApplications(){
           :b.no_landlord_tracking
             ?`<span style="font-size:.78rem">⏳ Waiting for funds</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem">✅ Confirm received</button>`
             :b.first_payment_sent
-              ?`<span style="font-size:.78rem">💶 Tenant declared payment</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem">✅ Confirm received</button>`
-              :'<span style="font-size:.78rem">⏳ Waiting for the tenant to send funds</span>';
+              ?`<span style="font-size:.78rem">💶 Lessee declared payment</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem">✅ Confirm received</button>`
+              :'<span style="font-size:.78rem">⏳ Waiting for the lessee to send funds</span>';
 
         return`<div class="card" style="margin-bottom:.85rem">
           <div class="cb">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">
               <div>
-                <div style="font-weight:700;font-size:.92rem">${tenant.full_name||b.tenant_name||'Tenant'}</div>
+                <div style="font-weight:700;font-size:.92rem">${lessee.full_name||b.tenant_name||'Lessee'}</div>
                 <div style="font-size:.75rem;color:var(--td)">🏠 ${listing.title||'Property'} — ${listing.zone||''}</div>
               </div>
               <span class="badge ${leaseSigned&&paymentConfirmed?'b-green':'b-sea'}" style="font-size:.65rem">${leaseSigned&&paymentConfirmed?'✅ Done':leaseSigned?'💶 Awaiting payment':'✍️ Lease pending'}</span>
@@ -2104,11 +2213,11 @@ async function loadApplications(){
             <div style="font-size:.68rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Signatures</div>
             <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.6rem">
               <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-                <span style="font-size:.78rem">🏠 Landlord</span>
+                <span style="font-size:.78rem">🏠 Lessor</span>
                 ${landlordSignRow}
               </div>
               <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-                <span style="font-size:.78rem">👤 Tenant</span>
+                <span style="font-size:.78rem">👤 Lessee</span>
                 ${b.lease_signed_tenant?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${b.lease_tenant_embed?` <a href="${b.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`:'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
               </div>
             </div>
@@ -2129,20 +2238,20 @@ async function loadApplications(){
     }else{
       html+=pendingBookings.map(b=>{
         const listing=listingMap[b.listing_id]||{};
-        const tenant=tenantMap[b.tenant_id]||{};
+        const lessee=tenantMap[b.tenant_id]||{};
         let coTenants=[];try{coTenants=b.co_tenants_data?JSON.parse(b.co_tenants_data):[];}catch(e){}
         return`<div class="card" style="margin-bottom:.85rem">
           <div class="cb">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
               <div>
-                <div style="font-weight:700;font-size:.92rem">${tenant.full_name||'Tenant'} ${tenant.verified?'✅':''}</div>
-                <div style="font-size:.75rem;color:var(--td)">${tenant.email||''} ${tenant.phone?' · '+tenant.phone:''}</div>
+                <div style="font-weight:700;font-size:.92rem">${lessee.full_name||'Lessee'} ${lessee.verified?'✅':''}</div>
+                <div style="font-size:.75rem;color:var(--td)">${lessee.email||''} ${lessee.phone?' · '+lessee.phone:''}</div>
               </div>
               <span class="badge b-gold" style="font-size:.65rem">⏳ Pending</span>
             </div>
             <div style="font-size:.8rem;color:var(--tm);margin-bottom:.5rem">🏠 ${listing.title||'Property'} — ${listing.zone||''} · €${b.monthly_rent||listing.price||0}/mo</div>
             ${b.move_in_date?`<div style="font-size:.76rem;color:var(--td);margin-bottom:.3rem">📅 Move-in: ${new Date(b.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>`:''}
-            ${coTenants.length?`<div style="font-size:.76rem;color:var(--td);margin-bottom:.3rem">👥 +${coTenants.length} co-tenant${coTenants.length>1?'s':''}</div>`:''}
+            ${coTenants.length?`<div style="font-size:.76rem;color:var(--td);margin-bottom:.3rem">👥 +${coTenants.length} co-lessee${coTenants.length>1?'s':''}</div>`:''}
             ${b.negotiation_note?`<div style="font-size:.76rem;color:var(--tm);background:var(--s2);border-radius:8px;padding:.5rem;margin-bottom:.5rem">💬 "${b.negotiation_note}"</div>`:''}
             <div id="t-dossier-${b.tenant_id}" style="margin-bottom:.5rem">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-bottom:.5rem">
@@ -2161,7 +2270,7 @@ async function loadApplications(){
             <button onclick="sendTenantDossierToOwner('${b.tenant_id}','${b.listing_id}','${(listing.title||'the property').replace(/'/g,"\\'")}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}','${listing.real_landlord_id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.6rem">📤 Ask owner's opinion — send dossier</button>
             ${!listing.manual_landlord_name&&!listing.landlord_has_account?`
             <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.75rem;margin-bottom:.6rem">
-              <div style="font-size:.76rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">🏠 Fill this in to accept this tenant and generate the lease</div>
+              <div style="font-size:.76rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">🏠 Fill this in to accept this lessee and generate the lease</div>
               <div class="fg" style="margin-bottom:.5rem">
                 <label class="fl" style="font-size:.68rem">Owner email — check if they already have a RestMalta account</label>
                 <div style="display:flex;gap:.4rem">
@@ -2225,7 +2334,7 @@ async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlor
   toast('⏳ Preparing dossier...');
   try{
     const{data:p}=await sb.from('profiles').select('full_name,nationality,phone,verified,documents').eq('clerk_id',tenantId).maybeSingle();
-    if(!p){toast('❌ Could not load tenant profile');return;}
+    if(!p){toast('❌ Could not load lessee profile');return;}
 
     let lines=[`Candidate for ${propertyTitle}:`,``,`Name: ${p.full_name||'—'}`,`Nationality: ${p.nationality||'—'}`,`Verified: ${p.verified?'Yes ✅':'Not yet'}`,``];
 
@@ -2238,7 +2347,7 @@ async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlor
         // Lien longue durée (7 jours) — contrairement à la consultation
         // immédiate dans le dashboard qui n'a besoin que de 5 minutes
         try{
-          const{data:signed}=await sb.storage.from('tenant-documents').createSignedUrl(doc.path,604800);
+          const{data:signed}=await sb.storage.from('lessee-documents').createSignedUrl(doc.path,604800);
           if(signed?.signedUrl)lines.push(`- ${docLabels[key]||key}: ${signed.signedUrl}`);
         }catch(e){}
       }
@@ -2325,7 +2434,7 @@ async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn)
 
 async function viewTenantDocAgency(path){
   try{
-    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
+    const{data}=await sb.storage.from('lessee-documents').createSignedUrl(path,300);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
     else toast('❌ Could not open document');
   }catch(e){toast('❌ '+e.message);}
@@ -2344,12 +2453,12 @@ async function agencyConfirmPaymentReceived(bookingId){
     if(updErr){alert('❌ Could not confirm payment:\n\n'+updErr.message+'\n\nCode: '+(updErr.code||'—'));return;}
 
     if(bk.tenant_id&&bk.listing_id&&bk.monthly_rent){
-      let tenant=null;
-      try{const{data:tp}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenant=tp;}catch(e){}
+      let lessee=null;
+      try{const{data:tp}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();lessee=tp;}catch(e){}
       const today=new Date().toISOString().split('T')[0];
       const{error:payErr}=await sb.from('payments').insert([
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
-        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenant?.full_name||null,tenant_email:tenant?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:lessee?.full_name||null,tenant_email:lessee?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
+        {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:lessee?.full_name||null,tenant_email:lessee?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
       ]);
       if(payErr)console.error('Payment record creation failed:',payErr.message);
     }
@@ -2448,10 +2557,10 @@ async function acceptApplicationAgency(bookingId,listingId,tenantId){
 
   // Rien trouvé via la recherche — lire les champs manuels remplis directement sur la carte
   const name=document.getElementById('li-name-'+bookingId)?.value.trim();
-  if(!name){toast('⚠️ Landlord full name is required');return;}
+  if(!name){toast('⚠️ Lessor full name is required');return;}
   const email=document.getElementById('li-email-'+bookingId)?.value.trim();
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    toast('⚠️ A valid landlord email is required — DocuSeal needs it to create the signature request');
+    toast('⚠️ A valid lessor email is required — DocuSeal needs it to create the signature request');
     document.getElementById('li-email-'+bookingId)?.focus();
     return;
   }
@@ -2576,7 +2685,7 @@ async function resolveLandlordAndAccept(bookingId,listingId,tenantId,fields){
   try{
     const{error}=await sb.from('listings').update(manualInfo).eq('id',listingId);
     if(error){toast('❌ '+error.message);return;}
-    if(realLandlordId)toast('✅ Found this landlord\'s RestMalta account — they\'ll be able to follow along.');
+    if(realLandlordId)toast('✅ Found this lessor\'s RestMalta account — they\'ll be able to follow along.');
     await generateLeaseFromBookingAgency(bookingId,listingId,tenantId);
   }catch(e){toast('❌ '+e.message);}
 }
@@ -2620,8 +2729,8 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
     // DocuSeal exige un email valide pour chaque signataire — vérifier avant
     // d'appeler l'API plutôt que d'envoyer une requête vouée à l'échec
     if(!landlordInfo?.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(landlordInfo.email)){
-      alert('❌ Cannot generate the lease: the landlord\'s email is missing or invalid.\n\nGo to My Listings → ⋮ menu → Owner account, and add a valid email for this property\'s owner before trying again.');
-      toast('❌ Missing or invalid landlord email');
+      alert('❌ Cannot generate the lease: the lessor\'s email is missing or invalid.\n\nGo to My Listings → ⋮ menu → Owner account, and add a valid email for this property\'s owner before trying again.');
+      toast('❌ Missing or invalid lessor email');
       return;
     }
 
@@ -2640,8 +2749,8 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:leaseType,
-          landlord:{name:landlordInfo?.full_name||'',email:landlordInfo?.email||'',passport:landlordInfo?.passport_number||'',address:landlordInfo?.home_address||''},
-          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          lessor:{name:landlordInfo?.full_name||'',email:landlordInfo?.email||'',passport:landlordInfo?.passport_number||'',address:landlordInfo?.home_address||''},
+          lessee:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
           coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||''})),
           listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
           start_date:startDate,end_date:endDate
@@ -2702,7 +2811,7 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
     try{await sb.from('listings').update({status:'reserved'}).eq('id',listingId);}catch(e){}
 
     const paymentNote=listing?.landlord_has_account
-      ?'\n\n💶 Deposit and first month go directly to your landlord — details in your visits page once the lease is signed.'
+      ?'\n\n💶 Deposit and first month go directly to your lessor — details in your visits page once the lease is signed.'
       :'\n\n💶 This property\'s owner manages payment directly with your agency — arrange the deposit and first month\'s rent with them, RestMalta doesn\'t track it for this tenancy.';
 
     if(tenantId){
@@ -2718,7 +2827,7 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
     if(listing?.landlord_has_account&&listing?.real_landlord_id&&lessorEmbed){
       try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:listing.real_landlord_id,
-        content:`📄 A new lease is ready for your signature!\n\n🏠 ${listing.title||'Your property'}\n\nYour agency accepted a tenant application — go to "Agency-managed" in your dashboard to review and sign.`,
+        content:`📄 A new lease is ready for your signature!\n\n🏠 ${listing.title||'Your property'}\n\nYour agency accepted a lessee application — go to "Agency-managed" in your dashboard to review and sign.`,
         type:'lease_ready_agency'
       });}catch(e){}
     }
@@ -2726,7 +2835,7 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
     if(lessorEmbed){
       showLeaseSigningOptionsScreen(bookingId,lessorEmbed,listing?.manual_landlord_email||listing?.manual_landlord_name||'',listing?.title||'the property',listing?.manual_landlord_phone||'');
     }else{
-      toast(lesseeEmbed?'🎉 Accepted! Tenant can now sign the lease.':'🎉 Accepted! Tenant notified.');
+      toast(lesseeEmbed?'🎉 Accepted! Lessee can now sign the lease.':'🎉 Accepted! Lessee notified.');
     }
     loadApplications();
   }catch(e){toast('❌ '+e.message);console.error(e);}
@@ -2789,9 +2898,9 @@ function showLeaseSigningOptionsScreen(bookingId,signLink,landlordEmail,property
     <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.75rem;max-width:440px;width:100%">
       <div style="font-size:1.6rem;margin-bottom:.5rem">🎉</div>
       <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Lease generated — who signs as Lessor?</div>
-      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Sign it yourself now if you're authorized to, or send it to the landlord to sign themselves.</div>
+      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Sign it yourself now if you're authorized to, or send it to the lessor to sign themselves.</div>
       <button onclick="this.closest('div[style*=fixed]').remove();signAsAgencyLessor('${bookingId}','${signLink}')" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.75rem">✍️ Sign now myself</button>
-      <div style="text-align:center;font-size:.72rem;color:var(--td);margin-bottom:.75rem">— or send it to the landlord —</div>
+      <div style="text-align:center;font-size:.72rem;color:var(--td);margin-bottom:.75rem">— or send it to the lessor —</div>
       <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;color:var(--td);word-break:break-all;margin-bottom:.75rem">${signLink}</div>
       <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:.6rem .75rem;margin-bottom:.75rem">
         <div style="font-size:.72rem;font-weight:600;margin-bottom:.4rem">📱 Or send directly on RestMalta</div>
@@ -2815,7 +2924,7 @@ function signAsAgencyLessor(bookingId,embedSrc){
     modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
     const header=document.createElement('div');
     header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
-    header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Sign lease on behalf of the landlord</div>';
+    header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Sign lease on behalf of the lessor</div>';
     const closeBtn=document.createElement('button');
     closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
     closeBtn.textContent='✕';
@@ -2869,7 +2978,7 @@ function showLandlordRelayScreen(signLink,landlordEmail,propertyTitle,landlordPh
   modal.innerHTML=`
     <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.75rem;max-width:440px;width:100%">
       <div style="font-size:1.6rem;margin-bottom:.5rem">🎉</div>
-      <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Lease generated — send it to the landlord</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Lease generated — send it to the lessor</div>
       <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">The owner needs to sign as Lessor themselves — send them this link. No RestMalta account needed on their end, they just click and sign.</div>
       <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;color:var(--td);word-break:break-all;margin-bottom:.75rem">${signLink}</div>
       <button onclick="navigator.clipboard.writeText('${signLink}');this.innerHTML='✅ Link copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy link</button>
@@ -2884,7 +2993,13 @@ async function loadVisits(){
   const wrap=document.getElementById('visits-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
-    const{data:myListings}=await sb.from('listings').select('id').eq('agent_id',U.id);
+    const{data:myListingsAll}=await sb.from('listings').select('id,created_by').eq('agent_id',U.id);
+    _listingOwnerMap={};(myListingsAll||[]).forEach(l=>{_listingOwnerMap[l.id]=l.created_by||null;});
+    const toggleEl=document.getElementById('visits-team-toggle');
+    if(toggleEl)toggleEl.innerHTML=renderTeamFilterToggle('visits','loadVisits');
+    const myListings=getTeamFilterMode('visits')==='mine'
+      ?(myListingsAll||[]).filter(l=>!l.created_by||l.created_by===getCurrentTeamMember())
+      :(myListingsAll||[]);
     const myListingIds=(myListings||[]).map(l=>l.id);
 
     const{data:byLandlord}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
@@ -2894,17 +3009,19 @@ async function loadVisits(){
       byListing=data||[];
     }
     const seen=new Set();
-    const visits=[...(byLandlord||[]),...byListing].filter(v=>{
+    const visitsAll=[...(byLandlord||[]),...byListing].filter(v=>{
       if(seen.has(v.id))return false;
       seen.add(v.id);
       return true;
     }).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    // byLandlord n'est pas filtré par annonce — appliquer le filtre ici aussi
+    const visits=getTeamFilterMode('visits')==='mine'?visitsAll.filter(v=>belongsToCurrentMember(v.listing_id)):visitsAll;
 
     if(!(visits||[]).length){wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet.</p></div>';return;}
     const nb=document.getElementById('nb-visits');
     const pending=(visits||[]).filter(v=>v.status==='awaiting_landlord').length;
     if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
-    wrap.innerHTML='<table class="tbl"><thead><tr><th>Tenant</th><th>Property</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
+    wrap.innerHTML='<table class="tbl"><thead><tr><th>Lessee</th><th>Property</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
       (visits||[]).map(v=>`<tr>
         <td style="font-weight:600">${v.tenant_name||'—'}</td>
         <td style="color:var(--td)">${v.listing_title||'—'}</td>
@@ -2923,7 +3040,7 @@ async function loadVisits(){
 async function agencyMarkVisitDone(visitId){
   try{
     await sb.from('visits').update({status:'completed'}).eq('id',visitId);
-    toast('✅ Visit marked as done. Tenant will be asked if they\'re interested.');
+    toast('✅ Visit marked as done. Lessee will be asked if they\'re interested.');
     loadVisits();
   }catch(e){toast('❌ '+e.message);}
 }
@@ -2940,7 +3057,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
           type:'visit_confirmed'
         });
       }
-      toast('✅ Visit confirmed! Tenant notified.');
+      toast('✅ Visit confirmed! Lessee notified.');
     }else{
       await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);
       if(tenantId){
@@ -2951,7 +3068,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
           type:'visit_declined'
         });
       }
-      toast('Tenant notified — visit not confirmed for this date.');
+      toast('Lessee notified — visit not confirmed for this date.');
     }
     loadVisits();
   }catch(e){toast('❌ '+e.message);}
@@ -3100,6 +3217,20 @@ function toast(msg){
     window.history.replaceState({},'','agency-dashboard.html');
   }
 })();
+
+// Fermer le menu mobile en cliquant en dehors, ou après avoir choisi une page
+document.addEventListener('click',e=>{
+  const sb=document.getElementById('sidebar');
+  const mobBtn=document.getElementById('mob-menu');
+  if(sb&&sb.classList.contains('open')&&!sb.contains(e.target)&&e.target!==mobBtn&&!mobBtn?.contains(e.target)){
+    sb.classList.remove('open');
+  }
+});
+document.addEventListener('click',e=>{
+  if(e.target.closest('.ni')&&window.innerWidth<=900){
+    document.getElementById('sidebar')?.classList.remove('open');
+  }
+});
 </script>
 </body>
 </html>
