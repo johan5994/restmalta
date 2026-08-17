@@ -3,8 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>RestMalta — Find your place in Malta</title>
-<meta name="description" content="Find verified flats in Malta — no agents, no Facebook. Short-let, long-let, sous-location.">
+<title>RestMalta — Find Verified Flats & Rentals in Malta</title>
+<meta name="description" content="Find verified flats in Malta with real-time chat, guided visits and e-signed leases — no agents, no Facebook groups. Short-let, long-let and room rentals for interns, expats and residents.">
+<link rel="canonical" href="https://restmalta.com/">
+<meta name="robots" content="index, follow">
+<meta name="google-site-verification" content="5vB3Az7o83wT0tdPP83nUMNl-SItQ3r9qm0gvWzQ6yc" />
+
+<!-- Open Graph — comment le lien apparaît quand il est partagé (WhatsApp, Facebook, LinkedIn...) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RestMalta">
+<meta property="og:title" content="RestMalta — Find Verified Flats & Rentals in Malta">
+<meta property="og:description" content="Verified listings, real-time chat with landlords, guided visits and e-signed leases — all in one place. No cash to strangers, no vanishing agents from a WhatsApp group.">
+<meta property="og:url" content="https://restmalta.com/">
+<meta property="og:image" content="https://restmalta.com/og-image.png">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RestMalta — Find Verified Flats & Rentals in Malta">
+<meta name="twitter:description" content="Verified listings, real-time chat with landlords, guided visits and e-signed leases — all in one place in Malta.">
+<meta name="twitter:image" content="https://restmalta.com/og-image.png">
+
 <meta name="theme-color" content="#C9553A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,6 +32,21 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<!-- Données structurées — aide Google à comprendre que c'est un service immobilier -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "RealEstateAgent",
+  "name": "RestMalta",
+  "description": "Malta's smart rental platform — verified listings, real-time chat, guided visits and e-signed leases.",
+  "url": "https://restmalta.com/",
+  "areaServed": {
+    "@type": "Country",
+    "name": "Malta"
+  }
+}
+</script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script>
@@ -326,12 +360,12 @@ footer ul a:hover{color:var(--terra)}
     <div class="hero-l">
       <div class="hero-tag">🇲🇹 Malta's #1 rental platform</div>
       <h1>Find your flat in<br><em>Malta</em>. No Facebook<br>groups, no scams.</h1>
-      <p class="hero-desc">Verified listings, real-time chat with landlords, guided visits and e-signed leases — all in one place. No cash to strangers, no vanishing "agents" from a WhatsApp group. Free for tenants.</p>
+      <p class="hero-desc">Verified listings, real-time chat with lessors, guided visits and e-signed leases — all in one place. No cash to strangers, no vanishing "agents" from a WhatsApp group. Free for lessees.</p>
       <div class="hero-acts">
         <button class="btn btn-p" onclick="stl()">🔍 Browse listings</button>
         <button class="btn btn-s" onclick="chkPost()">🏠 List your flat</button>
       </div>
-      <div onclick="go('agencies')" style="margin-top:1rem;display:inline-flex;align-items:center;gap:.6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:100px;padding:.55rem 1.1rem;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(99,102,241,.16)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">
+      <div id="hero-agencies-link" onclick="go('agencies')" style="display:none;margin-top:1rem;align-items:center;gap:.6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:100px;padding:.55rem 1.1rem;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(99,102,241,.16)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">
         <span style="font-size:1.1rem">🏢</span>
         <span style="font-size:.85rem;font-weight:700;color:#4F46E5">Selling or renting through an agency? Browse agencies →</span>
       </div>
@@ -411,18 +445,18 @@ footer ul a:hover{color:var(--terra)}
     <p>A different experience depending on who you are — pick your role below.</p>
 
     <div style="display:flex;gap:.5rem;margin:1.5rem 0 2rem;flex-wrap:wrap">
-      <button class="hiw-tab act" id="hiw-tabbtn-tenant" onclick="setHiwTab('tenant')" style="border:2px solid var(--terra);background:var(--terra);color:white;border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🎒 Tenant</button>
-      <button class="hiw-tab" id="hiw-tabbtn-landlord" onclick="setHiwTab('landlord')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏠 Landlord</button>
-      <button class="hiw-tab" id="hiw-tabbtn-agent" onclick="setHiwTab('agent')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏆 Agent / Agency</button>
+      <button class="hiw-tab act" id="hiw-tabbtn-tenant" onclick="setHiwTab('tenant')" style="border:2px solid var(--terra);background:var(--terra);color:white;border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🎒 Lessee</button>
+      <button class="hiw-tab" id="hiw-tabbtn-landlord" onclick="setHiwTab('landlord')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏠 Lessor</button>
+      <button class="hiw-tab" id="hiw-tabbtn-agency" onclick="setHiwTab('agency')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏢 Agency</button>
     </div>
 
     <!-- TENANT -->
     <div id="hiw-panel-tenant">
       <div class="steps">
-        <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & message</h3><p>Filter by zone, budget and type. Message landlords or agents directly through real-time chat — no phone numbers shared, no vanishing "agents" from a WhatsApp group. Searching alone? Find a Roommate connects you with others looking to share.</p></div>
-        <div class="step"><div class="snum">02</div><div class="sico">🤝</div><h3>Apply & sign</h3><p>A small platform fee is authorized on your card when you apply — never charged unless the landlord accepts. Once accepted, your lease is auto-generated and e-signed, compliant with Maltese law. Bringing roommates? They're added to the same lease and sign too.</p></div>
-        <div class="step"><div class="snum">03</div><div class="sico">📸</div><h3>Move in with proof</h3><p>Every room and both meters are logged and photographed at move-in, signed by you and your landlord. Real protection if a dispute ever comes up — not just a promise. Deposit and first month go straight to your landlord, no middleman holding your money.</p></div>
-        <div class="step"><div class="snum">04</div><div class="sico">🏡</div><h3>Live & manage</h3><p>Message your landlord anytime, report maintenance issues with photos, and track every payment from your dashboard. When you're ready, renew your lease or generate your official notice to leave — both handled right from the app.</p></div>
+        <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & message</h3><p>Filter by zone, budget and type. Message lessors or agents directly through real-time chat — no phone numbers shared, no vanishing "agents" from a WhatsApp group. Searching alone? Find a Roommate connects you with others looking to share.</p></div>
+        <div class="step"><div class="snum">02</div><div class="sico">🤝</div><h3>Apply & sign</h3><p>A small platform fee is authorized on your card when you apply — never charged unless the lessor accepts. Once accepted, your lease is auto-generated and e-signed, compliant with Maltese law. Bringing roommates? They're added to the same lease and sign too.</p></div>
+        <div class="step"><div class="snum">03</div><div class="sico">📸</div><h3>Move in with proof</h3><p>Every room and both meters are logged and photographed at move-in, signed by you and your lessor. Real protection if a dispute ever comes up — not just a promise. Deposit and first month go straight to your lessor, no middleman holding your money.</p></div>
+        <div class="step"><div class="snum">04</div><div class="sico">🏡</div><h3>Live & manage</h3><p>Message your lessor anytime, report maintenance issues with photos, and track every payment from your dashboard. When you're ready, renew your lease or generate your official notice to leave — both handled right from the app.</p></div>
       </div>
     </div>
 
@@ -430,19 +464,19 @@ footer ul a:hover{color:var(--terra)}
     <div id="hiw-panel-landlord" style="display:none">
       <div class="steps">
         <div class="step"><div class="snum">01</div><div class="sico">✍️</div><h3>List your property</h3><p>Fill in the details yourself — title, photos, price, you're in control. Selling instead? List it for sale too — same platform, different flow.</p></div>
-        <div class="step"><div class="snum">02</div><div class="sico">💬</div><h3>Review & accept</h3><p>Tenants message and apply directly — see their verified dossier (ID, employment letter, references) before deciding. Accept the application that fits, and their lease generates automatically, ready to sign.</p></div>
+        <div class="step"><div class="snum">02</div><div class="sico">💬</div><h3>Review & accept</h3><p>Lessees message and apply directly — see their verified dossier (ID, employment letter, references) before deciding. Accept the application that fits, and their lease generates automatically, ready to sign.</p></div>
         <div class="step"><div class="snum">03</div><div class="sico">📋</div><h3>Move-in day</h3><p>Complete the move-in inventory with photos and meter readings, right from your dashboard — signed by both of you as shared proof. Deposit and first month land directly in your account, no waiting on a middleman.</p></div>
-        <div class="step"><div class="snum">04</div><div class="sico">📊</div><h3>Manage with ease</h3><p>Track every rented property, payment status and lease end date in one place. Handle maintenance requests, message your tenant, and renew or let leases run their course — all from Rented Properties.</p></div>
+        <div class="step"><div class="snum">04</div><div class="sico">📊</div><h3>Manage with ease</h3><p>Track every rented property, payment status and lease end date in one place. Handle maintenance requests, message your lessee, and renew or let leases run their course — all from Rented Properties.</p></div>
       </div>
     </div>
 
-    <!-- AGENT / AGENCY -->
-    <div id="hiw-panel-agent" style="display:none">
+    <!-- AGENCY -->
+    <div id="hiw-panel-agency" style="display:none">
       <div class="steps">
-        <div class="step"><div class="snum">01</div><div class="sico">🏆</div><h3>Get matched to properties</h3><p>Landlords in your covered zones can assign you to handle visits and the move-in inventory, or hand you the whole listing to build. Agencies get their own directory profile landlords can find and contact directly.</p></div>
-        <div class="step"><div class="snum">02</div><div class="sico">📅</div><h3>Run the visits</h3><p>Confirm visit requests, meet tenants on-site, and report back — all tracked in your dashboard. No more juggling WhatsApp threads across a dozen properties.</p></div>
-        <div class="step"><div class="snum">03</div><div class="sico">📷</div><h3>Complete move-in</h3><p>Run the move-in inventory with photos and meter readings directly from your phone, generate the annex, and get it signed by landlord and tenant.</p></div>
-        <div class="step"><div class="snum">04</div><div class="sico">💶</div><h3>Get paid your way</h3><p>RestMalta only ever captures its own platform fee — your commission is arranged and paid directly, never routed through the platform. Agencies can also post sale listings for free and pick up estimation requests from landlords.</p></div>
+        <div class="step"><div class="snum">01</div><div class="sico">🏢</div><h3>Get your directory profile</h3><p>Set up your agency profile — lessors in your zones can find and contact you directly. Browse and pick up estimation requests too.</p></div>
+        <div class="step"><div class="snum">02</div><div class="sico">📋</div><h3>Manage everything in one place</h3><p>Listings, visits, applications, leases, move-in — all tracked from your own dashboard with your team.</p></div>
+        <div class="step"><div class="snum">03</div><div class="sico">📷</div><h3>Complete move-in</h3><p>Run the move-in inventory with photos and meter readings, generate the annex, and get it signed by lessor and lessee.</p></div>
+        <div class="step"><div class="snum">04</div><div class="sico">💶</div><h3>Get paid your way</h3><p>RestMalta only ever captures its own platform fee — your commission is arranged and paid directly, never routed through the platform. Post sale listings for free too.</p></div>
       </div>
     </div>
   </div>
@@ -451,18 +485,18 @@ footer ul a:hover{color:var(--terra)}
     <div class="stag">✦ Platform features</div>
     <h2>Everything you need,<br><em>nothing</em> you don't.</h2>
     <div class="fgrid">
-      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">💬</div><h3>Real-time chat</h3><p>Instant messaging between tenants and landlords. Messages appear live — no refreshing, no waiting. Like WhatsApp, built into the platform.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(212,168,71,.15)">🏆</div><h3>Agent-assisted visits</h3><p>Landlords can assign a RestMalta agent to handle visits, negotiation, and even the whole listing. The agent takes care of everything on the ground.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">📋</div><h3>Digital tenant dossier</h3><p>Upload your ID, employment letter, bank statements and references once — landlords see your verified profile and documents in one click. Co-tenants get their own dossier too.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">💬</div><h3>Real-time chat</h3><p>Instant messaging between lessees and lessors. Messages appear live — no refreshing, no waiting. Like WhatsApp, built into the platform.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(99,102,241,.15)">🏢</div><h3>Real estate agencies</h3><p>Agencies manage everything on your behalf — listing, visits, applications, lease, move-in — with their own dashboard and a public directory profile lessors can browse and contact directly.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">📋</div><h3>Digital lessee dossier</h3><p>Upload your ID, employment letter, bank statements and references once — lessors see your verified profile and documents in one click. Co-lessees get their own dossier too.</p></div>
       <div class="fc"><div class="fci" style="background:rgba(139,92,246,.15)">📷</div><h3>Photographed move-in inventory</h3><p>Every room and meter reading is logged and photographed at move-in, kept as proof both parties can access anytime — no more disputes over who broke what.</p></div>
     </div>
   </div>
 
   <footer>
     <div class="fg">
-      <div><div class="flogo"><svg width="16" height="16" viewBox="0 0 16 16" style="display:inline-block;vertical-align:-2px;margin-right:.35rem"><path d="M8 0 L10.2 3.5 L14 4.5 L11.5 7.5 L12 11.5 L8 9.8 L4 11.5 L4.5 7.5 L2 4.5 L5.8 3.5 Z" fill="var(--terra)"/></svg>RestMalta</div><p class="fdesc">Malta's first smart rental platform. Real-time chat, agent visits, e-signed leases and a photographed move-in inventory. Built for interns, expats and independent landlords.</p></div>
-      <div><h4>For tenants</h4><ul><li><a onclick="stl()">Browse listings</a></li><li><a onclick="stl()">Virtual visits</a></li><li><a onclick="go('auth')">Build your dossier</a></li><li><a onclick="stl()">Room rental</a></li></ul></div>
-      <div><h4>For landlords</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a onclick="go('agencies')">Browse agencies</a></li><li><a onclick="chkPost()">Agent-assisted visits</a></li><li><a onclick="go('auth')">Dashboard</a></li></ul></div>
+      <div><div class="flogo"><svg width="16" height="16" viewBox="0 0 16 16" style="display:inline-block;vertical-align:-2px;margin-right:.35rem"><path d="M8 0 L10.2 3.5 L14 4.5 L11.5 7.5 L12 11.5 L8 9.8 L4 11.5 L4.5 7.5 L2 4.5 L5.8 3.5 Z" fill="var(--terra)"/></svg>RestMalta</div><p class="fdesc">Malta's first smart rental platform. Real-time chat, guided visits, e-signed leases and a photographed move-in inventory. Built for interns, expats and independent lessors.</p></div>
+      <div><h4>For lessees</h4><ul><li><a onclick="stl()">Browse listings</a></li><li><a onclick="stl()">Virtual visits</a></li><li><a onclick="go('auth')">Build your dossier</a></li><li><a onclick="stl()">Room rental</a></li></ul></div>
+      <div><h4>For lessors</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a onclick="go('agencies')">Browse agencies</a></li><li><a onclick="go('auth')">Dashboard</a></li></ul></div>
       <div><h4>Legal</h4><ul><li><a>Terms of service</a></li><li><a>Privacy policy</a></li><li><a>Contact us</a></li></ul></div>
     </div>
     <div class="fbot"><p>© 2026 RestMalta. Made with ☀️ in Malta.</p><p>Not affiliated with the Maltese government. RestMalta is not a real estate agency.</p></div>
@@ -485,47 +519,28 @@ footer ul a:hover{color:var(--terra)}
       </button>
     </div>
     <div style="margin-top:1.5rem;font-size:.75rem;color:var(--stone-l);text-align:center;line-height:1.6">
-      ✅ Free for tenants · 🔒 Secure · 🇲🇹 Malta only
+      ✅ Free for lessees · 🔒 Secure · 🇲🇹 Malta only
     </div>
   </div></div>
 </div>
 <div class="page" id="page-post">
   <div class="pwrap">
     <div class="ptitle">Post your listing</div>
-    <div class="psub">Reach verified tenants across Malta — interns, expats, nomads. Free to post.</div>
+    <div class="psub">Reach verified lessees across Malta — interns, expats, nomads. Free to post.</div>
 
-    <!-- Choix : je remplis moi-même vs laisser un agent tout gérer -->
+    <!-- Choix : je remplis moi-même vs passer par une agence -->
     <div class="fcard" id="post-choice-screen">
       <h3>How would you like to list your property?</h3>
       <div class="post-choice-grid" style="display:flex;flex-direction:column;gap:.85rem;margin-top:1rem">
-        <div onclick="document.getElementById('post-choice-screen').style.display='none';document.getElementById('post-self-form').style.display='block';selectSelfFormAgentOpt('none')" style="cursor:pointer;background:var(--stone-xl);border:2px solid var(--b2);border-radius:12px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='var(--b2)'">
+        <div onclick="document.getElementById('post-choice-screen').style.display='none';document.getElementById('post-self-form').style.display='block'" style="cursor:pointer;background:var(--stone-xl);border:2px solid var(--b2);border-radius:12px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='var(--b2)'">
           <div style="font-size:1.8rem;flex-shrink:0">✍️</div>
-          <div><div style="font-weight:700;margin-bottom:.2rem">I'll fill in the details myself</div><div style="font-size:.78rem;color:var(--stone-l)">Title, photos, price — you're in control. You also handle visits & inventory. 10% platform fee from tenant.</div></div>
-        </div>
-        <div style="cursor:not-allowed;background:var(--stone-xl);border:2px solid var(--b2);border-radius:12px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;opacity:.55;position:relative">
-          <span style="position:absolute;top:.6rem;right:.75rem;background:var(--gold);color:white;font-size:.62rem;font-weight:700;padding:.2rem .55rem;border-radius:100px">COMING SOON</span>
-          <div style="font-size:1.8rem;flex-shrink:0">🤝</div>
-          <div><div style="font-weight:700;margin-bottom:.2rem">Let an agent handle everything</div><div style="font-size:.78rem;color:var(--stone-l)">Just tell us about your property — an agent builds the full listing, does the visits, and negotiates for you.</div></div>
+          <div><div style="font-weight:700;margin-bottom:.2rem">I'll fill in the details myself</div><div style="font-size:.78rem;color:var(--stone-l)">Title, photos, price — you're in control. You also handle visits & inventory. 10% platform fee from lessee.</div></div>
         </div>
         <div onclick="go('agencies')" style="cursor:pointer;background:rgba(99,102,241,.06);border:2px solid rgba(99,102,241,.2);border-radius:12px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s" onmouseover="this.style.borderColor='#6366F1'" onmouseout="this.style.borderColor='rgba(99,102,241,.2)'">
           <div style="font-size:1.8rem;flex-shrink:0">🏢</div>
           <div><div style="font-weight:700;margin-bottom:.2rem;color:#6366F1">Browse real estate agencies</div><div style="font-size:.78rem;color:var(--stone-l)">Contact a professional agency directly — see their zones and any current offers (e.g. first year of management free).</div></div>
         </div>
       </div>
-    </div>
-
-    <!-- Formulaire minimal : demande de prise en charge complète par un agent -->
-    <div class="fcard" id="post-agent-form" style="display:none">
-      <h3>🤝 Let an agent handle everything</h3>
-      <div class="psub" style="margin:.3rem 0 1rem">Give us the basics — an agent will contact you, visit the property if needed, and create the full listing on your behalf. Commission: 40% landlord + 40% tenant, split with the agent.</div>
-      <div class="fg2"><label>Zone *</label><input class="fi" id="paf-zone" list="zonesList" placeholder="e.g. Sliema" onblur="checkZoneAvailability()"></div>
-      <div id="paf-zone-status" style="font-size:.8rem;margin:-.6rem 0 .6rem"></div>
-      <div class="fg2"><label>Full address</label><input class="fi" id="paf-address" placeholder="12 Triq il-Kbira, Sliema"></div>
-      <div class="fg2"><label>Estimated monthly rent (€)</label><input class="fi" type="number" id="paf-price" placeholder="850"></div>
-      <div class="fg2"><label>Your phone *</label><input class="fi" id="paf-phone" placeholder="+356 ..."></div>
-      <div class="fg2"><label>Notes for the agent</label><textarea class="fta" id="paf-notes" rows="3" placeholder="Number of bedrooms, furnished or not, available from when, anything the agent should know..."></textarea></div>
-      <button class="btn btn-p" id="paf-submit-btn" style="width:100%;justify-content:center" onclick="submitAgentManagedRequest()">Submit request →</button>
-      <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById('post-agent-form').style.display='none';document.getElementById('post-choice-screen').style.display='block'">← Back</button>
     </div>
 
     <div class="fcard" id="post-self-form" style="display:none">
@@ -558,11 +573,11 @@ footer ul a:hover{color:var(--terra)}
         <div style="font-size:.75rem;color:var(--stone-l);line-height:1.6">⚠️ Minimum 1 year lease required by Maltese law (Cap. 604).</div>
         <div class="frow" style="margin-top:.5rem">
         </div>
-        <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">ℹ️ Di Fermo = minimum period during which tenant cannot leave without penalty. Must be minimum 1 year.</div>
+        <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">ℹ️ Di Fermo = minimum period during which lessee cannot leave without penalty. Must be minimum 1 year.</div>
       </div>
       <div class="frow" style="margin-top:.75rem">
         <div class="fg2" style="grid-column:1/-1"><label>Title *</label><input class="fi" type="text" id="pti" placeholder="e.g. Bright furnished studio near the sea, St. Julian's"></div>
-        <div class="fg2"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema..." oninput="checkAgentsInZone(this.value)" onchange="checkAgentsInZone(this.value)">
+        <div class="fg2"><label>Zone *</label><input list="zones-post" id="pz" class="fi" placeholder="e.g. St. Julian's, Sliema...">
 <datalist id="zones-post">
   <option value="St. Julian's"><option value="Sliema"><option value="Valletta"><option value="Msida">
   <option value="Gzira"><option value="Gozo"><option value="Birkirkara"><option value="Swieqi">
@@ -614,10 +629,10 @@ footer ul a:hover{color:var(--terra)}
       <!-- Lease Agreement Attestation -->
       <div id="section-attestation" style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
         <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation <span style="font-size:.65rem;font-weight:400;color:var(--stone-l)">(Malta — required for some non-EU residence permits)</span></div>
-        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.6rem;line-height:1.5">Some non-EU tenants need a notary-attested lease for their residence permit. Do you accept these tenants? If yes, a badge will appear on your listing. The tenant manages the notary process themselves — RestMalta does not handle this.</div>
+        <div style="font-size:.73rem;color:var(--stone);margin-bottom:.6rem;line-height:1.5">Some non-EU lessees need a notary-attested lease for their residence permit. Do you accept these lessees? If yes, a badge will appear on your listing. The lessee manages the notary process themselves — RestMalta does not handle this.</div>
         <div style="display:flex;gap:1rem;flex-wrap:wrap">
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-no" value="no" checked> ❌ No — standard lease only</label>
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-yes" value="yes"> ✅ Yes — I accept tenants needing attestation</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-yes" value="yes"> ✅ Yes — I accept lessees needing attestation</label>
         </div>
       </div>
 
@@ -657,79 +672,6 @@ footer ul a:hover{color:var(--terra)}
         </label>
       </div>
 
-      <!-- Visit & Inventory presence options — visible seulement avec agent -->
-      <div id="section-agent-details" style="display:none">
-      <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.5rem">🏠 Your availability during visits & inventory</div>
-        <div style="background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.15);border-radius:8px;padding:.75rem">
-          <div class="frow">
-            <div class="fg2">
-              <label>During property visits</label>
-              <select class="fi" id="p-visit-presence" style="cursor:pointer">
-                <option value="if_possible">👋 If possible — I'll join if available</option>
-                <option value="not_needed">❌ I don't want to be there</option>
-              </select>
-            </div>
-            <div class="fg2">
-              <label>During entry inventory (EDL)</label>
-              <select class="fi" id="p-inventory-presence" style="cursor:pointer" onchange="toggleSignAuth(this.value)">
-                <option value="mandatory">✅ I will be there</option>
-                <option value="if_possible">👋 If possible (agent signs if I can't)</option>
-                <option value="not_needed">❌ I don't want to be there</option>
-              </select>
-            </div>
-          </div>
-        <div id="sign-auth-notice" style="display:none;margin-top:.5rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .75rem;font-size:.72rem;color:var(--gold)">
-          ⚠️ By selecting this option you authorize the RestMalta agent to sign the entry inventory on your behalf. The bail (lease) must always be signed by you personally.
-        </div>
-
-        <!-- Key access -->
-        <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b)">
-          <div style="font-size:.75rem;font-weight:700;color:var(--sea);margin-bottom:.5rem">🔑 Key access for agent</div>
-          <div class="frow">
-            <div class="fg2">
-              <label>How does the agent access the property?</label>
-              <select class="fi" id="p-key-type" style="cursor:pointer" onchange="toggleKeyDetail(this.value)">
-                <option value="keysafe">🔐 Key safe on site</option>
-                <option value="neighbor">🏘️ With neighbour / concierge</option>
-                <option value="landlord">📞 I hand keys personally (I'll be there)</option>
-                <option value="current_tenant">🏠 Current tenant has the keys</option>
-              </select>
-            </div>
-            <div class="fg2">
-              <div id="key-detail-wrap">
-                <label>Key access details</label>
-                <input class="fi" id="p-key-location" placeholder="E.g. Key safe code 1234, left of main entrance">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tenant actuel -->
-        <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b)">
-          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;margin-bottom:.5rem">
-            <input type="checkbox" id="p-is-occupied" onchange="toggleOccupied(this.checked)" style="width:16px;height:16px;accent-color:var(--terra);cursor:pointer;flex-shrink:0">
-            <div>
-              <div style="font-size:.78rem;font-weight:700;color:var(--gold)">👤 Property is currently occupied</div>
-              <div style="font-size:.7rem;color:var(--stone-l);margin-top:.1rem">Check this if a tenant is still living there</div>
-            </div>
-          </label>
-          <div id="occupied-details" style="display:none;background:rgba(212,168,71,.05);border:1px solid rgba(212,168,71,.15);border-radius:8px;padding:.75rem">
-            <div class="frow">
-              <div class="fg2"><label>Current tenant's phone number</label><input class="fi" id="p-current-tenant-phone" placeholder="+356 9999 1234"></div>
-              <div class="fg2"><label>Lease end date (when property is free)</label><input class="fi" type="date" id="p-lease-end-date"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="presence-info" style="margin-top:.5rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
-          📋 The agent will organise the visit and send you a summary after.
-        </div>
-      </div>
-      </div><!-- end agent-details-section -->
-
-      </div><!-- end section-agent-details -->
-
       <div class="fg2" style="margin-top:.75rem"><label>Description</label><textarea class="fta" id="pde" rows="4" placeholder="Describe your flat — furnished, WiFi, near transport, bills included, house rules…"></textarea></div>
 
       <!-- Lease conditions — auto-fills the bail -->
@@ -748,7 +690,7 @@ footer ul a:hover{color:var(--terra)}
           <div class="fg2"><label>Bills situation</label>
             <select class="fi" id="p-bills" style="cursor:pointer">
               <option value="included">✅ All bills included in rent</option>
-              <option value="excluded">❌ Bills not included — tenant pays separately</option>
+              <option value="excluded">❌ Bills not included — lessee pays separately</option>
             </select>
           </div>
         </div>
@@ -783,7 +725,7 @@ footer ul a:hover{color:var(--terra)}
         <div style="border:2px dashed rgba(107,95,82,.2);border-radius:12px;padding:1rem;text-align:center;cursor:pointer;background:var(--warm)" onclick="document.getElementById('video-input').click()">
           <div style="font-size:1.5rem;margin-bottom:.3rem">🎥</div>
           <div style="font-size:.82rem;color:var(--stone)">Upload a video tour of your flat (max 50MB)</div>
-          <div style="font-size:.7rem;color:var(--stone-l);margin-top:.2rem">MP4, MOV — tenants can watch before requesting a visit</div>
+          <div style="font-size:.7rem;color:var(--stone-l);margin-top:.2rem">MP4, MOV — lessees can watch before requesting a visit</div>
           <input type="file" id="video-input" accept="video/*" style="display:none" onchange="handleVideo(this)">
         </div>
         <div id="video-preview" style="margin-top:.5rem"></div>
@@ -858,16 +800,8 @@ footer ul a:hover{color:var(--terra)}
           <div class="cprice" id="dpr"></div>
           <div class="cper" id="dpr-per">/month</div>
 
-          <!-- Contact card -->
-          <div id="contact-agent-notice" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem">
-            <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.3rem">🏆 Agent-managed listing</div>
-            <div style="font-size:.73rem;color:var(--stone-l);line-height:1.5;margin-bottom:.5rem">A RestMalta agent handles visits and inventory for this property.</div>
-            <div class="fg2" style="margin-bottom:.5rem"><label style="font-size:.73rem;font-weight:600">Your message to the agent</label><textarea class="fta" id="dmsg-agent" rows="3" placeholder="Hi! I'm interested in this property. I'm looking for…"></textarea></div>
-            <button class="btn btn-p" style="width:100%;justify-content:center;background:#8B5CF6" onclick="sendMsgToAgents()">💬 Contact an agent →</button>
-          </div>
-
           <div id="contact-direct-wrap">
-            <div class="fg2"><label>Your message to the landlord</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
+            <div class="fg2"><label>Your message to the lessor</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
             <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
           </div>
 
@@ -1058,7 +992,7 @@ async function submitEstimationRequest(agencyId){
   try{
     const{error}=await sb.from('estimation_requests').insert({
       landlord_id:U.id,
-      landlord_name:P?.full_name||'Landlord',
+      landlord_name:P?.full_name||'Lessor',
       landlord_email:U.email,
       agency_id:agencyId,
       request_type:requestType,
@@ -1133,15 +1067,11 @@ function showRolePicker(name) {
       <div style="display:flex;flex-direction:column;gap:.5rem">
         <button onclick="confirmRoleChoice('tenant','🎒','Tenant / Intern','Looking for a flat in Malta')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
           <span style="font-size:1.4rem;flex-shrink:0">🎒</span>
-          <div><div>Tenant / Intern</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">Looking for a flat in Malta</div></div>
+          <div><div>Lessee / Intern</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">Looking for a flat in Malta</div></div>
         </button>
         <button onclick="confirmRoleChoice('landlord','🏠','Landlord','I want to list my property')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
           <span style="font-size:1.4rem;flex-shrink:0">🏠</span>
-          <div><div>Landlord</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">I want to list my property</div></div>
-        </button>
-        <button onclick="confirmRoleChoice('agent','🏆','Real Estate Agent','I do visits and help landlords rent')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
-          <span style="font-size:1.4rem;flex-shrink:0">🏆</span>
-          <div><div>Real Estate Agent</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">I do visits and help landlords rent</div></div>
+          <div><div>Lessor</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">I want to list my property</div></div>
         </button>
         <button onclick="confirmRoleChoice('agency','🏢','Real Estate Agency','Publish listings · CRM · Team')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(99,102,241,.4);background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(99,102,241,.22),rgba(139,92,246,.14))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08))'">
           <span style="font-size:1.4rem;flex-shrink:0">🏢</span>
@@ -1208,8 +1138,7 @@ async function setRoleAndContinue(role) {
     updN();
     toast('🎉 Welcome to RestMalta!');
 
-    if(role === 'landlord') window.location.href = '/landlord-dashboard.html';
-    else if(role === 'agent') window.location.href = '/agent-dashboard.html';
+    if(role === 'lessor') window.location.href = '/lessor-dashboard.html';
     else if(role === 'agency') window.location.href = '/agency-dashboard.html';
     else { loadL(); updC(); go('home'); }
 
@@ -1227,8 +1156,10 @@ function updN(){
     const n=P.full_name?.split(' ')[0]||'?';
     const avatar=`<div style="width:32px;height:32px;border-radius:50%;background:var(--terra);color:white;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;cursor:pointer" onclick="goToDash()">${n[0].toUpperCase()}</div>`;
     na.innerHTML=avatar+`<span style="font-size:.82rem;color:var(--stone);font-weight:500;cursor:pointer" onclick="goToDash()">${n}</span><button class="btn btn-s btn-sm" onclick="doLogout()">Sign out</button>`;
-    np.style.display=P.role==='landlord'?'inline':'none';
+    np.style.display=P.role==='lessor'?'inline':'none';
     nd.style.display='inline';
+    const heroAgLink=document.getElementById('hero-agencies-link');
+    if(heroAgLink)heroAgLink.style.display=P.role==='lessor'?'inline-flex':'none';
   } else {
     na.innerHTML=`<button class="btn btn-s btn-sm" onclick="go('auth')">Sign in</button><button class="btn btn-p btn-sm" onclick="go('auth')">List your flat →</button>`;
     np.style.display='none';nd.style.display='none';
@@ -1246,16 +1177,15 @@ async function signInWithFacebook(){
 }
 
 function goToDash(){
-  if(P?.role==='landlord') window.location.href='/landlord-dashboard.html';
-  else if(P?.role==='agent') window.location.href='/agent-dashboard.html';
+  if(P?.role==='lessor') window.location.href='/lessor-dashboard.html';
   else if(P?.role==='agency') window.location.href='/agency-dashboard.html';
-  else window.location.href='/tenant-dashboard.html';
+  else window.location.href='/lessee-dashboard.html';
 }
 
 async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
 
 function setHiwTab(role){
-  ['tenant','landlord','agent'].forEach(r=>{
+  ['lessee','lessor','agency'].forEach(r=>{
     const panel=document.getElementById('hiw-panel-'+r);
     const btn=document.getElementById('hiw-tabbtn-'+r);
     if(panel)panel.style.display=r===role?'block':'none';
@@ -1305,12 +1235,9 @@ function rCard(l){
   const lbColor={short:'#C9553A',room_rental:'#D4A847',long:'#2E6B8A',for_sale:'#6366F1'};
   const tags=[l.furnished?'Furnished':null,l.wifi?'WiFi':null,l.bills_included?'Bills incl.':null,l.ac?'A/C':null,l.parking?'Parking':null,l.pool?'Pool':null,l.balcony?'Balcony':null,l.spots>1?`${l.spots} spots`:null].filter(Boolean).slice(0,3);
   const fr=l.available_indefinitely?'Available indefinitely':l.available_from?'From '+new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Available now';
-  // Agent service badge
-  const agentLabels={visit:'🏆 Agent visits',full:'🏆 Agent full service',attestation:'🏆 Agent + Att.'};
-  const agentBadge=l.agency_listing?
+  // Listing source badge — agency or direct from owner
+  const sourceBadge=l.agency_listing?
     `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏢 ${l.agency_name||'Real Estate Agency'}</span>`:
-    l.wants_agent&&l.agent_service&&l.agent_service!=='none'?
-    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">${agentLabels[l.agent_service]||'🏆 Agent'}</span>`:
     `<span style="position:absolute;top:.5rem;left:.5rem;background:rgba(76,175,125,.9);color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏠 Direct from owner</span>`;
   // Attestation badge — only show when accepted, and never for agency listings (info not collected)
   const attBadge=(l.accepts_attestation&&!l.agency_listing)?
@@ -1322,7 +1249,7 @@ function rCard(l){
     <div class="limg" style="background:${bg[l.type]||bg.room_rental}">
       ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'🏠'}</span>`}
       <span style="position:absolute;top:.5rem;right:.5rem;background:${lbColor[l.type]||'#C9553A'};color:white;font-size:.65rem;font-weight:700;padding:.25rem .6rem;border-radius:100px">${lb[l.type]||'Listing'}</span>
-      ${agentBadge}${attBadge}${boostBadge}
+      ${sourceBadge}${attBadge}${boostBadge}
     </div>
     <div class="lbody">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
@@ -1421,7 +1348,6 @@ async function openDet(id){
     l.elevator?'🛗 Elevator':null,
     l.garden?'🌳 Garden':null,
     l.sea_view?'🌊 Sea view':null,
-    l.wants_agent&&l.agent_service!=='none'?'🏆 Agent-managed visits':null,
     l.accepts_attestation?'📋 Attestation accepted':null,
   ].filter(Boolean);
   // Fusionner avec les features cochées côté agence (tableau JSON libre)
@@ -1452,37 +1378,30 @@ async function openDet(id){
     <div class="crow"><span>Type</span><span>${tl[l.type]||l.type}</span></div>
     <div class="crow"><span>Available from</span><span>${l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Now'}</span></div>
     <div class="crow"><span>Deposit</span><span>${l.deposit?'€'+l.deposit:'None'}</span></div>
-    ${l.bills_situation?`<div class="crow"><span>Bills</span><span>${l.bills_situation==='included'?'✅ Included in rent':'❌ Tenant pays separately'}</span></div>`:''}
+    ${l.bills_situation?`<div class="crow"><span>Bills</span><span>${l.bills_situation==='included'?'✅ Included in rent':'❌ Lessee pays separately'}</span></div>`:''}
     ${l.payment_due_day?`<div class="crow"><span>Rent due</span><span>${l.payment_due_day==='last'?'Last day of month':l.payment_due_day+' of the month'}</span></div>`:''}
     ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}`;
 
-  // Coût total pour le tenant — n'a aucun sens pour une annonce "For sale"
+  // Coût total pour le lessee — n'a aucun sens pour une annonce "For sale"
   const dcostCard=document.getElementById('dcost');
-  const hasAgent=AL.wants_agent&&AL.agent_service==='full';
   const isAgency=!!AL.agency_listing;
   if(l.type==='for_sale'){
     if(dcostCard)dcostCard.style.display='none';
   }else{
     if(dcostCard)dcostCard.style.display='block';
-    const commissionRate=isAgency?0.50:hasAgent?0.40:0.10;
+    const commissionRate=isAgency?0.50:0.10;
     const commission=Math.round(l.price*commissionRate);
-    const commissionLabel=isAgency?'Agency fee (50%)':hasAgent?'RestMalta fee (40% — agent)':'RestMalta fee (10%)';
+    const commissionLabel=isAgency?'Agency fee (50%)':'RestMalta fee (10%)';
     document.getElementById('dcost-inner').innerHTML=`
       <div class="crow"><span>First month rent</span><span style="font-weight:700">€${l.price}</span></div>
       <div class="crow"><span>Security deposit</span><span style="font-weight:700">${l.deposit?'€'+l.deposit:'None'}</span></div>
       <div class="crow"><span>${commissionLabel}</span><span style="font-weight:700;color:var(--terra)">€${commission}</span></div>
       <div style="height:1px;background:rgba(201,85,58,.15);margin:.5rem 0"></div>
       <div class="crow" style="font-size:.92rem"><span style="font-weight:700">Total at signing</span><span style="font-weight:900;color:var(--terra);font-size:1.1rem">€${l.price+(l.deposit||0)+commission}</span></div>
-      <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">Deposit and rent are paid directly to the landlord once the lease is signed.</div>`;
+      <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">Deposit and rent are paid directly to the lessor once the lease is signed.</div>`;
   }
 
   go('det');
-
-  const agentNotice=document.getElementById('contact-agent-notice');
-  const directWrap=document.getElementById('contact-direct-wrap');
-  const showAgentNotice=hasAgent&&!isAgency;
-  if(agentNotice)agentNotice.style.display=showAgentNotice?'block':'none';
-  if(directWrap)directWrap.style.display=showAgentNotice?'none':'block';
 }
 
 function openFullscreen(src){
@@ -1552,32 +1471,6 @@ async function inviteCoTenants(listingId, coTenantEmails){
   return invited;
 }
 
-async function sendMsgToAgents(){
-  if(!U){toast('Please sign in first');go('auth');return;}
-  if(!AL)return;
-  const c=document.getElementById('dmsg-agent')?.value.trim();
-  if(!c){toast('Please write a message');return;}
-
-  try{
-    const{data:agents,error}=await sb.from('profiles').select('clerk_id').or('role.eq.agent,role.eq.Agent');
-    if(error||!agents?.length){toast('⚠️ No agents available right now.');return;}
-    for(const agent of agents){
-      try{
-        await sb.from('messages').insert({
-          listing_id:AL.id,
-          sender_id:U.id,
-          receiver_id:agent.clerk_id,
-          content:c,
-          type:'tenant_contact',
-          read:false
-        });
-      }catch(e){}
-    }
-    document.getElementById('dmsg-agent').value='';
-    toast('✅ Message sent! An agent will contact you shortly.');
-  }catch(e){toast('❌ '+e.message);}
-}
-
 async function sendMsg(){
   if(!U){toast('Please sign in first');go('auth');return;}
   if(!AL)return;
@@ -1592,41 +1485,20 @@ async function sendMsg(){
   if(!P?.date_of_birth)missingFields.push('Date of birth');
   if(!P?.home_address)missingFields.push('Home address');
   if(missingFields.length>0){
-    toast('❌ Complete your profile before contacting a landlord');
+    toast('❌ Complete your profile before contacting a lessor');
     alert(`Please complete your profile first.\n\nMissing: ${missingFields.join(', ')}\n\nGo to your dashboard → Profile → fill in all fields → Save.`);
     return;
   }
 
-  // Si annonce gérée par agent → envoyer à tous les agents au lieu de bloquer
-  if(AL.wants_agent && AL.agent_service==='full' && !AL.agency_listing){
-    const{data:agents}=await sb.from('profiles').select('clerk_id').in('role',['agent','Agent']);
-    if(!agents?.length){toast('⚠️ No agents available right now.');return;}
-    for(const agent of agents){
-      try{
-        await sb.from('messages').insert({
-          listing_id:AL.id,
-          sender_id:U.id,
-          receiver_id:agent.clerk_id,
-          content:c,
-          type:'tenant_contact',
-          read:false
-        });
-      }catch(e){}
-    }
-    document.getElementById('dmsg').value='';
-    toast('✅ Message sent to available agents!');
-    return;
-  }
-
-  // Handle co-tenants
+  // Handle co-lessees
   const coTenantEmails=getCoTenants();
   if(coTenantEmails.length){
     const invited=await inviteCoTenants(AL.id, coTenantEmails);
     const notFound=invited.filter(i=>!i.found).map(i=>i.email);
     if(notFound.length){
-      setTimeout(()=>toast(`⚠️ ${notFound.length} co-tenant(s) don't have a RestMalta account yet — invite them to sign up.`),1000);
+      setTimeout(()=>toast(`⚠️ ${notFound.length} co-lessee(s) don't have a RestMalta account yet — invite them to sign up.`),1000);
     }
-    c+=`\n\n👥 Group visit — co-tenants: ${coTenantEmails.join(', ')}`;
+    c+=`\n\n👥 Group visit — co-lessees: ${coTenantEmails.join(', ')}`;
   }
 
   const{error}=await sb.from('messages').insert({
@@ -1655,8 +1527,8 @@ function filterContactData(text){
 }
 
 async function requestLease(){
-  // Lease is now generated by landlord from their dashboard
-  toast('📄 Lease signing is initiated by the landlord. They will send you a DocuSeal email to sign.');
+  // Lease is now generated by lessor from their dashboard
+  toast('📄 Lease signing is initiated by the lessor. They will send you a DocuSeal email to sign.');
 }
 
 function setT(el,t){
@@ -1705,12 +1577,9 @@ function setT(el,t){
   const secBeds=document.getElementById('section-beds');
   const secAtt=document.getElementById('section-attestation');
   const secLease=document.getElementById('section-lease-cond');
-  const secAgent=document.getElementById('section-agent');
   if(secBeds)secBeds.style.display=isRoom?'none':'block';
   if(secAtt)secAtt.style.display=(isRoom||isSale)?'none':'block';
   if(secLease)secLease.style.display=(isRoom||isSale)?'none':'block';
-  if(secAgent)secAgent.style.display=(isRoom||isSale||window._agentChoiceMade)?'none':'block';
-  // section-agent-details reste géré par updateAgentOpt uniquement
   const infos={
     short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltese law. Cannot be renewed.',
     long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
@@ -1736,60 +1605,6 @@ function setT(el,t){
   }
 }
 
-async function checkAgentsInZone(zone){
-  if(!zone) return;
-  const agentFullLabel=document.getElementById('agent-opt-full-label');
-  const agentFullRadio=document.getElementById('agent-opt-full');
-  if(!agentFullLabel||!agentFullRadio) return;
-
-  try{
-    // Chercher des agents qui couvrent cette zone
-    const{data:agents}=await sb.from('profiles')
-      .select('clerk_id,full_name,zones')
-      .or('role.eq.agent,role.eq.Agent');
-    
-    const availableAgents=(agents||[]).filter(a=>{
-      if(!a.zones)return false;
-      const agentZones=a.zones.split(',').map(z=>z.trim().toLowerCase());
-      return agentZones.includes(zone.toLowerCase());
-    });
-
-    if(availableAgents.length===0){
-      agentFullRadio.disabled=true;
-      agentFullLabel.style.opacity='.4';
-      agentFullLabel.style.cursor='not-allowed';
-      let msg=document.getElementById('agent-zone-msg');
-      if(!msg){msg=document.createElement('div');msg.id='agent-zone-msg';agentFullLabel.parentNode.insertBefore(msg,agentFullLabel.nextSibling);}
-      msg.style.cssText='font-size:.72rem;margin-top:.4rem;padding:.4rem .6rem;border-radius:7px;background:rgba(224,90,90,.08);color:var(--red)';
-      msg.textContent=`⚠️ No RestMalta agent available in ${zone} yet. We'll notify you when one covers your zone.`;
-    } else {
-      agentFullRadio.disabled=false;
-      agentFullLabel.style.opacity='1';
-      agentFullLabel.style.cursor='pointer';
-      let msg=document.getElementById('agent-zone-msg');
-      if(!msg){msg=document.createElement('div');msg.id='agent-zone-msg';agentFullLabel.parentNode.insertBefore(msg,agentFullLabel.nextSibling);}
-      msg.style.cssText='font-size:.72rem;margin-top:.4rem;padding:.4rem .6rem;border-radius:7px;background:rgba(76,175,125,.08);color:var(--green)';
-      msg.textContent=`✅ ${availableAgents.length} agent${availableAgents.length>1?'s':''} available in ${zone} — you can assign one for visits!`;
-    }
-  }catch(e){}
-}
-
-function selectSelfFormAgentOpt(val){
-  updateAgentOpt(val);
-  window._agentChoiceMade=true;
-  const wholeSection=document.getElementById('section-agent');
-  if(wholeSection)wholeSection.style.display='none';
-}
-
-function updateAgentOpt(val){
-  const agentDetails=document.getElementById('section-agent-details');
-  if(agentDetails)agentDetails.style.display=val==='none'?'none':'block';
-  ['none','full'].forEach(o=>{
-    const radio=document.getElementById(`agent-opt-${o}`);
-    if(radio)radio.checked=(o===val);
-  });
-}
-
 // Auto-update end date when start date changes
 function onAvailableFromChange(val){
   const type=document.getElementById('pt')?.value;
@@ -1810,34 +1625,9 @@ function onAvailableFromChange(val){
 }
 
 
-function toggleOccupied(checked){
-  document.getElementById('occupied-details').style.display=checked?'block':'none';
-  if(!checked){document.getElementById('p-current-tenant-phone').value='';document.getElementById('p-lease-end-date').value='';}
-}
-
-function toggleLandlordPresence(checked){
-  document.getElementById('presence-details').style.display=checked?'block':'none';
-  if(!checked)document.getElementById('sign-auth-notice').style.display='none';
-}
-
-function toggleSignAuth(val){
-  const notice=document.getElementById('sign-auth-notice');
-  if(notice)notice.style.display=(val==='if_possible'||val==='not_needed')?'block':'none';
-}
-
-function toggleKeyDetail(val){
-  const wrap=document.getElementById('key-detail-wrap');
-  const input=document.getElementById('p-key-location');
-  if(!wrap||!input)return;
-  if(val==='keysafe'){input.placeholder='Key safe code and exact location (e.g. code 1234, left of main entrance)';wrap.style.display='block';}
-  else if(val==='neighbor'){input.placeholder='Neighbour name and flat number / concierge details';wrap.style.display='block';}
-  else if(val==='landlord'){input.placeholder='Your phone / how to coordinate key handover';wrap.style.display='block';}
-  else{wrap.style.display='none';}
-}
-
 function chkPost(){
   if(!U){toast('Please sign in to post a listing');go('auth');return;}
-  if(P?.role!=='landlord'){toast('⚠️ You need a landlord account to post.');return;}
+  if(P?.role!=='lessor'){toast('⚠️ You need a lessor account to post.');return;}
 
   // Vérifier les champs essentiels du profil
   const missing=[];
@@ -2033,101 +1823,6 @@ async function uploadPhotos(listingId) {
   return urls;
 }
 
-async function submitAgentManagedRequest(){
-  const zone=document.getElementById('paf-zone')?.value.trim();
-  const phone=document.getElementById('paf-phone')?.value.trim();
-  if(!zone){toast('⚠️ Zone is required');return;}
-  if(!phone){toast('⚠️ Phone is required so the agent can reach you');return;}
-
-  const btn=document.getElementById('paf-submit-btn');
-  if(btn){btn.disabled=true;btn.textContent='Checking availability...';}
-  const matchingAgents=await findAgentsCoveringZone(zone);
-  if(btn){btn.disabled=false;btn.textContent='Submit request →';}
-  if(!matchingAgents.length){
-    toast('❌ No agent currently covers this zone — try again later or list it yourself');
-    return;
-  }
-
-  const address=document.getElementById('paf-address')?.value.trim()||'';
-  const price=parseFloat(document.getElementById('paf-price')?.value)||0;
-  const notes=document.getElementById('paf-notes')?.value.trim()||'';
-
-  try{
-    const{data:listing,error}=await sb.from('listings').insert({
-      title:`Property in ${zone}`,
-      zone,full_address:address,price,
-      landlord_id:U.id,
-      landlord_phone:phone,
-      description:notes,
-      type:'long',
-      wants_agent:true,agent_service:'full',
-      agent_must_create:true, // l'agent doit construire la fiche complète, pas juste gérer visites/négociation
-      active:false,
-      status:'active',
-      created_at:new Date().toISOString()
-    }).select().single();
-
-    if(error){toast('❌ '+error.message);return;}
-
-    // Notifier uniquement les agents qui couvrent vraiment cette zone
-    for(const agent of matchingAgents){
-      if(!agent.clerk_id)continue;
-      try{
-        await sb.from('messages').insert({
-          listing_id:listing.id,sender_id:'system',receiver_id:agent.clerk_id,
-          content:`🤝 FULL PROPERTY MANAGEMENT REQUEST\n\n📍 ${zone}${address?' — '+address:''}\n💶 Estimated rent: ${price?'€'+price+'/mo':'Not specified'}\n📞 Landlord phone: ${phone}\n\n${notes?'Notes: '+notes+'\\n\\n':''}This landlord wants an agent to build the ENTIRE listing (photos, description, price) and manage it end to end. Accept to create the listing yourself.`,
-          type:'property_needs_agent'
-        });
-      }catch(e){}
-    }
-
-    document.getElementById('post-agent-form').style.display='none';
-    toast('✅ Request sent! An agent will contact you soon.');
-    go('dash');loadDash();
-  }catch(e){toast('❌ '+e.message);}
-}
-
-async function checkZoneAvailability(){
-  const zone=document.getElementById('paf-zone')?.value.trim();
-  const statusEl=document.getElementById('paf-zone-status');
-  const submitBtn=document.getElementById('paf-submit-btn');
-  if(!statusEl)return;
-  if(!zone){statusEl.innerHTML='';if(submitBtn)submitBtn.disabled=false;return;}
-  statusEl.innerHTML='<span style="color:var(--stone-l)">Checking...</span>';
-  const agents=await findAgentsCoveringZone(zone);
-  if(agents.length){
-    statusEl.innerHTML=`<span style="color:#4CAF7D">✅ ${agents.length} agent${agents.length>1?'s':''} available in this zone</span>`;
-    if(submitBtn)submitBtn.disabled=false;
-  }else{
-    statusEl.innerHTML='<span style="color:var(--terra)">❌ No agent currently covers this zone — try a nearby zone or list it yourself</span>';
-    if(submitBtn)submitBtn.disabled=true;
-  }
-}
-
-// ── Correspondance de zone agent ↔ annonce (gère Gozo comme un tout) ──
-const GOZO_VILLAGES=['gozo','victoria','rabat gozo','xaghra','nadur','xewkija','munxar','sannat','qala','ghajnsielem','ghasri','kercem','san lawrenz','zebbug gozo','fontana','gharb','xlendi','marsalforn'];
-
-function normalizeZone(z){
-  return (z||'').toLowerCase().replace(/['.]/g,'').replace(/\s+/g,' ').trim();
-}
-
-function zoneMatchesCoverage(listingZone,agentZonesCsv){
-  if(!listingZone||!agentZonesCsv)return false;
-  const nl=normalizeZone(listingZone);
-  const agentZones=agentZonesCsv.split(',').map(z=>normalizeZone(z)).filter(Boolean);
-  if(agentZones.some(az=>az===nl||nl.includes(az)||az.includes(nl)))return true;
-  const isGozoListing=GOZO_VILLAGES.some(v=>nl.includes(v));
-  if(isGozoListing&&agentZones.includes('gozo'))return true;
-  return false;
-}
-
-async function findAgentsCoveringZone(zone){
-  const{data:a1}=await sb.from('profiles').select('clerk_id,full_name,zones').eq('role','agent');
-  const{data:a2}=await sb.from('profiles').select('clerk_id,full_name,zones').eq('role','Agent');
-  const agents=[...(a1||[]),...(a2||[])];
-  return agents.filter(a=>zoneMatchesCoverage(zone,a.zones));
-}
-
 async function doPost(){
   const err=document.getElementById('poer'),ok=document.getElementById('pook');err.style.display='none';ok.style.display='none';
   const ti=document.getElementById('pti').value.trim(),pr=document.getElementById('ppr').value;
@@ -2148,8 +1843,6 @@ async function doPost(){
   sA(ok,'⏳ Publishing your listing…');
   ok.style.background='rgba(46,107,138,0.08)';
   ok.style.color='var(--sea)';
-  const agent_service=document.querySelector('input[name="agent-service"]:checked')?.value||'none';
-  const wants_agent=agent_service!=='none';
   const accepts_attestation=document.getElementById('att-yes')?.checked===true;
 
   const fields={
@@ -2169,10 +1862,8 @@ async function doPost(){
     wifi:document.getElementById('pwi').checked,
     bills_included:document.getElementById('pbi')?.checked||false,
     landlord_id:U.id,
-    wants_agent,
-    agent_service,
     // mandat_exclusif retiré — fonctionnalité jamais utile, supprimée
-    active:document.getElementById('pt').value==='for_sale'?false:!wants_agent, // reste caché tant qu'aucun agent n'a accepté, ou tant que l'abonnement de vente n'est pas payé
+    active:document.getElementById('pt').value!=='for_sale', // reste caché tant que l'abonnement de vente n'est pas payé
     sale_price:document.getElementById('pt').value==='for_sale'?parseInt(pr):null,
     sale_subscription_status:document.getElementById('pt').value==='for_sale'?'pending':null,
     tenure:document.getElementById('pt').value==='for_sale'?(document.getElementById('p-tenure')?.value||null):null,
@@ -2196,7 +1887,6 @@ async function doPost(){
     accepts_attestation,
     landlord_present:document.getElementById('p-visit-presence')?.value||'not_needed',
     inventory_presence:document.getElementById('p-inventory-presence')?.value||'mandatory',
-    agent_sign_auth:(document.getElementById('p-inventory-presence')?.value==='if_possible'||document.getElementById('p-inventory-presence')?.value==='not_needed'),
     key_type:document.getElementById('p-key-type')?.value||'landlord',
     key_location:document.getElementById('p-key-location')?.value?.trim()||null,
     current_tenant_phone:document.getElementById('p-current-tenant-phone')?.value?.trim()||null,
@@ -2231,27 +1921,7 @@ async function doPost(){
   }
   uploadedPhotos=[];document.getElementById('photo-previews').innerHTML='';
   document.getElementById('video-preview').innerHTML='';
-  if(wants_agent&&listing){
-    // L'annonce reste cachée tant qu'aucun agent n'a accepté — on prévient
-    // uniquement les agents qui couvrent vraiment la zone de ce bien.
-    try{
-      const agents=await findAgentsCoveringZone(listing.zone);
-      console.log('[property_needs_agent] found',agents.length,'agent(s) covering zone',listing.zone);
-      for(const agent of agents){
-        if(!agent.clerk_id)continue;
-        try{
-          const{error}=await sb.from('messages').insert({
-            listing_id:listing.id,sender_id:'system',receiver_id:agent.clerk_id,
-            content:`🏠 NEW PROPERTY NEEDS AN AGENT\n\n${listing.title}\n📍 ${listing.zone}\n💶 €${listing.price}/mo\n\nA landlord is looking for an agent to handle this property (visits, EDL, negotiation). Accept to take it on — the listing goes live once you do.`,
-            type:'property_needs_agent'
-          });
-          if(error)console.error('[property_needs_agent] failed to notify',agent.full_name,error.message);
-        }catch(e){console.error('[property_needs_agent] exception',e.message);}
-      }
-    }catch(e){console.error('[property_needs_agent] outer error',e.message);}
-    sA(ok,"✅ Listing saved! It'll go live as soon as an agent accepts to handle it.");
-    updC();loadL();setTimeout(()=>{go('dash');loadDash();},1800);
-  }else if(document.getElementById('pt').value==='for_sale'&&listing){
+  if(document.getElementById('pt').value==='for_sale'&&listing){
     sA(ok,'⏳ Redirecting you to activate your listing (€2/week)...');
     try{
       const res=await fetch('/.netlify/functions/create-sale-subscription',{
@@ -2293,30 +1963,27 @@ function offerBoostAfterPublish(listingId,listingTitle,listingType){
 
 async function loadDash(){
   if(!U){return;}
-  document.getElementById('dTitle').textContent=P?.role==='landlord'?'Landlord Dashboard':'My Account';
+  document.getElementById('dTitle').textContent=P?.role==='lessor'?'Lessor Dashboard':'My Account';
   document.getElementById('dSub').textContent=`Welcome back, ${P?.full_name?.split(' ')[0]||''}! Here's your overview.`;
   loadML();loadMM();
 }
 
 async function loadML(){
   const w=document.getElementById('myl');
-  if(P?.role!=='landlord'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a landlord account to post and manage listings.</p></div>';return;}
+  if(P?.role!=='lessor'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a lessor account to post and manage listings.</p></div>';return;}
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo">📋</div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
   const ic={short:'🏠',room_rental:'🔑',long:'🏛️',for_sale:'🏷️'};
   w.innerHTML=data.map(l=>{
     const isSale=l.type==='for_sale';
-    const pendingAgent=!isSale&&!l.active&&l.wants_agent&&l.agent_service==='full'&&!l.agent_id;
     const pendingSale=isSale&&l.sale_subscription_status!=='active';
-    const statusLabel=pendingAgent?'⏳ Waiting for an agent to accept':pendingSale?'⏳ Not activated — €2/week to go live':l.active?'Active':'Paused';
-    const dotClass=(pendingAgent||pendingSale)?'dg':l.active?'dg':'dr';
+    const statusLabel=pendingSale?'⏳ Not activated — €2/week to go live':l.active?'Active':'Paused';
+    const dotClass=pendingSale?'dg':l.active?'dg':'dr';
     const priceLabel=isSale?`€${l.sale_price||l.price}`:`€${l.price}/mo`;
     const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
     const boostLabel=isBoosted?`🔥 Boosted until ${new Date(l.boosted_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:'';
-    const boostBtn=(!pendingAgent&&!pendingSale)?(l.active?`<button class="btn btn-s btn-sm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPayment('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend boost':'🚀 Boost'}</button>`:`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Activate the listing first — a paused listing doesn't show in search, so boosting it does nothing">🚀 Boost</button>`):'';
-    const actionBtn=pendingAgent
-      ?`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="An agent needs to accept this property first">⏳ Pending</button>`
-      :isSale
+    const boostBtn=!pendingSale?(l.active?`<button class="btn btn-s btn-sm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPayment('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend boost':'🚀 Boost'}</button>`:`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Activate the listing first — a paused listing doesn't show in search, so boosting it does nothing">🚀 Boost</button>`):'';
+    const actionBtn=isSale
       ?(l.active
         ?`<button class="btn btn-s btn-sm" onclick="togL('${l.id}',true)">Pause</button>`
         :`<button class="btn btn-p btn-sm" onclick="retrySaleActivation('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`)
@@ -2363,14 +2030,14 @@ async function retrySaleActivation(listingId,listingTitle){
 async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'✅ Listing activated');loadML();updC();}
 
 async function loadMM(){
-  const w=document.getElementById('mym'),field=P?.role==='landlord'?'receiver_id':'sender_id';
+  const w=document.getElementById('mym'),field=P?.role==='lessor'?'receiver_id':'sender_id';
   const{data}=await sb.from('messages').select('*, listings(title,zone,id)').eq(field,U.id).order('created_at',{ascending:false});
-  if(!data||data.length===0){w.innerHTML='<div class="empty"><div class="emo">💬</div><p>No messages yet. When tenants contact you, they\'ll appear here.</p></div>';return;}
+  if(!data||data.length===0){w.innerHTML='<div class="empty"><div class="emo">💬</div><p>No messages yet. When lessees contact you, they\'ll appear here.</p></div>';return;}
   // Deduplicate by listing
   const seen=new Set();const unique=[];
   data.forEach(m=>{if(!seen.has(m.listing_id)){seen.add(m.listing_id);unique.push(m);}});
   w.innerHTML=unique.map(m=>{
-    const otherId=P?.role==='landlord'?m.sender_id:m.receiver_id;
+    const otherId=P?.role==='lessor'?m.sender_id:m.receiver_id;
     return`<div class="msgcard" onclick="opM('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.content.replace(/'/g,"\\'")}','${m.listings?.zone||''}','${m.listing_id||''}','${otherId||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.15rem">${m.listings?.title||'Listing'}</div><div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.2rem">📍 ${m.listings?.zone||''}</div><div class="mprev">${m.content}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0"><span class="mtime">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>${!m.read?'<div class="ubadge"></div>':''}</div></div>`;
   }).join('');
 }
@@ -2463,7 +2130,7 @@ let mapInstance=null;
 let mapView=false;
 
 // Liste complète des 55 zones (mêmes noms exacts que les cases à cocher
-// agent/agence) — utilisée pour trouver la zone la plus proche d'une adresse
+// des agences) — utilisée pour trouver la zone la plus proche d'une adresse
 // géocodée, afin de faire correspondre un propriétaire aux bonnes agences.
 const AGENCY_ZONE_COORDS={
   'Valletta':[35.8989,14.5146],'Floriana':[35.8934,14.5083],'Sliema':[35.9122,14.5017],
@@ -2532,7 +2199,7 @@ function initMap(){
       const marker=L.marker([lat,lng],{
         icon:L.divIcon({
           className:'',
-          html:`<div style="background:${l.wants_agent?'#8B5CF6':'#C9553A'};color:white;padding:.3rem .6rem;border-radius:100px;font-size:.72rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.2)">€${l.price}</div>`,
+          html:`<div style="background:#C9553A;color:white;padding:.3rem .6rem;border-radius:100px;font-size:.72rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.2)">€${l.price}</div>`,
           iconAnchor:[20,15]
         })
       }).addTo(mapInstance);
@@ -2540,7 +2207,6 @@ function initMap(){
         <div style="min-width:200px">
           <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">${l.title}</div>
           <div style="font-size:.78rem;color:#666;margin-bottom:.5rem">📍 ${l.zone} · €${l.price}/mo</div>
-          ${l.wants_agent?'<div style="font-size:.7rem;color:#8B5CF6;font-weight:700;margin-bottom:.4rem">🏆 Agent visit available</div>':''}
           <button onclick="openDet('${l.id}')" style="background:#C9553A;color:white;border:none;padding:.4rem .8rem;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">View listing →</button>
         </div>
       `);
@@ -2549,7 +2215,7 @@ function initMap(){
   setTimeout(()=>mapInstance.invalidateSize(),100);
 }
 
-// ── Badge "Landlord réactif" ──────────────────────────────────
+// ── Badge "Lessor réactif" ──────────────────────────────────
 async function getLandlordResponseBadge(landlordId){
   const{data}=await sb.from('messages')
     .select('created_at,sender_id')
@@ -2578,10 +2244,10 @@ async function uploadVisitVideo(input, listingId){
   toast('✅ Visit video uploaded!');
 }
 
-// ── Système de références tenant ─────────────────────────────
+// ── Système de références lessee ─────────────────────────────
 async function requestReference(){
   if(!U){toast('Please sign in first');return;}
-  const email=prompt('Enter your previous landlord\'s email to request a reference:');
+  const email=prompt('Enter your previous lessor\'s email to request a reference:');
   if(!email||!email.includes('@')){toast('Invalid email');return;}
   // Store reference request in Supabase
   try{
