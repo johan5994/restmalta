@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RestMalta — Landlord Dashboard</title>
+<title>RestMalta — Lessor Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script>
@@ -38,6 +38,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .tb-title{font-size:1rem;font-weight:600}
 .tb-sub{font-size:.75rem;color:var(--tm);margin-top:.1rem}
 .tb-acts{display:flex;align-items:center;gap:.75rem}
+#mob-menu{display:none}
 
 .btn{padding:.55rem 1.2rem;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s}
 .bp{background:var(--terra);color:white}.bp:hover{background:#f06545;transform:translateY(-1px)}
@@ -179,7 +180,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--s2);color:var(--txt);padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;border:1px solid var(--b2);box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .toast.show{transform:translateY(0);opacity:1}
 
-@media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.5)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}#mob-menu{display:inline-flex}}
 </style>
   <script src="https://js.stripe.com/v3/"></script>
 <style>
@@ -193,7 +194,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 <aside class="sb" id="sb">
   <div class="sb-logo">
     <div class="logo" onclick="window.location.href='/'">RestMalta</div>
-    <div class="logo-sub">Landlord Dashboard</div>
+    <div class="logo-sub">Lessor Dashboard</div>
   </div>
   <nav class="sb-nav">
     <div class="nl">Overview</div>
@@ -202,6 +203,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Properties</div>
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My listings</button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits-ll" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('applications',this)"><span class="nico">📋</span>Applications<span class="nbadge" id="nb-applications-ll" style="display:none">0</span></button>
 
     <div class="nl">Finance</div>
     <button class="ni" onclick="sp('payments',this)"><span class="nico">💶</span>Payments<span class="nbadge" id="nb-pay" style="display:none">0</span></button>
@@ -217,7 +219,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="uav" id="uav">?</div>
     <div style="flex:1;min-width:0">
       <div class="un" id="uname">Loading...</div>
-      <div class="ur">Pro Landlord</div>
+      <div class="ur">Pro Lessor</div>
     </div>
     <button class="btn bg bsm" onclick="doLogout()" title="Sign out">↩</button>
   </div>
@@ -232,7 +234,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="tb-acts">
       <button class="btn bg bsm" onclick="exportData()">📥 Export</button>
       <button class="btn bp bsm" onclick="sp('listings',null);openNewListing()">+ New listing</button>
-      <button class="btn bg bsm" style="display:none" id="mob-menu" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
+      <button class="btn bg bsm" id="mob-menu" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
     </div>
   </div>
 
@@ -337,18 +339,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
       <div id="visits-page-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
+    <div class="page" id="page-applications">
+      <div style="margin-bottom:1.2rem;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:1rem;font-weight:700">📋 Applications</div>
+        <span class="badge b-gold" id="applications-page-count">—</span>
+      </div>
+      <div id="applications-page-list"><div class="ld"><div class="sp"></div></div></div>
+    </div>
     <div class="page" id="page-payments">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
         <div style="font-size:1rem;font-weight:700">Payments & Rent</div>
         <div style="display:flex;gap:.5rem">
-          <button class="btn bp bsm" onclick="addRentEntry()">+ Add tenant rent</button>
+          <button class="btn bp bsm" onclick="addRentEntry()">+ Add lessee rent</button>
           <button class="btn bg bsm" onclick="exportPayments()">📥 Export CSV</button>
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
         <div class="kcard"><div class="klabel">Collected this month</div><div class="kval" id="pay-collected" style="color:var(--green)">—</div><div class="ksub">Confirmed received</div></div>
-        <div class="kcard"><div class="klabel">Tenant declared paid</div><div class="kval" id="pay-declared" style="color:var(--gold)">—</div><div class="ksub">Awaiting your confirmation</div></div>
+        <div class="kcard"><div class="klabel">Lessee declared paid</div><div class="kval" id="pay-declared" style="color:var(--gold)">—</div><div class="ksub">Awaiting your confirmation</div></div>
         <div class="kcard"><div class="klabel">Pending / Overdue</div><div class="kval" id="pay-pending" style="color:var(--red)">—</div><div class="ksub">No payment declared</div></div>
       </div>
 
@@ -356,7 +365,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card" style="margin-bottom:1rem;border:1px solid rgba(212,168,71,.3)">
         <div class="ch" style="background:rgba(212,168,71,.07)">
           <div class="ct">⏳ Awaiting your confirmation</div>
-          <span style="font-size:.75rem;color:var(--gold)">Tenants declared they paid — confirm you received</span>
+          <span style="font-size:.75rem;color:var(--gold)">Lessees declared they paid — confirm you received</span>
         </div>
         <div class="cb" id="pay-awaiting"><div style="text-align:center;padding:1.5rem;font-size:.83rem;color:var(--td)">No payments awaiting confirmation</div></div>
       </div>
@@ -367,13 +376,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           <select class="fsel" style="width:auto;font-size:.75rem;padding:.3rem .6rem" onchange="loadPayments(this.value)">
             <option value="all">All payments</option>
             <option value="paid">Confirmed ✅</option>
-            <option value="declared">Declared by tenant</option>
+            <option value="declared">Declared by lessee</option>
             <option value="pending">Pending ⏳</option>
             <option value="late">Overdue ⚠️</option>
           </select>
         </div>
         <table class="tbl">
-          <thead><tr><th>Tenant</th><th>Property</th><th>Amount</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Lessee</th><th>Property</th><th>Amount</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="pay-tbody"><tr><td colspan="6"><div class="ld"><div class="sp"></div></div></td></tr></tbody>
         </table>
       </div>
@@ -388,7 +397,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div class="toggle-row"><span style="font-size:.83rem;color:var(--tm)">⚠️ Late notice after 3 days</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
               <div class="toggle-row"><span style="font-size:.83rem;color:var(--tm)">🧾 Monthly receipts auto-send</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
               <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--green);margin-top:.25rem">
-                ✅ Reminders stop automatically once tenant confirms payment
+                ✅ Reminders stop automatically once lessee confirms payment
               </div>
             </div>
           </div>
@@ -435,7 +444,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <button class="btn bp bsm" onclick="openNewTicket()">+ New ticket</button>
       </div>
       <div style="background:var(--tdim);border:1px solid rgba(224,90,58,.15);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.2rem;font-size:.82rem;color:var(--tm);line-height:1.6">
-        🔧 Tenants can report issues directly from their dashboard — you'll be notified instantly. Track every ticket from open to resolved, and keep a full maintenance history per property.
+        🔧 Lessees can report issues directly from their dashboard — you'll be notified instantly. Track every ticket from open to resolved, and keep a full maintenance history per property.
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
         <div class="kcard"><div class="klabel">Open</div><div class="kval" id="tk-open" style="color:var(--red)">—</div></div>
@@ -451,14 +460,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="page" id="page-reviews">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Reviews & Ratings</div>
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.2rem;font-size:.82rem;color:var(--tm);line-height:1.6">
-        ⭐ Your rating is visible to all tenants browsing listings. Landlords with 4.5+ average get a "Trusted Landlord" badge and appear higher in search results.
+        ⭐ Your rating is visible to all lessees browsing listings. Lessors with 4.5+ average get a "Trusted Lessor" badge and appear higher in search results.
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
-        <div class="kcard"><div class="klabel">Your rating as landlord</div><div class="kval" id="my-rating" style="color:var(--gold)">—</div><div class="ksub">Based on tenant reviews</div></div>
-        <div class="kcard"><div class="klabel">Total reviews</div><div class="kval" id="total-reviews" style="color:var(--sea)">—</div><div class="ksub">From your tenants</div></div>
+        <div class="kcard"><div class="klabel">Your rating as lessor</div><div class="kval" id="my-rating" style="color:var(--gold)">—</div><div class="ksub">Based on lessee reviews</div></div>
+        <div class="kcard"><div class="klabel">Total reviews</div><div class="kval" id="total-reviews" style="color:var(--sea)">—</div><div class="ksub">From your lessees</div></div>
       </div>
       <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">Reviews from tenants</div></div>
+        <div class="ch"><div class="ct">Reviews from lessees</div></div>
         <div class="cb" id="reviews-list"><div class="ld"><div class="sp"></div></div></div>
       </div>
       <div class="card" id="rate-agents-card" style="display:none;margin-bottom:1rem">
@@ -466,10 +475,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="cb" id="rate-agents-list"></div>
       </div>
       <div class="card">
-        <div class="ch"><div class="ct">Leave a review for a tenant</div></div>
+        <div class="ch"><div class="ct">Leave a review for a lessee</div></div>
         <div class="cb">
-          <div class="fg"><label class="fl">Which tenant?</label><select class="fsel" id="rev-tenant-select"><option value="">Loading...</option></select></div>
-          <div id="rev-no-tenants" style="display:none;font-size:.82rem;color:var(--tm);margin-bottom:.5rem">You'll be able to review a tenant once they've actually moved in.</div>
+          <div class="fg"><label class="fl">Which lessee?</label><select class="fsel" id="rev-tenant-select"><option value="">Loading...</option></select></div>
+          <div id="rev-no-tenants" style="display:none;font-size:.82rem;color:var(--tm);margin-bottom:.5rem">You'll be able to review a lessee once they've actually moved in.</div>
           <div id="rev-tenant-form" style="display:none">
             <div class="fg"><label class="fl">Rating (1-5)</label><select class="fsel" id="rev-rating"><option value="5">⭐⭐⭐⭐⭐ Excellent</option><option value="4">⭐⭐⭐⭐ Good</option><option value="3">⭐⭐⭐ Average</option><option value="2">⭐⭐ Poor</option><option value="1">⭐ Very poor</option></select></div>
             <div class="fg"><label class="fl">Comment</label><textarea class="fta" id="rev-comment" rows="3" placeholder="Share your experience with this tenant..."></textarea></div>
@@ -678,7 +687,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card">
         <div class="ch"><div class="ct">🪪 Identity verification</div><span id="verify-badge-ll" class="badge b-dim">Not verified</span></div>
         <div class="cb">
-          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified landlords get a ✅ badge on all their listings and are trusted by tenants. A RestMalta team member will verify your ID within 24 hours.</p>
+          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified lessors get a ✅ badge on all their listings and are trusted by lessees. A RestMalta team member will verify your ID within 24 hours.</p>
 
           <div id="ll-verify-upload-section">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
@@ -720,8 +729,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">🔔 Notifications</div><span style="font-size:.75rem;color:var(--td)">Control what alerts you receive</span></div>
         <div class="cb">
-          <div class="toggle-row"><span style="font-size:.85rem;color:var(--tm)">New message from tenant</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
-          <div class="toggle-row"><span style="font-size:.85rem;color:var(--tm)">Tenant declared rent paid</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
+          <div class="toggle-row"><span style="font-size:.85rem;color:var(--tm)">New message from lessee</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
+          <div class="toggle-row"><span style="font-size:.85rem;color:var(--tm)">Lessee declared rent paid</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
           <div class="toggle-row"><span style="font-size:.85rem;color:var(--tm)">New maintenance ticket</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
           <div class="toggle-row"><span style="font-size:.85rem;color:var(--tm)">Overdue rent alert</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
           <div class="toggle-row"><span style="font-size:.85rem;color:var(--tm)">Lease expiry reminder (30 days)</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
@@ -749,7 +758,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="mclose" onclick="document.getElementById('rent-modal').classList.remove('open')">✕</button>
     <div class="mt">Add a rent entry</div>
     <div class="ms">Rent schedules are created automatically once move-in is complete. Use this only for exceptions (missed month, adjustment, etc).</div>
-    <div class="fg"><label class="fl">Tenant</label><select class="fsel" id="rent-tenant-select"><option value="">Loading tenants...</option></select></div>
+    <div class="fg"><label class="fl">Lessee</label><select class="fsel" id="rent-tenant-select"><option value="">Loading lessees...</option></select></div>
     <div class="fg"><label class="fl">Amount (€)</label><input class="fi" type="number" id="rent-amount"></div>
     <div class="fg"><label class="fl">Due date</label><input class="fi" type="date" id="rent-due-date"></div>
     <button class="btn bp" style="width:100%;justify-content:center;margin-top:.5rem" onclick="submitRentEntry()">Add rent entry →</button>
@@ -796,7 +805,7 @@ let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingI
     await new Promise(r=>setTimeout(r,800));
   }
   P=P_data;
-  if(!P||P.role!=='landlord'){window.location.href='/tenant-dashboard.html';return;}
+  if(!P||P.role!=='lessor'){window.location.href='/lessee-dashboard.html';return;}
   initUI();
   loadAll();
 
@@ -812,7 +821,7 @@ let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingI
 })();
 
 function initUI(){
-  const n=P.full_name||'Landlord';
+  const n=P.full_name||'Lessor';
   document.getElementById('uav').textContent=n[0].toUpperCase();
   document.getElementById('uname').textContent=n;
   document.getElementById('tbs').textContent=`Welcome back, ${n.split(' ')[0]}! · ${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`;
@@ -832,6 +841,7 @@ function sp(id,btn){
   if(id==='messages')renderMessages();
   if(id==='maintenance')loadMaintenance();
   if(id==='visits')loadVisitsPage();
+  if(id==='applications')loadApplicationsPageLL();
   if(id==='properties')loadRentedProperties();
 }
 
@@ -869,7 +879,7 @@ async function loadDash(){
   // Profile completeness check first
   if(!checkLLProfileComplete())alertItems.push({dot:'var(--terra)',text:'<strong>Complete your profile</strong> — required to publish listings and generate leases',time:'Go to Profile tab →',action:"sp('profile',document.querySelector('.ni[onclick*=profile]'))"});
   if(pending>0)alertItems.push({dot:'var(--red)',text:`<strong>${pending} payment(s)</strong> overdue or due soon`,time:'Check payments tab'});
-  if(unread>0)alertItems.push({dot:'var(--sea)',text:`<strong>${unread} unread message(s)</strong> from tenants`,time:'Check messages tab'});
+  if(unread>0)alertItems.push({dot:'var(--sea)',text:`<strong>${unread} unread message(s)</strong> from lessees`,time:'Check messages tab'});
   if((tickets||[]).length>0)alertItems.push({dot:'var(--gold)',text:`<strong>${(tickets||[]).length} maintenance ticket(s)</strong> open`,time:'Check maintenance tab'});
   const expiring=(listings||[]).filter(l=>l.available_until&&new Date(l.available_until)-new Date()<30*24*3600*1000&&new Date(l.available_until)>new Date());
   if(expiring.length>0)alertItems.push({dot:'var(--terra)',text:`<strong>${expiring.length} listing(s)</strong> expiring within 30 days`,time:'Consider renewing'});
@@ -1056,7 +1066,7 @@ async function deleteListing(id){
   // casserait Rented Properties et laisserait le locataire dans le vide
   const{data:activeBooking}=await sb.from('bookings').select('id,tenant_name').eq('listing_id',id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1).maybeSingle();
   if(activeBooking){
-    toast(`❌ Can't delete — ${activeBooking.tenant_name||'a tenant'} has an active tenancy on this property. Pause it instead if you want to hide it.`);
+    toast(`❌ Can't delete — ${activeBooking.tenant_name||'a lessee'} has an active tenancy on this property. Pause it instead if you want to hide it.`);
     return;
   }
   if(!confirm('Delete this listing? This cannot be undone.'))return;
@@ -1069,6 +1079,85 @@ function openNewListing(){window.location.href='/';}
 
 /* LEASES */
 /* VISIT GROUPS */
+async function fetchVisitAndApplicationGroups(){
+  // 1. Charger toutes les visites du lessor
+  const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
+  const allVisits=visits||[];
+
+  // 2. Charger tous les bookings du lessor (tous statuts)
+  const{data:myListings}=await sb.from('listings').select('id,wants_agent,agent_service,title,full_address,zone').eq('landlord_id',U.id);
+  const myListingIds=(myListings||[]).map(l=>l.id);
+  const lMap={};(myListings||[]).forEach(l=>{lMap[l.id]=l;});
+
+  let allBookings=[];
+  if(myListingIds.length){
+    const{data:bks}=await sb.from('bookings').select('*').or(`landlord_id.eq.${U.id},listing_id.in.(${myListingIds.join(',')})`).order('created_at',{ascending:false});
+    // Dédupliquer
+    const seen=new Set();
+    allBookings=(bks||[]).filter(b=>{if(seen.has(b.id))return false;seen.add(b.id);return true;});
+  }
+
+  // 3. Créer une map booking par listing_id+tenant_id
+  const bookingMap={};
+  allBookings.forEach(b=>{
+    const key=(b.listing_id||'')+'_'+(b.tenant_id||'');
+    if(!bookingMap[key]||new Date(b.created_at)>new Date(bookingMap[key].created_at)) bookingMap[key]=b;
+  });
+
+  // 4. Enrichir les visites avec leur booking
+  const enriched=allVisits.map(v=>{
+    const key=(v.listing_id||'')+'_'+(v.tenant_id||'');
+    const booking=bookingMap[key]||null;
+    const listing=lMap[v.listing_id]||null;
+    // Si un booking existe, utiliser son statut pour les étapes après la visite
+    let status=v.status;
+    const has_agent=!!(listing?.wants_agent&&listing?.agent_service==='full');
+    if(status==='agents_applying'&&!has_agent) status='awaiting_landlord';
+    if(booking){
+      if(booking.status==='pending'||booking.status==='booking_pending') status='booking_pending';
+      else if(booking.status==='accepted') status='lease_pending';
+      else if(booking.status==='declined') status='declined';
+      else if(['edl_scheduled','signing_day','move_in_ready'].includes(booking.status)) status=booking.status;
+    }
+    return{...v,booking,status,has_agent,
+      listing_title:listing?.title||v.listing_title||null,
+      full_address:listing?.full_address||null,
+      zone:listing?.zone||v.zone||null,
+      listing_price:listing?.price||null
+    };
+  });
+
+  // 5. Ajouter les bookings orphelins (sans visite)
+  const visitKeys=new Set(allVisits.map(v=>(v.listing_id||'')+'_'+(v.tenant_id||'')));
+  const orphans=allBookings.filter(b=>{
+    const key=(b.listing_id||'')+'_'+(b.tenant_id||'');
+    return !visitKeys.has(key)&&!['declined','cancelled'].includes(b.status);
+  }).map(b=>{
+    const listing=lMap[b.listing_id]||null;
+    // Même traduction statut que pour les visites enrichies —
+    // sinon un booking accepté reste affiché comme "pending" pour toujours.
+    let displayStatus='booking_pending';
+    if(b.status==='pending'||b.status==='booking_pending') displayStatus='booking_pending';
+    else if(['accepted','lease_pending','edl_scheduled','signing_day'].includes(b.status)) displayStatus='lease_pending';
+    else if(b.status==='move_in_ready') displayStatus='move_in_ready';
+    else if(b.status==='tenant_ghosted') displayStatus='tenant_ghosted';
+    else displayStatus=b.status;
+    return{
+      id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:b.tenant_id,
+      tenant_name:b.tenant_name,status:displayStatus,booking:b,landlord_id:U.id,
+      listing_title:listing?.title||null,zone:listing?.zone||null,
+      listing_price:listing?.price||null,has_agent:!!(listing?.wants_agent&&listing?.agent_service==='full')
+    };
+  });
+
+  return[...enriched,...orphans];
+}
+
+// Statuts de visite pure — avant toute candidature de location
+const VISIT_ONLY_STATUSES=['awaiting_landlord','agents_applying','agent_assigned','confirmed','done','completed','cancelled','no_show','tenant_declined','date_rejected'];
+// Statuts de candidature/location — à partir du moment où le lessee a dit "je veux louer"
+const APPLICATION_STATUSES=['booking_pending','pending','accepted','lease_pending','edl_scheduled','signing_day','move_in_ready','declined','tenant_ghosted'];
+
 async function loadVisitsPage(){
   const wrap=document.getElementById('visits-page-list');
   const cnt=document.getElementById('visits-page-count');
@@ -1076,92 +1165,22 @@ async function loadVisitsPage(){
   wrap.innerHTML='<div style="text-align:center;padding:2rem;color:var(--td)"><div class="sp"></div></div>';
 
   try{
-    // 1. Charger toutes les visites du landlord
-    const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-    const allVisits=visits||[];
+    const allGroups=await fetchVisitAndApplicationGroups();
+    // Seulement les statuts de visite pure — les candidatures vivent dans Applications
+    const groups=allGroups.filter(g=>VISIT_ONLY_STATUSES.includes(g.status)&&!(g.status==='agents_applying'&&!g.has_agent));
 
-    // 2. Charger tous les bookings du landlord (tous statuts)
-    const{data:myListings}=await sb.from('listings').select('id,wants_agent,agent_service,title,full_address,zone').eq('landlord_id',U.id);
-    const myListingIds=(myListings||[]).map(l=>l.id);
-    const lMap={};(myListings||[]).forEach(l=>{lMap[l.id]=l;});
-
-    let allBookings=[];
-    if(myListingIds.length){
-      const{data:bks}=await sb.from('bookings').select('*').or(`landlord_id.eq.${U.id},listing_id.in.(${myListingIds.join(',')})`).order('created_at',{ascending:false});
-      // Dédupliquer
-      const seen=new Set();
-      allBookings=(bks||[]).filter(b=>{if(seen.has(b.id))return false;seen.add(b.id);return true;});
-    }
-
-    // 3. Créer une map booking par listing_id+tenant_id
-    const bookingMap={};
-    allBookings.forEach(b=>{
-      const key=(b.listing_id||'')+'_'+(b.tenant_id||'');
-      if(!bookingMap[key]||new Date(b.created_at)>new Date(bookingMap[key].created_at)) bookingMap[key]=b;
-    });
-
-    // 4. Enrichir les visites avec leur booking
-    const enriched=allVisits.map(v=>{
-      const key=(v.listing_id||'')+'_'+(v.tenant_id||'');
-      const booking=bookingMap[key]||null;
-      const listing=lMap[v.listing_id]||null;
-      // Si un booking existe, utiliser son statut pour les étapes après la visite
-      let status=v.status;
-      const has_agent=!!(listing?.wants_agent&&listing?.agent_service==='full');
-      if(status==='agents_applying'&&!has_agent) status='awaiting_landlord';
-      if(booking){
-        if(booking.status==='pending'||booking.status==='booking_pending') status='booking_pending';
-        else if(booking.status==='accepted') status='lease_pending';
-        else if(booking.status==='declined') status='declined';
-        else if(['edl_scheduled','signing_day','move_in_ready'].includes(booking.status)) status=booking.status;
-      }
-      return{...v,booking,status,has_agent,
-        listing_title:listing?.title||v.listing_title||null,
-        full_address:listing?.full_address||null,
-        zone:listing?.zone||v.zone||null,
-        listing_price:listing?.price||null
-      };
-    });
-
-    // 5. Ajouter les bookings orphelins (sans visite)
-    const visitKeys=new Set(allVisits.map(v=>(v.listing_id||'')+'_'+(v.tenant_id||'')));
-    const orphans=allBookings.filter(b=>{
-      const key=(b.listing_id||'')+'_'+(b.tenant_id||'');
-      return !visitKeys.has(key)&&!['declined','cancelled'].includes(b.status);
-    }).map(b=>{
-      const listing=lMap[b.listing_id]||null;
-      // Même traduction statut que pour les visites enrichies (ligne ~1154) —
-      // sinon un booking accepté reste affiché comme "pending" pour toujours.
-      let displayStatus='booking_pending';
-      if(b.status==='pending'||b.status==='booking_pending') displayStatus='booking_pending';
-      else if(['accepted','lease_pending','edl_scheduled','signing_day'].includes(b.status)) displayStatus='lease_pending';
-      else if(b.status==='move_in_ready') displayStatus='move_in_ready';
-      else if(b.status==='tenant_ghosted') displayStatus='tenant_ghosted';
-      else displayStatus=b.status;
-      return{
-        id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:b.tenant_id,
-        tenant_name:b.tenant_name,status:displayStatus,booking:b,landlord_id:U.id,
-        listing_title:listing?.title||null,zone:listing?.zone||null,
-        listing_price:listing?.price||null,has_agent:!!(listing?.wants_agent&&listing?.agent_service==='full')
-      };
-    });
-
-    const groups=[...enriched,...orphans];
-
-    // Badges
-    const pendingCount=groups.filter(g=>['awaiting_landlord','booking_pending'].includes(g.status)).length;
+    const pendingCount=groups.filter(g=>g.status==='awaiting_landlord').length;
     if(cnt)cnt.textContent=pendingCount>0?`${pendingCount} pending`:'All good';
     const badge=document.getElementById('nb-visits-ll');
     if(badge){badge.textContent=pendingCount;badge.style.display=pendingCount>0?'inline':'none';}
 
     if(!groups.length){
-      wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visit requests yet.<br>When tenants request visits they will appear here.</p></div>';
+      wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visit requests yet.<br>When lessees request visits they will appear here.</p></div>';
       return;
     }
 
-    const doneStatuses=['done','declined','cancelled','tenant_declined','no_show','date_rejected','move_in_ready','completed'];
-    // Exclure visites direct landlord→tenant des statuts agent
-    const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status)&&!(g.status==='agents_applying'&&!g.has_agent));
+    const doneStatuses=['done','completed','cancelled','tenant_declined','no_show','date_rejected'];
+    const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status));
     const pastGroups=groups.filter(g=>doneStatuses.includes(g.status));
 
     let html='';
@@ -1176,10 +1195,54 @@ async function loadVisitsPage(){
     console.error('loadVisitsPage error:',e);
     wrap.innerHTML='<div style="color:var(--red);padding:1rem;text-align:center">❌ Error loading visits: '+e.message+'</div>';
   }
+  // Beaucoup d'actions à travers le site rafraîchissent la page en appelant
+  // juste loadVisitsPage() — comme une candidature peut changer de catégorie
+  // (visite → application) suite à ces mêmes actions, on rafraîchit toujours
+  // les deux ensemble plutôt que de risquer d'oublier un des nombreux appels
+  if(document.getElementById('applications-page-list'))loadApplicationsPageLL();
+}
+
+async function loadApplicationsPageLL(){
+  const wrap=document.getElementById('applications-page-list');
+  const cnt=document.getElementById('applications-page-count');
+  if(!wrap)return;
+  wrap.innerHTML='<div style="text-align:center;padding:2rem;color:var(--td)"><div class="sp"></div></div>';
+
+  try{
+    const allGroups=await fetchVisitAndApplicationGroups();
+    // Seulement à partir du moment où le lessee a candidaté pour louer
+    const groups=allGroups.filter(g=>APPLICATION_STATUSES.includes(g.status));
+
+    const pendingCount=groups.filter(g=>g.status==='booking_pending').length;
+    if(cnt)cnt.textContent=pendingCount>0?`${pendingCount} pending`:'All good';
+    const badge=document.getElementById('nb-applications-ll');
+    if(badge){badge.textContent=pendingCount;badge.style.display=pendingCount>0?'inline':'none';}
+
+    if(!groups.length){
+      wrap.innerHTML='<div class="empty"><div class="em">📋</div><p>No applications yet.<br>When a lessee wants to rent, they will appear here.</p></div>';
+      return;
+    }
+
+    const doneStatuses=['declined','move_in_ready','tenant_ghosted'];
+    const activeGroups=groups.filter(g=>!doneStatuses.includes(g.status));
+    const pastGroups=groups.filter(g=>doneStatuses.includes(g.status));
+
+    let html='';
+    if(activeGroups.length) html+=activeGroups.map(g=>renderVisitGroup(g,false)).join('');
+    if(pastGroups.length){
+      html+='<div style="font-size:.7rem;font-weight:700;color:var(--td);margin:1rem 0 .5rem;text-align:center">— Past —</div>';
+      html+=pastGroups.map(g=>renderVisitGroup(g,true)).join('');
+    }
+    wrap.innerHTML=html;
+
+  }catch(e){
+    console.error('loadApplicationsPageLL error:',e);
+    wrap.innerHTML='<div style="color:var(--red);padding:1rem;text-align:center">❌ Error loading applications: '+e.message+'</div>';
+  }
 }
 
 async function loadTenantDocuments(tenantId, bookingId){
-  const el=document.getElementById('tenant-docs-'+bookingId);
+  const el=document.getElementById('lessee-docs-'+bookingId);
   if(!el)return;
   try{
     const{data:profile}=await sb.from('profiles').select('documents').eq('clerk_id',tenantId).single();
@@ -1201,7 +1264,7 @@ async function loadTenantDocuments(tenantId, bookingId){
 
 async function viewTenantDoc(path){
   try{
-    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
+    const{data}=await sb.storage.from('lessee-documents').createSignedUrl(path,300);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
     else toast('❌ Could not open document');
   }catch(e){toast('❌ '+e.message);}
@@ -1221,7 +1284,7 @@ function renderCoTenantsSummary(booking){
       :`<div style="font-weight:600">${ct.phone||'—'}</div>`;
     return`
     <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:.55rem .65rem;margin-bottom:.35rem">
-      <div style="font-size:.6rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.3rem">👥 Co-tenant ${i+1}${ct.hasAccount?' — RestMalta account':' — no account yet'}</div>
+      <div style="font-size:.6rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-bottom:.3rem">👥 Co-lessee ${i+1}${ct.hasAccount?' — RestMalta account':' — no account yet'}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem .5rem;font-size:.72rem;margin-bottom:.4rem">
         <div><div style="color:var(--td);font-size:.58rem">Full name</div><div style="font-weight:600">${ct.name||'—'}</div></div>
         <div><div style="color:var(--td);font-size:.58rem">Verified</div>${verifiedCell}</div>
@@ -1235,7 +1298,7 @@ function renderCoTenantsSummary(booking){
     </div>`;
   }).join('');
   return `<div style="margin-bottom:.5rem" id="co-tenants-summary-${booking.id}">
-    <div style="font-size:.65rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem">👥 Co-tenants (also on the lease)</div>
+    <div style="font-size:.65rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem">👥 Co-lessees (also on the lease)</div>
     ${cards}
   </div>`;
 }
@@ -1274,7 +1337,7 @@ async function loadBookingDossier(booking){
   const container=document.getElementById(`booking-dossier-${booking.id}`);
   if(!container){console.warn('Container not found for booking',booking.id);return;}
   if(!booking.tenant_id){
-    container.innerHTML='<div style="color:var(--red);font-size:.75rem;text-align:center">⚠️ No tenant ID on booking</div>';
+    container.innerHTML='<div style="color:var(--red);font-size:.75rem;text-align:center">⚠️ No lessee ID on booking</div>';
     return;
   }
   let profile=null;
@@ -1285,7 +1348,7 @@ async function loadBookingDossier(booking){
   }catch(e){console.warn('Profile fetch failed:',e);}
   if(!profile){
     container.innerHTML=`<div style="color:var(--td);text-align:center;font-size:.75rem;padding:.5rem">
-      ⚠️ Profile not found for tenant<br>
+      ⚠️ Profile not found for lessee<br>
       <span style="font-size:.65rem">${booking.tenant_name||'—'}</span>
     </div>`;
     return;
@@ -1307,7 +1370,7 @@ async function loadBookingDossier(booking){
 
   container.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td)">📋 Tenant Dossier</div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--td)">📋 Lessee Dossier</div>
       ${verif}
     </div>
     <div style="margin-bottom:.75rem">
@@ -1357,10 +1420,10 @@ async function loadBookingDossier(booking){
 
     ${profile.review_count>0
       ?`<div style="background:rgba(212,168,71,.06);border:1px solid rgba(212,168,71,.15);border-radius:8px;padding:.5rem .75rem;display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:.73rem;color:var(--td)">RestMalta tenant score</span>
+          <span style="font-size:.73rem;color:var(--td)">RestMalta lessee score</span>
           <span style="font-size:.85rem;font-weight:700;color:var(--gold)">⭐ ${profile.avg_rating?.toFixed(1)||'—'} (${profile.review_count} review${profile.review_count>1?'s':''})</span>
         </div>`
-      :'<div style="font-size:.67rem;color:var(--td);text-align:center;padding:.2rem">New tenant — no previous reviews</div>'
+      :'<div style="font-size:.67rem;color:var(--td);text-align:center;padding:.2rem">New lessee — no previous reviews</div>'
     }
 
     <div style="margin-top:.6rem;border-top:1px solid var(--b);padding-top:.6rem">
@@ -1370,7 +1433,7 @@ async function loadBookingDossier(booking){
       </div>
     </div>`;
 
-  // Co-tenants ajoutés lors de la candidature — ils seront aussi sur le bail,
+  // Co-lessees ajoutés lors de la candidature — ils seront aussi sur le bail,
   // le propriétaire doit voir leur profil comme celui du candidat principal.
   const coTenantsHtml=renderCoTenantsSummary(booking);
   if(coTenantsHtml){container.insertAdjacentHTML('beforeend',coTenantsHtml);loadCoTenantsLiveInfo(booking);}
@@ -1400,7 +1463,7 @@ async function loadBookingDossier(booking){
       if(booking.first_payment_sent&&!booking.first_payment_confirmed){
         const payDiv=document.createElement('div');
         payDiv.style.cssText='margin-top:.4rem';
-        payDiv.innerHTML='<div style="font-size:.73rem;color:var(--gold);margin-bottom:.25rem">💶 Tenant says payment sent:</div>'
+        payDiv.innerHTML='<div style="font-size:.73rem;color:var(--gold);margin-bottom:.25rem">💶 Lessee says payment sent:</div>'
           +'<div style="display:flex;gap:.35rem">'
           +'<button onclick="confirmFirstPaymentReceived(this.dataset.id,true)" data-id="'+booking.id+'" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">✅ Received</button>'
           +'<button onclick="confirmFirstPaymentReceived(this.dataset.id,false)" data-id="'+booking.id+'" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer">❌ Not received</button>'
@@ -1426,7 +1489,7 @@ async function loadBookingDossier(booking){
     }
   }
 
-  // Charger les documents du tenant
+  // Charger les documents du lessee
   setTimeout(()=>loadTenantDocuments(booking.tenant_id, booking.id), 100);
 }
 
@@ -1510,15 +1573,15 @@ ${leaseType==='long'?'<li>After year 1, rent may increase in proportion to the y
 <h2>Utility Bills &amp; Services</h2>
 <ol>
 <li>The lessor shall ensure all utilities are settled up to the commencement date.</li>
-<li>The tenant is responsible for submitting ARMS Form H (change of occupants declaration) within 30 days of move-in, for correct utility billing.</li>
+<li>The lessee is responsible for submitting ARMS Form H (change of occupants declaration) within 30 days of move-in, for correct utility billing.</li>
 <li>Both parties declare that water and electricity meter readings shall be recorded in <strong>Annex A on move-in day</strong> and form an integral part of this agreement.</li>
 </ol>
 ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may terminate after the compulsory period with one (1) month written notice by registered letter.</li><li>The lessor must notify non-renewal at least 3 months before expiry, otherwise the lease renews automatically.</li></ol>`:''}
-<div class="sig-block"><div class="sig-box"><p><strong>LESSOR (Landlord)</strong></p><p>${landlordProfile?.full_name||'_______________'}</p><div class="sig-line"></div><p style="font-size:9pt;color:#666">Signature &amp; Date</p></div><div class="sig-box"><p><strong>LESSEE (Tenant)</strong></p><p>${tenantProfile?.full_name||'_______________'}</p><div class="sig-line"></div><p style="font-size:9pt;color:#666">Signature &amp; Date</p></div></div>
+<div class="sig-block"><div class="sig-box"><p><strong>LESSOR (Lessor)</strong></p><p>${landlordProfile?.full_name||'_______________'}</p><div class="sig-line"></div><p style="font-size:9pt;color:#666">Signature &amp; Date</p></div><div class="sig-box"><p><strong>LESSEE (Lessee)</strong></p><p>${tenantProfile?.full_name||'_______________'}</p><div class="sig-line"></div><p style="font-size:9pt;color:#666">Signature &amp; Date</p></div></div>
 <p style="font-size:8pt;color:#888;text-align:center;margin-top:20px">This agreement is drawn up in accordance with the Private Residential Leases Act, Chapter 604 of the Laws of Malta.<br>Must be registered at rentregistration.mt within 30 days.</p>
 </body></html>`;
 
-      // Co-locataires ajoutés par le tenant lors de sa candidature
+      // Co-locataires ajoutés par le lessee lors de sa candidature
       let coTenants=[];
       try{coTenants=booking?.co_tenants_data?JSON.parse(booking.co_tenants_data):[];}catch(e){}
 
@@ -1528,8 +1591,8 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:leaseType,
-          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
-          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          lessor:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+          lessee:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
           coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||'',address:ct.address||''})),
           listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
           start_date:startDate,end_date:endDate,
@@ -1542,7 +1605,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
           lessorEmbed=docuData.lessor_embed_src||null;
           lesseeEmbed=docuData.lessee_embed_src||null;
           submissionId=docuData.submission_id||null;
-          // Enrichir chaque lien co-tenant avec son tenant_id (si compte trouvé) pour
+          // Enrichir chaque lien co-lessee avec son tenant_id (si compte trouvé) pour
           // pouvoir lui afficher sa carte de signature dans SON propre dashboard.
           coLesseesEmbed=(docuData.co_lessees_embed_src||[]).map(cl=>{
             const match=coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
@@ -1579,7 +1642,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
     // 4 — Listing reserved
     try{await sb.from('listings').update({status:'reserved'}).eq('id',listingId);}catch(e){}
 
-    // 5 — Notifier tenant
+    // 5 — Notifier lessee
     const firstMonth=listing?.price||0;
     const holdingPaid=booking?.holding_amount||0;
     const deposit=listing?.deposit||listing?.price||0;
@@ -1601,10 +1664,10 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
       type:'booking_accepted'
     });}catch(e){}
 
-    // 6 — Notifier landlord
+    // 6 — Notifier lessor
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:U.id,
-      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the tenant will transfer the deposit + first month.',
+      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the lessee will transfer the deposit + first month.',
       type:'lease_ready'
     });}catch(e){}
 
@@ -1612,7 +1675,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
     try{
       const{data:visit}=await sb.from('visits').select('agent_id').eq('listing_id',listingId).in('status',['completed','agent_assigned','confirmed','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
       if(visit?.agent_id){
-        try{await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,content:'📋 Application accepted!\n\n🏠 '+(listing?.title||'Property')+'\n👤 Tenant: '+(tenantProfile?.full_name||'—')+'\n\nLease being signed.',type:'booking_accepted'});}catch(e){}
+        try{await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,content:'📋 Application accepted!\n\n🏠 '+(listing?.title||'Property')+'\n👤 Lessee: '+(tenantProfile?.full_name||'—')+'\n\nLease being signed.',type:'booking_accepted'});}catch(e){}
         try{await sb.from('visits').update({status:'edl_scheduled'}).eq('agent_id',visit.agent_id).eq('listing_id',listingId);}catch(e){}
       }
     }catch(e){}
@@ -1620,7 +1683,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
 
 
 
-    toast(lessorEmbed?'🎉 Accepted! Sign the lease in your visits page.':'🎉 Accepted! Tenant notified.');
+    toast(lessorEmbed?'🎉 Accepted! Sign the lease in your visits page.':'🎉 Accepted! Lessee notified.');
     loadVisitsPage();
   }catch(e){toast('❌ '+e.message);console.error(e);}
 }
@@ -1633,10 +1696,10 @@ async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
     await sb.from('visits').update({status:'date_rejected',proposed_date:newDate,proposed_time:newTime}).eq('id',visitId);
     await sb.from('messages').insert({
       listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
-      content:`📅 The landlord proposes a new date for your visit:\n\n📅 ${new Date(newDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} at ${newTime}\n\nPlease go to your dashboard → My Visits to confirm or request another date.`,
+      content:`📅 The lessor proposes a new date for your visit:\n\n📅 ${new Date(newDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} at ${newTime}\n\nPlease go to your dashboard → My Visits to confirm or request another date.`,
       type:'visit_date_proposed'
     });
-    toast('✅ New date sent to tenant.');
+    toast('✅ New date sent to lessee.');
     loadVisitsPage();
   }catch(e){toast('❌ '+e.message);}
 }
@@ -1648,17 +1711,17 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     const newStatus=wantsAgent?'agent_assigned':'confirmed';
     await sb.from('visits').update({status:newStatus}).eq('id',visitId);
     
-    // Si pas d'agent — notifier directement le tenant
+    // Si pas d'agent — notifier directement le lessee
     if(!wantsAgent){
       try{
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
           visit_id:visitId,
-          content:'✅ Your visit is confirmed! The landlord has confirmed the date.',
+          content:'✅ Your visit is confirmed! The lessor has confirmed the date.',
           type:'visit_confirmed'
         });
       }catch(e){}
-      toast('✅ Visit confirmed! Tenant notified.');
+      toast('✅ Visit confirmed! Lessee notified.');
       loadVisitsPage();
       return;
     }
@@ -1670,8 +1733,8 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     // Notifier directement l'agent déjà assigné à ce bien — plus de diffusion
     // à tous les agents ni de "meilleur candidat" : un seul agent gère le
     // bien en entier depuis qu'il l'a accepté.
-    const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',landlord:'📞 Contact landlord'};
-    const keyInfo=keyLabels[listingFull?.key_type]||'Contact landlord';
+    const keyLabels={keysafe:'🔐 Key safe on site',neighbor:'🏘️ With neighbour/concierge',agent:'🏆 Agent has the keys',lessor:'📞 Contact lessor'};
+    const keyInfo=keyLabels[listingFull?.key_type]||'Contact lessor';
     const keyDetail=listingFull?.key_location?`\nKey details: ${listingFull.key_location}`:'';
     const visitDateStr=visit?.visit_date?new Date(visit.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+(visit?.visit_time||'TBD'):'TBD';
 
@@ -1706,16 +1769,16 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
       listing_id:listingId,
       sender_id:'system',
       receiver_id:tenantId,
-      content:`📅 Unfortunately the landlord is not available on your requested date.\n\nThe property is still available — please request a visit with a different date.`,
+      content:`📅 Unfortunately the lessor is not available on your requested date.\n\nThe property is still available — please request a visit with a different date.`,
       type:'visit_rejected'
     });
-    // Send email to tenant
+    // Send email to lessee
     const{data:tv}=await sb.from('visits').select('tenant_email,listing_id').eq('id',visitId).maybeSingle();
     const{data:tl}=await sb.from('listings').select('title').eq('id',listingId).maybeSingle();
     if(tv?.tenant_email){
-      fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:'visit_date_rejected',to:tv.tenant_email,data:{tenantName:P?.full_name||'Tenant',listingTitle:tl?.title||'Listing',dashboardUrl:'https://restmalta.com/tenant-dashboard.html'}})}).catch(()=>{});
+      fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:'visit_date_rejected',to:tv.tenant_email,data:{tenantName:P?.full_name||'Lessee',listingTitle:tl?.title||'Listing',dashboardUrl:'https://restmalta.com/lessee-dashboard.html'}})}).catch(()=>{});
     }
-    toast('📅 Tenant notified to choose another date.');
+    toast('📅 Lessee notified to choose another date.');
 
   } else if(response==='unavailable'){
     await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);
@@ -1729,7 +1792,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
 We recommend searching for other listings on RestMalta.`,
       type:'visit_cancelled'
     });
-    toast('❌ Listing deactivated. Tenant notified.');
+    toast('❌ Listing deactivated. Lessee notified.');
   }
   loadVisitsPage();
 }
@@ -1742,7 +1805,7 @@ async function declineVisit(visitId){
 }
 
 function openMsgChatById(tenantId, listingId){
-  if(!tenantId){toast('❌ No tenant to message');return;}
+  if(!tenantId){toast('❌ No lessee to message');return;}
   sp('messages');
   setTimeout(()=>{
     openMsgChat(null,'Loading...',listingId,tenantId);
@@ -1755,7 +1818,7 @@ let groupChatChannel=null;
 async function openGroupChatModal(groupId, listingTitle, tenantName){
   // Use the messages modal but for group context
   document.getElementById('msg-chat-name').textContent=`👥 Groupe — ${listingTitle}`;
-  document.getElementById('msg-chat-sub').innerHTML=`<span style="font-size:.7rem;color:var(--td)">Tenant: ${tenantName} · Phone numbers hidden until lease is signed</span>`;
+  document.getElementById('msg-chat-sub').innerHTML=`<span style="font-size:.7rem;color:var(--td)">Lessee: ${tenantName} · Phone numbers hidden until lease is signed</span>`;
   activeChatListingId=groupId; // use groupId as channel key
   activeChatSenderId=null;
   // Load group messages
@@ -1801,9 +1864,9 @@ async function joinVisit(groupId){
   await sb.from('group_messages').insert({
     group_id:groupId,
     sender_id:U.id,
-    sender_name:P?.full_name||'Landlord',
-    sender_role:'landlord',
-    content:'👋 The landlord has joined the conversation and will be present during the visit.'
+    sender_name:P?.full_name||'Lessor',
+    sender_role:'lessor',
+    content:'👋 The lessor has joined the conversation and will be present during the visit.'
   });
   toast('✅ You joined the visit!');
   loadVisitsPage();
@@ -1811,7 +1874,7 @@ async function joinVisit(groupId){
 
 async function markVisitDone(visitId){
   await sb.from('visits').update({status:'completed'}).eq('id',visitId);
-  toast('✅ Visit marked as done. Tenant will be asked if they are interested.');
+  toast('✅ Visit marked as done. Lessee will be asked if they are interested.');
   loadVisitsPage();
 }
 let leaseListings=[];
@@ -1849,7 +1912,7 @@ function loadAwaitingConfirmation(data){
   wrap.innerHTML=declared.map(p=>`
     <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
       <div style="flex:1">
-        <div style="font-size:.88rem;font-weight:600;color:var(--txt)">€${(p.amount||0).toLocaleString()} — ${p.tenant_name||'Tenant'}</div>
+        <div style="font-size:.88rem;font-weight:600;color:var(--txt)">€${(p.amount||0).toLocaleString()} — ${p.tenant_name||'Lessee'}</div>
         <div style="font-size:.72rem;color:var(--tm);margin-top:.15rem">Declared paid on ${new Date(p.updated_at||p.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long'})}</div>
       </div>
       <span class="badge b-gold">⏳ Awaiting confirmation</span>
@@ -1895,7 +1958,7 @@ async function confirmPaymentReceived(id){
           if(lease.tenant_id){
             try{await sb.from('messages').insert({
               listing_id:lease.listing_id,sender_id:'system',receiver_id:lease.tenant_id,
-              content:`🎉 Payment confirmed by your landlord!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}\n\n⚠️ Register your lease at rentregistration.mt within 10 days.`,
+              content:`🎉 Payment confirmed by your lessor!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}\n\n⚠️ Register your lease at rentregistration.mt within 10 days.`,
             });}catch(e){}
           }
         }
@@ -1921,18 +1984,18 @@ async function confirmPaymentReceived(id){
           listing_id:pay.listing_id,
           sender_id:'system',
           receiver_id:agentId,
-          content:`💶 Payment confirmed by landlord!\n\n🏠 ${pay.listing_title||'Property'}\n👤 Tenant: ${pay.tenant_name||'—'}\n\n📋 Please proceed with the entry inventory check.\nGo to your dashboard → My Visits to mark the entry inventory as done.`,
+          content:`💶 Payment confirmed by lessor!\n\n🏠 ${pay.listing_title||'Property'}\n👤 Lessee: ${pay.tenant_name||'—'}\n\n📋 Please proceed with the entry inventory check.\nGo to your dashboard → My Visits to mark the entry inventory as done.`,
           type:'entry_inventory_needed'
         });}catch(e){}
       }
 
-      // Notifier le tenant
+      // Notifier le lessee
       if(visit?.tenant_id){
         try{await sb.from('messages').insert({
           listing_id:pay.listing_id,
           sender_id:'system',
           receiver_id:visit.tenant_id,
-          content:`✅ Your payment has been confirmed by the landlord!\n\n📋 The agent will now proceed with the entry inventory check before you move in.\n\nYou will be notified once everything is ready.`,
+          content:`✅ Your payment has been confirmed by the lessor!\n\n📋 The agent will now proceed with the entry inventory check before you move in.\n\nYou will be notified once everything is ready.`,
           type:'payment_confirmed'
         });}catch(e){}
       }
@@ -1972,11 +2035,11 @@ function generateQuittance(pay){
 
     doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(80,80,80);
     doc.text(`Date: ${today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,20,y);y+=8;
-    doc.text(`Landlord: ${P?.full_name||'Landlord'}`,20,y);y+=6;
+    doc.text(`Lessor: ${P?.full_name||'Lessor'}`,20,y);y+=6;
     if(P?.passport_number){doc.text(`ID/Passport: ${P.passport_number}`,20,y);y+=6;}
     if(P?.home_address){doc.text(`Address: ${P.home_address}`,20,y);y+=6;}
     y+=4;
-    doc.text(`Tenant: ${pay.tenant_name||'Tenant'}`,20,y);y+=6;
+    doc.text(`Lessee: ${pay.tenant_name||'Lessee'}`,20,y);y+=6;
     if(pay.listing_title){doc.text(`Property: ${pay.listing_title}`,20,y);y+=6;}
     y+=8;
 
@@ -1993,7 +2056,7 @@ function generateQuittance(pay){
     doc.text('This receipt serves as proof of rent payment. Generated automatically by RestMalta — restmalta.com',20,y);y+=14;
 
     doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(60,60,60);
-    doc.text(`Landlord signature: ${P?.full_name||''}`,20,y);
+    doc.text(`Lessor signature: ${P?.full_name||''}`,20,y);
 
     doc.save(`Quittance_rent_${month.replace(' ','_')}.pdf`);
     toast('🧾 Receipt downloaded!');
@@ -2006,8 +2069,8 @@ function generateQuittance(pay){
 }
 
 async function addRentEntry(){
-  const sel=document.getElementById('rent-tenant-select');
-  sel.innerHTML='<option value="">Loading tenants...</option>';
+  const sel=document.getElementById('rent-lessee-select');
+  sel.innerHTML='<option value="">Loading lessees...</option>';
   document.getElementById('rent-modal').classList.add('open');
 
   const{data:listings}=await sb.from('listings').select('id,title').eq('landlord_id',U.id);
@@ -2018,7 +2081,7 @@ async function addRentEntry(){
 
   const{data:bookings}=await sb.from('bookings').select('id,tenant_id,listing_id,monthly_rent').in('listing_id',listingIds).eq('status','move_in_ready');
   if(!bookings||!bookings.length){
-    sel.innerHTML='<option value="">No active tenants — schedules are created automatically at move-in</option>';
+    sel.innerHTML='<option value="">No active lessees — schedules are created automatically at move-in</option>';
     return;
   }
 
@@ -2027,9 +2090,9 @@ async function addRentEntry(){
   const profileMap={};(profiles||[]).forEach(p=>profileMap[p.clerk_id]=p);
 
   window._rentBookings=bookings;
-  sel.innerHTML='<option value="">Select tenant...</option>'+bookings.map((b,i)=>{
+  sel.innerHTML='<option value="">Select lessee...</option>'+bookings.map((b,i)=>{
     const prof=profileMap[b.tenant_id];
-    return `<option value="${i}">${prof?.full_name||'Tenant'} — ${listingTitles[b.listing_id]||'Property'}</option>`;
+    return `<option value="${i}">${prof?.full_name||'Lessee'} — ${listingTitles[b.listing_id]||'Property'}</option>`;
   }).join('');
   sel.onchange=()=>{
     const b=window._rentBookings[sel.value];
@@ -2038,9 +2101,9 @@ async function addRentEntry(){
 }
 
 async function submitRentEntry(){
-  const sel=document.getElementById('rent-tenant-select');
+  const sel=document.getElementById('rent-lessee-select');
   const idx=sel.value;
-  if(idx===''){toast('❌ Select a tenant');return;}
+  if(idx===''){toast('❌ Select a lessee');return;}
   const b=window._rentBookings[idx];
   const amount=document.getElementById('rent-amount').value;
   const dueDate=document.getElementById('rent-due-date').value;
@@ -2061,7 +2124,7 @@ async function submitRentEntry(){
   });
   if(error){toast('❌ '+error.message);return;}
   document.getElementById('rent-modal').classList.remove('open');
-  toast('✅ Rent entry added — your tenant will see it and can declare payment.');
+  toast('✅ Rent entry added — your lessee will see it and can declare payment.');
   loadPaymentsData();
 }
 
@@ -2103,14 +2166,14 @@ function loadDeposits(pays){
   const deps=pays.filter(p=>p.type==='deposit');
   const wrap=document.getElementById('deposits-list');
   if(!wrap)return;
-  wrap.innerHTML=deps.map(d=>`<div class="prow"><div class="pinf"><div class="pname">Deposit — ${d.tenant_name||d.tenant_id?.substring(0,8)||'Tenant'}</div><div class="psub">Held since ${new Date(d.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div></div><span style="font-weight:700;color:var(--sea);flex-shrink:0">€${(d.amount||0).toLocaleString()}</span></div>`).join('')||'<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No deposits held yet</div>';
+  wrap.innerHTML=deps.map(d=>`<div class="prow"><div class="pinf"><div class="pname">Deposit — ${d.tenant_name||d.tenant_id?.substring(0,8)||'Lessee'}</div><div class="psub">Held since ${new Date(d.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div></div><span style="font-weight:700;color:var(--sea);flex-shrink:0">€${(d.amount||0).toLocaleString()}</span></div>`).join('')||'<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No deposits held yet</div>';
 }
 
 async function sendReminder(id){
   try{
     const{data:pay}=await sb.from('payments').select('*').eq('id',id).single();
     if(!pay){toast('❌ Payment not found');return;}
-    if(!pay.tenant_id){toast('❌ No tenant linked to this payment');return;}
+    if(!pay.tenant_id){toast('❌ No lessee linked to this payment');return;}
     const dueLabel=pay.due_date?new Date(pay.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'soon';
     const{error}=await sb.from('messages').insert({
       listing_id:pay.listing_id,sender_id:U.id,receiver_id:pay.tenant_id,
@@ -2118,7 +2181,7 @@ async function sendReminder(id){
       type:'rent_reminder'
     });
     if(error){toast('❌ '+error.message);return;}
-    toast('📧 Reminder sent to tenant!');
+    toast('📧 Reminder sent to lessee!');
   }catch(e){toast('❌ '+e.message);}
 }
 async function downloadReceipt(id){
@@ -2140,7 +2203,7 @@ async function sendAllReminders(){
         type:'rent_reminder'
       }).catch(()=>{});
     }
-    toast(`📧 Reminders sent to ${toRemind.length} tenant${toRemind.length>1?'s':''} with pending payments!`);
+    toast(`📧 Reminders sent to ${toRemind.length} lessee${toRemind.length>1?'s':''} with pending payments!`);
   }catch(e){toast('❌ '+e.message);}
 }
 function generateAllReceipts(){toast('🧾 Receipts generated!');}
@@ -2149,11 +2212,11 @@ function exportData(){toast('📥 Data exported!');}
 function updateChart(v){toast('📊 Chart updated: '+v);}
 function toggleTgl(el){el.classList.toggle('on');el.classList.toggle('off');}
 
-// Point 6 — Re-list notification when tenant leaves
+// Point 6 — Re-list notification when lessee leaves
 async function notifyTenantLeft(listingId, listingTitle){
   // Mark listing as available again
   await sb.from('listings').update({active:true}).eq('id',listingId);
-  toast(`✅ "${listingTitle}" is back online! Tenants can now see it.`);
+  toast(`✅ "${listingTitle}" is back online! Lessees can now see it.`);
   loadListings();loadDash();
 }
 
@@ -2167,19 +2230,19 @@ function showRelistPrompt(listingId, listingTitle){
   alert.style.borderRadius='10px';
   alert.style.padding='.75rem 1rem';
   alert.style.marginBottom='.5rem';
-  alert.innerHTML=`<div class="adot" style="background:var(--green)"></div><div style="flex:1"><div class="atxt">🎉 Your tenant has left <strong>${listingTitle}</strong> — your property is now free!</div><div class="atime">Re-list it in one click to find your next tenant</div></div><button class="btn bp bsm" style="flex-shrink:0" onclick="notifyTenantLeft('${listingId}','${listingTitle}')">Re-list now →</button>`;
+  alert.innerHTML=`<div class="adot" style="background:var(--green)"></div><div style="flex:1"><div class="atxt">🎉 Your lessee has left <strong>${listingTitle}</strong> — your property is now free!</div><div class="atime">Re-list it in one click to find your next lessee</div></div><button class="btn bp bsm" style="flex-shrink:0" onclick="notifyTenantLeft('${listingId}','${listingTitle}')">Re-list now →</button>`;
   wrap.prepend(alert);
 }
 
-// Point 6 — Tenant leaving → notify landlord to re-list
+// Point 6 — Lessee leaving → notify lessor to re-list
 async function notifyTenantLeaving(listingId,listingTitle){
-  // Called when tenant confirms departure / lease ends
+  // Called when lessee confirms departure / lease ends
   toast(`🔔 ${listingTitle} is now available — republish in 1 click!`);
   const wrap=document.getElementById('alerts-list');
   if(wrap){
     const alert=document.createElement('div');
     alert.className='alert';
-    alert.innerHTML=`<div class="adot" style="background:var(--green)"></div><div style="flex:1"><div class="atxt"><strong>${listingTitle}</strong> is now vacant — republish it</div><div class="atime">Tenant has left</div></div><button class="btn bp bsm" onclick="relistProperty('${listingId}')">🔄 Re-list in 1 click</button>`;
+    alert.innerHTML=`<div class="adot" style="background:var(--green)"></div><div style="flex:1"><div class="atxt"><strong>${listingTitle}</strong> is now vacant — republish it</div><div class="atime">Lessee has left</div></div><button class="btn bp bsm" onclick="relistProperty('${listingId}')">🔄 Re-list in 1 click</button>`;
     wrap.prepend(alert);
   }
 }
@@ -2204,7 +2267,7 @@ function makeThreadId(listingId, id1, id2){
 }
 
 async function loadMessages(){
-  // Get all messages involving this landlord — jamais les DM du canal
+  // Get all messages involving this lessor — jamais les DM du canal
   // "Find a roommate" (locataire à locataire, n'ont rien à faire ici).
   // Filtré côté JS plutôt qu'avec .neq() en base : .neq() exclurait aussi
   // par erreur les messages sans type du tout (assez courants ici).
@@ -2295,7 +2358,7 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
     if(senderId&&senderId!=='system'){
       const{data:other}=await sb.from('profiles').select('full_name,role').eq('clerk_id',senderId).maybeSingle();
       if(other){
-        const roleLabel=other.role==='tenant'?'👤':other.role==='agent'?'🏆':'🏠';
+        const roleLabel=other.role==='lessee'?'👤':other.role==='agent'?'🏆':'🏠';
         document.getElementById('msg-chat-sub').innerHTML=`<span style="color:var(--terra);font-weight:600">${roleLabel} ${other.full_name}</span>`;
       }
     }
@@ -2321,8 +2384,8 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
     const div=document.createElement('div');
     div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem`;
 
-    // Message spécial — tenant intéressé
-    // Message spécial — tenant a déclaré avoir payé
+    // Message spécial — lessee intéressé
+    // Message spécial — lessee a déclaré avoir payé
     if(m.type==='payment_declared'&&m.receiver_id===U.id){
       div.innerHTML=`
         <div class="bt" style="max-width:85%">
@@ -2334,7 +2397,7 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     } else if(m.type==='wants_to_rent'&&m.receiver_id===U.id){
-      // Tenant veut louer directement — landlord accepte ou refuse
+      // Lessee veut louer directement — lessor accepte ou refuse
       div.innerHTML=`
         <div class="bt" style="max-width:90%">
           <div style="white-space:pre-wrap">${m.content}</div>
@@ -2349,7 +2412,7 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
         <div class="bt" style="max-width:85%">
           <div>${m.content}</div>
           <div style="margin-top:.65rem">
-            <button onclick="sp('visits',document.querySelector('.ni[onclick*=visits]'))" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">👉 Review dossier & set dates in Visits →</button>
+            <button onclick="sp('applications',document.querySelector('.ni[onclick*=applications]'))" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">👉 Review dossier in Applications →</button>
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
@@ -2366,7 +2429,7 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
 
   // Real-time subscription
   if(landlordChatChannel)sb.removeChannel(landlordChatChannel);
-  landlordChatChannel=sb.channel('landlord-chat-'+listingId)
+  landlordChatChannel=sb.channel('lessor-chat-'+listingId)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`listing_id=eq.${listingId}`},payload=>{
       const m=payload.new;
       if(m.sender_id===U.id)return; // already shown optimistically
@@ -2428,14 +2491,14 @@ async function disputePayment(msgId, listingId){
   if(tenantId){
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:`⚠️ Your landlord has not yet received your payment.\n\nPlease check that you sent the correct amount to the correct IBAN/Revolut and try again.\n\nIf you believe this is an error, please contact the landlord directly via messages.`,
+      content:`⚠️ Your lessor has not yet received your payment.\n\nPlease check that you sent the correct amount to the correct IBAN/Revolut and try again.\n\nIf you believe this is an error, please contact the lessor directly via messages.`,
       type:'payment_not_received'
     });}catch(e){}
   }
 
   const container=document.querySelector(`button[onclick*="disputePayment"][onclick*="${msgId}"]`);
-  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:#E05A5A;font-weight:600;margin-top:.5rem">⚠️ Tenant notified to check their payment.</div>';
-  toast('⚠️ Tenant has been notified to check their payment.');
+  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:#E05A5A;font-weight:600;margin-top:.5rem">⚠️ Lessee notified to check their payment.</div>';
+  toast('⚠️ Lessee has been notified to check their payment.');
 }
 
 async function acceptTenantFromVisits(visitId, listingId, tenantId){
@@ -2449,15 +2512,15 @@ async function acceptTenantFromVisits(visitId, listingId, tenantId){
 }
 
 async function declineTenantFromVisits(visitId, listingId, tenantId){
-  if(!confirm('Decline this tenant?'))return;
+  if(!confirm('Decline this lessee?'))return;
 
   try{await sb.from('visits').update({status:'landlord_declined'}).eq('id',visitId);}catch(e){}
 
-  // Notifier tenant
+  // Notifier lessee
   try{
     await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:`We're sorry — the landlord has decided not to proceed with your rental application at this time.\n\nWe recommend searching for other listings on RestMalta.`,
+      content:`We're sorry — the lessor has decided not to proceed with your rental application at this time.\n\nWe recommend searching for other listings on RestMalta.`,
       type:'landlord_declined'
     });
   }catch(e){}
@@ -2468,13 +2531,13 @@ async function declineTenantFromVisits(visitId, listingId, tenantId){
     if(visit?.agent_id){
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
-        content:`ℹ️ The landlord has declined the application from ${visit.tenant_name||'the tenant'} for ${visit.listing_title||'the property'}.`,
+        content:`ℹ️ The lessor has declined the application from ${visit.tenant_name||'the lessee'} for ${visit.listing_title||'the property'}.`,
         type:'landlord_declined'
       });
     }
   }catch(e){}
 
-  toast('✅ Tenant and agent notified.');
+  toast('✅ Lessee and agent notified.');
   loadVisitsPage();
 }
 
@@ -2486,7 +2549,7 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
   try{
     const{data:existingActive}=await sb.from('bookings').select('id').eq('listing_id',listingId).neq('tenant_id',tenantId).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1);
     if(existingActive&&existingActive.length){
-      toast('❌ This property already has another accepted tenant.');
+      toast('❌ This property already has another accepted lessee.');
       return;
     }
   }catch(e){}
@@ -2508,8 +2571,8 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing.type==='short'?'short':'long',
-        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+        lessor:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+        lessee:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
         coTenants:[],
         listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
         start_date:startDate,end_date:endDate
@@ -2526,10 +2589,10 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
         deposit:listing.deposit||0
       });}catch(e){}
 
-      // Notifier tenant
+      // Notifier lessee
       try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:`🎉 The landlord has accepted your application!\n\n📄 Your lease has been sent by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
+        content:`🎉 The lessor has accepted your application!\n\n📄 Your lease has been sent by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
         type:'lease_sent'
       });}catch(e){}
 
@@ -2561,21 +2624,21 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
     if(visit?.tenant_id){
       try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:visit.tenant_id,
-        content:`We're sorry — the landlord has decided not to proceed with your rental application for ${visit.listing_title||'this property'} at this time.\n\nWe recommend searching for other listings on RestMalta.`,
+        content:`We're sorry — the lessor has decided not to proceed with your rental application for ${visit.listing_title||'this property'} at this time.\n\nWe recommend searching for other listings on RestMalta.`,
         type:'landlord_declined'
       });}catch(e){}
     }
     if(visit?.agent_id){
       try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
-        content:`ℹ️ The landlord has declined the rental application from ${visit.tenant_name||'the tenant'} for ${visit.listing_title||'the property'}.`,
+        content:`ℹ️ The lessor has declined the rental application from ${visit.tenant_name||'the lessee'} for ${visit.listing_title||'the property'}.`,
         type:'landlord_declined'
       });}catch(e){}
     }
     // Remplacer les boutons
     const container=document.querySelector(`button[onclick*="${msgId}"]`);
     if(container)container.closest('.bt').querySelector('div[style*="flex-direction:column"]').innerHTML='<div style="font-size:.75rem;color:var(--td);margin-top:.5rem">✓ You declined this application.</div>';
-    toast('✅ Tenant and agent notified.');
+    toast('✅ Lessee and agent notified.');
 
   } else {
     const startDate=document.getElementById(`lease-start-${msgId}`)?.value;
@@ -2586,7 +2649,7 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
     try{
       const{data:existingActive}=await sb.from('bookings').select('id').eq('listing_id',listingId).neq('tenant_id',visit?.tenant_id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1);
       if(existingActive&&existingActive.length){
-        toast('❌ This property already has another accepted tenant.');
+        toast('❌ This property already has another accepted lessee.');
         return;
       }
     }catch(e){}
@@ -2612,8 +2675,8 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:listing.type==='short'?'short':'long',
-          landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-          tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+          lessor:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+          lessee:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
           coTenants:[],
           listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
           start_date:startDate,
@@ -2633,7 +2696,7 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
         if(visit?.tenant_id){
           try{await sb.from('messages').insert({
             listing_id:listingId,sender_id:'system',receiver_id:visit.tenant_id,
-            content:`🎉 The landlord has accepted your application!\n\n📄 Your lease has been sent to you by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
+            content:`🎉 The lessor has accepted your application!\n\n📄 Your lease has been sent to you by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
             type:'lease_sent'
           });}catch(e){}
         }
@@ -2692,7 +2755,7 @@ async function sendModalReply(){
 /* MAINTENANCE */
 async function loadMaintenance(){
   const{data}=await sb.from('tickets').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-  // Also load tickets from tenants for this landlord's listings
+  // Also load tickets from lessees for this lessor's listings
   const{data:listings}=await sb.from('listings').select('id,title').eq('landlord_id',U.id);
   const listingIds=(listings||[]).map(l=>l.id);
   const listingTitles={};(listings||[]).forEach(l=>listingTitles[l.id]=l.title);
@@ -2735,7 +2798,7 @@ async function loadMaintenance(){
           <div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">${t.title}</div>
           <div style="font-size:.7rem;font-weight:700;margin-bottom:.25rem">${pl[t.priority]||pl.medium}</div>
           <div style="font-size:.72rem;color:var(--tm);line-height:1.4">${t.description||''}</div>
-          <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${t.tenant_id?`👤 ${tenantNames[t.tenant_id]||'Tenant'} · `:'🏠 Reported by you · '}${listingTitles[t.listing_id]||'No property linked'} · ${new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+          <div style="font-size:.68rem;color:var(--td);margin-top:.2rem">${t.tenant_id?`👤 ${tenantNames[t.tenant_id]||'Lessee'} · `:'🏠 Reported by you · '}${listingTitles[t.listing_id]||'No property linked'} · ${new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
         </div>
         <span class="tst ${sc[t.status]||'to'}">${sl[t.status]||'Open'}</span>
       </div>
@@ -2744,12 +2807,12 @@ async function loadMaintenance(){
       <div style="background:var(--tdim);border-radius:8px;padding:.75rem;font-size:.8rem">
         <div style="font-weight:700;margin-bottom:.5rem;color:var(--txt)">How would you like to handle this issue?</div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <button class="btn bg bsm" onclick="handleTicket('${t.id}','self')">🔧 Je répare moi-même</button>
-          <button class="btn bg bsm" onclick="handleTicket('${t.id}','mandate_self')">📋 Mandater un prestataire (moi)</button>
-          <button class="btn bp bsm" onclick="handleTicket('${t.id}','mandate_app')">🏆 Obtenir des devis via RestMalta</button>
+          <button class="btn bg bsm" onclick="handleTicket('${t.id}','self')">🔧 I'll fix it myself</button>
+          <button class="btn bg bsm" onclick="handleTicket('${t.id}','mandate_self')">📋 Hire a contractor (myself)</button>
+          <button class="btn bp bsm" onclick="handleTicket('${t.id}','mandate_app')">🏆 Get quotes via RestMalta</button>
         </div>
       </div>`:''}
-      ${t.status==='in_progress'?`<div style="display:flex;gap:.4rem"><button class="btn bp bsm" onclick="updateTicket('${t.id}','resolved')">✅ Marquer résolu</button><button class="btn bg bsm" onclick="updateTicket('${t.id}','open')">↩ Rouvrir</button></div>`:''}
+      ${t.status==='in_progress'?`<div style="display:flex;gap:.4rem"><button class="btn bp bsm" onclick="updateTicket('${t.id}','resolved')">✅ Mark resolved</button><button class="btn bg bsm" onclick="updateTicket('${t.id}','open')">↩ Reopen</button></div>`:''}
     </div>`;
   }).join('');
 }
@@ -2757,17 +2820,17 @@ async function loadMaintenance(){
 async function handleTicket(id, action){
   if(action==='self'){
     await sb.from('tickets').update({status:'in_progress',resolution:'self'}).eq('id',id);
-    // Notify tenant
+    // Notify lessee
     const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).maybeSingle();
     if(ticket?.tenant_id){
       await sb.from('messages').insert({
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
-        content:`🔧 Your ticket "${ticket.title}" has been taken care of. The landlord will'occuper de la réparation. You serez contacté for convenir d'un appointment si nécessaire.`
+        content:`🔧 Your ticket "${ticket.title}" has been taken care of. The lessor will'occuper de la réparation. You serez contacté for convenir d'un appointment si nécessaire.`
       });
     }
-    toast('🔧 Ticket handled — tenant notified.');
+    toast('🔧 Ticket handled — lessee notified.');
   } else if(action==='mandate_self'){
     await sb.from('tickets').update({status:'in_progress',resolution:'mandate_self'}).eq('id',id);
     const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).maybeSingle();
@@ -2779,7 +2842,7 @@ async function handleTicket(id, action){
         content:`📋 Your ticket "${ticket.title}" est en cours de traitement. Un prestataire externe va intervenir. You serez contacté for la date d'intervention.`
       });
     }
-    toast('📋 Contractor assigned — tenant notified.');
+    toast('📋 Contractor assigned — lessee notified.');
   } else if(action==='mandate_app'){
     await sb.from('tickets').update({status:'in_progress',resolution:'mandate_app'}).eq('id',id);
     // Create devis request in Supabase
@@ -2795,10 +2858,10 @@ async function handleTicket(id, action){
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:U.id,
         receiver_id:ticket.tenant_id,
-        content:`🏆 RestMalta recherche des prestataires for your ticket "${ticket.title}". Plusieurs devis you seront présentés sous 24-48h.`
+        content:`🏆 RestMalta is looking for contractors for your ticket "${ticket.title}". Several quotes will be presented within 24-48h.`
       });
     }
-    toast('🏆 Demande de devis envoyée ! You recevrez plusieurs offres sous 24-48h.');
+    toast('🏆 Quote request sent! You\'ll receive several offers within 24-48h.');
   }
   loadMaintenance();
 }
@@ -2911,12 +2974,12 @@ async function loadReviewableTenants(){
     const remaining=tenantIds.filter(id=>!reviewedIds.has(id));
     if(!remaining.length){
       sel.innerHTML='';sel.style.display='none';
-      if(noneEl){noneEl.style.display='block';noneEl.textContent='You\'ve already reviewed all your tenants. Thanks for the feedback!';}
+      if(noneEl){noneEl.style.display='block';noneEl.textContent='You\'ve already reviewed all your lessees. Thanks for the feedback!';}
       if(formEl)formEl.style.display='none';
       return;
     }
     const nameMap={};(bookings||[]).forEach(b=>{if(b.tenant_id)nameMap[b.tenant_id]=b.tenant_name;});
-    sel.innerHTML='<option value="">Select a tenant...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Tenant'}</option>`).join('');
+    sel.innerHTML='<option value="">Select a lessee...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Lessee'}</option>`).join('');
     sel.style.display='block';
     if(noneEl)noneEl.style.display='none';
     if(formEl)formEl.style.display='block';
@@ -2926,16 +2989,16 @@ async function loadReviewableTenants(){
 }
 
 async function submitReview(){
-  const tenantId=document.getElementById('rev-tenant-select')?.value;
+  const tenantId=document.getElementById('rev-lessee-select')?.value;
   const rating=parseInt(document.getElementById('rev-rating').value);
   const comment=document.getElementById('rev-comment').value.trim();
-  if(!tenantId){toast('⚠️ Select a tenant');return;}
+  if(!tenantId){toast('⚠️ Select a lessee');return;}
   if(!comment){toast('Please write a comment');return;}
 
   const{data:realBooking}=await sb.from('bookings').select('id').eq('landlord_id',U.id).eq('tenant_id',tenantId).in('status',['move_in_ready','completed','active']).limit(1).maybeSingle();
-  if(!realBooking){toast('❌ You can only review a tenant who actually rented from you');return;}
+  if(!realBooking){toast('❌ You can only review a lessee who actually rented from you');return;}
   const{data:existingReview}=await sb.from('reviews').select('id').eq('reviewer_id',U.id).eq('target_id',tenantId).eq('type','landlord_to_tenant').maybeSingle();
-  if(existingReview){toast('❌ You already reviewed this tenant');return;}
+  if(existingReview){toast('❌ You already reviewed this lessee');return;}
 
   const{error}=await sb.from('reviews').insert({
     reviewer_id:U.id,rating,comment,type:'landlord_to_tenant',
@@ -3029,7 +3092,7 @@ async function loadProfilee(){
   document.getElementById('prof-home-address').value=P.home_address||'';
   document.getElementById('prof-iban').value=P.iban||'';
   document.getElementById('prof-revolut').value=P.revolut_tag||P.bank_details||'';
-  // Gestion section vérification landlord
+  // Gestion section vérification lessor
   const llUploadSection = document.getElementById('ll-verify-upload-section');
   const llBadge = document.getElementById('verify-badge-ll');
   if(P.verified){
@@ -3228,7 +3291,7 @@ async function loadRentedProperties(){
         </div>
         <div style="flex:1">
           <div class="ct">${listing.title||'Property'}</div>
-          <div style="font-size:.72rem;color:var(--td)">📍 ${listing.zone||'—'} · 👤 ${bk.tenant_name||'Tenant'}${agencyBadge}</div>
+          <div style="font-size:.72rem;color:var(--td)">📍 ${listing.zone||'—'} · 👤 ${bk.tenant_name||'Lessee'}${agencyBadge}</div>
         </div>
         ${payBadge}
       </div>
@@ -3243,7 +3306,7 @@ async function loadRentedProperties(){
           ${bk.lease_tenant_embed||bk.lease_landlord_embed?`<a href="${bk.lease_landlord_embed||bk.lease_tenant_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📄 Lease</a>`:''}
           ${bk.edl_landlord_embed?`<a href="${bk.edl_pdf_url||bk.edl_landlord_embed}" target="_blank" class="btn bg bsm" style="text-decoration:none">📋 EDL ${bk.edl_signed_landlord?'✅':'⏳'}</a>`:bk.edl_completed_at?`<button onclick="retryEdlGeneration('${bk.id}')" class="btn bp bsm">⚠️ Retry EDL signature</button>`:''}
           ${bk.edl_completed_at?`<button onclick="viewEdlDossier('${bk.id}')" class="btn bg bsm">📷 Inventory + photos</button>`:''}
-          <button onclick="openMsgChatById('${bk.tenant_id||''}','${bk.listing_id||''}')" class="btn bg bsm">💬 Message tenant</button>
+          <button onclick="openMsgChatById('${bk.tenant_id||''}','${bk.listing_id||''}')" class="btn bg bsm">💬 Message lessee</button>
           ${agentId?`<button onclick="messageAgencyAboutProperty('${agentId}','${bk.listing_id||''}','${(listing.title||'Property').replace(/'/g,"\\'")}')" class="btn bg bsm">💬 Message agency</button>`:''}
           <button onclick="sp('maintenance',document.querySelector('.ni[onclick*=maintenance]'))" class="btn bg bsm" ${openTickets.length?'style="border-color:var(--red);color:var(--red)"':''}>🔧 Maintenance${openTickets.length?` (${openTickets.length})`:''}</button>
           <button onclick="sp('payments',document.querySelector('.ni[onclick*=payments]'))" class="btn bg bsm">💶 Full payment history</button>
@@ -3254,7 +3317,7 @@ async function loadRentedProperties(){
     </div>`;
   }).join('');
 
-  // Co-tenants — juste nom + téléphone ici (pas le dossier complet, c'est
+  // Co-lessees — juste nom + téléphone ici (pas le dossier complet, c'est
   // une vue d'ensemble rapide, pas une revue de candidature)
   bookings.forEach(bk=>{
     const el=document.getElementById(`rp-cotenants-${bk.id}`);
@@ -3262,7 +3325,7 @@ async function loadRentedProperties(){
     let coTenants=[];
     try{coTenants=bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[];}catch(e){}
     if(!coTenants.length)return;
-    el.innerHTML=`<div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">👥 ${coTenants.length} co-tenant${coTenants.length>1?'s':''}: ${coTenants.map(ct=>`${ct.name||'—'}${ct.phone?' ('+ct.phone+')':''}`).join(', ')}</div>`;
+    el.innerHTML=`<div style="font-size:.7rem;color:var(--td);margin-bottom:.3rem">👥 ${coTenants.length} co-lessee${coTenants.length>1?'s':''}: ${coTenants.map(ct=>`${ct.name||'—'}${ct.phone?' ('+ct.phone+')':''}`).join(', ')}</div>`;
   });
 }
 
@@ -3283,8 +3346,8 @@ async function regenLease(bookingId, listingId, tenantId){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing?.type==='short'?'short':'long',
-        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
-        tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+        lessor:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+        lessee:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
         listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:new Date(startDate).getDate()},
         start_date:startDate,end_date:endDate
       })
@@ -3299,7 +3362,7 @@ async function regenLease(bookingId, listingId, tenantId){
         landlord_revolut:landlordProfile?.revolut_tag||null
       }).eq('id',bookingId);
 
-      // Notifier tenant
+      // Notifier lessee
       if(tenantId&&data.lessee_embed_src){
         try{
           await sb.from('messages').insert({
@@ -3350,14 +3413,14 @@ function openSigningDocLL(embedSrc,title,bookingId){
           }else{
             updateOk=true;
           }
-          // Notifier tenant
+          // Notifier lessee
           let bk=null;
           try{const{data:d}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();bk=d;}catch(e){}
           if(bk?.tenant_id){
             try{
               await sb.from('messages').insert({
                 listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-                content:'✍️ The landlord has signed the lease!\n\nIt\'s your turn — go to your visits page to sign.',
+                content:'✍️ The lessor has signed the lease!\n\nIt\'s your turn — go to your visits page to sign.',
                 type:'lease_signed_landlord'
               });
             }catch(e){}
@@ -3418,7 +3481,7 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
         if(bk.tenant_id){
           await sb.from('messages').insert({
             listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
-            content:'✅ Landlord signed '+title,type:dbField
+            content:'✅ Lessor signed '+title,type:dbField
           });
         }
       }catch(e){
@@ -3474,17 +3537,17 @@ async function confirmFirstPaymentReceived(bookingId,received){
       }
 
       if(bk.tenant_id){
-        await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,content:`✅ Payment confirmed by landlord!\n\nEverything is set for your move-in. Your agent will contact you for the entry inventory.\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,type:'payment_confirmed'});
+        await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,content:`✅ Payment confirmed by lessor!\n\nEverything is set for your move-in. Your agent will contact you for the entry inventory.\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,type:'payment_confirmed'});
       }
-      toast('✅ Payment confirmed! Tenant notified.');
+      toast('✅ Payment confirmed! Lessee notified.');
       if(bk)generateFirstPaymentReceiptLL(bk,listing?.title,tenantProfile?.full_name);
     }else{
       await sb.from('bookings').update({first_payment_sent:false}).eq('id',bookingId);
       const{data:b}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
       if(b?.tenant_id){
-        await sb.from('messages').insert({listing_id:b.listing_id,sender_id:'system',receiver_id:b.tenant_id,content:'⚠️ Payment not received yet.\n\nThe landlord has not received your payment. Please check the transfer and try again.',type:'payment_not_received'});
+        await sb.from('messages').insert({listing_id:b.listing_id,sender_id:'system',receiver_id:b.tenant_id,content:'⚠️ Payment not received yet.\n\nThe lessor has not received your payment. Please check the transfer and try again.',type:'payment_not_received'});
       }
-      toast('⚠️ Tenant notified — payment not received.');
+      toast('⚠️ Lessee notified — payment not received.');
     }
     loadVisitsPage();
   }catch(e){alert('❌ '+e.message);}
@@ -3496,7 +3559,7 @@ async function retryCreatePaymentRecords(bookingId){
 }
 
 async function loadTenantDocuments(tenantId,bookingId){
-  const el=document.getElementById('tenant-docs-'+bookingId);
+  const el=document.getElementById('lessee-docs-'+bookingId);
   if(!el)return;
   try{
     const{data:profile}=await sb.from('profiles').select('documents').eq('clerk_id',tenantId).single();
@@ -3517,7 +3580,7 @@ async function loadTenantDocuments(tenantId,bookingId){
 
 async function viewTenantDoc(path){
   try{
-    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
+    const{data}=await sb.storage.from('lessee-documents').createSignedUrl(path,300);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
     else toast('❌ Could not open document');
   }catch(e){toast('❌ '+e.message);}
@@ -3531,7 +3594,7 @@ function renderLeaseSection(g){
   const payDeclared=bk?.first_payment_sent;
   const payConfirmed=bk?.first_payment_confirmed;
   if(payConfirmed&&bk?.id)checkPaymentRecordsExist(bk.id);
-  const moveIn=bk?.move_in_date||g.move_in_date||null; // date choisie par le tenant à la candidature
+  const moveIn=bk?.move_in_date||g.move_in_date||null; // date choisie par le lessee à la candidature
   const edlDate=bk?.edl_date||moveIn||g.visit_date||null; // par défaut, même date que le move-in — le proprio peut la changer
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
@@ -3560,7 +3623,7 @@ function renderLeaseSection(g){
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">Signatures</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">🏠 You (landlord)</span>
+          <span style="font-size:.78rem">🏠 You (lessor)</span>
           ${llSigned
             ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${bk?.lease_landlord_embed?` <a href="${bk.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
             :bk?.lease_landlord_embed
@@ -3568,7 +3631,7 @@ function renderLeaseSection(g){
               :`<button onclick="regenLease('${bk?.id||''}','${g.listing_id||''}','${g.tenant_id||''}')" style="background:var(--gold);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">🔄 Generate lease</button>`}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 Tenant (${g.tenant_name||'—'})</span>
+          <span style="font-size:.78rem">👤 Lessee (${g.tenant_name||'—'})</span>
           ${tSigned
             ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${bk?.lease_tenant_embed?` <a href="${bk.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
             :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
@@ -3577,7 +3640,7 @@ function renderLeaseSection(g){
 
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
       <div id="payrow-${bk?.id||''}" style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:.78rem">${payConfirmed?'✅ Payment confirmed':payDeclared?'💶 Tenant declared payment':'⏳ Waiting for payment'}</span>
+        <span style="font-size:.78rem">${payConfirmed?'✅ Payment confirmed':payDeclared?'💶 Lessee declared payment':'⏳ Waiting for payment'}</span>
         ${payDeclared&&!payConfirmed
           ?`<button onclick="confirmTenantPayment('${bk?.id||''}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✅ Confirm received</button>`
           :payConfirmed?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅</span>':''}
@@ -3587,7 +3650,7 @@ function renderLeaseSection(g){
       <div style="margin-top:.6rem">
         <button onclick="openLandlordEDL('${bk?.id||''}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>
       </div>`:bk?.status==='move_in_ready'?`
-      <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.5rem">✅ Move-in inventory completed — tenant has the keys</div>
+      <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.5rem">✅ Move-in inventory completed — lessee has the keys</div>
       <button onclick="viewEdlDossier('${bk?.id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>
       ${bk.edl_landlord_embed?`
       <div style="display:flex;flex-direction:column;gap:.3rem">
@@ -3632,10 +3695,10 @@ function checkPaymentRecordsExist(bookingId){
 function renderLeasePayStatus(bk){
   if(!bk) return '';
   const lines=[];
-  if(bk.lease_signed_landlord&&!bk.lease_signed_tenant) lines.push('✍️ You signed — waiting for tenant');
-  if(bk.lease_signed_tenant&&!bk.lease_signed_landlord) lines.push('✍️ Tenant signed — waiting for you');
+  if(bk.lease_signed_landlord&&!bk.lease_signed_tenant) lines.push('✍️ You signed — waiting for lessee');
+  if(bk.lease_signed_tenant&&!bk.lease_signed_landlord) lines.push('✍️ Lessee signed — waiting for you');
   if(bk.lease_signed_landlord&&bk.lease_signed_tenant) lines.push('✅ Both signed the lease');
-  if(bk.first_payment_sent&&!bk.first_payment_confirmed) lines.push('💶 Tenant declared payment — awaiting confirmation');
+  if(bk.first_payment_sent&&!bk.first_payment_confirmed) lines.push('💶 Lessee declared payment — awaiting confirmation');
   if(bk.first_payment_confirmed) lines.push('✅ Payment confirmed');
   if(!lines.length) return '';
   return `<div style="margin-top:.4rem;font-size:.73rem;color:var(--tm);line-height:1.8">${lines.join('<br>')}</div>`;
@@ -3648,8 +3711,8 @@ function renderVisitGroup(g, isPast){
     'agents_applying':{label:'✅ Visit confirmed',cls:'b-sea'},
     'agent_assigned':{label:'✅ Agent assigned',cls:'b-green'},
     'confirmed':{label:'✅ Visit confirmed',cls:'b-green'},
-    'done':{label:'⏳ Waiting for tenant\'s choice',cls:'b-gold'},
-    'completed':{label:'⏳ Waiting for tenant\'s choice',cls:'b-gold'},
+    'done':{label:'⏳ Waiting for lessee\'s choice',cls:'b-gold'},
+    'completed':{label:'⏳ Waiting for lessee\'s choice',cls:'b-gold'},
     'cancelled':{label:'❌ Cancelled',cls:'b-dim'},
     'no_show':{label:'🚫 No-show',cls:'b-dim'},
     'tenant_declined':{label:'👎 Not interested',cls:'b-dim'},
@@ -3669,7 +3732,7 @@ function renderVisitGroup(g, isPast){
   const bgColor=sc.cls==='b-green'?'rgba(76,175,125,.04)':sc.cls==='b-gold'?'rgba(212,168,71,.04)':sc.cls==='b-sea'?'rgba(58,143,181,.04)':'var(--s2)';
   const bk=g.booking||null;
 
-  // Charger les infos du tenant si dossier reçu
+  // Charger les infos du lessee si dossier reçu
   if((g.status==='booking_pending'||g.status==='pending')&&g.tenant_id){
     setTimeout(()=>loadTenantDossierForLL(g.tenant_id),50);
     if(bk)setTimeout(()=>loadCoTenantsLiveInfo(bk),50);
@@ -3691,7 +3754,7 @@ function renderVisitGroup(g, isPast){
 
     ${g.status==='awaiting_landlord'?`
     <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem .75rem;margin-top:.4rem">
-      <div style="font-size:.78rem;font-weight:600;color:var(--gold);margin-bottom:.3rem">⏳ Tenant requested a visit</div>
+      <div style="font-size:.78rem;font-weight:600;color:var(--gold);margin-bottom:.3rem">⏳ Lessee requested a visit</div>
       <div style="font-size:.7rem;color:var(--td);margin-bottom:.4rem">📅 ${visitDateStr}</div>
       <div style="display:flex;gap:.4rem">
         <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ I'm available</button>
@@ -3708,7 +3771,7 @@ function renderVisitGroup(g, isPast){
 
     ${g.status==='booking_pending'||g.status==='pending'?`
     <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.65rem .75rem;margin-top:.4rem">
-      <div style="font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">📋 ${g.tenant_name||'Tenant'} wants to rent!</div>
+      <div style="font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">📋 ${g.tenant_name||'Lessee'} wants to rent!</div>
       <div id="t-dossier-${g.tenant_id}" style="margin-bottom:.5rem">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-bottom:.5rem">
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Full name</div><div id="t-name-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
@@ -3720,7 +3783,7 @@ function renderVisitGroup(g, isPast){
         </div>
         ${bk?.negotiation_note?`
         <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:7px;padding:.5rem .65rem;margin-bottom:.5rem">
-          <div style="font-size:.63rem;color:var(--gold);font-weight:700;margin-bottom:.2rem">🤝 Tenant's request</div>
+          <div style="font-size:.63rem;color:var(--gold);font-weight:700;margin-bottom:.2rem">🤝 Lessee's request</div>
           <div style="font-size:.73rem;color:var(--tm);white-space:pre-line">${bk.negotiation_note}</div>
         </div>`:''}
         <div style="margin-bottom:.5rem">
@@ -3772,7 +3835,7 @@ async function loadTenantDossierForLL(tenantId){
 
 async function viewTenantDocLL(path){
   try{
-    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
+    const{data}=await sb.storage.from('lessee-documents').createSignedUrl(path,300);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
     else toast('❌ Could not open document');
   }catch(e){toast('❌ '+e.message);}
@@ -3786,7 +3849,7 @@ async function setEDLDate(bookingId){
     status:'edl_scheduled'
   }).eq('id',bookingId);
   if(error){toast('❌ '+error.message);return;}
-  // Notifier le tenant
+  // Notifier le lessee
   const{data:bk}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
   if(bk){
     try{
@@ -3797,20 +3860,20 @@ async function setEDLDate(bookingId){
       });
     }catch(e){}
   }
-  toast('✅ EDL date set! Tenant notified.');
+  toast('✅ EDL date set! Lessee notified.');
   loadVisitsPage();
 }
 
-// ── Move-in inventory (EDL) — direct landlord/tenant flow ─────────────
+// ── Move-in inventory (EDL) — direct lessor/lessee flow ─────────────
 async function openLandlordEDL(bookingId){
   if(!bookingId){toast('❌ No booking ID');return;}
-  let booking=null,listing=null,tenant=null;
+  let booking=null,listing=null,lessee=null;
   try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
   if(!booking){toast('❌ Booking not found');return;}
   try{const{data:l}=await sb.from('listings').select('*').eq('id',booking.listing_id).single();listing=l;}catch(e){}
-  try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',booking.tenant_id).single();tenant=tp;}catch(e){}
+  try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',booking.tenant_id).single();lessee=tp;}catch(e){}
 
-  window._llEdl={bookingId,booking,listing,tenant,landlord:P};
+  window._llEdl={bookingId,booking,listing,lessee,lessor:P};
 
   // Marquer le début de l'état des lieux tout de suite — la fiche du locataire
   // (My Visits + Ma Location) doit refléter que ça a commencé, pas attendre la fin.
@@ -3823,7 +3886,7 @@ async function openLandlordEDL(bookingId){
       try{
         await sb.from('messages').insert({
           listing_id:booking.listing_id,sender_id:U.id,receiver_id:booking.tenant_id,
-          content:'📋 Your landlord has started the move-in inventory (EDL). You\'ll be notified once it\'s ready to sign.',
+          content:'📋 Your lessor has started the move-in inventory (EDL). You\'ll be notified once it\'s ready to sign.',
           type:'edl_started'
         });
       }catch(e){}
@@ -3971,7 +4034,7 @@ async function openLandlordEDL(bookingId){
         <div style="background:rgba(76,175,125,.1);border:2px solid rgba(76,175,125,.3);border-radius:14px;padding:1.5rem;text-align:center">
           <div style="font-size:2.5rem;margin-bottom:.5rem">🎉</div>
           <div style="font-size:1.1rem;font-weight:800;color:#4CAF7D;margin-bottom:.4rem">Move-in Complete!</div>
-          <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">The tenant has officially moved in.</div>
+          <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">The lessee has officially moved in.</div>
           <div style="font-size:.76rem;color:var(--td);text-align:left;background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:1rem;line-height:2">
             ✅ EDL completed & sent for signature<br>
             ✅ Meter readings recorded & annexed<br>
@@ -4070,8 +4133,8 @@ async function retryEdlGeneration(bookingId){
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||''},
-        tenant:{name:bk.tenant_name||tenantProfile?.full_name||'',email:tenantProfile?.email||bk.tenant_email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||''},
+        lessor:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||''},
+        lessee:{name:bk.tenant_name||tenantProfile?.full_name||'',email:tenantProfile?.email||bk.tenant_email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||''},
         listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0},
         meter_water:bk.meter_water,meter_electricity:bk.meter_electricity,
         rooms,general_notes:'',phase:'arrival'
@@ -4172,15 +4235,15 @@ async function generateAnnexAndCompleteLL(){
   const statusEl=document.getElementById('ll-annex-status');
   if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ Generating Annex A (EDL)...';}
 
-  const landlord={name:ctx.landlord?.full_name||'',email:ctx.landlord?.email||'',passport:ctx.landlord?.passport_number||''};
-  const tenant={name:ctx.tenant?.full_name||'',email:ctx.tenant?.email||'',passport:ctx.tenant?.passport_number||'',nationality:ctx.tenant?.nationality||''};
+  const lessor={name:ctx.lessor?.full_name||'',email:ctx.lessor?.email||'',passport:ctx.lessor?.passport_number||''};
+  const lessee={name:ctx.lessee?.full_name||'',email:ctx.lessee?.email||'',passport:ctx.lessee?.passport_number||'',nationality:ctx.lessee?.nationality||''};
   const listing={address:ctx.listing?.full_address||ctx.listing?.zone||'',price:ctx.listing?.price||0};
 
   let edlLandlordEmbed=null,edlTenantEmbed=null,edlSubmissionId=null;
   try{
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({landlord,tenant,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
+      body:JSON.stringify({lessor,lessee,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
     });
     const edlData=await res.json();
     console.log('[generate-edl] full response:',edlData);
@@ -4229,9 +4292,9 @@ async function generateAnnexAndCompleteLL(){
 // Auto-generates the recurring monthly rent schedule once move-in is confirmed.
 // First month's rent was already collected at signing (declareTenantPayment/
 // confirmTenantPayment) — this schedules the following months, correctly
-// linked to the tenant so they actually see and can pay them.
+// linked to the lessee so they actually see and can pay them.
 //
-// Malta rule: rent is due each month on the day the tenant moved in, NOT on
+// Malta rule: rent is due each month on the day the lessee moved in, NOT on
 // the 1st of the month (e.g. moved in on the 15th → due on the 15th every
 // month after).
 async function generateRentScheduleLL(ctx,monthsAhead=12){
@@ -4286,15 +4349,15 @@ async function generateFirstPaymentReceiptLL(bk,listingTitle,tenantName){
       </style></head><body>
       <h1>🧾 Payment Receipt</h1>
       <p>Date issued: ${today}</p>
-      <p><strong>Landlord:</strong> ${P?.full_name||'—'}</p>
-      <p><strong>Tenant:</strong> ${tenantName||'—'}</p>
+      <p><strong>Lessor:</strong> ${P?.full_name||'—'}</p>
+      <p><strong>Lessee:</strong> ${tenantName||'—'}</p>
       <p><strong>Property:</strong> ${listingTitle||'—'}</p>
       <div style="margin-top:1.5rem">
         <div class="row"><span>Security deposit</span><span>€${bk.monthly_rent||0}</span></div>
         <div class="row"><span>First month's rent</span><span>€${bk.monthly_rent||0}</span></div>
         <div class="row total"><span>Total received</span><span>€${(bk.monthly_rent||0)*2}</span></div>
       </div>
-      <p style="margin-top:2rem;font-size:.85rem;color:#666">This receipt confirms that the above amounts were received directly by the landlord. It is issued for the tenant's records and does not constitute a RestMalta payment (RestMalta does not hold or process rent/deposit funds).</p>
+      <p style="margin-top:2rem;font-size:.85rem;color:#666">This receipt confirms that the above amounts were received directly by the lessor. It is issued for the lessee's records and does not constitute a RestMalta payment (RestMalta does not hold or process rent/deposit funds).</p>
     </body></html>`;
 
     const blob=new Blob([html],{type:'text/html'});
@@ -4311,7 +4374,7 @@ async function generateFirstPaymentReceiptLL(bk,listingTitle,tenantName){
 
 async function confirmTenantPayment(bookingId){
   if(!bookingId){alert('❌ No booking ID');return;}
-  if(!confirm('Confirm you received the tenant\'s payment?')) return;
+  if(!confirm('Confirm you received the lessee\'s payment?')) return;
 
   let bk=null,listing=null,tenantProfile=null;
   try{const{data:b,error:bErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();bk=b;if(bErr)alert('⚠️ Could not load booking: '+bErr.message);}catch(e){alert('⚠️ Booking load error: '+e.message);}
@@ -4351,7 +4414,7 @@ async function confirmTenantPayment(bookingId){
   try{
     await sb.from('messages').insert({
       listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-      content:`✅ Your landlord confirmed receiving your payment!\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,
+      content:`✅ Your lessor confirmed receiving your payment!\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,
       type:'payment_confirmed'
     });
   }catch(e){}
@@ -4372,8 +4435,8 @@ RestMalta Platform
 
 Date: ${today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
 
-Landlord: ${P?.full_name||'Landlord'}
-Tenant: ${tenantName||'Tenant'}
+Lessor: ${P?.full_name||'Lessor'}
+Lessee: ${tenantName||'Lessee'}
 Property: ${listingTitle||''}
 
 I confirm receipt of the following, paid in full:
@@ -4387,7 +4450,7 @@ Generated automatically by RestMalta — restmalta.com`;
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download=`Receipt_first_payment_${(tenantName||'tenant').replace(/\s+/g,'_')}.txt`;
+  a.download=`Receipt_first_payment_${(tenantName||'lessee').replace(/\s+/g,'_')}.txt`;
   a.click();
   URL.revokeObjectURL(url);
   setTimeout(()=>toast('🧾 Receipt downloaded automatically!'),1200);
@@ -4400,15 +4463,15 @@ async function acceptDirectBooking(listingId, tenantId){
     // qu'aucune autre réservation n'est déjà en cours pour cette annonce
     const{data:existingActive}=await sb.from('bookings').select('id,tenant_id').eq('listing_id',listingId).neq('tenant_id',tenantId).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).limit(1);
     if(existingActive&&existingActive.length){
-      toast('❌ This property already has another accepted tenant — decline this application first if that\'s a mistake, or check My Listings.');
+      toast('❌ This property already has another accepted lessee — decline this application first if that\'s a mistake, or check My Listings.');
       return;
     }
 
-    // Trouver le booking avec co-tenants
+    // Trouver le booking avec co-lessees
     const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).in('status',['pending','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(!booking){toast('❌ Booking not found');return;}
 
-    // Nombre total de locataires (principal + co-tenants)
+    // Nombre total de locataires (principal + co-lessees)
     const coTenantIds = booking.co_tenant_ids ? JSON.parse(booking.co_tenant_ids) : [];
     const totalTenants = 1 + coTenantIds.length;
     const monthlyRent = booking.monthly_rent || 0;
@@ -4437,13 +4500,13 @@ async function acceptDirectBooking(listingId, tenantId){
       edl_date:booking.move_in_date||visitInfo?.visit_date||null
     }).eq('id',booking.id);
 
-    // Générer le bail avec co-tenants (gère aussi le update booking)
+    // Générer le bail avec co-lessees (gère aussi le update booking)
     await generateLeaseFromBooking(booking.id, listingId, tenantId);
 
     // Mettre à jour le statut de la visite existante → lease_pending
     try{await sb.from('visits').update({status:'lease_pending'}).eq('listing_id',listingId).eq('tenant_id',tenantId);}catch(e){}
 
-    // Notifier le tenant principal
+    // Notifier le lessee principal
     try{
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
@@ -4452,17 +4515,17 @@ async function acceptDirectBooking(listingId, tenantId){
       });
     }catch(e){}
 
-    // Notifier les co-tenants
+    // Notifier les co-lessees
     for(const coTenantId of coTenantIds){
       try{
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:coTenantId,
-          content:'🎉 The rental application has been accepted!\n\nYou are a co-tenant on this lease.\n\n📄 Your lease is ready to sign — check your visits page.',
+          content:'🎉 The rental application has been accepted!\n\nYou are a co-lessee on this lease.\n\n📄 Your lease is ready to sign — check your visits page.',
           type:'booking_accepted'
         });
       }catch(e){}
 
-      // Créer une fiche visite pour chaque co-tenant aussi
+      // Créer une fiche visite pour chaque co-lessee aussi
       try{
         await sb.from('visits').insert({
           tenant_id:coTenantId,
@@ -4489,31 +4552,31 @@ async function acceptDirectBooking(listingId, tenantId){
               template:'co_tenant_invite',
               to:email,
               data:{
-                mainTenantName:booking.tenant_name||'A tenant',
+                mainTenantName:booking.tenant_name||'A lessee',
                 listingTitle:listingForInvite?.title||'a property',
                 address:listingForInvite?.full_address||listingForInvite?.zone||'',
                 signupUrl:'https://restmalta.netlify.app/'
               }
             })
           });
-        }catch(e){console.warn('Co-tenant invite email failed for',email,e);}
+        }catch(e){console.warn('Co-lessee invite email failed for',email,e);}
       }
     }
 
-    toast(`✅ Accepted! Lease generated${totalTenants>1?' for '+totalTenants+' tenants':''}.`);
+    toast(`✅ Accepted! Lease generated${totalTenants>1?' for '+totalTenants+' lessees':''}.`);
     loadMessages();
   }catch(e){toast('❌ '+e.message);console.error(e);}
 }
 
 async function declineDirectBooking(listingId, tenantId){
-  if(!confirm('Decline this tenant? The RestMalta fee authorization will be released.'))return;
+  if(!confirm('Decline this lessee? The RestMalta fee authorization will be released.'))return;
   try{
     const{data:booking}=await sb.from('bookings').select('*').eq('listing_id',listingId).eq('tenant_id',tenantId).in('status',['pending','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(!booking){toast('❌ Booking not found');return;}
 
     await fetch('/.netlify/functions/holding-deposit',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'landlord_decline',booking_id:booking.id,reason:'Landlord declined'})
+      body:JSON.stringify({action:'landlord_decline',booking_id:booking.id,reason:'Lessor declined'})
     });
 
     try{
@@ -4524,7 +4587,7 @@ async function declineDirectBooking(listingId, tenantId){
       });
     }catch(e){}
 
-    toast('✅ Declined — tenant fully refunded.');
+    toast('✅ Declined — lessee fully refunded.');
     loadMessages();
   }catch(e){toast('❌ '+e.message);}
 }
@@ -4532,10 +4595,10 @@ async function declineDirectBooking(listingId, tenantId){
 
 // ── Phone country picker ─────────────────────────────────────
 
-// ── Phone prefix landlord ────────────────────────────────────
+// ── Phone prefix lessor ────────────────────────────────────
 function updateLLPhonePrefix(){}
 
-// ── Landlord ID verification ─────────────────────────────────
+// ── Lessor ID verification ─────────────────────────────────
 let _llIdFile = null;
 let _llSelfieFile = null;
 
@@ -4580,9 +4643,9 @@ async function llSubmitIDForVerification(){
   try{
     const idExt = _llIdFile.name.split('.').pop();
     const selfieExt = _llSelfieFile.name.split('.').pop();
-    const{error:e1}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`,_llIdFile,{upsert:true});
+    const{error:e1}=await sb.storage.from('lessee-documents').upload(`docs/${U.id}/id.${idExt}`,_llIdFile,{upsert:true});
     if(e1) throw new Error(e1.message);
-    const{error:e2}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`,_llSelfieFile,{upsert:true});
+    const{error:e2}=await sb.storage.from('lessee-documents').upload(`docs/${U.id}/selfie.${selfieExt}`,_llSelfieFile,{upsert:true});
     if(e2) throw new Error(e2.message);
     await sb.from('profiles').update({id_submitted:true,id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
     if(status) status.innerHTML='<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
@@ -4598,6 +4661,22 @@ async function llSubmitIDForVerification(){
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+
+// Fermer le menu mobile en cliquant en dehors — sinon impossible de le
+// refermer sans re-cliquer précisément sur le bouton hamburger
+document.addEventListener('click',e=>{
+  const sb=document.getElementById('sb');
+  const mobBtn=document.getElementById('mob-menu');
+  if(sb&&sb.classList.contains('open')&&!sb.contains(e.target)&&e.target!==mobBtn&&!mobBtn?.contains(e.target)){
+    sb.classList.remove('open');
+  }
+});
+// Refermer aussi automatiquement après avoir choisi une page dans le menu
+document.addEventListener('click',e=>{
+  if(e.target.closest('.ni')&&window.innerWidth<=900){
+    document.getElementById('sb')?.classList.remove('open');
+  }
+});
 </script>
 </body>
 </html>
