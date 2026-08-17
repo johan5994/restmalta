@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /landlord-dashboard.html
+Disallow: /tenant-dashboard.html
+Disallow: /agency-dashboard.html
+
+Sitemap: https://restmalta.com/sitemap.xml
