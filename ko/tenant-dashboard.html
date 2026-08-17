@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RestMalta — Tenant Dashboard</title>
+<title>RestMalta — Lessee Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -98,7 +98,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .star-btn.active{opacity:1}
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--deep);color:white;padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 24px rgba(26,20,16,.25)}
 .toast.show{transform:translateY(0);opacity:1}
-@media(max-width:768px){.sb{display:none}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}}
+@media(max-width:768px){.sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.5)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}#mob-menu{display:inline-flex}}
+#mob-menu{display:none}
 .vtab{padding:.4rem .75rem;border-radius:100px;border:1px solid var(--b);background:transparent;color:var(--td);font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'DM Sans',sans-serif}
 .vtab:hover{background:var(--s2);color:var(--tf)}
 .vtab-active{background:var(--terra);color:white;border-color:var(--terra)}
@@ -114,10 +115,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 </style>
 </head>
 <body>
-<aside class="sb">
+<aside class="sb" id="sb">
   <div class="sb-logo">
     <div class="logo" onclick="window.location.href='/'">RestMalta</div>
-    <div class="logo-sub">Tenant Dashboard</div>
+    <div class="logo-sub">Lessee Dashboard</div>
   </div>
   <nav class="sb-nav">
     <div class="nl">Overview</div>
@@ -127,7 +128,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Communication</div>
     <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-msg" style="display:none">0</span></button>
     <div class="nl">Documents & Finance</div>
-    <button class="ni" onclick="sp('mylocation',this)"><span class="nico">🏠</span>Ma Location</button>
+    <button class="ni" onclick="sp('mylocation',this)"><span class="nico">🏠</span>My Rental</button>
     <button class="ni" onclick="sp('roommates',this)"><span class="nico">👥</span>Find a roommate</button>
     <div class="nl">Reviews & Profilee</div>
     <button class="ni" onclick="sp('reviews',this)"><span class="nico">⭐</span>Leave a review</button>
@@ -135,7 +136,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   </nav>
   <div class="sb-user">
     <div class="uav" id="uav">?</div>
-    <div style="flex:1;min-width:0"><div class="un" id="uname">Loading...</div><div class="ur">Tenant</div></div>
+    <div style="flex:1;min-width:0"><div class="un" id="uname">Loading...</div><div class="ur">Lessee</div></div>
     <button class="btn bg bsm" onclick="doLogout()" title="Sign out">↩</button>
   </div>
 </aside>
@@ -146,6 +147,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div style="display:flex;gap:.75rem">
       <button class="btn bg bsm" onclick="window.location.href='/'">🔍 Browse flats</button>
       <button class="btn bg bsm" onclick="doLogout()">Sign out</button>
+      <button class="btn bg bsm" id="mob-menu" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
     </div>
   </div>
   <div class="content">
@@ -154,7 +156,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="page act" id="page-overview">
       <div class="kgrid">
         <div class="kcard"><div class="klabel">Active contacts</div><div class="kval" id="k-contacts" style="color:var(--terra)">—</div><div class="ksub">Listings contacted</div><div class="kico">🏠</div></div>
-        <div class="kcard"><div class="klabel">Unread messages</div><div class="kval" id="k-msgs" style="color:var(--sea)">—</div><div class="ksub">From landlords</div><div class="kico">💬</div></div>
+        <div class="kcard"><div class="klabel">Unread messages</div><div class="kval" id="k-msgs" style="color:var(--sea)">—</div><div class="ksub">From lessors</div><div class="kico">💬</div></div>
         <div class="kcard"><div class="klabel">Open tickets</div><div class="kval" id="k-tickets" style="color:var(--gold)">—</div><div class="ksub">Maintenance requests</div><div class="kico">🔧</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1rem">
@@ -177,7 +179,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- MESSAGES -->
     <div class="page" id="page-messages">
-      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Messages from landlords</div>
+      <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Messages from lessors</div>
       <div id="messages-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
 
@@ -204,16 +206,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div id="ml-empty" style="display:none">
         <div class="card" style="text-align:center;padding:2.5rem 1.5rem">
           <div style="font-size:2.5rem;margin-bottom:.75rem">🏠</div>
-          <div style="font-size:1rem;font-weight:700;margin-bottom:.4rem">Pas encore de location</div>
-          <p style="font-size:.85rem;color:var(--tm);max-width:420px;margin:0 auto 1.25rem;line-height:1.6">Dès que ton dossier sera accepté et le bail en cours de signature, tu retrouveras ici ton bail, l'état des lieux, tes paiements et la maintenance.</p>
-          <button class="btn bp" onclick="sp('search',document.querySelectorAll('.ni')[1])">🔍 Chercher un logement →</button>
+          <div style="font-size:1rem;font-weight:700;margin-bottom:.4rem">No rental yet</div>
+          <p style="font-size:.85rem;color:var(--tm);max-width:420px;margin:0 auto 1.25rem;line-height:1.6">Once your application is accepted and the lease is being signed, you'll find your lease, move-in inventory, payments, and maintenance here.</p>
+          <button class="btn bp" onclick="sp('search',document.querySelectorAll('.ni')[1])">🔍 Search for a home →</button>
         </div>
       </div>
 
       <!-- Active lease content -->
       <div id="ml-content" style="display:none">
         <div style="margin-bottom:1.2rem">
-          <div style="font-size:1rem;font-weight:700">🏠 Ma Location</div>
+          <div style="font-size:1rem;font-weight:700">🏠 My Rental</div>
           <div style="font-size:.78rem;color:var(--tm);margin-top:.15rem" id="ml-property-name">—</div>
         </div>
 
@@ -255,7 +257,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div style="font-size:.85rem;font-weight:700;color:var(--tm)">Maintenance tickets</div>
             <button class="btn bp bsm" onclick="openTicketModal()">+ Report problem</button>
           </div>
-          <div class="ai">🔧 Report any issue in your flat and your landlord is notified instantly. Track the status in real time — from open to in progress to resolved.</div>
+          <div class="ai">🔧 Report any issue in your flat and your lessor is notified instantly. Track the status in real time — from open to in progress to resolved.</div>
           <div id="tickets-list"><div class="ld"><div class="sp"></div></div></div>
         </div>
 
@@ -319,7 +321,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div class="card">
           <div class="ch"><div class="ct">👤 My roommate search profile</div><span class="badge" id="rm-profile-badge" style="display:none"></span></div>
           <div class="cb">
-            <p style="font-size:.8rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">This is what other tenants see next to your messages in the Community Channel.</p>
+            <p style="font-size:.8rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">This is what other lessees see next to your messages in the Community Channel.</p>
             <div class="fgrid2">
               <div class="fg"><label class="fl">Budget min (€/mo)</label><input class="fi" type="number" id="rm-budget-min" placeholder="400"></div>
               <div class="fg"><label class="fl">Budget max (€/mo)</label><input class="fi" type="number" id="rm-budget-max" placeholder="700"></div>
@@ -420,16 +422,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- REVIEWS -->
     <div class="page" id="page-reviews">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Leave a review</div>
-      <div class="ai">⭐ Your reviews help the RestMalta community. Landlords with great reviews get more visibility — honest feedback makes the platform better for everyone.</div>
+      <div class="ai">⭐ Your reviews help the RestMalta community. Lessors with great reviews get more visibility — honest feedback makes the platform better for everyone.</div>
       <div class="card" id="rate-agent-card" style="display:none;margin-bottom:1rem">
         <div class="ch"><div class="ct">⭐ Rate your agent</div></div>
         <div class="cb" id="rate-agent-list"></div>
       </div>
       <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">Review your landlord</div></div>
+        <div class="ch"><div class="ct">Review your lessor</div></div>
         <div class="cb">
-          <div class="fg"><label class="fl">Which landlord?</label><select class="fsel" id="rev-landlord-select"><option value="">Loading...</option></select></div>
-          <div id="rev-no-landlords" style="display:none;font-size:.82rem;color:var(--tm);margin-bottom:.5rem">You'll be able to review a landlord once you've actually rented from them.</div>
+          <div class="fg"><label class="fl">Which lessor?</label><select class="fsel" id="rev-landlord-select"><option value="">Loading...</option></select></div>
+          <div id="rev-no-landlords" style="display:none;font-size:.82rem;color:var(--tm);margin-bottom:.5rem">You'll be able to review a lessor once you've actually rented from them.</div>
           <div id="rev-landlord-form" style="display:none">
             <div class="fg"><label class="fl">Rating</label>
               <div style="display:flex;gap:.5rem;margin-bottom:.5rem" id="stars-wrap">
@@ -470,7 +472,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <div class="page" id="page-profile">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My profile</div>
-      <div class="aw">📋 Complete your profile once — all this info is used to auto-generate your lease. Fields marked * are required before you can contact a landlord or request a visit.</div>
+      <div class="aw">📋 Complete your profile once — all this info is used to auto-generate your lease. Fields marked * are required before you can contact a lessor or request a visit.</div>
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">Personal information</div><span id="complete-pct" style="font-size:.75rem;color:var(--td)"></span></div>
         <div class="cb">
@@ -508,7 +510,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div id="completeness-bar-wrap" style="background:var(--b);border-radius:100px;height:8px;margin-bottom:.5rem">
               <div id="completeness-bar" style="background:var(--terra);height:8px;border-radius:100px;width:0%;transition:width .3s"></div>
             </div>
-            <div id="completeness-text" style="color:var(--td)">Fill in all required fields to contact landlords</div>
+            <div id="completeness-text" style="color:var(--td)">Fill in all required fields to contact lessors</div>
           </div>
 
           <div style="margin-top:1rem;display:flex;align-items:center;gap:1rem">
@@ -520,7 +522,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card">
         <div class="ch"><div class="ct">🪪 Identity verification</div><span id="verify-badge" class="badge b-dim">Not verified</span></div>
         <div class="cb">
-          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified tenants get a ✅ badge visible to all landlords and are prioritised in tenant matching. A RestMalta team member will verify your ID within 24 hours.</p>
+          <p style="font-size:.85rem;color:var(--tm);margin-bottom:.75rem;line-height:1.6">Verified lessees get a ✅ badge visible to all lessors and are prioritised in lessee matching. A RestMalta team member will verify your ID within 24 hours.</p>
 
           <div id="verify-upload-section">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
@@ -574,7 +576,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="card" style="margin-bottom:1rem">
         <div class="ch"><div class="ct">📁 Supporting documents</div><span id="docs-badge" class="badge b-dim">—</span></div>
         <div class="cb">
-          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">These documents are shown to landlords when you apply for a flat. The more you upload, the stronger your application.</p>
+          <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">These documents are shown to lessors when you apply for a flat. The more you upload, the stronger your application.</p>
 
           <div style="display:flex;flex-direction:column;gap:.65rem">
             <!-- ID / Passport -->
@@ -628,7 +630,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
             <!-- Reference letter -->
             <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:9px;padding:.6rem .85rem">
-              <div><div style="font-size:.82rem;font-weight:600">⭐ Reference letter <span style="font-size:.65rem;color:var(--td)">(optional)</span></div><div style="font-size:.7rem;color:var(--td);margin-top:.1rem">From a previous landlord or employer</div></div>
+              <div><div style="font-size:.82rem;font-weight:600">⭐ Reference letter <span style="font-size:.65rem;color:var(--td)">(optional)</span></div><div style="font-size:.7rem;color:var(--td);margin-top:.1rem">From a previous lessor or employer</div></div>
               <div style="display:flex;align-items:center;gap:.5rem">
                 <span id="doc-ref-status" class="badge b-dim" style="font-size:.65rem">Not uploaded</span>
                 <label style="background:var(--terra);color:white;padding:.3rem .65rem;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer">Upload<input type="file" accept="image/*,.pdf" style="display:none" onchange="uploadSupportDoc(this,'reference_letter')"></label>
@@ -690,7 +692,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="modal" style="max-height:90vh;overflow-y:auto">
     <button class="mclose" onclick="document.getElementById('tick-modal').classList.remove('open')">✕</button>
     <div class="mt">🔧 Signaler un problème</div>
-    <div class="ms">Describe the issue — your landlord will be notified immediately</div>
+    <div class="ms">Describe the issue — your lessor will be notified immediately</div>
 
     <div class="fg"><label class="fl">Type de problème *</label>
       <select class="fsel" id="tick-type">
@@ -709,7 +711,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
     <!-- Diagnostic questions -->
     <div id="tick-questions" style="background:var(--tdim);border-radius:10px;padding:.85rem;margin:.5rem 0;font-size:.82rem">
-      <div style="font-weight:700;margin-bottom:.5rem">❓ A few questions to help your landlord:</div>
+      <div style="font-weight:700;margin-bottom:.5rem">❓ A few questions to help your lessor:</div>
       <div id="tick-q-list" style="display:flex;flex-direction:column;gap:.4rem">
         <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-sudden"> Problème apparu soudainement</label>
         <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" id="tq-recurring"> Problème récurrent</label>
@@ -742,7 +744,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div id="tick-photos-preview" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
     </div>
 
-    <button class="btn bp" style="width:100%;justify-content:center" onclick="submitTicket()">📤 Send to landlord →</button>
+    <button class="btn bp" style="width:100%;justify-content:center" onclick="submitTicket()">📤 Send to lessor →</button>
   </div>
 </div>
 
@@ -776,12 +778,12 @@ let clerk,U=null,P=null,selectedRating=5;
     await new Promise(r=>setTimeout(r,800));
   }
   P=P_data;
-  if(P?.role==='landlord'){window.location.href='/landlord-dashboard.html';return;}
+  if(P?.role==='lessor'){window.location.href='/lessor-dashboard.html';return;}
   initUI();loadAll();
 })();
 
 function initUI(){
-  const n=P?.full_name||'Tenant';
+  const n=P?.full_name||'Lessee';
   document.getElementById('uav').textContent=n[0].toUpperCase();
   document.getElementById('uname').textContent=n;
   document.getElementById('tbs').textContent='Welcome back, '+n.split(' ')[0]+'!';
@@ -800,7 +802,7 @@ function sp(id,btn){
   // Afficher docs seulement sur profile
   const docsSection=document.getElementById('docs-section');
   if(docsSection) docsSection.style.display=id==='profile'?'block':'none';
-  const titles={overview:'My Rentals',messages:'Messages',mylocation:'Ma Location',deposit:'My Deposit',reviews:'Reviews',profile:'My Profile',search:'Find a Flat',visits:'My Visits'};
+  const titles={overview:'My Rentals',messages:'Messages',mylocation:'My Rental',deposit:'My Deposit',reviews:'Reviews',profile:'My Profile',search:'Find a Flat',visits:'My Visits'};
   document.getElementById('tbt').textContent=titles[id]||id;
   if(id==='messages')loadMessages();
   if(id==='mylocation')loadMyLocation();
@@ -893,7 +895,7 @@ async function saveRoommateProfile(){
   };
   const payload={
     tenant_id:U.id,
-    full_name:P?.full_name||'Tenant',
+    full_name:P?.full_name||'Lessee',
     budget_min:parseFloat(document.getElementById('rm-budget-min').value)||null,
     budget_max:parseFloat(document.getElementById('rm-budget-max').value)||null,
     zones:document.getElementById('rm-zones').value.trim(),
@@ -1057,7 +1059,7 @@ async function openCreateGroupModal(){
     if(!profiles?.length){picker.innerHTML='<div style="font-size:.75rem;color:var(--td)">No other active profiles yet</div>';return;}
     picker.innerHTML=profiles.map(p=>`
       <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem 0;cursor:pointer;font-size:.8rem">
-        <input type="checkbox" value="${p.tenant_id}" class="rm-member-cb"> ${p.full_name||'Tenant'}
+        <input type="checkbox" value="${p.tenant_id}" class="rm-member-cb"> ${p.full_name||'Lessee'}
       </label>`).join('');
   }catch(e){picker.innerHTML='<div style="font-size:.75rem;color:var(--red)">Could not load</div>';}
 }
@@ -1096,7 +1098,7 @@ async function loadRmGroups(){
     const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.tenant_id]=p.full_name;});
 
     wrap.innerHTML=(groups||[]).map(g=>{
-      const members=(allMembers||[]).filter(m=>m.group_id===g.id).map(m=>nameMap[m.tenant_id]||'Tenant');
+      const members=(allMembers||[]).filter(m=>m.group_id===g.id).map(m=>nameMap[m.tenant_id]||'Lessee');
       return`<div class="card" style="margin-bottom:.75rem;cursor:pointer" onclick="openRmGroupChat('${g.id}','${(g.name||'Group').replace(/'/g,"\\'")}')">
         <div class="cb" style="display:flex;justify-content:space-between;align-items:center">
           <div>
@@ -1118,7 +1120,7 @@ async function openRmGroupChat(groupId,groupName){
     const{data:members}=await sb.from('roommate_group_members').select('tenant_id').eq('group_id',groupId);
     const ids=(members||[]).map(m=>m.tenant_id);
     const{data:profiles}=await sb.from('roommate_profiles').select('tenant_id,full_name').in('tenant_id',ids);
-    const names=(profiles||[]).map(p=>p.full_name||'Tenant');
+    const names=(profiles||[]).map(p=>p.full_name||'Lessee');
     document.getElementById('rm-groupchat-members').textContent=names.join(', ');
   }catch(e){}
   loadRmGroupMessages();
@@ -1140,7 +1142,7 @@ async function loadRmGroupMessages(){
     thread.innerHTML=msgs.map(m=>{
       const isMe=m.sender_id===U.id;
       return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
-        ${!isMe?`<div style="font-size:.65rem;color:var(--terra);font-weight:700;margin-bottom:.1rem">${nameMap[m.sender_id]||'Tenant'}</div>`:''}
+        ${!isMe?`<div style="font-size:.65rem;color:var(--terra);font-weight:700;margin-bottom:.1rem">${nameMap[m.sender_id]||'Lessee'}</div>`:''}
         <div style="max-width:80%;background:${isMe?'var(--terra)':'var(--s2)'};color:${isMe?'white':'var(--txt)'};border-radius:12px;padding:.55rem .8rem;font-size:.83rem;white-space:pre-wrap;line-height:1.5">${m.content}</div>
       </div>`;
     }).join('');
@@ -1326,7 +1328,7 @@ async function loadMessages(){
     });
 
     const convs=[...threadMap.values()];
-    if(!convs.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a landlord from any listing!</p></div>';return;}
+    if(!convs.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a lessor from any listing!</p></div>';return;}
 
     // Récupérer les noms des interlocuteurs
     const otherIds=[...new Set(convs.map(c=>c.otherId).filter(id=>id&&id!=='system'))];
@@ -1354,8 +1356,8 @@ async function loadMessages(){
 
     wrap.innerHTML=convs.map(m=>{
       const other=profileMap[m.otherId];
-      const roleIco=other?.role==='landlord'?'🏠':other?.role==='agent'?'🏆':'💬';
-      const roleTxt=other?.role==='landlord'?'Landlord':other?.role==='agent'?'Agent':'';
+      const roleIco=other?.role==='lessor'?'🏠':other?.role==='agent'?'🏆':'💬';
+      const roleTxt=other?.role==='lessor'?'Lessor':other?.role==='agent'?'Agent':'';
       const name=other?.full_name||m.listings?.title||'Conversation';
       const subtitle=roleTxt?`${roleTxt} · ${m.listings?.title||''} · ${m.listings?.zone||''}`:m.listings?.title||'';
       const isUnread=!m.read&&m.receiver_id===U.id;
@@ -1423,9 +1425,9 @@ async function openMsg(threadKey, titleEnc, subtitleEnc, listingId, receiverId, 
             <div style="margin-bottom:.4rem">
               <label style="font-size:.7rem;color:var(--td);display:block;margin-bottom:.2rem">📎 Upload transfer receipt (optional but recommended)</label>
               <input type="file" id="receipt-${m.id}" accept="image/*,.pdf" style="font-size:.72rem;width:100%;background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:.3rem .5rem;color:var(--tf)">
-              <div style="font-size:.62rem;color:var(--td);margin-top:.1rem">Screenshot Revolut, bank PDF... helps landlord confirm faster</div>
+              <div style="font-size:.62rem;color:var(--td);margin-top:.1rem">Screenshot Revolut, bank PDF... helps lessor confirm faster</div>
             </div>
-            <button onclick="declarePaidFromMessage('${m.id}','${m.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">💳 I've paid — notify landlord</button>
+            <button onclick="declarePaidFromMessage('${m.id}','${m.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer">💳 I've paid — notify lessor</button>
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
@@ -1448,7 +1450,7 @@ async function openMsg(threadKey, titleEnc, subtitleEnc, listingId, receiverId, 
 
   // Real-time
   if(tenantChatChannel)sb.removeChannel(tenantChatChannel);
-  tenantChatChannel=sb.channel('tenant-chat-'+listingId)
+  tenantChatChannel=sb.channel('lessee-chat-'+listingId)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`listing_id=eq.${listingId}`},payload=>{
       const m=payload.new;
       const isMe=m.sender_id===U.id;
@@ -1512,7 +1514,7 @@ async function declarePaidFromMessage(msgId, listingId){
         type:'deposit_and_first_month',
         status:'declared',
         declared_at:new Date().toISOString(),
-        tenant_name:P?.full_name||'Tenant',
+        tenant_name:P?.full_name||'Lessee',
         listing_title:lease?.listing_title||''
       });
     }
@@ -1534,22 +1536,22 @@ async function declarePaidFromMessage(msgId, listingId){
     }catch(e){console.warn('Receipt upload failed:',e);}
   }
 
-  // Notifier le landlord
+  // Notifier le lessor
   if(lease?.landlord_id){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,
         sender_id:'system',
         receiver_id:lease.landlord_id,
-        content:`💶 ${P?.full_name||'Your tenant'} has declared payment of €${total}.\n\n🔐 Deposit: €${deposit}\n🏠 First month: €${firstMonth}\n${receiptUrl?`\n📎 Transfer receipt: ${receiptUrl}`:''}\n\nPlease check your bank account / Revolut and confirm receipt in your dashboard → Payments.`,
+        content:`💶 ${P?.full_name||'Your lessee'} has declared payment of €${total}.\n\n🔐 Deposit: €${deposit}\n🏠 First month: €${firstMonth}\n${receiptUrl?`\n📎 Transfer receipt: ${receiptUrl}`:''}\n\nPlease check your bank account / Revolut and confirm receipt in your dashboard → Payments.`,
         type:'payment_declared'
       });
     }catch(e){}
   }
 
   const btn=document.querySelector(`button[onclick*="declarePaidFromMessage"][onclick*="${msgId}"]`);
-  if(btn)btn.closest('div').innerHTML='<div style="margin-top:.5rem;background:rgba(76,175,125,.15);border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#4CAF7D;font-weight:600">✅ Payment declared — waiting for landlord confirmation.</div>';
-  toast('✅ Landlord notified — they will confirm receipt.');
+  if(btn)btn.closest('div').innerHTML='<div style="margin-top:.5rem;background:rgba(76,175,125,.15);border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#4CAF7D;font-weight:600">✅ Payment declared — waiting for lessor confirmation.</div>';
+  toast('✅ Lessor notified — they will confirm receipt.');
 }
 
 
@@ -1592,7 +1594,7 @@ async function sendReply(){
 async function loadTickets(){
   const wrap=document.getElementById('tickets-list');
 
-  // Check if tenant has an active booking (same model as the rest of the app)
+  // Check if lessee has an active booking (same model as the rest of the app)
   let hasLease=false;
   try{
     const activeStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
@@ -1728,7 +1730,7 @@ async function loadTenantVisits(){
     }
   }catch(e){}
 
-  // Charger les baux où CE compte est co-tenant (pas le demandeur principal)
+  // Charger les baux où CE compte est co-lessee (pas le demandeur principal)
   // — dès l'envoi de la demande, pas seulement une fois le bail généré.
   let coTenantBookings=[];
   try{
@@ -1745,13 +1747,13 @@ async function loadTenantVisits(){
     });
   }catch(e){}
 
-  // Charger les bookings du tenant
+  // Charger les bookings du lessee
   let bookings=[];
   try{
     const{data:bData}=await sb.from('bookings').select('*').eq('tenant_id',U.id).order('created_at',{ascending:false});
     bookings=bData||[];
 
-    // Enrichir les bookings accepted avec IBAN landlord si manquant
+    // Enrichir les bookings accepted avec IBAN lessor si manquant
     const acceptedBookings=bookings.filter(b=>b.status==='accepted'&&!b.landlord_iban);
     if(acceptedBookings.length){
       try{
@@ -1845,12 +1847,12 @@ async function loadTenantVisits(){
       'edl_scheduled':'b-green','signing_day':'b-green','move_in_ready':'b-green'
     };
     const statusLabels={
-      'awaiting_landlord':'⏳ Awaiting landlord confirmation',
-      'agents_applying':'✅ Visit confirmed by landlord',
-      'agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by landlord',
+      'awaiting_landlord':'⏳ Awaiting lessor confirmation',
+      'agents_applying':'✅ Visit confirmed by lessor',
+      'agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by lessor',
       'confirmed':v.has_agent?'✅ You confirmed':'✅ Visit confirmed',
       'completed':'🏁 Visit done',
-      'booking_pending':'🔒 Awaiting landlord decision',
+      'booking_pending':'🔒 Awaiting lessor decision',
       'accepted':'🎉 Application accepted!',
       'lease_pending':'📄 Lease being signed',
       'edl_scheduled':'📋 EDL scheduled',
@@ -1879,7 +1881,7 @@ async function loadTenantVisits(){
       <!-- ÉTAPE 1 : En attente confirmation landlord -->
       ${v.status==='awaiting_landlord'?`
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--gold)">
-        ⏳ Waiting for the landlord to confirm the date is available.
+        ⏳ Waiting for the lessor to confirm the date is available.
       </div>`:''} 
 
       <!-- ÉTAPE 3 : Visite confirmée -->
@@ -1906,7 +1908,7 @@ async function loadTenantVisits(){
       <!-- ÉTAPE 5 : En attente décision landlord -->
       ${v.status==='booking_pending'?`
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--gold)">
-        🔒 Your rental request has been sent to the landlord. Awaiting their decision.
+        🔒 Your rental request has been sent to the lessor. Awaiting their decision.
       </div>
       ${bk?.receipt_tenant_embed?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-top:.4rem">
         <span style="font-size:.76rem">🧾 Reservation fee receipt</span>
@@ -1936,7 +1938,7 @@ async function loadTenantVisits(){
     doneBookings.forEach(b=>{
       html+=`<div style="padding:.75rem;background:var(--s2);border:1px solid var(--b);border-radius:10px;margin-bottom:.5rem;opacity:.7">
         <div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${b.listing_title||'Property'}</div>
-        <div style="font-size:.72rem;color:var(--td)">${b.status==='declined'?'❌ Declined by landlord':'❌ Cancelled'} · Refunded €${b.total_amount||0}</div>
+        <div style="font-size:.72rem;color:var(--td)">${b.status==='declined'?'❌ Declined by lessor':'❌ Cancelled'} · Refunded €${b.total_amount||0}</div>
       </div>`;
     });
     doneVisits.forEach(v=>{
@@ -1949,14 +1951,14 @@ async function loadTenantVisits(){
     });
   }
 
-  // Section dédiée : baux où ce compte est co-tenant (pas le demandeur principal)
+  // Section dédiée : baux où ce compte est co-lessee (pas le demandeur principal)
   // — visible dès l'envoi de la demande, pas seulement une fois le bail généré.
   if(coTenantBookings.length){
     try{
       const lIds=[...new Set(coTenantBookings.map(b=>b.listing_id).filter(Boolean))];
       const{data:ls}=await sb.from('listings').select('id,title,zone,price').in('id',lIds);
       const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
-      html+='<div style="font-size:.78rem;font-weight:700;color:var(--tm);margin:1rem 0 .5rem">🤝 Leases you\'re a co-tenant on</div>';
+      html+='<div style="font-size:.78rem;font-weight:700;color:var(--tm);margin:1rem 0 .5rem">🤝 Leases you\'re a co-lessee on</div>';
       coTenantBookings.forEach(b=>{
         const listing=lMap[b.listing_id]||{};
         const entry=b._myCoTenantEntry;
@@ -1967,7 +1969,7 @@ async function loadTenantVisits(){
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">📍 ${listing.zone||'Malta'} · Main applicant: ${b.tenant_name||'—'}</div>`;
 
         if(b.status==='pending'||b.status==='booking_pending'){
-          html+=`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--gold);font-weight:600">⏳ Waiting for the landlord to respond to ${b.tenant_name||'the main applicant'}'s request</div>`;
+          html+=`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--gold);font-weight:600">⏳ Waiting for the lessor to respond to ${b.tenant_name||'the main applicant'}'s request</div>`;
         }else if(isAccepted){
           html+=renderTenantLeaseSection({move_in_date:b.move_in_date},b,entry);
         }else{
@@ -1984,7 +1986,7 @@ async function loadTenantVisits(){
 function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   if(!bk) return '';
   const llSigned=bk.lease_signed_landlord;
-  // Si coTenantEntry est fourni, on affiche CETTE personne (co-tenant) dans la
+  // Si coTenantEntry est fourni, on affiche CETTE personne (co-lessee) dans la
   // ligne "You" au lieu du locataire principal — même carte, juste la bonne
   // perspective de signature.
   const tSigned=coTenantEntry?coTenantEntry.signed:bk.lease_signed_tenant;
@@ -2020,15 +2022,15 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">Signatures</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">🏠 Landlord</span>
+          <span style="font-size:.78rem">🏠 Lessor</span>
           ${llSigned?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
         ${coTenantEntry?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 ${bk.tenant_name||'Main tenant'}</span>
+          <span style="font-size:.78rem">👤 ${bk.tenant_name||'Main lessee'}</span>
           ${bk.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem">👤 ${coTenantEntry?'You (co-tenant)':'You'}</span>
+          <span style="font-size:.78rem">👤 ${coTenantEntry?'You (co-lessee)':'You'}</span>
           ${tSigned
             ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>`
             :mySignEmbed
@@ -2037,7 +2039,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         </div>
       </div>
       ${bk.status==='edl_scheduled'?`
-      <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your landlord is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
+      <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your lessor is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
       ${bk.edl_tenant_embed?`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
@@ -2055,13 +2057,13 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       ${!payConfirmed?`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">First payment</div>
       <div style="background:var(--s2);border-radius:8px;padding:.55rem .65rem;margin-bottom:.5rem">
-        <div style="font-size:.75rem;font-weight:600;margin-bottom:.35rem">💶 Amount due to landlord</div>
+        <div style="font-size:.75rem;font-weight:600;margin-bottom:.35rem">💶 Amount due to lessor</div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span>🔐 Security deposit</span><span>€${deposit}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span>🏠 First month rent</span><span>€${rent}</span></div>
         ${holding?`<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#4CAF7D;margin-bottom:.15rem"><span>✅ Holding deposit deducted</span><span>-€${holding}</span></div>`:''}
         <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${deposit+rent-holding}</span></div>
       </div>
-      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main tenant'} — usually one of you sends the total and marks it as paid below.</div>`:''}
+      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main lessee'} — usually one of you sends the total and marks it as paid below.</div>`:''}
       ${bk.landlord_iban||bk.landlord_revolut?`
       <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.73rem;color:var(--tm)">
         ${bk.landlord_iban?`🏦 IBAN: <strong>${bk.landlord_iban}</strong><br>`:''}
@@ -2069,8 +2071,8 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       </div>`:''}
       ${!payDeclared&&!payConfirmed
         ?`<button onclick="declareTenantPayment('${bk.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer">✅ I have transferred the payment →</button>`
-        :`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">⏳ Payment declared — awaiting landlord confirmation</div>`}
-      `:`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✅ Payment confirmed by landlord</div>`}
+        :`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">⏳ Payment declared — awaiting lessor confirmation</div>`}
+      `:`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✅ Payment confirmed by lessor</div>`}
     </div>
   </div>`;
 }
@@ -2174,7 +2176,7 @@ function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
       }
       await sb.from('messages').insert({
         listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
-        content:'✅ Tenant signed '+title,type:dbField
+        content:'✅ Lessee signed '+title,type:dbField
       });
     }catch(e){
       alert('❌ Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);
@@ -2211,10 +2213,10 @@ async function tenantNotInterested(visitId){
 }
 
 async function declareTenantPayment(bookingId){
-  if(!confirm('Confirm you have transferred the payment to the landlord?')) return;
+  if(!confirm('Confirm you have transferred the payment to the lessor?')) return;
   const{error}=await sb.from('bookings').update({first_payment_sent:true}).eq('id',bookingId);
   if(error){toast('❌ '+error.message);return;}
-  toast('✅ Payment declared! Landlord will confirm.');
+  toast('✅ Payment declared! Lessor will confirm.');
   loadTenantVisits();
 }
 
@@ -2254,7 +2256,7 @@ function doOpenTenantLeaseDoc(bk,bookingId){
       await sb.from('bookings').update({lease_signed_tenant:true,lease_signed_tenant_at:new Date().toISOString()}).eq('id',bookingId);
       await sb.from('messages').insert({
         listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
-        content:'✅ Tenant signed the lease!',type:'lease_signed_tenant'
+        content:'✅ Lessee signed the lease!',type:'lease_signed_tenant'
       });
     }catch(e){}
     modal.remove();
@@ -2287,7 +2289,7 @@ function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
   const header=document.createElement('div');
   header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
-  header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Lease Agreement (co-tenant)</div>';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Lease Agreement (co-lessee)</div>';
   const closeBtn=document.createElement('button');
   closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
   closeBtn.textContent='✕';
@@ -2312,7 +2314,7 @@ function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
       }
       await sb.from('messages').insert({
         listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
-        content:'✅ Co-tenant '+(P?.full_name||'')+' signed the lease!',type:'lease_signed_cotenant'
+        content:'✅ Co-lessee '+(P?.full_name||'')+' signed the lease!',type:'lease_signed_cotenant'
       });
     }catch(e){}
     modal.remove();
@@ -2436,13 +2438,13 @@ ${U.email||''}
 
 ${todayLabel}
 
-To: ${landlordProfile?.full_name||'[Landlord name]'}
-${landlordProfile?.home_address||listing?.full_address||'[Landlord address]'}
+To: ${landlordProfile?.full_name||'[Lessor name]'}
+${landlordProfile?.home_address||listing?.full_address||'[Lessor address]'}
 
 RE: NOTICE OF WITHDRAWAL FROM LEASE AGREEMENT
 Property: ${listing?.full_address||listing?.zone||'[Property address]'}
 
-Dear ${landlordProfile?.full_name||'Landlord'},
+Dear ${landlordProfile?.full_name||'Lessor'},
 
 In accordance with the Private Residential Leases Act (Chapter 604 of the Laws of Malta), I am writing to formally give notice of my intention to withdraw from the lease agreement for the above-mentioned property.
 
@@ -2508,10 +2510,10 @@ async function loadPaymentsData(){
         <div style="font-size:2rem">💶</div>
         <div style="flex:1">
           <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem">Rent due — €${(p.amount||0).toLocaleString()}</div>
-          <div style="font-size:.78rem;color:var(--tm)">Due ${p.due_date?new Date(p.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'now'} · Pay via bank transfer or Revolut to your landlord</div>
+          <div style="font-size:.78rem;color:var(--tm)">Due ${p.due_date?new Date(p.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'now'} · Pay via bank transfer or Revolut to your lessor</div>
         </div>
         ${p.status==='declared'
-          ?'<span class="badge b-gold">⏳ Awaiting landlord confirmation</span>'
+          ?'<span class="badge b-gold">⏳ Awaiting lessor confirmation</span>'
           :`<button class="btn bp" onclick="declarePaid('${p.id}')">✅ I paid →</button>`}
       </div>`).join('');
   } else if(dueWrap){
@@ -2521,7 +2523,7 @@ async function loadPaymentsData(){
   // "Payment history" — seulement ce qui est réellement confirmé payé
   const confirmedPayments=payments.filter(p=>p.status==='paid');
   const sc={paid:'b-green',declared:'b-gold',pending:'b-dim',late:'b-red'};
-  const sl={paid:'✅ Confirmed',declared:'💬 Déclaré — en attente landlord',pending:'⏳ Pending',late:'⚠️ En retard'};
+  const sl={paid:'✅ Confirmed',declared:'💬 Déclaré — en attente lessor',pending:'⏳ Pending',late:'⚠️ En retard'};
   document.getElementById('pay-list').innerHTML=confirmedPayments.length
     ?'<div style="padding:0 1.2rem">'+confirmedPayments.map(p=>`
       <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--b)">
@@ -2558,7 +2560,7 @@ function downloadTenantReceipt(paymentId,amount,date){
 
     doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(80,80,80);
     doc.text(`Date: ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,20,y);y+=8;
-    doc.text(`Tenant: ${P?.full_name||'Tenant'}`,20,y);y+=14;
+    doc.text(`Lessee: ${P?.full_name||'Lessee'}`,20,y);y+=14;
 
     doc.setFontSize(11);doc.setTextColor(40,40,40);
     doc.text(`I confirm payment of the sum of €${(parseFloat(amount)||0).toLocaleString()}`,20,y);y+=7;
@@ -2591,7 +2593,7 @@ async function declarePaid(paymentId){
     if(btn){btn.disabled=false;btn.textContent='✅ I paid →';}
     return;
   }
-  toast('✅ Payment declared! Your landlord will confirm receipt.');
+  toast('✅ Payment declared! Your lessor will confirm receipt.');
   loadPaymentsData();
 }
 
@@ -2622,13 +2624,13 @@ async function loadReviewableLandlords(){
     const remaining=landlordIds.filter(id=>!reviewedIds.has(id));
     if(!remaining.length){
       sel.innerHTML='';sel.style.display='none';
-      if(noneEl){noneEl.style.display='block';noneEl.textContent='You\'ve already reviewed all your landlords. Thanks for the feedback!';}
+      if(noneEl){noneEl.style.display='block';noneEl.textContent='You\'ve already reviewed all your lessors. Thanks for the feedback!';}
       if(formEl)formEl.style.display='none';
       return;
     }
     const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name').in('clerk_id',remaining);
     const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.clerk_id]=p.full_name;});
-    sel.innerHTML='<option value="">Select a landlord...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Landlord'}</option>`).join('');
+    sel.innerHTML='<option value="">Select a lessor...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Lessor'}</option>`).join('');
     sel.style.display='block';
     if(noneEl)noneEl.style.display='none';
     if(formEl)formEl.style.display='block';
@@ -2638,9 +2640,9 @@ async function loadReviewableLandlords(){
 }
 
 async function submitReview(){
-  const landlordId=document.getElementById('rev-landlord-select')?.value;
+  const landlordId=document.getElementById('rev-lessor-select')?.value;
   const comment=document.getElementById('rev-comment').value.trim();
-  if(!landlordId){toast('⚠️ Select a landlord');return;}
+  if(!landlordId){toast('⚠️ Select a lessor');return;}
   if(!comment){toast('Please write a comment');return;}
   if(!selectedRating){toast('⚠️ Select a rating');return;}
 
@@ -2648,9 +2650,9 @@ async function submitReview(){
   // propriétaire, et qu'aucun avis n'a déjà été laissé (protège même contre
   // un id manipulé directement, en plus du filtre déjà appliqué côté select)
   const{data:realBooking}=await sb.from('bookings').select('id').eq('tenant_id',U.id).eq('landlord_id',landlordId).in('status',['move_in_ready','completed','active']).limit(1).maybeSingle();
-  if(!realBooking){toast('❌ You can only review a landlord you\'ve actually rented from');return;}
+  if(!realBooking){toast('❌ You can only review a lessor you\'ve actually rented from');return;}
   const{data:existingReview}=await sb.from('reviews').select('id').eq('reviewer_id',U.id).eq('target_id',landlordId).eq('type','tenant_to_landlord').maybeSingle();
-  if(existingReview){toast('❌ You already reviewed this landlord');return;}
+  if(existingReview){toast('❌ You already reviewed this lessor');return;}
 
   const{error}=await sb.from('reviews').insert({
     reviewer_id:U.id,rating:selectedRating,comment,type:'tenant_to_landlord',
@@ -2764,7 +2766,7 @@ async function loadProfilee(){
       <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center">
         <div style="font-size:2rem;margin-bottom:.4rem">✅</div>
         <div style="font-weight:700;color:#4CAF7D;margin-bottom:.3rem">Identity Verified</div>
-        <div style="font-size:.78rem;color:var(--tm)">Your identity has been verified by RestMalta. Your ✅ badge is visible to all landlords.</div>
+        <div style="font-size:.78rem;color:var(--tm)">Your identity has been verified by RestMalta. Your ✅ badge is visible to all lessors.</div>
       </div>`;
   } else if(P.id_submitted){
     badge.className='badge b-gold';
@@ -2795,7 +2797,7 @@ function updateProfileeCompleteness(){
   if(bar)bar.style.width=pct+'%';
   if(bar)bar.style.background=pct===100?'var(--green)':pct>50?'var(--sea)':'var(--terra)';
   if(text){
-    if(pct===100)text.innerHTML='✅ Profilee complete — you can contact landlords and request visits';
+    if(pct===100)text.innerHTML='✅ Profilee complete — you can contact lessors and request visits';
     else text.innerHTML=`${pct}% complete — fill in all required fields to unlock contact & visits`;
     text.style.color=pct===100?'var(--green)':'var(--td)';
   }
@@ -2925,7 +2927,7 @@ async function uploadSupportDoc(input,docType){
   try{
     const ext=file.name.split('.').pop();
     const path=`docs/${U.id}/${docType}.${ext}`;
-    const{error}=await sb.storage.from('tenant-documents').upload(path,file,{upsert:true});
+    const{error}=await sb.storage.from('lessee-documents').upload(path,file,{upsert:true});
     if(error)throw new Error(error.message);
 
     // Toujours repartir de la version fraîche en base (pas de la copie en
@@ -2939,7 +2941,7 @@ async function uploadSupportDoc(input,docType){
     if(saveErr)throw new Error(saveErr.message);
     if(P)P.documents=JSON.stringify(docs); // même format que ce que loadDossierStatus() attend
 
-    const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(path,604800);
+    const{data:urlData}=await sb.storage.from('lessee-documents').createSignedUrl(path,604800);
     if(statusEl){
       const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
       statusEl.innerHTML=isImg
@@ -2962,7 +2964,7 @@ async function viewDocument(docType){
   const d=doc[docType];
   if(!d?.path){toast('⚠️ No document uploaded');return;}
   try{
-    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(d.path,604800);
+    const{data}=await sb.storage.from('lessee-documents').createSignedUrl(d.path,604800);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
   }catch(e){toast('❌ Could not open document');}
 }
@@ -3000,7 +3002,7 @@ function openSigningDoc(embedSrc, title, bookingId){
             try{
               await sb.from('messages').insert({
                 listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
-                content:'✍️ The tenant has signed the lease!\n\nBoth parties signed. Waiting for first payment.',
+                content:'✍️ The lessee has signed the lease!\n\nBoth parties signed. Waiting for first payment.',
                 type:'lease_signed_tenant'
               });
             }catch(e){}
@@ -3026,26 +3028,26 @@ function openSigningDoc(embedSrc, title, bookingId){
 
 
 async function confirmTenantPayment(bookingId){
-  if(!confirm('Confirm that you have transferred the payment to the landlord?'))return;
+  if(!confirm('Confirm that you have transferred the payment to the lessor?'))return;
   try{
     await sb.from('bookings').update({first_payment_sent:true}).eq('id',bookingId);
-    // Notifier le landlord
+    // Notifier le lessor
     const{data:b}=await sb.from('bookings').select('listing_id,landlord_id').eq('id',bookingId).single();
     if(b?.landlord_id){
       await sb.from('messages').insert({
         listing_id:b.listing_id,sender_id:'system',receiver_id:b.landlord_id,
-        content:'💶 Payment notification!\n\nYour tenant has confirmed transferring the first payment (deposit + first month prorata).\n\nPlease check your bank account and confirm receipt in your visits page.',
+        content:'💶 Payment notification!\n\nYour lessee has confirmed transferring the first payment (deposit + first month prorata).\n\nPlease check your bank account and confirm receipt in your visits page.',
         type:'payment_sent'
       });
     }
-    toast('✅ Payment confirmed! Waiting for landlord to verify receipt.');
+    toast('✅ Payment confirmed! Waiting for lessor to verify receipt.');
     await loadTenantVisits();
   }catch(e){toast('❌ '+e.message);}
 }
 
 
 async function requestReference(){
-  const email=prompt('Enter your previous landlord\'s email:');
+  const email=prompt('Enter your previous lessor\'s email:');
   if(!email||!email.includes('@')){if(email!==null)toast('❌ Invalid email');return;}
   let error=null;
   try{
@@ -3065,7 +3067,7 @@ async function loadReferences(){
   const wrap=document.getElementById('references-list');
   if(!wrap)return;
   const{data}=await sb.from('references').select('*').eq('tenant_id',U.id);
-  if(!data||!data.length){wrap.innerHTML='<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No references yet. Request one from a previous landlord!</div>';return;}
+  if(!data||!data.length){wrap.innerHTML='<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No references yet. Request one from a previous lessor!</div>';return;}
   wrap.innerHTML=data.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--b);font-size:.83rem">
     <div>
       <div style="font-weight:600">${r.landlord_email}</div>
@@ -3092,7 +3094,7 @@ async function loadDossierStatus(){
       const docIdMap={'bank_statement':'doc-bank-status','emprent_letter':'doc-emprent-status','reference_letter':'doc-ref-status','rent1':'doc-rent1-status','rent2':'doc-rent2-status','rent3':'doc-rent3-status','id':'doc-id-status'};
       const statusEl=document.getElementById(docIdMap[docType]||`doc-${docType.replace(/_/g,'-')}-status`);
       if(!statusEl) continue;
-      const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(doc.path,604800);
+      const{data:urlData}=await sb.storage.from('lessee-documents').createSignedUrl(doc.path,604800);
       if(urlData?.signedUrl){
         const isImg=['jpg','jpeg','png','gif','webp'].includes((doc.ext||'').toLowerCase());
         statusEl.innerHTML = isImg
@@ -3106,8 +3108,8 @@ async function loadDossierStatus(){
 
     // Compléter avec le storage (pour les anciens fichiers sans metadata)
     const[{data:data1},{data:data2}]=await Promise.all([
-      sb.storage.from('tenant-documents').list(`docs/${U.id}/`),
-      sb.storage.from('tenant-documents').list(`id-docs/${U.id}/`)
+      sb.storage.from('lessee-documents').list(`docs/${U.id}/`),
+      sb.storage.from('lessee-documents').list(`id-docs/${U.id}/`)
     ]);
     const allFiles=[...(data1||[]).map(f=>({...f,path:`docs/${U.id}/${f.name}`})),...(data2||[]).map(f=>({...f,path:`id-docs/${U.id}/${f.name}`}))];
     for(const f of allFiles){
@@ -3118,7 +3120,7 @@ async function loadDossierStatus(){
       const docIdMap2={'bank_statement':'doc-bank-status','emprent_letter':'doc-emprent-status','reference_letter':'doc-ref-status','rent1':'doc-rent1-status','rent2':'doc-rent2-status','rent3':'doc-rent3-status','id':'doc-id-status'};
       const statusEl=document.getElementById(docIdMap2[key]||`doc-${key.replace(/_/g,'-')}-status`);
       if(!statusEl) continue;
-      const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(f.path,604800);
+      const{data:urlData}=await sb.storage.from('lessee-documents').createSignedUrl(f.path,604800);
       if(urlData?.signedUrl){
         const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
         statusEl.innerHTML = isImg
@@ -3150,7 +3152,7 @@ function checkDossierComplete(){
   if(!missing.length){
     res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)">✅ Profile complete — you can now request visits!</div>`;
   } else {
-    res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--gold)">⚠️ Documents manquants : ${missing.map(d=>d==='id'?'Passeport/ID':'Lettre employeur').join(', ')}</div>`;
+    res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--gold)">⚠️ Missing documents: ${missing.map(d=>d==='id'?'Passport/ID':'Employer letter').join(', ')}</div>`;
   }
 }
 
@@ -3167,7 +3169,7 @@ async function checkDossierBeforeVisit(){
   if(!profileComplete)issues.push('Incomplete profile (nom, passeport, date de naissance, nationalité, adresse)');
   if(!uploadedDocs['id'])issues.push('Passeport / ID non uploadé');
   if(!uploadedDocs['emprent_letter'])issues.push('Lettre d\'employeur ou d\'admission non uploadée');
-  if(!idVerified)issues.push('Identité non vérifiée (selfie + ID requis)');
+  if(!idVerified)issues.push('Identity not verified (selfie + ID required)');
   return{ok:issues.length===0,issues};
 }
 
@@ -3221,9 +3223,9 @@ async function submitIDForVerification(){
   try{
     const idExt = _idFile.name.split('.').pop();
     const selfieExt = _selfieFile.name.split('.').pop();
-    const{error:e1} = await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`, _idFile, {upsert:true});
+    const{error:e1} = await sb.storage.from('lessee-documents').upload(`docs/${U.id}/id.${idExt}`, _idFile, {upsert:true});
     if(e1) throw new Error(e1.message);
-    const{error:e2} = await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`, _selfieFile, {upsert:true});
+    const{error:e2} = await sb.storage.from('lessee-documents').upload(`docs/${U.id}/selfie.${selfieExt}`, _selfieFile, {upsert:true});
     if(e2) throw new Error(e2.message);
     await sb.from('profiles').update({id_submitted:true, id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
     if(status) status.innerHTML = '<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
@@ -3269,7 +3271,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
         <div style="font-size:.8rem;font-weight:600;color:#F0EDE8;margin-bottom:.2rem">👥 Moving in with someone?</div>
         <div style="font-size:.7rem;color:rgba(240,237,232,.35);margin-bottom:.65rem">Add anyone else who will be on the lease with you</div>
         <div id="cotenants-list"></div>
-        <button type="button" id="cotenant-add-btn" onclick="addCoTenantSlot()" style="width:100%;background:none;border:1px dashed rgba(255,255,255,.15);color:rgba(240,237,232,.5);border-radius:10px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">+ Add a co-tenant</button>
+        <button type="button" id="cotenant-add-btn" onclick="addCoTenantSlot()" style="width:100%;background:none;border:1px dashed rgba(255,255,255,.15);color:rgba(240,237,232,.5);border-radius:10px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">+ Add a co-lessee</button>
       </div>
 
       <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;margin-bottom:1rem">
@@ -3296,7 +3298,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
             </div>
           </div>
           <div>
-            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.35rem">💬 Message to landlord</label>
+            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.35rem">💬 Message to lessor</label>
             <textarea id="neg-message" rows="2" placeholder="Hi, I'm very interested in your flat…" style="width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.8rem;outline:none;font-family:'DM Sans',sans-serif;resize:none;line-height:1.5"></textarea>
           </div>
         </div>
@@ -3325,7 +3327,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
       </div>
       ${commission>0?`
         <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem">💳 Platform fee authorization</div>
-        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">En poursuivant, vous autorisez RestMalta à prélever <strong style="color:#F0EDE8">€${commission} (${commissionLabel})</strong> uniquement si votre candidature est acceptée par le propriétaire.</div>
+        <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">By proceeding, you authorize RestMalta to charge <strong style="color:#F0EDE8">€${commission} (${commissionLabel})</strong> only if your application is accepted by the lessor.</div>
         <div id="nego-card-status">${hasCard?`<div style="font-size:.72rem;color:#4CAF7D">✅ Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem">⚠️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">💳 Register my card first →</button>`}</div>
       </div>
       <div style="display:flex;gap:.5rem" id="nego-action-buttons">
@@ -3351,7 +3353,7 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
   modal.innerHTML=`
     <div style="background:#1A1D27;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:1.5rem;width:100%;max-width:380px">
       <div style="font-size:.95rem;font-weight:800;color:#F0EDE8;margin-bottom:.3rem">💳 Register your card</div>
-      <div style="font-size:.75rem;color:rgba(240,237,232,.45);margin-bottom:1rem">Required to send an application — you won't be charged unless the landlord accepts.</div>
+      <div style="font-size:.75rem;color:rgba(240,237,232,.45);margin-bottom:1rem">Required to send an application — you won't be charged unless the lessor accepts.</div>
       <div id="inline-card-element" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:.85rem;margin-bottom:.75rem"></div>
       <div id="inline-card-error" style="color:#E05A5A;font-size:.76rem;margin-bottom:.5rem;display:none"></div>
       <div style="display:flex;gap:.5rem">
@@ -3375,7 +3377,7 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
     try{
       const res=await fetch('/.netlify/functions/visit-noshow',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'setup_payment',tenant_email:U.email,tenant_name:P?.full_name||'Tenant'})
+        body:JSON.stringify({action:'setup_payment',tenant_email:U.email,tenant_name:P?.full_name||'Lessee'})
       });
       const data=await res.json();
       if(!data.success)throw new Error(data.error||'Could not start card setup');
@@ -3390,7 +3392,7 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
       toast('✅ Card saved!');
 
       // Mettre à jour la modal de candidature EN PLACE plutôt que de la
-      // reconstruire — la reconstruire effaçait les co-tenants déjà ajoutés
+      // reconstruire — la reconstruire effaçait les co-lessees déjà ajoutés
       // (et le prix négocié, le message, la date d'emménagement...) puisque
       // showNegotiationModal() réinitialise tout à chaque appel.
       const statusEl=document.getElementById('nego-card-status');
@@ -3430,7 +3432,7 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
   const extras=[...document.querySelectorAll('.neg-extra:checked')].map(e=>e.value);
   const message=document.getElementById('neg-message')?.value.trim()||'';
 
-  // Collecter les co-tenants MAINTENANT — leurs champs DOM disparaissent
+  // Collecter les co-lessees MAINTENANT — leurs champs DOM disparaissent
   // avec cette modal, donc on résout tout avant de la fermer.
   const coTenantsFull=(window._coTenantsData||[])
     .map((d,i)=>d&&!d.hasAccount?collectCoTenantManualFields(i):d)
@@ -3533,7 +3535,7 @@ async function requestVisitFromContact(listingId, landlordId, listingTitle){
 let coTenantSlotCount=0;
 
 function addCoTenantSlot(){
-  if(coTenantSlotCount>=5){toast('⚠️ Maximum 5 co-tenants');return;}
+  if(coTenantSlotCount>=5){toast('⚠️ Maximum 5 co-lessees');return;}
   const slotId=coTenantSlotCount++;
   window._coTenantsData[slotId]=null;
   const list=document.getElementById('cotenants-list');
@@ -3542,7 +3544,7 @@ function addCoTenantSlot(){
   card.style.cssText='background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:.85rem;margin-bottom:.6rem';
   card.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-      <div style="font-size:.78rem;font-weight:700">👤 Co-tenant ${slotId+1}</div>
+      <div style="font-size:.78rem;font-weight:700">👤 Co-lessee ${slotId+1}</div>
       <button type="button" onclick="removeCoTenantSlot(${slotId})" style="background:none;border:none;color:var(--red);font-size:.8rem;cursor:pointer">✕ Remove</button>
     </div>
     <div style="display:flex;gap:.4rem;margin-bottom:.4rem">
@@ -3563,12 +3565,12 @@ async function lookupCoTenant(slotId){
   const email=document.getElementById(`ct-email-${slotId}`)?.value.trim();
   if(!email||!email.includes('@')){toast('⚠️ Enter a valid email');return;}
   if(email.toLowerCase()===U.email?.toLowerCase()){
-    toast('⚠️ That\'s your own email — enter your co-tenant\'s email instead');
+    toast('⚠️ That\'s your own email — enter your co-lessee\'s email instead');
     return;
   }
   const alreadyUsed=(window._coTenantsData||[]).some((d,i)=>i!==slotId&&d&&d.email&&d.email.toLowerCase()===email.toLowerCase());
   if(alreadyUsed){
-    toast('⚠️ You already added this person as a co-tenant');
+    toast('⚠️ You already added this person as a co-lessee');
     return;
   }
   const resultEl=document.getElementById(`ct-result-${slotId}`);
@@ -3684,7 +3686,7 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
         try{
           await sb.from('messages').insert({
             listing_id:listingId,sender_id:'system',receiver_id:landlordId,
-            content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nCheck your Applications page to review their dossier and accept or decline.',
+            content:'🏠 '+(P?.full_name||'A lessee')+' wants to rent your property!\n\nCheck your Applications page to review their dossier and accept or decline.',
             type:'wants_to_rent'
           });
         }catch(e){}
@@ -3716,7 +3718,7 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.78rem">
         <div style="display:flex;justify-content:space-between;font-weight:700"><span>RestMalta Fee (${Math.round(tenantRate*100)}%)</span><span>€${commission}</span></div>
         ${agentDirectAmount?`<div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--b)"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--tm)"><span>🤝 Agent fee (${agentMustCreate?40:30}%) — paid directly to your agent, not here</span><span>€${agentDirectAmount}</span></div></div>`:''}
-        <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 This is only charged once the landlord accepts your request. If declined, nothing is taken. You'll then pay deposit + first month directly to the landlord.</div>
+        <div style="font-size:.65rem;color:var(--td);margin-top:.4rem">💚 This is only charged once the lessor accepts your request. If declined, nothing is taken. You'll then pay deposit + first month directly to the lessor.</div>
       </div>
       <div id="rent-pay-card" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:1rem;margin-bottom:.75rem"></div>
       <div id="rent-pay-error" style="color:var(--red);font-size:.78rem;margin-bottom:.5rem;display:none"></div>
@@ -3774,7 +3776,7 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       try{
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:landlordId,
-          content:'🏠 '+(P?.full_name||'A tenant')+' wants to rent your property!\n\nThey have authorized the RestMalta fee. Check your visits page to review their dossier and accept or decline.',
+          content:'🏠 '+(P?.full_name||'A lessee')+' wants to rent your property!\n\nThey have authorized the RestMalta fee. Check your visits page to review their dossier and accept or decline.',
           type:'wants_to_rent'
         });
       }catch(e){}
@@ -3810,13 +3812,13 @@ function initPhonePickerTenant(){
 }
 
 
-// ── Co-tenant flow ────────────────────────────────────────────
+// ── Co-lessee flow ────────────────────────────────────────────
 let coTenantsData = []; // [{email, profile}]
 
 function addCoTenantField(){
   const list = document.getElementById('cotenants-list');
   if(!list) return;
-  if(list.children.length >= 3){ toast('Maximum 3 co-tenants'); return; }
+  if(list.children.length >= 3){ toast('Maximum 3 co-lessees'); return; }
   const idx = list.children.length;
   const div = document.createElement('div');
   div.id = 'cotenant-row-' + idx;
@@ -3869,6 +3871,19 @@ async function doLogout(){await clerk.signOut();window.location.href='/';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
 setRating(5);
 
+// Fermer le menu mobile en cliquant en dehors, ou après avoir choisi une page
+document.addEventListener('click',e=>{
+  const sb=document.getElementById('sb');
+  const mobBtn=document.getElementById('mob-menu');
+  if(sb&&sb.classList.contains('open')&&!sb.contains(e.target)&&e.target!==mobBtn&&!mobBtn?.contains(e.target)){
+    sb.classList.remove('open');
+  }
+});
+document.addEventListener('click',e=>{
+  if(e.target.closest('.ni')&&window.innerWidth<=768){
+    document.getElementById('sb')?.classList.remove('open');
+  }
+});
 
 </script>
 </body>
