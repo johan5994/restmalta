@@ -2732,6 +2732,50 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
   }catch(e){toast('❌ '+e.message);console.error(e);}
 }
 
+async function checkAndSendLeaseViaRestMalta(bookingId,signLink,propertyTitle,btn){
+  const email=document.getElementById('lease-rm-email')?.value.trim();
+  const resultEl=document.getElementById('lease-rm-result');
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='⚠️ Enter a valid email first';}
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent='⏳...';}
+  try{
+    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
+    if(btn){btn.disabled=false;btn.textContent='🔍 Check';}
+    if(profile){
+      resultEl.style.color='#4CAF7D';
+      resultEl.innerHTML=`✅ Found: <strong>${profile.full_name||'this account'}</strong> — `;
+      const sendBtn=document.createElement('button');
+      sendBtn.textContent='📱 Send';
+      sendBtn.style.cssText='background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem';
+      sendBtn.onclick=()=>sendLeaseViaRestMalta(profile.clerk_id,bookingId,signLink,propertyTitle,sendBtn);
+      resultEl.appendChild(sendBtn);
+    }else{
+      resultEl.style.color='var(--red)';
+      resultEl.textContent='No RestMalta account found for this email.';
+    }
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='🔍 Check';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='❌ '+e.message;}
+  }
+}
+
+async function sendLeaseViaRestMalta(realLandlordId,bookingId,signLink,propertyTitle,btn){
+  if(btn){btn.disabled=true;btn.textContent='⏳ Sending...';}
+  try{
+    const{data:booking}=await sb.from('bookings').select('listing_id').eq('id',bookingId).maybeSingle();
+    const{error}=await sb.from('messages').insert({
+      listing_id:booking?.listing_id||null,sender_id:U.id,receiver_id:realLandlordId,
+      content:`📄 The lease for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
+      type:'lease_ready_agency'
+    });
+    if(error){toast('❌ '+error.message);if(btn){btn.disabled=false;btn.textContent='📱 Send';}return;}
+    if(btn){btn.innerHTML='✅ Sent';}
+    toast('✅ Sent to the owner on RestMalta');
+  }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='📱 Send';}}
+}
+
 function showLeaseSigningOptionsScreen(bookingId,signLink,landlordEmail,propertyTitle,landlordPhone){
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
@@ -2749,6 +2793,14 @@ function showLeaseSigningOptionsScreen(bookingId,signLink,landlordEmail,property
       <button onclick="this.closest('div[style*=fixed]').remove();signAsAgencyLessor('${bookingId}','${signLink}')" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.75rem">✍️ Sign now myself</button>
       <div style="text-align:center;font-size:.72rem;color:var(--td);margin-bottom:.75rem">— or send it to the landlord —</div>
       <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;color:var(--td);word-break:break-all;margin-bottom:.75rem">${signLink}</div>
+      <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:.6rem .75rem;margin-bottom:.75rem">
+        <div style="font-size:.72rem;font-weight:600;margin-bottom:.4rem">📱 Or send directly on RestMalta</div>
+        <div style="display:flex;gap:.4rem">
+          <input class="fi" type="email" id="lease-rm-email" placeholder="owner@email.com" value="${(landlordEmail||'').replace(/"/g,'&quot;')}" style="flex:1;font-size:.78rem">
+          <button onclick="checkAndSendLeaseViaRestMalta('${bookingId}','${signLink}','${(propertyTitle||'').replace(/'/g,"\\'")}',this)" class="btn bg bsm" style="white-space:nowrap">🔍 Check</button>
+        </div>
+        <div id="lease-rm-result" style="font-size:.7rem;margin-top:.4rem"></div>
+      </div>
       <button onclick="navigator.clipboard.writeText('${signLink}');this.innerHTML='✅ Link copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy link</button>
       <a href="${waHref}" target="_blank" onclick="setTimeout(()=>{this.innerHTML='✅ Sent via WhatsApp';this.style.opacity='.7';},300)" class="btn bg" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem;background:#25D366;color:white;border:none">💬 Send via WhatsApp</a>
       <a href="${mailtoHref}" onclick="setTimeout(()=>{this.innerHTML='✅ Email opened';this.style.opacity='.7';},300)" class="btn bp" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem">✉️ Send by email</a>
