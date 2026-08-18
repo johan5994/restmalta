@@ -125,6 +125,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni act" onclick="sp('overview',this)"><span class="nico">🏠</span>My rentals</button>
     <button class="ni" onclick="sp('search',this)"><span class="nico">🔍</span>Find a flat<span class="nbadge" id="nb-alerts" style="display:none;background:var(--green)">!</span></button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>My visits<span class="nbadge" id="nb-visits-t" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('applications',this)"><span class="nico">📋</span>Applications<span class="nbadge" id="nb-applications-t" style="display:none">0</span></button>
     <div class="nl">Communication</div>
     <button class="ni" onclick="sp('messages',this)"><span class="nico">💬</span>Messages<span class="nbadge" id="nb-msg" style="display:none">0</span></button>
     <div class="nl">Documents & Finance</div>
@@ -470,6 +471,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
     </div>
 
+    <div class="page" id="page-applications">
+      <div style="margin-bottom:1rem;font-size:1rem;font-weight:700">📋 Applications</div>
+      <div id="tenant-applications-list">
+        <div class="empty"><div class="em">📋</div><p>Loading applications...</p></div>
+      </div>
+    </div>
+
     <div class="page" id="page-profile">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">My profile</div>
       <div class="aw">📋 Complete your profile once — all this info is used to auto-generate your lease. Fields marked * are required before you can contact a lessor or request a visit.</div>
@@ -808,6 +816,7 @@ function sp(id,btn){
   if(id==='mylocation')loadMyLocation();
   if(id==='search')loadAlertState();
   if(id==='visits'){loadTenantVisits();}
+  if(id==='applications'){loadTenantApplicationsPage();}
   if(id==='roommates'){showRmTab('channel');}
   if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
 }
@@ -1704,10 +1713,7 @@ async function submitTicket(){
   loadTickets();
 }
 
-async function loadTenantVisits(){
-  const wrap=document.getElementById('tenant-visits-list');
-  if(!wrap)return;
-
+async function fetchTenantVisitData(){
   let visits=[];
   try{
     const{data:rawVisits}=await sb.from('visits').select('*').eq('tenant_id',U.id).order('visit_date',{ascending:false});
@@ -1777,28 +1783,12 @@ async function loadTenantVisits(){
     }
   }catch(e){}
 
-  // Badge
-  const actionCount=visits.filter(v=>v.status==='agent_assigned'&&!v.tenant_confirmed).length+bookings.filter(b=>b.status==='pending').length;
-  const badge=document.getElementById('nb-visits-t');
-  if(badge){badge.textContent=actionCount||'';badge.style.display=actionCount>0?'inline':'none';}
-
-  if(!visits.length&&!bookings.length){
-    wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>';
-    return;
-  }
-
   // Fusionner visites et bookings par listing_id
-  // Trier les bookings par statut le plus avancé
   const statusPriority={'move_in_ready':6,'signing_day':5,'edl_scheduled':4,'accepted':3,'lease_pending':3,'booking_pending':2,'pending':1};
   const sortedBookings=[...bookings].sort((a,b)=>(statusPriority[b.status]||0)-(statusPriority[a.status]||0));
-  
-  // Pour chaque visite, trouver le booking le plus avancé pour ce listing
-  // On utilise un Set pour éviter d'assigner le même booking à 2 visites
   const usedBookingIds=new Set();
-  
-  // Enrichir les visites avec leur booking
+
   visits=visits.map(v=>{
-    // Trouver le booking le plus avancé pour cette visite (même listing)
     const bk=sortedBookings.find(b=>b.listing_id===v.listing_id&&!usedBookingIds.has(b.id))||null;
     if(bk) usedBookingIds.add(bk.id);
     let status=v.status;
@@ -1811,7 +1801,6 @@ async function loadTenantVisits(){
     return{...v,booking:bk,status};
   });
 
-  // Bookings sans visite correspondante
   const orphanBookings=bookings.filter(b=>!usedBookingIds.has(b.id)&&!['declined','cancelled_by_tenant'].includes(b.status)).map(b=>{
     let status='booking_pending';
     if(b.status==='pending'||b.status==='booking_pending')status='booking_pending';
@@ -1826,46 +1815,42 @@ async function loadTenantVisits(){
   });
   visits=[...visits,...orphanBookings];
 
-  const doneStatuses=['cancelled','declined','tenant_declined','no_show','date_rejected'];
-  const activeStatuses=['awaiting_landlord','agents_applying','agent_assigned','confirmed','booking_pending','accepted','lease_pending','edl_scheduled','signing_day','move_in_ready','tenant_interested'];
+  return{visits,coTenantBookings};
+}
 
-  const activeVisits=visits.filter(v=>activeStatuses.includes(v.status)||!doneStatuses.includes(v.status));
-  const doneVisits=visits.filter(v=>doneStatuses.includes(v.status));
-  const activeBookings=[]; // Bookings maintenant fusionnés dans visits
-  const doneBookings=[];
+// Statuts de visite pure — avant toute candidature de location
+const TENANT_VISIT_ONLY_STATUSES=['awaiting_landlord','agents_applying','agent_assigned','confirmed','completed','cancelled','tenant_declined','no_show','date_rejected'];
+// Statuts de candidature — dès que le tenant a dit "je veux louer"
+const TENANT_APPLICATION_STATUSES=['booking_pending','accepted','lease_pending','edl_scheduled','signing_day','move_in_ready','declined'];
 
-  let html='';
+function renderTenantVisitCard(v){
+  const bk=v.booking||null;
+  const statusColors={
+    'awaiting_landlord':'b-gold','agents_applying':'b-sea','agent_assigned':'b-green',
+    'confirmed':'b-green','completed':'b-sea','tenant_interested':'b-green',
+    'booking_pending':'b-gold','accepted':'b-green','lease_pending':'b-sea',
+    'edl_scheduled':'b-green','signing_day':'b-green','move_in_ready':'b-green'
+  };
+  const statusLabels={
+    'awaiting_landlord':'⏳ Awaiting lessor confirmation',
+    'agents_applying':'✅ Visit confirmed by lessor',
+    'agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by lessor',
+    'confirmed':v.has_agent?'✅ You confirmed':'✅ Visit confirmed',
+    'completed':'🏁 Visit done',
+    'booking_pending':'🔒 Awaiting lessor decision',
+    'accepted':'🎉 Application accepted!',
+    'lease_pending':'📄 Lease being signed',
+    'edl_scheduled':'📋 EDL scheduled',
+    'signing_day':'🎉 Signing Day',
+    'move_in_ready':'🏠 Moved in'
+  };
+  const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(v.visit_time?' at '+v.visit_time:''):'Date TBD';
+  const sc=statusColors[v.status]||'b-dim';
+  const sl=statusLabels[v.status]||v.status;
+  const bgCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.05)':v.status==='booking_pending'?'rgba(212,168,71,.05)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.05)':'var(--s2)';
+  const borderCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.2)':v.status==='booking_pending'?'rgba(212,168,71,.2)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.2)':'var(--b)';
 
-  // Bookings actifs maintenant fusionnés dans les visites
-  // Visites actives
-  activeVisits.forEach(v=>{
-    const bk=v.booking||null;
-    const statusColors={
-      'awaiting_landlord':'b-gold','agents_applying':'b-sea','agent_assigned':'b-green',
-      'confirmed':'b-green','completed':'b-sea','tenant_interested':'b-green',
-      'booking_pending':'b-gold','accepted':'b-green','lease_pending':'b-sea',
-      'edl_scheduled':'b-green','signing_day':'b-green','move_in_ready':'b-green'
-    };
-    const statusLabels={
-      'awaiting_landlord':'⏳ Awaiting lessor confirmation',
-      'agents_applying':'✅ Visit confirmed by lessor',
-      'agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by lessor',
-      'confirmed':v.has_agent?'✅ You confirmed':'✅ Visit confirmed',
-      'completed':'🏁 Visit done',
-      'booking_pending':'🔒 Awaiting lessor decision',
-      'accepted':'🎉 Application accepted!',
-      'lease_pending':'📄 Lease being signed',
-      'edl_scheduled':'📋 EDL scheduled',
-      'signing_day':'🎉 Signing Day',
-      'move_in_ready':'🏠 Moved in'
-    };
-    const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(v.visit_time?' at '+v.visit_time:''):'Date TBD';
-    const sc=statusColors[v.status]||'b-dim';
-    const sl=statusLabels[v.status]||v.status;
-    const bgCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.05)':v.status==='booking_pending'?'rgba(212,168,71,.05)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.05)':'var(--s2)';
-    const borderCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.2)':v.status==='booking_pending'?'rgba(212,168,71,.2)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.2)':'var(--b)';
-
-    html+=`<div style="padding:.85rem;background:${bgCol};border:1px solid ${borderCol};border-radius:12px;margin-bottom:.65rem">
+  let html=`<div style="padding:.85rem;background:${bgCol};border:1px solid ${borderCol};border-radius:12px;margin-bottom:.65rem">
 
       <!-- Header -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem">
@@ -1926,35 +1911,28 @@ async function loadTenantVisits(){
       </div>
 
     </div>`;
-  });
+  return html;
+}
 
-  // Séparateur si visites terminées
-  if(doneVisits.length||doneBookings.length){
-    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem">
-      <div style="flex:1;height:1px;background:var(--b)"></div>
-      <span>Past visits</span>
-      <div style="flex:1;height:1px;background:var(--b)"></div>
-    </div>`;
-    doneBookings.forEach(b=>{
-      html+=`<div style="padding:.75rem;background:var(--s2);border:1px solid var(--b);border-radius:10px;margin-bottom:.5rem;opacity:.7">
-        <div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${b.listing_title||'Property'}</div>
-        <div style="font-size:.72rem;color:var(--td)">${b.status==='declined'?'❌ Declined by lessor':'❌ Cancelled'} · Refunded €${b.total_amount||0}</div>
+function renderTenantDoneCard(item,isBooking){
+  if(isBooking){
+    return`<div style="padding:.75rem;background:var(--s2);border:1px solid var(--b);border-radius:10px;margin-bottom:.5rem;opacity:.7">
+        <div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${item.listing_title||'Property'}</div>
+        <div style="font-size:.72rem;color:var(--td)">${item.status==='declined'?'❌ Declined by lessor':'❌ Cancelled'} · Refunded €${item.total_amount||0}</div>
       </div>`;
-    });
-    doneVisits.forEach(v=>{
-      const doneLabels={'cancelled':'❌ Cancelled','declined':'❌ Declined','tenant_declined':'👎 Not interested','no_show':'🚫 No-show','date_rejected':'📅 Date not available'};
-      const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
-      html+=`<div style="padding:.75rem;background:var(--s2);border:1px solid var(--b);border-radius:10px;margin-bottom:.5rem;opacity:.7">
-        <div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${v.listing_title||'Property'}</div>
-        <div style="font-size:.72rem;color:var(--td)">${doneLabels[v.status]||v.status} · ${dateStr}</div>
-      </div>`;
-    });
   }
+  const doneLabels={'cancelled':'❌ Cancelled','declined':'❌ Declined','tenant_declined':'👎 Not interested','no_show':'🚫 No-show','date_rejected':'📅 Date not available'};
+  const dateStr=item.visit_date?new Date(item.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+  return`<div style="padding:.75rem;background:var(--s2);border:1px solid var(--b);border-radius:10px;margin-bottom:.5rem;opacity:.7">
+        <div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem">${item.listing_title||'Property'}</div>
+        <div style="font-size:.72rem;color:var(--td)">${doneLabels[item.status]||item.status} · ${dateStr}</div>
+      </div>`;
+}
 
-  // Section dédiée : baux où ce compte est co-lessee (pas le demandeur principal)
-  // — visible dès l'envoi de la demande, pas seulement une fois le bail généré.
-  if(coTenantBookings.length){
-    try{
+async function renderTenantCoTenantSection(coTenantBookings){
+  let html='';
+  if(!coTenantBookings.length)return html;
+  try{
       const lIds=[...new Set(coTenantBookings.map(b=>b.listing_id).filter(Boolean))];
       const{data:ls}=await sb.from('listings').select('id,title,zone,price').in('id',lIds);
       const lMap={};(ls||[]).forEach(l=>{lMap[l.id]=l;});
@@ -1977,9 +1955,76 @@ async function loadTenantVisits(){
         }
         html+=`</div>`;
       });
-    }catch(e){}
+  }catch(e){}
+  return html;
+}
+
+async function loadTenantVisits(){
+  const wrap=document.getElementById('tenant-visits-list');
+  if(!wrap)return;
+
+  const{visits:allVisits}=await fetchTenantVisitData();
+  const visits=allVisits.filter(v=>TENANT_VISIT_ONLY_STATUSES.includes(v.status));
+
+  const badge=document.getElementById('nb-visits-t');
+  const actionCount=visits.filter(v=>v.status==='agent_assigned'&&!v.tenant_confirmed).length;
+  if(badge){badge.textContent=actionCount||'';badge.style.display=actionCount>0?'inline':'none';}
+
+  if(!visits.length){
+    wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet<br>Request a visit from any listing</p></div>';
+  }else{
+    const doneStatuses=['cancelled','tenant_declined','no_show','date_rejected'];
+    const activeVisits=visits.filter(v=>!doneStatuses.includes(v.status));
+    const doneVisits=visits.filter(v=>doneStatuses.includes(v.status));
+
+    let html=activeVisits.map(v=>renderTenantVisitCard(v)).join('');
+    if(doneVisits.length){
+      html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem">
+        <div style="flex:1;height:1px;background:var(--b)"></div><span>Past visits</span><div style="flex:1;height:1px;background:var(--b)"></div>
+      </div>`;
+      html+=doneVisits.map(v=>renderTenantDoneCard(v,false)).join('');
+    }
+    wrap.innerHTML=html;
   }
 
+  // Beaucoup d'actions à travers le site rafraîchissent la page en appelant
+  // juste loadTenantVisits() — comme une candidature peut changer de
+  // catégorie (visite → application) suite à ces mêmes actions, on
+  // rafraîchit toujours les deux ensemble plutôt que de risquer d'oublier
+  // un des nombreux appels
+  if(document.getElementById('tenant-applications-list'))loadTenantApplicationsPage();
+}
+
+async function loadTenantApplicationsPage(){
+  const wrap=document.getElementById('tenant-applications-list');
+  if(!wrap)return;
+
+  const{visits:allVisits,coTenantBookings}=await fetchTenantVisitData();
+  const visits=allVisits.filter(v=>TENANT_APPLICATION_STATUSES.includes(v.status));
+
+  const badge=document.getElementById('nb-applications-t');
+  const pendingCount=visits.filter(v=>v.status==='booking_pending').length;
+  if(badge){badge.textContent=pendingCount||'';badge.style.display=pendingCount>0?'inline':'none';}
+
+  const coTenantHtml=await renderTenantCoTenantSection(coTenantBookings);
+
+  if(!visits.length&&!coTenantHtml){
+    wrap.innerHTML='<div class="empty"><div class="em">📋</div><p>No applications yet<br>Once you apply to rent a place, it will show up here</p></div>';
+    return;
+  }
+
+  const doneStatuses=['declined'];
+  const activeVisits=visits.filter(v=>!doneStatuses.includes(v.status));
+  const doneVisits=visits.filter(v=>doneStatuses.includes(v.status));
+
+  let html=activeVisits.map(v=>renderTenantVisitCard(v)).join('');
+  if(doneVisits.length){
+    html+=`<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--td);margin:1rem 0 .5rem;display:flex;align-items:center;gap:.5rem">
+      <div style="flex:1;height:1px;background:var(--b)"></div><span>Past applications</span><div style="flex:1;height:1px;background:var(--b)"></div>
+    </div>`;
+    html+=doneVisits.map(v=>renderTenantDoneCard(v,true)).join('');
+  }
+  html+=coTenantHtml;
   wrap.innerHTML=html;
 }
 
