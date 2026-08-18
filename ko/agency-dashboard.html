@@ -2861,8 +2861,8 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:leaseType,
-          lessor:{name:landlordInfo?.full_name||'',email:landlordInfo?.email||'',passport:landlordInfo?.passport_number||'',address:landlordInfo?.home_address||''},
-          lessee:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          landlord:{name:landlordInfo?.full_name||'',email:landlordInfo?.email||'',passport:landlordInfo?.passport_number||'',address:landlordInfo?.home_address||''},
+          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
           coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||''})),
           listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
           start_date:startDate,end_date:endDate
