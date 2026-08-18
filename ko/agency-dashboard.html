@@ -359,7 +359,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
       <div class="tabs">
         <button class="tab act" onclick="setImportTab('url',this)">🔗 From URL</button>
-        <button class="tab" onclick="setImportTab('pdf',this)">📄 From PDF</button>
         <button class="tab" onclick="setImportTab('bulk',this)">📦 Bulk CSV</button>
       </div>
 
@@ -375,22 +374,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
             <button class="btn bp" onclick="importFromURL()" style="width:100%;justify-content:center">🤖 Extract with AI →</button>
             <div id="import-url-result" style="margin-top:.75rem"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- PDF import -->
-      <div id="import-pdf" style="display:none">
-        <div class="card">
-          <div class="ch"><div class="ct">📄 Import from PDF / Image</div></div>
-          <div class="cb">
-            <div class="import-drop" id="pdf-drop" onclick="document.getElementById('pdf-file').click()" ondragover="event.preventDefault()" ondrop="handlePDFDrop(event)">
-              <div class="import-icon">📄</div>
-              <div style="font-size:.85rem;font-weight:600;color:var(--agencybright);margin-bottom:.3rem">Drop your PDF or property sheet here</div>
-              <div style="font-size:.72rem;color:var(--td)">PDF, JPG, PNG · Max 10MB · AI extracts all details</div>
-              <input type="file" id="pdf-file" accept=".pdf,image/*" style="display:none" onchange="handlePDFFile(this)">
-            </div>
-            <div id="import-pdf-result" style="margin-top:.75rem"></div>
           </div>
         </div>
       </div>
@@ -552,11 +535,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     </div>
 
     <div class="tabs">
-      <button class="tab act" onclick="setCRMTab('all',this)">All</button>
-      <button class="tab" onclick="setCRMTab('new',this)">🆕 New</button>
-      <button class="tab" onclick="setCRMTab('visiting',this)">📅 Visiting</button>
-      <button class="tab" onclick="setCRMTab('interested',this)">🏠 Interested</button>
-      <button class="tab" onclick="setCRMTab('signed',this)">✅ Signed</button>
+      <button class="tab act" onclick="setCRMTab('lessees',this)">🎒 Lessees</button>
+      <button class="tab" onclick="setCRMTab('lessors',this)">🏠 Lessors</button>
     </div>
 
     <div id="crm-team-toggle" style="margin-top:.75rem"></div>
@@ -954,7 +934,7 @@ const pageTitles={
 };
 
 let clerk,U=null,P=null,agencyData=null;
-let currentCRMTab='all';
+let currentCRMTab='lessees';
 let importedListing=null;
 let uploadedPhotos=[];
 
@@ -1518,7 +1498,7 @@ async function deleteListing(id, title, btn){
 function setImportTab(tab, btn){
   document.querySelectorAll('#page-import .tab').forEach(t=>t.classList.remove('act'));
   btn.classList.add('act');
-  ['url','pdf','bulk'].forEach(t=>document.getElementById('import-'+t).style.display='none');
+  ['url','bulk'].forEach(t=>document.getElementById('import-'+t).style.display='none');
   document.getElementById('import-'+tab).style.display='block';
 }
 
@@ -1755,24 +1735,6 @@ async function publishBulkCSV(rows){
   toast(`✅ Published ${success}/${rows.length} listings!`);
 }
 
-function handlePDFFile(input){
-  const file=input.files[0];
-  if(!file)return;
-  document.getElementById('import-pdf-result').innerHTML=`<div style="color:var(--agencybright);display:flex;align-items:center;gap:.5rem"><div class="sp"></div><span>🤖 AI reading your document...</span></div>`;
-  // Simulate AI extraction
-  setTimeout(()=>{
-    importedListing={title:'Property from PDF',zone:'Sliema',price:900,bedrooms:2,description:'Extracted from PDF document',full_address:'Malta'};
-    document.getElementById('import-pdf-result').innerHTML='';
-    showImportPreview(importedListing);
-  },1500);
-}
-
-function handlePDFDrop(e){
-  e.preventDefault();
-  const file=e.dataTransfer.files[0];
-  if(file){const input=document.getElementById('pdf-file');input.files=e.dataTransfer.files;handlePDFFile(input);}
-}
-
 // ── New Listing ───────────────────────────────────────────────
 async function previewPhotos(input){
   const wrap=document.getElementById('photo-previews');
@@ -1942,59 +1904,89 @@ async function loadAnalytics(){
 }
 
 // ── CRM ───────────────────────────────────────────────────────
-let crmVisitsCache=[];
+let crmCache={lessees:[],lessors:[]};
 async function loadCRM(){
   const wrap=document.getElementById('crm-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
   try{
     await loadListingOwnerMap();
-    const{data:visits}=await sb.from('visits').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-    crmVisitsCache=visits||[];
 
+    const{data:myListingsAll}=await sb.from('listings').select('id,title,real_landlord_id,manual_landlord_name,manual_landlord_email,manual_landlord_phone,manual_landlord_nationality,landlord_has_account').eq('agent_id',U.id);
     const toggleEl=document.getElementById('crm-team-toggle');
     if(toggleEl)toggleEl.innerHTML=renderTeamFilterToggle('crm','loadCRM');
+    const myListings=getTeamFilterMode('crm')==='mine'
+      ?(myListingsAll||[]).filter(l=>belongsToCurrentMember(l.id))
+      :(myListingsAll||[]);
+    const listingIds=myListings.map(l=>l.id);
+    const listingMap={};myListings.forEach(l=>{listingMap[l.id]=l;});
+
+    // ── Lessees — tout locataire ayant candidaté ou visité un de mes biens
+    let lesseeIds=new Set();
+    if(listingIds.length){
+      try{
+        const{data:bks}=await sb.from('bookings').select('tenant_id').in('listing_id',listingIds);
+        (bks||[]).forEach(b=>{if(b.tenant_id)lesseeIds.add(b.tenant_id);});
+      }catch(e){}
+      try{
+        const{data:vs}=await sb.from('visits').select('tenant_id').in('listing_id',listingIds);
+        (vs||[]).forEach(v=>{if(v.tenant_id)lesseeIds.add(v.tenant_id);});
+      }catch(e){}
+    }
+    let lesseeProfiles=[];
+    if(lesseeIds.size){
+      try{
+        const{data}=await sb.from('profiles').select('clerk_id,full_name,nationality,phone,email').in('clerk_id',[...lesseeIds]);
+        lesseeProfiles=data||[];
+      }catch(e){}
+    }
+
+    // ── Lessors — comptes réels liés + propriétaires saisis manuellement
+    let lessorRealIds=new Set();
+    myListings.forEach(l=>{if(l.real_landlord_id)lessorRealIds.add(l.real_landlord_id);});
+    let lessorProfiles=[];
+    if(lessorRealIds.size){
+      try{
+        const{data}=await sb.from('profiles').select('clerk_id,full_name,nationality,phone,email').in('clerk_id',[...lessorRealIds]);
+        lessorProfiles=data||[];
+      }catch(e){}
+    }
+    const manualLessors=myListings
+      .filter(l=>!l.real_landlord_id&&l.manual_landlord_name)
+      .map(l=>({clerk_id:'manual-'+l.id,full_name:l.manual_landlord_name,nationality:l.manual_landlord_nationality,phone:l.manual_landlord_phone,email:l.manual_landlord_email,manual_for_listing:l.title}));
+
+    crmCache={
+      lessees:lesseeProfiles,
+      lessors:[...lessorProfiles,...manualLessors]
+    };
 
     const nb=document.getElementById('nb-leads');
-    const newCount=crmVisitsCache.filter(x=>x.status==='awaiting_landlord').length;
-    if(nb){nb.textContent=newCount;nb.style.display=newCount>0?'inline':'none';}
+    if(nb)nb.style.display='none'; // Plus de notion de "nouveau" dans une base clients
 
     renderCRM(document.querySelector('#page-crm input[placeholder*="Search"]')?.value||'');
-  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading CRM</div>';}
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading CRM</div>';console.error(e);}
 }
 
 function renderCRM(searchQuery){
   const wrap=document.getElementById('crm-list');
-  if(!wrap)return;
-  let v=crmVisitsCache;
-  if(getTeamFilterMode('crm')==='mine')v=v.filter(x=>belongsToCurrentMember(x.listing_id));
-  if(currentCRMTab==='new')v=v.filter(x=>x.status==='awaiting_landlord');
-  else if(currentCRMTab==='visiting')v=v.filter(x=>x.status==='confirmed'||x.status==='agent_assigned');
-  else if(currentCRMTab==='interested')v=v.filter(x=>x.status==='booking_pending'||x.status==='pending');
-  else if(currentCRMTab==='signed')v=v.filter(x=>['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'].includes(x.status));
+  if(!wrap||!crmCache)return;
+  let list=currentCRMTab==='lessors'?crmCache.lessors:crmCache.lessees;
 
   const q=(searchQuery||'').trim().toLowerCase();
-  if(q)v=v.filter(x=>(x.tenant_name||'').toLowerCase().includes(q)||(x.listing_title||'').toLowerCase().includes(q));
+  if(q)list=list.filter(x=>(x.full_name||'').toLowerCase().includes(q)||(x.email||'').toLowerCase().includes(q)||(x.phone||'').toLowerCase().includes(q));
 
-  if(!v.length){wrap.innerHTML=`<div class="empty"><div class="em">👥</div><p>${q?'No clients match your search.':'No clients in this category yet.'}</p></div>`;return;}
+  if(!list.length){wrap.innerHTML=`<div class="empty"><div class="em">👥</div><p>${q?'No clients match your search.':'No '+currentCRMTab+' yet.'}</p></div>`;return;}
 
-  const statusLabels={awaiting_landlord:'🆕 New',confirmed:'📅 Visit scheduled',agent_assigned:'📅 Visit confirmed',
-    booking_pending:'🏠 Wants to rent',pending:'🏠 Wants to rent',accepted:'✅ Accepted',
-    lease_pending:'📄 Signing lease',edl_scheduled:'📋 EDL',signing_day:'🎉 Move-in',
-    move_in_ready:'🏠 Moved in',declined:'❌ Declined',tenant_declined:'❌ Not interested',
-    cancelled:'❌ Cancelled'};
-  const statusCls={awaiting_landlord:'b-gold',confirmed:'b-sea',agent_assigned:'b-green',
-    booking_pending:'b-gold',pending:'b-gold',accepted:'b-green',lease_pending:'b-sea',
-    edl_scheduled:'b-green',signing_day:'b-green',move_in_ready:'b-green',
-    declined:'b-dim',tenant_declined:'b-dim',cancelled:'b-dim'};
-
-  wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+v.map(x=>`
+  wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+list.map(x=>`
     <div class="crm-row">
-      <div class="crm-av">${(x.tenant_name||'?')[0].toUpperCase()}</div>
+      <div class="crm-av">${(x.full_name||'?')[0].toUpperCase()}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:.85rem;font-weight:600">${x.tenant_name||'—'}</div>
-        <div style="font-size:.7rem;color:var(--td)">${x.listing_title||'—'} · ${x.visit_date?new Date(x.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''}</div>
+        <div style="font-size:.85rem;font-weight:600">${x.full_name||'—'}${x.manual_for_listing?` <span style="font-size:.65rem;color:var(--td);font-weight:400">— no account (${x.manual_for_listing})</span>`:''}</div>
+        <div style="font-size:.7rem;color:var(--td);display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.15rem">
+          ${x.nationality?`<span>🌍 ${x.nationality}</span>`:''}
+          ${x.phone?`<span>📞 ${x.phone}</span>`:''}
+          ${x.email?`<span>✉️ ${x.email}</span>`:''}
+        </div>
       </div>
-      <span class="badge ${statusCls[x.status]||'b-dim'}" style="font-size:.62rem">${statusLabels[x.status]||x.status}</span>
     </div>`).join('')+'</div></div>';
 }
 
