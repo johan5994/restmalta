@@ -232,7 +232,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="tb-sub" id="tbs">Welcome back!</div>
     </div>
     <div class="tb-acts">
-      <button class="btn bg bsm" onclick="exportData()">📥 Export</button>
       <button class="btn bp bsm" onclick="sp('listings',null);openNewListing()">+ New listing</button>
       <button class="btn bg bsm" id="mob-menu" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
     </div>
@@ -1591,8 +1590,8 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:leaseType,
-          lessor:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
-          lessee:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+          landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+          tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
           coTenants:coTenants.map(ct=>({name:ct.name||'',email:ct.email||'',passport:ct.passport||'',nationality:ct.nationality||'',address:ct.address||''})),
           listing:{address:listing?.full_address||listing?.zone||'',price:price,deposit:deposit,payment_due_day:dueDay},
           start_date:startDate,end_date:endDate,
@@ -2208,7 +2207,6 @@ async function sendAllReminders(){
 }
 function generateAllReceipts(){toast('🧾 Receipts generated!');}
 function exportPayments(){toast('📥 CSV export downloaded!');}
-function exportData(){toast('📥 Data exported!');}
 function updateChart(v){toast('📊 Chart updated: '+v);}
 function toggleTgl(el){el.classList.toggle('on');el.classList.toggle('off');}
 
@@ -2571,8 +2569,8 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing.type==='short'?'short':'long',
-        lessor:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-        lessee:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+        landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+        tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
         coTenants:[],
         listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
         start_date:startDate,end_date:endDate
@@ -2675,8 +2673,8 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           type:listing.type==='short'?'short':'long',
-          lessor:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
-          lessee:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
+          landlord:{name:landlordProfile.full_name||'',passport:landlordProfile.passport_number||'',address:landlordProfile.home_address||'',phone:landlordProfile.phone||'',email:landlordProfile.email||'',iban:landlordProfile.iban||''},
+          tenant:{name:tenantProfile.full_name||'',passport:tenantProfile.passport_number||'',nationality:tenantProfile.nationality||'',dob:tenantProfile.date_of_birth||'',address:tenantProfile.home_address||'',phone:tenantProfile.phone||'',email:tenantProfile.email||''},
           coTenants:[],
           listing:{address:listing.full_address||listing.zone||'',price:listing.price||0,deposit:listing.deposit||0,payment_due_day:startDate?new Date(startDate).getDate():1,bills:listing.bills_included?'Included':'Excluded',di_fermo:listing.di_fermo||'none',notice_period:listing.notice_period||'1 month'},
           start_date:startDate,
@@ -3346,8 +3344,8 @@ async function regenLease(bookingId, listingId, tenantId){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type:listing?.type==='short'?'short':'long',
-        lessor:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
-        lessee:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
+        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||'',address:landlordProfile?.home_address||''},
+        tenant:{name:tenantProfile?.full_name||'',email:tenantProfile?.email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||'',address:tenantProfile?.home_address||''},
         listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0,deposit:listing?.deposit||listing?.price||0,payment_due_day:new Date(startDate).getDate()},
         start_date:startDate,end_date:endDate
       })
@@ -4133,8 +4131,8 @@ async function retryEdlGeneration(bookingId){
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        lessor:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||''},
-        lessee:{name:bk.tenant_name||tenantProfile?.full_name||'',email:tenantProfile?.email||bk.tenant_email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||''},
+        landlord:{name:landlordProfile?.full_name||'',email:landlordProfile?.email||'',passport:landlordProfile?.passport_number||''},
+        tenant:{name:bk.tenant_name||tenantProfile?.full_name||'',email:tenantProfile?.email||bk.tenant_email||'',passport:tenantProfile?.passport_number||'',nationality:tenantProfile?.nationality||''},
         listing:{address:listing?.full_address||listing?.zone||'',price:listing?.price||0},
         meter_water:bk.meter_water,meter_electricity:bk.meter_electricity,
         rooms,general_notes:'',phase:'arrival'
@@ -4243,7 +4241,7 @@ async function generateAnnexAndCompleteLL(){
   try{
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({lessor,lessee,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
+      body:JSON.stringify({landlord:lessor,tenant:lessee,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
     });
     const edlData=await res.json();
     console.log('[generate-edl] full response:',edlData);
