@@ -778,7 +778,7 @@ let clerk,U=null,P=null,selectedRating=5;
     await new Promise(r=>setTimeout(r,800));
   }
   P=P_data;
-  if(P?.role==='lessor'){window.location.href='/lessor-dashboard.html';return;}
+  if(P?.role==='landlord'){window.location.href='/landlord-dashboard.html';return;}
   initUI();loadAll();
 })();
 
@@ -1356,8 +1356,8 @@ async function loadMessages(){
 
     wrap.innerHTML=convs.map(m=>{
       const other=profileMap[m.otherId];
-      const roleIco=other?.role==='lessor'?'🏠':other?.role==='agent'?'🏆':'💬';
-      const roleTxt=other?.role==='lessor'?'Lessor':other?.role==='agent'?'Agent':'';
+      const roleIco=other?.role==='landlord'?'🏠':other?.role==='agent'?'🏆':'💬';
+      const roleTxt=other?.role==='landlord'?'Lessor':other?.role==='agent'?'Agent':'';
       const name=other?.full_name||m.listings?.title||'Conversation';
       const subtitle=roleTxt?`${roleTxt} · ${m.listings?.title||''} · ${m.listings?.zone||''}`:m.listings?.title||'';
       const isUnread=!m.read&&m.receiver_id===U.id;
