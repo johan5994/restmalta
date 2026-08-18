@@ -343,7 +343,7 @@ footer ul a:hover{color:var(--terra)}
   <div class="logo" onclick="go('home')"><svg width="16" height="16" viewBox="0 0 16 16" style="display:inline-block;vertical-align:-2px;margin-right:.35rem"><path d="M8 0 L10.2 3.5 L14 4.5 L11.5 7.5 L12 11.5 L8 9.8 L4 11.5 L4.5 7.5 L2 4.5 L5.8 3.5 Z" fill="var(--terra)"/></svg>Rest<span>Malta</span></div>
   <ul class="nav-links">
     <li><a onclick="go('home');stl()">Browse flats</a></li>
-    <li><a onclick="go('home')">How it works</a></li>
+    <li><a href="/how-it-works.html">How it works</a></li>
     <li id="np" style="display:none"><a onclick="chkPost()">Post a flat</a></li>
     <li id="nd" style="display:none"><a onclick="goToDash()">My Dashboard</a></li>
   </ul>
@@ -442,43 +442,9 @@ footer ul a:hover{color:var(--terra)}
   <div class="hiw">
     <div class="stag">✦ Simple process</div>
     <h2>How <em>RestMalta</em> works</h2>
-    <p>A different experience depending on who you are — pick your role below.</p>
-
-    <div style="display:flex;gap:.5rem;margin:1.5rem 0 2rem;flex-wrap:wrap">
-      <button class="hiw-tab act" id="hiw-tabbtn-tenant" onclick="setHiwTab('tenant')" style="border:2px solid var(--terra);background:var(--terra);color:white;border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🎒 Lessee</button>
-      <button class="hiw-tab" id="hiw-tabbtn-landlord" onclick="setHiwTab('landlord')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏠 Lessor</button>
-      <button class="hiw-tab" id="hiw-tabbtn-agency" onclick="setHiwTab('agency')" style="border:2px solid var(--b2,#ddd);background:transparent;color:var(--stone,#555);border-radius:100px;padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;cursor:pointer">🏢 Agency</button>
-    </div>
-
-    <!-- TENANT -->
-    <div id="hiw-panel-tenant">
-      <div class="steps">
-        <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & message</h3><p>Filter by zone, budget and type. Message lessors or agents directly through real-time chat — no phone numbers shared, no vanishing "agents" from a WhatsApp group. Searching alone? Find a Roommate connects you with others looking to share.</p></div>
-        <div class="step"><div class="snum">02</div><div class="sico">🤝</div><h3>Apply & sign</h3><p>A small platform fee is authorized on your card when you apply — never charged unless the lessor accepts. Once accepted, your lease is auto-generated and e-signed, compliant with Maltese law. Bringing roommates? They're added to the same lease and sign too.</p></div>
-        <div class="step"><div class="snum">03</div><div class="sico">📸</div><h3>Move in with proof</h3><p>Every room and both meters are logged and photographed at move-in, signed by you and your lessor. Real protection if a dispute ever comes up — not just a promise. Deposit and first month go straight to your lessor, no middleman holding your money.</p></div>
-        <div class="step"><div class="snum">04</div><div class="sico">🏡</div><h3>Live & manage</h3><p>Message your lessor anytime, report maintenance issues with photos, and track every payment from your dashboard. When you're ready, renew your lease or generate your official notice to leave — both handled right from the app.</p></div>
-      </div>
-    </div>
-
-    <!-- LANDLORD -->
-    <div id="hiw-panel-landlord" style="display:none">
-      <div class="steps">
-        <div class="step"><div class="snum">01</div><div class="sico">✍️</div><h3>List your property</h3><p>Fill in the details yourself — title, photos, price, you're in control. Selling instead? List it for sale too — same platform, different flow.</p></div>
-        <div class="step"><div class="snum">02</div><div class="sico">💬</div><h3>Review & accept</h3><p>Lessees message and apply directly — see their verified dossier (ID, employment letter, references) before deciding. Accept the application that fits, and their lease generates automatically, ready to sign.</p></div>
-        <div class="step"><div class="snum">03</div><div class="sico">📋</div><h3>Move-in day</h3><p>Complete the move-in inventory with photos and meter readings, right from your dashboard — signed by both of you as shared proof. Deposit and first month land directly in your account, no waiting on a middleman.</p></div>
-        <div class="step"><div class="snum">04</div><div class="sico">📊</div><h3>Manage with ease</h3><p>Track every rented property, payment status and lease end date in one place. Handle maintenance requests, message your lessee, and renew or let leases run their course — all from Rented Properties.</p></div>
-      </div>
-    </div>
-
-    <!-- AGENCY -->
-    <div id="hiw-panel-agency" style="display:none">
-      <div class="steps">
-        <div class="step"><div class="snum">01</div><div class="sico">🏢</div><h3>Get your directory profile</h3><p>Set up your agency profile — lessors in your zones can find and contact you directly. Browse and pick up estimation requests too.</p></div>
-        <div class="step"><div class="snum">02</div><div class="sico">📋</div><h3>Manage everything in one place</h3><p>Listings, visits, applications, leases, move-in — all tracked from your own dashboard with your team.</p></div>
-        <div class="step"><div class="snum">03</div><div class="sico">📷</div><h3>Complete move-in</h3><p>Run the move-in inventory with photos and meter readings, generate the annex, and get it signed by lessor and lessee.</p></div>
-        <div class="step"><div class="snum">04</div><div class="sico">💶</div><h3>Get paid your way</h3><p>RestMalta only ever captures its own platform fee — your commission is arranged and paid directly, never routed through the platform. Post sale listings for free too.</p></div>
-      </div>
-    </div>
+    <p>A different experience depending on who you are — see the full step-by-step for lessees, lessors and agencies.</p>
+    <a href="/how-it-works.html" style="display:inline-block;background:var(--terra);color:white;text-decoration:none;padding:.9rem 2.2rem;border-radius:100px;font-weight:700;font-size:.92rem">See how it works →</a>
+  </div>
   </div>
 
   <div class="feat">
@@ -1184,19 +1150,6 @@ function goToDash(){
 
 async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
 
-function setHiwTab(role){
-  ['lessee','lessor','agency'].forEach(r=>{
-    const panel=document.getElementById('hiw-panel-'+r);
-    const btn=document.getElementById('hiw-tabbtn-'+r);
-    if(panel)panel.style.display=r===role?'block':'none';
-    if(btn){
-      btn.style.background=r===role?'var(--terra)':'transparent';
-      btn.style.color=r===role?'white':'var(--stone)';
-      btn.style.borderColor=r===role?'var(--terra)':'var(--b2)';
-    }
-  });
-}
-
 function toggleSaleFilterUI(){
   const isSale=document.getElementById('ft')?.value==='for_sale';
   const fpWrap=document.getElementById('fp-wrap');
@@ -1350,11 +1303,19 @@ async function openDet(id){
     l.sea_view?'🌊 Sea view':null,
     l.accepts_attestation?'📋 Attestation accepted':null,
   ].filter(Boolean);
-  // Fusionner avec les features cochées côté agence (tableau JSON libre)
+  // Fusionner avec les features cochées côté agence (tableau JSON libre) —
+  // "Furnished" est explicitement exclu ici : il a déjà sa propre étiquette
+  // fiable et mutuellement exclusive juste au-dessus (✅/❌ selon l.furnished).
+  // Le laisser passer créait "❌ Unfurnished" ET "✅ Furnished" ensemble,
+  // car la vérification de doublon (substring, sensible à la casse) ne
+  // détectait jamais que les deux décrivaient la même chose.
   try{
     if(l.features){
       const extra=JSON.parse(l.features);
-      extra.forEach(f=>{if(!fe.some(x=>x.includes(f)))fe.push('✅ '+f);});
+      extra.forEach(f=>{
+        if(f.toLowerCase().trim()==='furnished')return;
+        if(!fe.some(x=>x.toLowerCase().includes(f.toLowerCase())))fe.push('✅ '+f);
+      });
     }
   }catch(e){}
   document.getElementById('dfe').innerHTML=fe.map(f=>`<span class="dfeat">${f}</span>`).join('');
@@ -1362,10 +1323,13 @@ async function openDet(id){
   // Infos bail — ou infos de vente si l'annonce est "For sale"
   const tl={short:'Short-let (1-6 months)',room_rental:'Room rental',long:'Long-let (1 year+)',for_sale:'For sale'};
   const badge=await getLandlordResponseBadge(l.landlord_id);
+  const landlordRating=await getLandlordRating(l.landlord_id);
+  const ratingHtml=landlordRating?`<div style="background:rgba(212,168,71,.1);color:var(--ochre);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">⭐ ${landlordRating.avg.toFixed(1)} lessor rating <span style="font-weight:400;color:var(--stone-l)">(${landlordRating.count} review${landlordRating.count>1?'s':''})</span></div>`:'';
   const tenureLabels={freehold:'Freehold',leasehold:'Leasehold',perpetual_ground_rent:'Perpetual ground rent'};
   const finishLabels={finished:'Fully finished',furnished:'Finished & furnished',semi_finished:'Semi-finished',shell:'Shell form (bare)'};
   document.getElementById('din').innerHTML=l.type==='for_sale'?`
     ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">${badge}</div>`:''}
+    ${ratingHtml}
     <div class="crow"><span>Type</span><span>🏷️ For sale</span></div>
     ${l.tenure?`<div class="crow"><span>Tenure</span><span>${tenureLabels[l.tenure]||l.tenure}</span></div>`:''}
     ${l.finish_status?`<div class="crow"><span>Finish status</span><span>${finishLabels[l.finish_status]||l.finish_status}</span></div>`:''}
@@ -1375,6 +1339,7 @@ async function openDet(id){
     ${l.sda?`<div class="crow"><span>Special Designated Area</span><span>✅ Yes — no AIP permit needed for foreign buyers</span></div>`:''}
     ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}`:`
     ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">${badge}</div>`:''}
+    ${ratingHtml}
     <div class="crow"><span>Type</span><span>${tl[l.type]||l.type}</span></div>
     <div class="crow"><span>Available from</span><span>${l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Now'}</span></div>
     <div class="crow"><span>Deposit</span><span>${l.deposit?'€'+l.deposit:'None'}</span></div>
@@ -2216,6 +2181,13 @@ function initMap(){
 }
 
 // ── Badge "Lessor réactif" ──────────────────────────────────
+async function getLandlordRating(landlordId){
+  const{data}=await sb.from('reviews').select('rating').eq('landlord_id',landlordId).eq('type','tenant_to_landlord');
+  if(!data||!data.length)return null;
+  const avg=data.reduce((s,r)=>s+r.rating,0)/data.length;
+  return{avg,count:data.length};
+}
+
 async function getLandlordResponseBadge(landlordId){
   const{data}=await sb.from('messages')
     .select('created_at,sender_id')
