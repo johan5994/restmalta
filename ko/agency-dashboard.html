@@ -1037,10 +1037,15 @@ async function loadListingOwnerMap(force){
 }
 
 function getCurrentTeamMember(){
-  return sessionStorage.getItem('rm_team_member')||null;
+  return localStorage.getItem('rm_team_member')||null;
+}
+
+function isAgencyAdmin(){
+  return localStorage.getItem('rm_team_member')==='__AGENCY_ADMIN__';
 }
 
 function belongsToCurrentMember(listingId){
+  if(isAgencyAdmin())return true; // Le profil agence voit toujours tout
   const me=getCurrentTeamMember();
   if(!me||!_listingOwnerMap)return true;
   const owner=_listingOwnerMap[listingId];
@@ -1048,37 +1053,42 @@ function belongsToCurrentMember(listingId){
   return owner===me;
 }
 
-// État du filtre par page — "mine" par défaut sur chaque page (restriction
-// réelle demandée), avec "Everyone" comme vue d'ensemble accessible à tous
-let _teamFilterMode={};
-
+// Le filtre n'est plus un bouton manuel — il dépend automatiquement de qui
+// est identifié : le profil agence voit toujours tout, un membre normal ne
+// voit toujours que le sien, sans possibilité de basculer lui-même.
 function getTeamFilterMode(page){
-  return _teamFilterMode[page]||'mine';
+  return isAgencyAdmin()?'all':'mine';
 }
 
 function renderTeamFilterToggle(page,reloadFn){
-  const mode=getTeamFilterMode(page);
   const me=getCurrentTeamMember();
-  if(!me)return''; // Personne de sélectionné — rien à filtrer, pas de bouton inutile
-  return`<div style="display:flex;gap:.4rem;margin-bottom:.75rem">
-    <button onclick="_teamFilterMode['${page}']='mine';${reloadFn}()" style="flex:1;padding:.45rem;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;border:1px solid ${mode==='mine'?'var(--agencybright)':'var(--b)'};background:${mode==='mine'?'var(--agencybright)':'var(--s2)'};color:${mode==='mine'?'white':'var(--tm)'}">👤 My clients (${me})</button>
-    <button onclick="_teamFilterMode['${page}']='all';${reloadFn}()" style="flex:1;padding:.45rem;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;border:1px solid ${mode==='all'?'var(--agencybright)':'var(--b)'};background:${mode==='all'?'var(--agencybright)':'var(--s2)'};color:${mode==='all'?'white':'var(--tm)'}">👥 Everyone</button>
-  </div>`;
+  if(!me)return'';
+  if(isAgencyAdmin()){
+    return`<div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;font-size:.78rem;font-weight:700;color:var(--agencybright)">🏢 Agency view — seeing everyone's clients</div>`;
+  }
+  return`<div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;font-size:.78rem;font-weight:700;color:var(--tm)">👤 Showing only ${me}'s clients</div>`;
 }
 
 function getTeamMembers(){
-  try{return agencyData?.team_members?JSON.parse(agencyData.team_members):[];}catch(e){return[];}
+  try{
+    const raw=agencyData?.team_members?JSON.parse(agencyData.team_members):[];
+    // Anciens membres enregistrés comme simples chaînes (avant les codes PIN)
+    // — les convertir en objets sans code pour l'instant, ils devront en
+    // définir un à la première connexion.
+    return raw.map(m=>typeof m==='string'?{name:m,pin:null}:m);
+  }catch(e){return[];}
 }
 
 function checkTeamMemberIdentity(){
-  const current=sessionStorage.getItem('rm_team_member');
+  const current=localStorage.getItem('rm_team_member');
   if(current){updateTeamMemberBadge(current);return;}
   showWhoAreYouModal();
 }
 
 function updateTeamMemberBadge(name){
   const el=document.getElementById('team-member-badge');
-  if(el)el.innerHTML=`👤 ${name} · <span style="text-decoration:underline;cursor:pointer" onclick="showWhoAreYouModal()">Switch</span>`;
+  const display=name==='__AGENCY_ADMIN__'?'🏢 Agency (full view)':'👤 '+name;
+  if(el)el.innerHTML=`${display} · <span style="text-decoration:underline;cursor:pointer" onclick="showWhoAreYouModal()">Switch</span>`;
 }
 
 function showWhoAreYouModal(){
@@ -1089,9 +1099,11 @@ function showWhoAreYouModal(){
   modal.innerHTML=`
     <div style="background:var(--s);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:380px">
       <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">👋 Who's using the account?</div>
-      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">This is a shared agency login — just so actions can be tracked to the right person.</div>
+      <div style="font-size:.78rem;color:var(--td);margin-bottom:1rem">This is a shared agency login — a PIN keeps actions correctly tracked to the right person.</div>
+      <button onclick="promptAgencyAdminPin()" style="width:100%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.35);border-radius:10px;padding:.6rem .8rem;text-align:left;font-size:.85rem;font-weight:700;cursor:pointer;color:var(--agencybright);display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">🏢 Agency (full view — sees everyone)<span style="font-size:.68rem;font-weight:400">🔒</span></button>
+      <div style="font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">Or sign in as a team member</div>
       <div id="wau-list" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.85rem">
-        ${members.map(m=>`<button onclick="selectTeamMember('${m.replace(/'/g,"\\'")}')" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:.6rem .8rem;text-align:left;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--txt)">${m}</button>`).join('')||'<div style="font-size:.78rem;color:var(--td);text-align:center;padding:.5rem 0">No team members added yet — add one below.</div>'}
+        ${members.map(m=>`<button onclick="promptTeamMemberPin('${m.name.replace(/'/g,"\\'")}')" style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:.6rem .8rem;text-align:left;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--txt);display:flex;justify-content:space-between;align-items:center">${m.name}<span style="font-size:.68rem;color:var(--td);font-weight:400">🔒</span></button>`).join('')||'<div style="font-size:.78rem;color:var(--td);text-align:center;padding:.5rem 0">No team members added yet — add one below.</div>'}
       </div>
       <div style="display:flex;gap:.4rem">
         <input id="wau-new-name" placeholder="Add a name..." style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .65rem;color:var(--txt);font-size:.82rem">
@@ -1101,29 +1113,137 @@ function showWhoAreYouModal(){
   document.body.appendChild(modal);
 }
 
+function promptAgencyAdminPin(){
+  document.getElementById('whoareyou-modal')?.remove();
+  const isFirstTime=!agencyData?.admin_pin;
+
+  const modal=document.createElement('div');
+  modal.id='pin-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:320px;text-align:center">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🏢 ${isFirstTime?'Set':'Enter'} Agency PIN</div>
+      <div style="font-size:.76rem;color:var(--td);margin-bottom:1rem">${isFirstTime?'First time — choose a 4-digit PIN for full agency access. Keep this one to yourself.':'Enter the agency PIN to see everyone\'s clients.'}</div>
+      <input id="pin-input" type="tel" inputmode="numeric" maxlength="4" autofocus placeholder="••••" style="width:100%;text-align:center;letter-spacing:.6rem;font-size:1.5rem;font-weight:700;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.7rem;color:var(--txt);margin-bottom:.5rem" onkeydown="if(event.key==='Enter')submitAgencyAdminPin(${isFirstTime})">
+      <div id="pin-error" style="color:var(--red);font-size:.75rem;margin-bottom:.5rem;display:none">❌ Wrong PIN — try again</div>
+      <button onclick="submitAgencyAdminPin(${isFirstTime})" style="width:100%;background:var(--agencybright);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.85rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">${isFirstTime?'Set PIN':'Continue'}</button>
+      <button onclick="document.getElementById('pin-modal').remove();showWhoAreYouModal()" style="width:100%;background:none;border:none;color:var(--td);font-size:.78rem;cursor:pointer">← Back</button>
+    </div>`;
+  document.body.appendChild(modal);
+  setTimeout(()=>document.getElementById('pin-input')?.focus(),50);
+}
+
+async function submitAgencyAdminPin(isFirstTime){
+  const pin=document.getElementById('pin-input')?.value.trim();
+  const errEl=document.getElementById('pin-error');
+  if(!pin||!/^\d{4}$/.test(pin)){
+    if(errEl){errEl.textContent='⚠️ Enter exactly 4 digits';errEl.style.display='block';}
+    return;
+  }
+
+  if(isFirstTime){
+    try{
+      const{error}=await sb.from('agency_profiles').update({admin_pin:pin}).eq('clerk_id',U.id);
+      if(error){toast('❌ '+error.message);return;}
+      agencyData={...agencyData,admin_pin:pin};
+    }catch(e){toast('❌ '+e.message);return;}
+    selectTeamMember('__AGENCY_ADMIN__');
+  }else{
+    if(agencyData?.admin_pin!==pin){
+      if(errEl){errEl.textContent='❌ Wrong PIN — try again';errEl.style.display='block';}
+      document.getElementById('pin-input').value='';
+      return;
+    }
+    selectTeamMember('__AGENCY_ADMIN__');
+  }
+}
+
+function promptTeamMemberPin(name){
+  const members=getTeamMembers();
+  const member=members.find(m=>m.name===name);
+  document.getElementById('whoareyou-modal')?.remove();
+
+  const modal=document.createElement('div');
+  modal.id='pin-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  const isFirstTime=!member?.pin;
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:320px;text-align:center">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem">🔒 ${isFirstTime?'Set':'Enter'} PIN for ${name}</div>
+      <div style="font-size:.76rem;color:var(--td);margin-bottom:1rem">${isFirstTime?'First time — choose a 4-digit PIN to protect this identity.':'Enter your 4-digit PIN to continue as '+name+'.'}</div>
+      <input id="pin-input" type="tel" inputmode="numeric" maxlength="4" autofocus placeholder="••••" style="width:100%;text-align:center;letter-spacing:.6rem;font-size:1.5rem;font-weight:700;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:.7rem;color:var(--txt);margin-bottom:.5rem" onkeydown="if(event.key==='Enter')submitTeamMemberPin('${name.replace(/'/g,"\\'")}',${isFirstTime})">
+      <div id="pin-error" style="color:var(--red);font-size:.75rem;margin-bottom:.5rem;display:none">❌ Wrong PIN — try again</div>
+      <button onclick="submitTeamMemberPin('${name.replace(/'/g,"\\'")}',${isFirstTime})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.85rem;font-weight:700;cursor:pointer;margin-bottom:.4rem">${isFirstTime?'Set PIN':'Continue'}</button>
+      <button onclick="document.getElementById('pin-modal').remove();showWhoAreYouModal()" style="width:100%;background:none;border:none;color:var(--td);font-size:.78rem;cursor:pointer">← Back</button>
+    </div>`;
+  document.body.appendChild(modal);
+  setTimeout(()=>document.getElementById('pin-input')?.focus(),50);
+}
+
+async function submitTeamMemberPin(name,isFirstTime){
+  const pin=document.getElementById('pin-input')?.value.trim();
+  const errEl=document.getElementById('pin-error');
+  if(!pin||!/^\d{4}$/.test(pin)){
+    if(errEl){errEl.textContent='⚠️ Enter exactly 4 digits';errEl.style.display='block';}
+    return;
+  }
+
+  const members=getTeamMembers();
+  const idx=members.findIndex(m=>m.name===name);
+
+  if(isFirstTime){
+    // Première connexion — enregistrer ce PIN comme le sien désormais
+    if(idx>=0)members[idx].pin=pin;
+    try{
+      await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
+      agencyData={...agencyData,team_members:JSON.stringify(members)};
+    }catch(e){toast('❌ '+e.message);return;}
+    selectTeamMember(name);
+  }else{
+    if(members[idx]?.pin!==pin){
+      if(errEl){errEl.textContent='❌ Wrong PIN — try again';errEl.style.display='block';}
+      document.getElementById('pin-input').value='';
+      return;
+    }
+    selectTeamMember(name);
+  }
+}
+
 function selectTeamMember(name){
-  sessionStorage.setItem('rm_team_member',name);
+  localStorage.setItem('rm_team_member',name);
+  document.getElementById('pin-modal')?.remove();
   document.getElementById('whoareyou-modal')?.remove();
   updateTeamMemberBadge(name);
+  toast(`✅ Signed in as ${name==='__AGENCY_ADMIN__'?'Agency (full view)':name}`);
+  // Rafraîchir la page courante pour que le filtre "Mine/Everyone" s'applique
+  // immédiatement avec la bonne identité
+  const activePage=document.querySelector('.page.act')?.id;
+  if(activePage==='page-listings')loadListings();
+  else if(activePage==='page-crm')loadCRM();
+  else if(activePage==='page-applications')loadApplications();
+  else if(activePage==='page-visits')loadVisits();
+  else if(activePage==='page-messages')loadAgencyMessages();
 }
 
 async function addAndSelectTeamMember(){
   const name=document.getElementById('wau-new-name')?.value.trim();
   if(!name){toast('Enter a name');return;}
   const members=getTeamMembers();
-  if(!members.includes(name))members.push(name);
+  if(members.some(m=>m.name===name)){toast('⚠️ That name is already on the list — select it and enter its PIN instead.');return;}
+  members.push({name,pin:null});
   try{
     const{data:updated,error}=await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id).select();
     if(error){toast('❌ Could not save: '+error.message);return;}
     if(!updated||!updated.length){toast('⚠️ Save blocked (0 rows updated) — likely a database permissions issue (RLS). Tell your developer.');return;}
     agencyData={...agencyData,team_members:JSON.stringify(members)};
   }catch(e){toast('❌ '+e.message);return;}
-  selectTeamMember(name);
+  document.getElementById('whoareyou-modal')?.remove();
+  promptTeamMemberPin(name);
 }
 
 async function removeTeamMember(name){
   if(!confirm('Remove '+name+' from the team list?'))return;
-  const members=getTeamMembers().filter(m=>m!==name);
+  const members=getTeamMembers().filter(m=>m.name!==name);
   try{
     await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
     agencyData={...agencyData,team_members:JSON.stringify(members)};
@@ -1137,8 +1257,8 @@ function renderTeamMembersSettings(){
   const members=getTeamMembers();
   wrap.innerHTML=(members.map(m=>`
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.3rem">
-      <span style="font-size:.82rem">👤 ${m}</span>
-      <button onclick="removeTeamMember('${m.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--red);font-size:.75rem;cursor:pointer">✕ Remove</button>
+      <span style="font-size:.82rem">👤 ${m.name} ${m.pin?'🔒':'<span style="color:var(--gold);font-size:.68rem">(no PIN set yet)</span>'}</span>
+      <button onclick="removeTeamMember('${m.name.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--red);font-size:.75rem;cursor:pointer">✕ Remove</button>
     </div>`).join(''))||'<div style="font-size:.78rem;color:var(--td)">No team members added yet.</div>';
 }
 
@@ -1147,8 +1267,8 @@ async function addTeamMemberFromSettings(){
   const name=input?.value.trim();
   if(!name){toast('Enter a name');return;}
   const members=getTeamMembers();
-  if(members.includes(name)){toast('⚠️ Already added');return;}
-  members.push(name);
+  if(members.some(m=>m.name===name)){toast('⚠️ Already added');return;}
+  members.push({name,pin:null});
   try{
     const{error}=await sb.from('agency_profiles').update({team_members:JSON.stringify(members)}).eq('clerk_id',U.id);
     if(error){toast('❌ Could not save: '+error.message);return;}
@@ -1571,7 +1691,7 @@ async function createListing(data){
       photos:data.photos&&data.photos.length?data.photos:null,
       wants_agent:true,agent_service:'full',
       agent_id:U.id,landlord_id:U.id,agency_listing:true,
-      created_by:sessionStorage.getItem('rm_team_member')||null,
+      created_by:localStorage.getItem('rm_team_member')||null,
       agency_logo_url:agencyData?.logo_url||null,
       agency_name:agencyData?.agency_name||null,
       sale_price:isSale?(data.price||0):null,
@@ -1973,8 +2093,8 @@ async function loadAgencyMessages(){
     _agencyMsgCache={conversations,roleMap,nameMap,listingMap};
 
     const unread=conversations.filter(m=>!m.read&&m.receiver_id===U.id).length;
-    const tenantUnread=conversations.filter(m=>!m.read&&m.receiver_id===U.id&&roleMap[m._other_id]!=='lessor').length;
-    const landlordUnread=conversations.filter(m=>!m.read&&m.receiver_id===U.id&&roleMap[m._other_id]==='lessor').length;
+    const tenantUnread=conversations.filter(m=>!m.read&&m.receiver_id===U.id&&roleMap[m._other_id]!=='landlord').length;
+    const landlordUnread=conversations.filter(m=>!m.read&&m.receiver_id===U.id&&roleMap[m._other_id]==='landlord').length;
     const nbT=document.getElementById('nb-msg-lessees'),nbL=document.getElementById('nb-msg-lessors');
     if(nbT){nbT.textContent=tenantUnread;nbT.style.display=tenantUnread>0?'inline':'none';}
     if(nbL){nbL.textContent=landlordUnread;nbL.style.display=landlordUnread>0?'inline':'none';}
@@ -2001,7 +2121,7 @@ function renderAgencyMessages(){
   const isLandlordTab=currentAgencyMsgTab==='lessors';
   const teamMine=getTeamFilterMode('messages')==='mine';
   const shown=conversations.filter(m=>{
-    const isLandlordConvo=roleMap[m._other_id]==='lessor';
+    const isLandlordConvo=roleMap[m._other_id]==='landlord';
     if(teamMine&&!belongsToCurrentMember(m.listing_id))return false;
     return isLandlordTab?isLandlordConvo:!isLandlordConvo;
   });
@@ -2187,7 +2307,7 @@ async function loadApplications(){
         if(b.lease_signed_landlord){
           landlordSignRow=`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${b.lease_landlord_embed?` <a href="${b.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`;
         }else if(b.lease_landlord_embed){
-          landlordSignRow=`<button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button> <button onclick="showLeaseSigningOptionsScreen('${b.id}','${b.lease_landlord_embed}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.25rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Send to lessor</button>`;
+          landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.3rem">✍️ Sign now</button> <button onclick="showLeaseSigningOptionsScreen('${b.id}','${b.lease_landlord_embed}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.25rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Send to lessor</button>`;
         }else{
           landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="resendOrRegenerateLease('${b.id}','${b.listing_id}','${b.tenant_id}','${b.lease_landlord_embed||''}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem">🔗 Resend link</button>`;
         }
@@ -3148,7 +3268,7 @@ async function previewLogo(input){
   preview.innerHTML=`<div class="sp"></div>`;
   try{
     const ext=file.name.split('.').pop();
-    const path=`agency-logos/${U.id}/logo.${ext}`;
+    const path=`listing-photos/${U.id}/agency-logo.${ext}`;
     const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
     if(error)throw new Error(error.message);
     const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
