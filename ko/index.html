@@ -497,7 +497,7 @@ footer ul a:hover{color:var(--terra)}
       <div><div class="flogo"><svg width="16" height="16" viewBox="0 0 16 16" style="display:inline-block;vertical-align:-2px;margin-right:.35rem"><path d="M8 0 L10.2 3.5 L14 4.5 L11.5 7.5 L12 11.5 L8 9.8 L4 11.5 L4.5 7.5 L2 4.5 L5.8 3.5 Z" fill="var(--terra)"/></svg>RestMalta</div><p class="fdesc">Malta's first smart rental platform. Real-time chat, guided visits, e-signed leases and a photographed move-in inventory. Built for interns, expats and independent lessors.</p></div>
       <div><h4>For lessees</h4><ul><li><a onclick="stl()">Browse listings</a></li><li><a onclick="stl()">Virtual visits</a></li><li><a onclick="go('auth')">Build your dossier</a></li><li><a onclick="stl()">Room rental</a></li></ul></div>
       <div><h4>For lessors</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a onclick="go('agencies')">Browse agencies</a></li><li><a onclick="go('auth')">Dashboard</a></li></ul></div>
-      <div><h4>Legal</h4><ul><li><a>Terms of service</a></li><li><a>Privacy policy</a></li><li><a>Contact us</a></li></ul></div>
+      <div><h4>Legal</h4><ul><li><a href="/terms.html">Terms of service</a></li><li><a href="/privacy.html">Privacy policy</a></li><li><a href="/cookies.html">Cookie policy</a></li><li><a href="/contact.html">Contact us</a></li></ul></div>
     </div>
     <div class="fbot"><p>© 2026 RestMalta. Made with ☀️ in Malta.</p><p>Not affiliated with the Maltese government. RestMalta is not a real estate agency.</p></div>
   </footer>
@@ -1138,7 +1138,7 @@ async function setRoleAndContinue(role) {
     updN();
     toast('🎉 Welcome to RestMalta!');
 
-    if(role === 'lessor') window.location.href = '/lessor-dashboard.html';
+    if(role === 'landlord') window.location.href = '/landlord-dashboard.html';
     else if(role === 'agency') window.location.href = '/agency-dashboard.html';
     else { loadL(); updC(); go('home'); }
 
@@ -1156,10 +1156,10 @@ function updN(){
     const n=P.full_name?.split(' ')[0]||'?';
     const avatar=`<div style="width:32px;height:32px;border-radius:50%;background:var(--terra);color:white;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;cursor:pointer" onclick="goToDash()">${n[0].toUpperCase()}</div>`;
     na.innerHTML=avatar+`<span style="font-size:.82rem;color:var(--stone);font-weight:500;cursor:pointer" onclick="goToDash()">${n}</span><button class="btn btn-s btn-sm" onclick="doLogout()">Sign out</button>`;
-    np.style.display=P.role==='lessor'?'inline':'none';
+    np.style.display=P.role==='landlord'?'inline':'none';
     nd.style.display='inline';
     const heroAgLink=document.getElementById('hero-agencies-link');
-    if(heroAgLink)heroAgLink.style.display=P.role==='lessor'?'inline-flex':'none';
+    if(heroAgLink)heroAgLink.style.display=P.role==='landlord'?'inline-flex':'none';
   } else {
     na.innerHTML=`<button class="btn btn-s btn-sm" onclick="go('auth')">Sign in</button><button class="btn btn-p btn-sm" onclick="go('auth')">List your flat →</button>`;
     np.style.display='none';nd.style.display='none';
@@ -1177,9 +1177,9 @@ async function signInWithFacebook(){
 }
 
 function goToDash(){
-  if(P?.role==='lessor') window.location.href='/lessor-dashboard.html';
+  if(P?.role==='landlord') window.location.href='/landlord-dashboard.html';
   else if(P?.role==='agency') window.location.href='/agency-dashboard.html';
-  else window.location.href='/lessee-dashboard.html';
+  else window.location.href='/tenant-dashboard.html';
 }
 
 async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
@@ -1627,7 +1627,7 @@ function onAvailableFromChange(val){
 
 function chkPost(){
   if(!U){toast('Please sign in to post a listing');go('auth');return;}
-  if(P?.role!=='lessor'){toast('⚠️ You need a lessor account to post.');return;}
+  if(P?.role!=='landlord'){toast('⚠️ You need a landlord account to post.');return;}
 
   // Vérifier les champs essentiels du profil
   const missing=[];
@@ -1963,14 +1963,14 @@ function offerBoostAfterPublish(listingId,listingTitle,listingType){
 
 async function loadDash(){
   if(!U){return;}
-  document.getElementById('dTitle').textContent=P?.role==='lessor'?'Lessor Dashboard':'My Account';
+  document.getElementById('dTitle').textContent=P?.role==='landlord'?'Lessor Dashboard':'My Account';
   document.getElementById('dSub').textContent=`Welcome back, ${P?.full_name?.split(' ')[0]||''}! Here's your overview.`;
   loadML();loadMM();
 }
 
 async function loadML(){
   const w=document.getElementById('myl');
-  if(P?.role!=='lessor'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a lessor account to post and manage listings.</p></div>';return;}
+  if(P?.role!=='landlord'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a landlord account to post and manage listings.</p></div>';return;}
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
   if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo">📋</div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
   const ic={short:'🏠',room_rental:'🔑',long:'🏛️',for_sale:'🏷️'};
@@ -2030,14 +2030,14 @@ async function retrySaleActivation(listingId,listingTitle){
 async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'✅ Listing activated');loadML();updC();}
 
 async function loadMM(){
-  const w=document.getElementById('mym'),field=P?.role==='lessor'?'receiver_id':'sender_id';
+  const w=document.getElementById('mym'),field=P?.role==='landlord'?'receiver_id':'sender_id';
   const{data}=await sb.from('messages').select('*, listings(title,zone,id)').eq(field,U.id).order('created_at',{ascending:false});
   if(!data||data.length===0){w.innerHTML='<div class="empty"><div class="emo">💬</div><p>No messages yet. When lessees contact you, they\'ll appear here.</p></div>';return;}
   // Deduplicate by listing
   const seen=new Set();const unique=[];
   data.forEach(m=>{if(!seen.has(m.listing_id)){seen.add(m.listing_id);unique.push(m);}});
   w.innerHTML=unique.map(m=>{
-    const otherId=P?.role==='lessor'?m.sender_id:m.receiver_id;
+    const otherId=P?.role==='landlord'?m.sender_id:m.receiver_id;
     return`<div class="msgcard" onclick="opM('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.content.replace(/'/g,"\\'")}','${m.listings?.zone||''}','${m.listing_id||''}','${otherId||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.15rem">${m.listings?.title||'Listing'}</div><div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.2rem">📍 ${m.listings?.zone||''}</div><div class="mprev">${m.content}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0"><span class="mtime">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>${!m.read?'<div class="ubadge"></div>':''}</div></div>`;
   }).join('');
 }
