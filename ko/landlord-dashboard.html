@@ -805,7 +805,7 @@ let clerk,U=null,P=null,myListings=[],allMsgs=[],activeMsgId=null,activeListingI
     await new Promise(r=>setTimeout(r,800));
   }
   P=P_data;
-  if(!P||P.role!=='lessor'){window.location.href='/lessee-dashboard.html';return;}
+  if(!P||P.role!=='landlord'){window.location.href='/tenant-dashboard.html';return;}
   initUI();
   loadAll();
 
@@ -1776,7 +1776,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     const{data:tv}=await sb.from('visits').select('tenant_email,listing_id').eq('id',visitId).maybeSingle();
     const{data:tl}=await sb.from('listings').select('title').eq('id',listingId).maybeSingle();
     if(tv?.tenant_email){
-      fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:'visit_date_rejected',to:tv.tenant_email,data:{tenantName:P?.full_name||'Lessee',listingTitle:tl?.title||'Listing',dashboardUrl:'https://restmalta.com/lessee-dashboard.html'}})}).catch(()=>{});
+      fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:'visit_date_rejected',to:tv.tenant_email,data:{tenantName:P?.full_name||'Lessee',listingTitle:tl?.title||'Listing',dashboardUrl:'https://restmalta.com/tenant-dashboard.html'}})}).catch(()=>{});
     }
     toast('📅 Lessee notified to choose another date.');
 
@@ -1865,7 +1865,7 @@ async function joinVisit(groupId){
     group_id:groupId,
     sender_id:U.id,
     sender_name:P?.full_name||'Lessor',
-    sender_role:'lessor',
+    sender_role:'landlord',
     content:'👋 The lessor has joined the conversation and will be present during the visit.'
   });
   toast('✅ You joined the visit!');
@@ -2358,7 +2358,7 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
     if(senderId&&senderId!=='system'){
       const{data:other}=await sb.from('profiles').select('full_name,role').eq('clerk_id',senderId).maybeSingle();
       if(other){
-        const roleLabel=other.role==='lessee'?'👤':other.role==='agent'?'🏆':'🏠';
+        const roleLabel=other.role==='tenant'?'👤':other.role==='agent'?'🏆':'🏠';
         document.getElementById('msg-chat-sub').innerHTML=`<span style="color:var(--terra);font-weight:600">${roleLabel} ${other.full_name}</span>`;
       }
     }
