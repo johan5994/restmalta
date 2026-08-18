@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How RestMalta Works — For Lessees, Lessors & Agencies</title>
-<meta name="description" content="See exactly how RestMalta works for you — whether you're renting a flat in Malta, listing your property, or managing listings as a real estate agency.">
+<meta name="description" content="A complete, step-by-step explanation of how RestMalta works — whether you're renting a flat in Malta, listing your property, or managing listings as a real estate agency.">
 <meta name="robots" content="index, follow">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -15,27 +15,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--warm);color:var(--deep);l
 .logo{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--terra);text-decoration:none}
 .logo span{color:var(--deep)}
 .back{color:var(--stone);text-decoration:none;font-size:.88rem;font-weight:500}
-.hero{padding:4rem 1.5rem 1rem;text-align:center;max-width:640px;margin:0 auto}
+.hero{padding:4rem 1.5rem 1rem;text-align:center;max-width:680px;margin:0 auto}
 .stag{display:inline-flex;align-items:center;background:rgba(212,168,71,.1);color:var(--ochre);border:1px solid rgba(212,168,71,.2);padding:.35rem 1rem;border-radius:100px;font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:1.2rem}
 h1{font-family:'Playfair Display',serif;font-size:clamp(1.9rem,4vw,2.6rem);font-weight:900;letter-spacing:-1px;line-height:1.15;margin-bottom:.9rem}
 h1 em{font-style:italic;color:var(--terra)}
 .hero p{color:var(--stone);font-size:1rem}
-.tabs{display:flex;gap:.5rem;justify-content:center;margin:2rem 0 3rem;flex-wrap:wrap;padding:0 1.5rem}
-.tab{border:2px solid var(--b2);background:transparent;color:var(--stone);border-radius:100px;padding:.6rem 1.4rem;font-size:.88rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.tabs{display:flex;gap:.5rem;justify-content:center;margin:2rem 0 3rem;flex-wrap:wrap;padding:0 1.5rem;position:sticky;top:0;background:var(--warm);z-index:10;padding-top:1rem;padding-bottom:.5rem}
+.tab{border:2px solid var(--b2);background:white;color:var(--stone);border-radius:100px;padding:.6rem 1.4rem;font-size:.88rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
 .tab.act{border-color:var(--terra);background:var(--terra);color:white}
-.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem 5rem}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem 3rem}
 .panel{display:none}
 .panel.act{display:block}
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem}
-.step{padding:1.8rem;border-radius:18px;border:1px solid rgba(107,95,82,.1);background:white}
-.snum{font-family:'Playfair Display',serif;font-size:2.5rem;font-weight:900;color:rgba(201,85,58,.12);line-height:1;margin-bottom:.8rem}
-.sico{font-size:1.6rem;margin-bottom:.8rem}
-.step h3{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
-.step p{font-size:.85rem;color:var(--stone);line-height:1.6}
-.cta{text-align:center;margin-top:3rem}
+.stepnote{background:rgba(46,107,138,.06);border:1px solid rgba(46,107,138,.18);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--stone)}
+.stepnote strong{color:var(--sea)}
+.steps{display:grid;grid-template-columns:repeat(2,1fr);gap:1.1rem}
+.step{padding:1.6rem;border-radius:18px;border:1px solid rgba(107,95,82,.1);background:white}
+.snum{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;color:rgba(201,85,58,.12);line-height:1;margin-bottom:.7rem}
+.sico{font-size:1.5rem;margin-bottom:.7rem}
+.step h3{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;margin-bottom:.5rem}
+.step p{font-size:.84rem;color:var(--stone);line-height:1.65}
+.cta{text-align:center;margin-top:2.5rem}
 .btn{display:inline-block;background:var(--terra);color:white;text-decoration:none;padding:.85rem 2rem;border-radius:100px;font-weight:700;font-size:.92rem}
-@media(max-width:900px){.steps{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.steps{grid-template-columns:1fr}}
+@media(max-width:700px){.steps{grid-template-columns:1fr}}
+.faq{max-width:800px;margin:1rem auto 5rem;padding:0 1.5rem}
+.faq-head{text-align:center;margin-bottom:2rem}
+.faq-head h2{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:900;margin-bottom:.5rem}
+.faq-head p{color:var(--stone);font-size:.9rem}
+.faq-item{background:white;border:1px solid rgba(107,95,82,.12);border-radius:14px;padding:1.2rem 1.4rem;margin-bottom:.85rem}
+.faq-item h4{font-size:.92rem;font-weight:700;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem}
+.faq-item p{font-size:.84rem;color:var(--stone);line-height:1.65}
 footer{text-align:center;padding:2rem;color:var(--stone-l);font-size:.8rem;border-top:1px solid rgba(107,95,82,.12)}
 </style>
 </head>
@@ -46,9 +54,9 @@ footer{text-align:center;padding:2rem;color:var(--stone-l);font-size:.8rem;borde
 </div>
 
 <div class="hero">
-  <div class="stag">✦ Simple process</div>
+  <div class="stag">✦ The complete guide</div>
   <h1>How <em>RestMalta</em> works</h1>
-  <p>A different experience depending on who you are — pick your role below to see exactly what happens, step by step.</p>
+  <p>RestMalta has a few moving parts — dossiers, e-signed leases, move-in inventories. This page walks through exactly what happens, step by step, for whichever role fits you.</p>
 </div>
 
 <div class="tabs">
@@ -61,38 +69,93 @@ footer{text-align:center;padding:2rem;color:var(--stone-l);font-size:.8rem;borde
 
   <!-- LESSEE -->
   <div class="panel act" id="panel-tenant">
+    <div class="stepnote">👋 Looking for a flat? Everything below happens from your <strong>tenant dashboard</strong> once you sign up — no separate app, no downloads.</div>
     <div class="steps">
-      <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & message</h3><p>Filter by zone, budget and type. Message lessors or agents directly through real-time chat — no phone numbers shared, no vanishing "agents" from a WhatsApp group. Searching alone? Find a Roommate connects you with others looking to share.</p></div>
-      <div class="step"><div class="snum">02</div><div class="sico">🤝</div><h3>Apply & sign</h3><p>A small platform fee is authorized on your card when you apply — never charged unless the lessor accepts. Once accepted, your lease is auto-generated and e-signed, compliant with Maltese law. Bringing roommates? They're added to the same lease and sign too.</p></div>
-      <div class="step"><div class="snum">03</div><div class="sico">📸</div><h3>Move in with proof</h3><p>Every room and both meters are logged and photographed at move-in, signed by you and your lessor. Real protection if a dispute ever comes up — not just a promise. Deposit and first month go straight to your lessor, no middleman holding your money.</p></div>
-      <div class="step"><div class="snum">04</div><div class="sico">🏡</div><h3>Live & manage</h3><p>Message your lessor anytime, report maintenance issues with photos, and track every payment from your dashboard. When you're ready, renew your lease or generate your official notice to leave — both handled right from the app.</p></div>
+      <div class="step"><div class="snum">01</div><div class="sico">🔍</div><h3>Browse & filter</h3><p>Search by zone, budget, and lease type — short-let, long-let, or a room in a shared flat. Switch to map view to see everything geographically, or watch a virtual tour video if the lessor added one.</p></div>
+      <div class="step"><div class="snum">02</div><div class="sico">💬</div><h3>Message directly, no numbers shared</h3><p>Real-time chat with the lessor or agency, right in the app. Your phone number stays private until you choose to share it — no more handing it out to strangers on Facebook groups.</p></div>
+      <div class="step"><div class="snum">03</div><div class="sico">📋</div><h3>Build your dossier once</h3><p>Upload your ID, an employment letter, bank statements and references a single time. From then on, every application reuses the same verified dossier — no re-uploading for each flat you're interested in.</p></div>
+      <div class="step"><div class="snum">04</div><div class="sico">👥</div><h3>Bringing roommates?</h3><p>Add co-lessees directly to your application — they each get invited to submit their own dossier and sign the lease alongside you. Searching for people to share with in the first place? Find a Roommate connects you with others looking too.</p></div>
+      <div class="step"><div class="snum">05</div><div class="sico">🤝</div><h3>Apply</h3><p>Send your application with your move-in date and any notes for the lessor. If there's a platform fee for this listing, it's authorized on your card at this point — but only actually charged if the lessor accepts. Nothing is taken upfront.</p></div>
+      <div class="step"><div class="snum">06</div><div class="sico">✍️</div><h3>Lease generated & e-signed</h3><p>The moment you're accepted, a lease compliant with Maltese rental law is generated automatically with your details already filled in. Review and sign it from your phone — no printing, no in-person meeting required.</p></div>
+      <div class="step"><div class="snum">07</div><div class="sico">📸</div><h3>Move-in inventory</h3><p>Before you get the keys, every room and both meters (water & electricity) are photographed and logged, then signed by both you and your lessor. This becomes your proof of the property's condition — real protection if there's ever a dispute over the deposit.</p></div>
+      <div class="step"><div class="snum">08</div><div class="sico">🏡</div><h3>Live & manage</h3><p>Your dashboard tracks every payment due, lets you report maintenance issues with photos, and keeps your full conversation history with your lessor. Deposit and rent go directly to your lessor's account — RestMalta never holds your money.</p></div>
+      <div class="step"><div class="snum">09</div><div class="sico">📅</div><h3>Renewing or leaving</h3><p>When your lease is coming to an end, renew it or generate your official notice to leave — both handled right from the app, correctly timed to Maltese lease law. Leave a review of your lessor when you're done, and see the reviews they've left for you too.</p></div>
     </div>
     <div class="cta"><a class="btn" href="/#auth">Start browsing flats →</a></div>
   </div>
 
   <!-- LESSOR -->
   <div class="panel" id="panel-landlord">
+    <div class="stepnote">👋 Renting out a property? Everything below happens from your <strong>landlord dashboard</strong> — you can self-manage entirely, or hand it to an agency at any point.</div>
     <div class="steps">
-      <div class="step"><div class="snum">01</div><div class="sico">✍️</div><h3>List your property</h3><p>Fill in the details yourself — title, photos, price, you're in control. Selling instead? List it for sale too — same platform, different flow.</p></div>
-      <div class="step"><div class="snum">02</div><div class="sico">💬</div><h3>Review & accept</h3><p>Lessees message and apply directly — see their verified dossier (ID, employment letter, references) before deciding. Accept the application that fits, and their lease generates automatically, ready to sign.</p></div>
-      <div class="step"><div class="snum">03</div><div class="sico">📋</div><h3>Move-in day</h3><p>Complete the move-in inventory with photos and meter readings, right from your dashboard — signed by both of you as shared proof. Deposit and first month land directly in your account, no waiting on a middleman.</p></div>
-      <div class="step"><div class="snum">04</div><div class="sico">📊</div><h3>Manage with ease</h3><p>Track every rented property, payment status and lease end date in one place. Handle maintenance requests, message your lessee, and renew or let leases run their course — all from Rented Properties.</p></div>
+      <div class="step"><div class="snum">01</div><div class="sico">✍️</div><h3>List your property</h3><p>Fill in the details yourself — title, photos, price, lease type (short-let, long-let, or room rental). Selling instead of renting? List it for sale too, same platform, its own separate flow.</p></div>
+      <div class="step"><div class="snum">02</div><div class="sico">📋</div><h3>Set your terms</h3><p>Decide your deposit amount, whether you accept lease attestation for non-EU tenants needing it for their residence permit, and any house rules. All of this shows on the listing before anyone applies.</p></div>
+      <div class="step"><div class="snum">03</div><div class="sico">💬</div><h3>Get discovered</h3><p>Lessees message and apply directly through real-time chat. Prefer hands-off management instead? Browse agencies and hand the whole thing to one — they'll handle visits, applications and move-in on your behalf.</p></div>
+      <div class="step"><div class="snum">04</div><div class="sico">🔎</div><h3>Review real dossiers</h3><p>Before accepting anyone, see their verified ID, employment letter, bank statements, references — and their rating from previous lessors, if they have one. Decide with real information, not just a WhatsApp message.</p></div>
+      <div class="step"><div class="snum">05</div><div class="sico">✅</div><h3>Accept & sign</h3><p>Accepting an application instantly generates the lease with both parties' details pre-filled, compliant with the Private Residential Leases Act. Sign it from your dashboard — no printing, no notary required for a standard lease.</p></div>
+      <div class="step"><div class="snum">06</div><div class="sico">📷</div><h3>Move-in day, together</h3><p>Complete the move-in inventory with your lessee — every room and both meter readings photographed and logged, signed by both of you. This is what protects you if there's ever a disagreement about the property's condition later.</p></div>
+      <div class="step"><div class="snum">07</div><div class="sico">💶</div><h3>Get paid directly</h3><p>Deposit and first month's rent land straight in your own account once the lease is signed — RestMalta is never in the middle of your money. Track every payment's status from Rented Properties going forward.</p></div>
+      <div class="step"><div class="snum">08</div><div class="sico">🔧</div><h3>Maintenance, your way</h3><p>When a lessee reports an issue with photos, choose how to handle it: fix it yourself, hire your own contractor, or request quotes through RestMalta's network — all tracked in one place, nothing falls through the cracks.</p></div>
+      <div class="step"><div class="snum">09</div><div class="sico">📊</div><h3>Manage & renew</h3><p>Rented Properties gives you a single view of every tenancy, payment status and lease end date. When the time comes, renew the lease or generate an official notice to leave, correctly timed to Maltese law — then leave a review of your lessee.</p></div>
     </div>
     <div class="cta"><a class="btn" href="/#auth">List your property →</a></div>
   </div>
 
   <!-- AGENCY -->
   <div class="panel" id="panel-agency">
+    <div class="stepnote">👋 Managing properties professionally? Everything below happens from your <strong>agency dashboard</strong> — built for a whole team, not just one person.</div>
     <div class="steps">
-      <div class="step"><div class="snum">01</div><div class="sico">🏢</div><h3>Get your directory profile</h3><p>Set up your agency profile — lessors in your zones can find and contact you directly. Browse and pick up estimation requests too.</p></div>
-      <div class="step"><div class="snum">02</div><div class="sico">📋</div><h3>Manage everything in one place</h3><p>Listings, visits, applications, leases, move-in — all tracked from your own dashboard with your team.</p></div>
-      <div class="step"><div class="snum">03</div><div class="sico">📷</div><h3>Complete move-in</h3><p>Run the move-in inventory with photos and meter readings, generate the annex, and get it signed by lessor and lessee.</p></div>
-      <div class="step"><div class="snum">04</div><div class="sico">💶</div><h3>Get paid your way</h3><p>RestMalta only ever captures its own platform fee — your commission is arranged and paid directly, never routed through the platform. Post sale listings for free too.</p></div>
+      <div class="step"><div class="snum">01</div><div class="sico">🏢</div><h3>Set up your directory profile</h3><p>Your agency gets its own public profile — lessors browsing by zone can find and contact you directly, without you having to chase leads. Pick up estimation requests from lessors wanting a valuation too.</p></div>
+      <div class="step"><div class="snum">02</div><div class="sico">⚡</div><h3>Import or create listings</h3><p>Pull details straight from an existing listing URL, bulk-import a whole portfolio via CSV, or build listings manually one at a time — whatever fits how you already work.</p></div>
+      <div class="step"><div class="snum">03</div><div class="sico">👥</div><h3>Manage your whole team</h3><p>Add team members with their own PIN-protected identity — each person's clients, listings and messages stay separated automatically, tracked to whoever's actually handling them. A full agency admin view (its own separate PIN) sees everything across the team when you need the big picture.</p></div>
+      <div class="step"><div class="snum">04</div><div class="sico">📋</div><h3>Review applications</h3><p>See each lessee's full verified dossier — ID, employment letter, references — right on the application card, before deciding whether to accept on the landlord's behalf.</p></div>
+      <div class="step"><div class="snum">05</div><div class="sico">✍️</div><h3>Handle the lease your way</h3><p>If the landlord doesn't have a RestMalta account, look them up by email to link one — or if you're authorized to sign on their behalf, do it directly. Otherwise, relay the signing link however's easiest: copy it, send via WhatsApp, or email.</p></div>
+      <div class="step"><div class="snum">06</div><div class="sico">📷</div><h3>Move-in day</h3><p>Run the move-in inventory with photos and meter readings, get it signed by both lessor and lessee — the same protection every RestMalta tenancy gets, whether you manage it or they do it themselves.</p></div>
+      <div class="step"><div class="snum">07</div><div class="sico">🗂️</div><h3>Track everything in one place</h3><p>A real CRM — separate lessee and lessor contact databases with names, nationality, phone and email. Applications, visits and messages all filterable to just your own clients, or the whole team's.</p></div>
+      <div class="step"><div class="snum">08</div><div class="sico">💶</div><h3>Get paid your way</h3><p>RestMalta runs on a flat monthly subscription for agencies — never a cut of your commission. What you charge lessors and lessees is arranged and paid directly, entirely outside the platform. Post sale listings for free too.</p></div>
     </div>
     <div class="cta"><a class="btn" href="/#auth">Set up your agency →</a></div>
   </div>
 
 </div>
+
+<div class="faq">
+  <div class="faq-head">
+    <h2>A few things worth explaining</h2>
+    <p>RestMalta does more than a typical listings site — here's the "why" behind the parts that aren't obvious at first glance.</p>
+  </div>
+
+  <div class="faq-item">
+    <h4>📸 What's the "move-in inventory"?</h4>
+    <p>Formally called an EDL (état des lieux) in Maltese rental practice — a room-by-room record of the property's condition and both meter readings, photographed and signed by both parties the day the tenant moves in. Its whole purpose is to settle disputes fairly later — if something's disputed at move-out, there's an agreed, dated record from move-in to compare against.</p>
+  </div>
+
+  <div class="faq-item">
+    <h4>🪪 Why does RestMalta need my ID?</h4>
+    <p>Two reasons. First, trust — a landlord reviewing your application, or a tenant reviewing who they're renting from, can see a verified identity instead of just a name in a chat. Second, Maltese leases legally require each party's identification to appear on the document itself, so it's needed either way.</p>
+  </div>
+
+  <div class="faq-item">
+    <h4>💶 What's the platform fee actually for?</h4>
+    <p>It covers running the verification, e-signing and hosting behind the platform. It's only ever charged if a lessee's application is actually accepted — never upfront, and never if you're rejected. Properties managed by an agency don't carry this fee at all, since agencies pay their own separate subscription instead.</p>
+  </div>
+
+  <div class="faq-item">
+    <h4>🏢 Do I need an agency, or can I self-manage?</h4>
+    <p>Self-managing directly between lessor and lessee is the default and works for most people — RestMalta handles the lease, e-signing and move-in inventory either way. An agency is there for landlords who'd rather hand off the day-to-day (visits, applications, coordination) entirely.</p>
+  </div>
+
+  <div class="faq-item">
+    <h4>⚖️ Is the lease actually legally valid?</h4>
+    <p>Leases generated through RestMalta are built to comply with Malta's Private Residential Leases Act (Chapter 604) — covering the property address, agreed use, duration, rent and payment method, deposit, and the move-in inventory as required by law. It remains the landlord's responsibility to register the lease with the Housing Authority within the legally required timeframe.</p>
+  </div>
+
+  <div class="faq-item">
+    <h4>🔑 What happens to my deposit and rent?</h4>
+    <p>They're never held by RestMalta. Once a lease is signed, deposit and first month's rent go straight from the tenant's payment method to the landlord's own account — the platform only ever facilitates the transaction, it isn't a party to it.</p>
+  </div>
+</div>
+
 <footer>© 2026 RestMalta. All rights reserved.</footer>
 
 <script>
@@ -101,6 +164,7 @@ function setTab(role){
     document.getElementById('panel-'+r).classList.toggle('act',r===role);
     document.getElementById('tabbtn-'+r).classList.toggle('act',r===role);
   });
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 // Ouvrir directement sur le bon onglet si on arrive avec ?role=landlord etc.
 const params=new URLSearchParams(window.location.search);
