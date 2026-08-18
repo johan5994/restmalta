@@ -21,20 +21,29 @@ exports.handler = async (event) => {
 
     // ── Gestion signatures bookings (nouveau flow) ──────────────────────────
     if (eventType === 'form.completed' || eventType === 'submission.completed') {
-      const submission = payload.data || payload;
-      const submissionId = String(submission.id || submission.submission_id || '');
+      const d = payload.data || payload;
+      // form.completed : structure PLATE — role/status directement sur data,
+      // le vrai ID de soumission est niché dans data.submission.id (data.id
+      // est l'ID du SIGNATAIRE individuel, pas de la soumission entière).
+      // submission.completed : structure imbriquée avec un tableau submitters.
+      const submissionId = String(d.submission?.id || d.id || '');
+      let role = '';
+      if (eventType === 'form.completed') {
+        role = d.role || '';
+      } else {
+        // Prendre le signataire le PLUS RÉCEMMENT complété, pas le premier
+        // trouvé — si le locataire avait déjà signé avant, .find() retombait
+        // toujours sur lui même quand c'est le propriétaire qui vient de finir
+        const completedSubmitters = (d.submitters || []).filter(s => s.status === 'completed');
+        completedSubmitters.sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+        role = completedSubmitters[0]?.role || '';
+      }
+
       if (submissionId) {
         const sb2 = createClient(SUPABASE_URL, SUPABASE_KEY);
-        const { data: booking } = await sb2.from('bookings').select('*').eq('lease_submission_id', submissionId).maybeSingle().catch(() => ({ data: null }));
+        const { data: booking } = await sb2.from('bookings').select('*').eq('lease_submission_id', submissionId).maybeSingle();
         if (booking) {
           let updateData = {};
-          // Prendre le signataire le PLUS RÉCEMMENT complété, pas le premier
-          // trouvé — si le locataire avait déjà signé avant, .find() retombait
-          // toujours sur lui même quand c'est le propriétaire qui vient de finir
-          const completedSubmitters = (submission.submitters || []).filter(s => s.status === 'completed');
-          completedSubmitters.sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
-          const submitter = completedSubmitters[0];
-          const role = submitter?.role || '';
 
           if (eventType === 'submission.completed') {
             updateData = { lease_signed_landlord: true, lease_signed_tenant: true };
@@ -96,17 +105,22 @@ exports.handler = async (event) => {
 
     // ── Gestion signatures EDL (état des lieux) ─────────────────────────────
     if (eventType === 'form.completed' || eventType === 'submission.completed') {
-      const submission = payload.data || payload;
-      const submissionId = String(submission.id || submission.submission_id || '');
+      const d = payload.data || payload;
+      const submissionId = String(d.submission?.id || d.id || '');
+      let role = '';
+      if (eventType === 'form.completed') {
+        role = d.role || '';
+      } else {
+        const completedEdlSubmitters = (d.submitters || []).filter(s => s.status === 'completed');
+        completedEdlSubmitters.sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+        role = completedEdlSubmitters[0]?.role || '';
+      }
+
       if (submissionId) {
         const sb3 = createClient(SUPABASE_URL, SUPABASE_KEY);
-        const { data: edlBooking } = await sb3.from('bookings').select('*').eq('edl_submission_id', submissionId).maybeSingle().catch(() => ({ data: null }));
+        const { data: edlBooking } = await sb3.from('bookings').select('*').eq('edl_submission_id', submissionId).maybeSingle();
         if (edlBooking) {
           let edlUpdate = {};
-          const completedEdlSubmitters = (submission.submitters || []).filter(s => s.status === 'completed');
-          completedEdlSubmitters.sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
-          const submitter = completedEdlSubmitters[0];
-          const role = submitter?.role || '';
           if (eventType === 'submission.completed') {
             edlUpdate = { edl_signed_landlord: true, edl_signed_tenant: true };
           } else if (role === 'Lessor') {
