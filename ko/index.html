@@ -323,6 +323,9 @@ footer ul a:hover{color:var(--terra)}
   .dwrap,.dwrap2{padding:1.5rem 1rem!important}
   nav{padding:.8rem 1rem!important}
   .nav-links{display:none!important}
+  .nav-act{gap:.4rem!important}
+  .nav-act span{display:none!important}
+  .nav-act .btn-sm{padding:.4rem .65rem!important;font-size:.72rem!important}
   .deposit-grid{grid-template-columns:1fr 1fr!important}
 }
 @media(max-width:900px){
@@ -358,8 +361,8 @@ footer ul a:hover{color:var(--terra)}
   <div class="hero">
     <div class="hero-bg"></div>
     <div class="hero-l">
-      <div class="hero-tag">🇲🇹 Malta's #1 rental platform</div>
-      <h1>Find your flat in<br><em>Malta</em>. No Facebook<br>groups, no scams.</h1>
+      <div class="hero-tag">🇲🇹 Malta's first smart rental platform</div>
+      <h1><em>RestMalta</em> — The safer way to rent in Malta.</h1>
       <p class="hero-desc">Verified listings, real-time chat with lessors, guided visits and e-signed leases — all in one place. No cash to strangers, no vanishing "agents" from a WhatsApp group. Free for lessees.</p>
       <div class="hero-acts">
         <button class="btn btn-p" onclick="stl()">🔍 Browse listings</button>
@@ -420,6 +423,7 @@ footer ul a:hover{color:var(--terra)}
       </select></div>
       <div class="sf" id="fp-wrap"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
       <div class="sf"><label>📋 Attestation</label><select id="fa" onchange="loadL()"><option value="">All</option><option value="yes">✅ Attestation OK</option></select></div>
+      <div class="sf"><label>🏠 Listed by</label><select id="fsrc" onchange="loadL()"><option value="">Owner or agency</option><option value="owner">👤 Direct from owner</option><option value="agency">🏢 Via an agency</option></select></div>
       <button class="btn btn-p" onclick="loadL()">Search →</button>
     </div>
   </div>
@@ -768,6 +772,8 @@ footer ul a:hover{color:var(--terra)}
           <div id="contact-direct-wrap">
             <div class="fg2"><label>Your message to the lessor</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
             <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
+            <button class="btn btn-s" id="visit-req-btn" style="width:100%;justify-content:center;margin-top:.5rem;display:none" onclick="requestVisitFromDetail()">📅 Request a visit</button>
+            <div id="visit-req-hint" style="font-size:.7rem;color:var(--stone-l);text-align:center;margin-top:.5rem">Send a message first — you'll be able to request a visit once you've reached out.</div>
           </div>
 
           <p style="margin-top:.6rem;font-size:.68rem;color:var(--stone-l);text-align:center">🔒 Your contact details are never shared directly</p>
@@ -1120,7 +1126,7 @@ function updN(){
   if(U&&P){
     const n=P.full_name?.split(' ')[0]||'?';
     const avatar=`<div style="width:32px;height:32px;border-radius:50%;background:var(--terra);color:white;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;cursor:pointer" onclick="goToDash()">${n[0].toUpperCase()}</div>`;
-    na.innerHTML=avatar+`<span style="font-size:.82rem;color:var(--stone);font-weight:500;cursor:pointer" onclick="goToDash()">${n}</span><button class="btn btn-s btn-sm" onclick="doLogout()">Sign out</button>`;
+    na.innerHTML=avatar+`<span style="font-size:.82rem;color:var(--stone);font-weight:500;cursor:pointer" onclick="goToDash()">${n}</span><button class="btn btn-p btn-sm" onclick="goToDash()">📊 Dashboard</button><button class="btn btn-s btn-sm" onclick="doLogout()">Sign out</button>`;
     np.style.display=P.role==='landlord'?'inline':'none';
     nd.style.display='inline';
     const heroAgLink=document.getElementById('hero-agencies-link');
@@ -1157,12 +1163,14 @@ function toggleSaleFilterUI(){
 
 async function loadL(){
   const g=document.getElementById('lg');g.innerHTML='<div class="loading"><div class="sp"></div> Loading…</div>';
-  const z=document.getElementById('fz')?.value,t=document.getElementById('ft')?.value,p=document.getElementById('fp')?.value,att=document.getElementById('fa')?.value;
+  const z=document.getElementById('fz')?.value,t=document.getElementById('ft')?.value,p=document.getElementById('fp')?.value,att=document.getElementById('fa')?.value,src=document.getElementById('fsrc')?.value;
   let q=sb.from('listings').select('*').eq('active',true).not('status','in','("reserved","rented")').order('created_at',{ascending:false});
   if(z)q=q.eq('zone',z);
   if(t)q=q.eq('type',t);
   if(p&&t!=='for_sale')q=q.lte('price',parseInt(p)); // le filtre budget est pensé pour un loyer, n'a pas de sens pour un prix de vente
   if(att==='yes')q=q.eq('accepts_attestation',true);
+  if(src==='owner')q=q.not('agency_listing','is',true);
+  else if(src==='agency')q=q.eq('agency_listing',true);
   const{data}=await q;
   const now=Date.now();
   const sorted=(data||[]).slice().sort((a,b)=>{
@@ -1365,6 +1373,19 @@ async function openDet(id){
       <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">Deposit and rent are paid directly to the lessor once the lease is signed.</div>`;
   }
 
+  // Si un message existe déjà avec ce lessor pour cette annonce, pas besoin
+  // de forcer un nouveau message — la discussion a déjà commencé
+  const vBtn=document.getElementById('visit-req-btn'),vHint=document.getElementById('visit-req-hint');
+  if(vBtn&&vHint){
+    vBtn.style.display='none';vHint.style.display='block';
+    if(U){
+      try{
+        const{data:existing}=await sb.from('messages').select('id').eq('listing_id',id).eq('sender_id',U.id).limit(1);
+        if(existing&&existing.length){vBtn.style.display='flex';vHint.style.display='none';}
+      }catch(e){}
+    }
+  }
+
   go('det');
 }
 
@@ -1435,6 +1456,73 @@ async function inviteCoTenants(listingId, coTenantEmails){
   return invited;
 }
 
+async function requestVisitFromDetail(){
+  if(!U){toast('Please sign in first');go('auth');return;}
+  if(!AL){toast('❌ Listing not loaded');return;}
+
+  const missing=[];
+  if(!P?.full_name)missing.push('Full name');
+  if(!P?.passport_number)missing.push('Passport/ID');
+  if(!P?.nationality)missing.push('Nationality');
+  if(!P?.date_of_birth)missing.push('Date of birth');
+  if(!P?.home_address)missing.push('Home address');
+  if(missing.length>0){
+    toast('❌ Complete your profile before requesting a visit');
+    alert(`Please complete your profile first.\n\nMissing: ${missing.join(', ')}\n\nGo to your dashboard → Profile → fill in all fields → Save.`);
+    return;
+  }
+
+  const modal=document.createElement('div');
+  modal.id='visit-request-modal-overlay';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:white;border-radius:20px;padding:1.5rem;width:100%;max-width:400px">
+      <div style="font-size:1rem;font-weight:800;margin-bottom:1rem">📅 Request a visit</div>
+      <div style="font-size:.78rem;color:var(--stone);margin-bottom:1rem">${(AL.title||'This property').replace(/</g,'&lt;')}</div>
+      <div class="fg2"><label>Preferred date</label><input class="fi" type="date" id="vr-date"></div>
+      <div class="fg2"><label>Preferred time</label><input class="fi" type="time" id="vr-time" value="14:00"></div>
+      <div style="display:flex;gap:.5rem;margin-top:1rem">
+        <button id="vr-send-btn" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">Send request →</button>
+        <button onclick="document.getElementById('visit-request-modal-overlay').remove()" style="background:#f2ede4;color:var(--stone);border:1px solid #e5ddd0;border-radius:10px;padding:.7rem .9rem;font-size:.82rem;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('vr-send-btn').onclick=async()=>{
+    const visitDate=document.getElementById('vr-date')?.value;
+    const visitTime=document.getElementById('vr-time')?.value||'14:00';
+    if(!visitDate){toast('⚠️ Please select a date');return;}
+    const today=new Date();today.setHours(0,0,0,0);
+    if(new Date(visitDate)<today){toast('⚠️ Please select a future date');return;}
+
+    try{
+      await sb.from('visits').insert({
+        listing_id:AL.id,
+        tenant_id:U.id,
+        landlord_id:AL.landlord_id,
+        tenant_name:P?.full_name||'',
+        tenant_email:P?.email||'',
+        visit_date:visitDate,
+        visit_time:visitTime,
+        zone:AL.zone||'',
+        status:'awaiting_landlord'
+      });
+    }catch(e){toast('❌ '+e.message);return;}
+
+    try{
+      const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+      await sb.from('messages').insert({
+        listing_id:AL.id,sender_id:'system',receiver_id:AL.landlord_id,
+        content:'📅 '+(P?.full_name||'A lessee')+' requested a visit\n\n'+(AL.title||'Property')+'\nDate: '+visitDateStr+' at '+visitTime+'\n\nCheck your visits page to confirm.',
+        type:'visit_request'
+      });
+    }catch(e){}
+
+    modal.remove();
+    toast('✅ Visit request sent! Check My Dashboard → My Visits.');
+  };
+}
+
 async function sendMsg(){
   if(!U){toast('Please sign in first');go('auth');return;}
   if(!AL)return;
@@ -1474,6 +1562,9 @@ async function sendMsg(){
   if(error){toast('Error: '+error.message);return;}
   toast('✅ Message sent!');
   document.getElementById('dmsg').value='';
+  const vBtn=document.getElementById('visit-req-btn'),vHint=document.getElementById('visit-req-hint');
+  if(vBtn){vBtn.style.display='flex';}
+  if(vHint){vHint.style.display='none';}
 }
 
 // ── Anti-contournement : masquer numéros et emails dans le chat ──
