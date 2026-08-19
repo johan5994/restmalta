@@ -1819,20 +1819,21 @@ async function fetchTenantVisitData(){
 }
 
 // Statuts de visite pure — avant toute candidature de location
-const TENANT_VISIT_ONLY_STATUSES=['awaiting_landlord','agents_applying','agent_assigned','confirmed','completed','cancelled','tenant_declined','no_show','date_rejected'];
+const TENANT_VISIT_ONLY_STATUSES=['awaiting_landlord','awaiting_tenant','agents_applying','agent_assigned','confirmed','completed','cancelled','tenant_declined','no_show','date_rejected'];
 // Statuts de candidature — dès que le tenant a dit "je veux louer"
 const TENANT_APPLICATION_STATUSES=['booking_pending','accepted','lease_pending','edl_scheduled','signing_day','move_in_ready','declined'];
 
 function renderTenantVisitCard(v){
   const bk=v.booking||null;
   const statusColors={
-    'awaiting_landlord':'b-gold','agents_applying':'b-sea','agent_assigned':'b-green',
+    'awaiting_landlord':'b-gold','awaiting_tenant':'b-gold','agents_applying':'b-sea','agent_assigned':'b-green',
     'confirmed':'b-green','completed':'b-sea','tenant_interested':'b-green',
     'booking_pending':'b-gold','accepted':'b-green','lease_pending':'b-sea',
     'edl_scheduled':'b-green','signing_day':'b-green','move_in_ready':'b-green'
   };
   const statusLabels={
     'awaiting_landlord':'⏳ Awaiting lessor confirmation',
+    'awaiting_tenant':'📅 Lessor proposed a visit',
     'agents_applying':'✅ Visit confirmed by lessor',
     'agent_assigned':v.has_agent?'✅ Visit confirmed':'✅ Visit confirmed by lessor',
     'confirmed':v.has_agent?'✅ You confirmed':'✅ Visit confirmed',
@@ -1868,6 +1869,17 @@ function renderTenantVisitCard(v){
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;font-size:.75rem;color:var(--gold)">
         ⏳ Waiting for the lessor to confirm the date is available.
       </div>`:''} 
+
+      <!-- ÉTAPE 2.5 : Le lessor propose une date — un clic pour confirmer -->
+      ${v.status==='awaiting_tenant'?`
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem .7rem;margin-top:.3rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:.3rem">📅 Your lessor proposed this visit</div>
+        <div style="font-size:.7rem;color:var(--td);margin-bottom:.5rem">${dateStr}</div>
+        <div style="display:flex;gap:.4rem">
+          <button onclick="tenantConfirmProposedVisit('${v.id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer">✅ Yes, that works!</button>
+          <button onclick="tenantDeclineProposedVisit('${v.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">Propose another date</button>
+        </div>
+      </div>`:''}
 
       <!-- ÉTAPE 3 : Visite confirmée -->
       ${(v.status==='confirmed'||v.status==='agent_assigned')?`
@@ -2028,6 +2040,20 @@ async function loadTenantApplicationsPage(){
   wrap.innerHTML=html;
 }
 
+function renderCoTenantSignatureRowsTenant(bk){
+  if(!bk)return '';
+  let coLessees=[];
+  try{coLessees=bk.co_lessees_embed_src?JSON.parse(bk.co_lessees_embed_src):[];}catch(e){}
+  if(!coLessees.length)return '';
+  return coLessees.map(cl=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+      <span style="font-size:.78rem">👥 ${cl.name||'Co-lessee'}</span>
+      ${cl.signed
+        ?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>'
+        :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+    </div>`).join('');
+}
+
 function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   if(!bk) return '';
   const llSigned=bk.lease_signed_landlord;
@@ -2044,6 +2070,13 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   const rent=bk.monthly_rent||0;
   const deposit=rent;
   const holding=bk.holding_amount||0;
+
+  // Nombre total de locataires (principal + co-locataires) pour le partage du paiement
+  let coTenantsCount=0;
+  try{const ct=bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[];coTenantsCount=Array.isArray(ct)?ct.length:0;}catch(e){}
+  const totalTenants=1+coTenantsCount;
+  const totalDue=deposit+rent-holding;
+  const perPersonShare=Math.round((totalDue/totalTenants)*100)/100;
 
   return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
     <div style="background:rgba(76,175,125,.12);padding:.5rem .85rem">
@@ -2082,6 +2115,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
               ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`
               :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
         </div>
+        ${!coTenantEntry?renderCoTenantSignatureRowsTenant(bk):''}
       </div>
       ${bk.status==='edl_scheduled'?`
       <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your lessor is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
@@ -2108,7 +2142,11 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         ${holding?`<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#4CAF7D;margin-bottom:.15rem"><span>✅ Holding deposit deducted</span><span>-€${holding}</span></div>`:''}
         <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${deposit+rent-holding}</span></div>
       </div>
-      ${coTenantEntry?`<div style="font-size:.68rem;color:var(--td);margin-bottom:.4rem">💡 Coordinate with ${bk.tenant_name||'the main lessee'} — usually one of you sends the total and marks it as paid below.</div>`:''}
+      ${totalTenants>1?`<div style="background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;margin-bottom:.4rem">
+        <div style="font-size:.73rem;font-weight:700;color:var(--sea);margin-bottom:.2rem">👥 Split ${totalTenants} ways</div>
+        <div style="font-size:.72rem;color:var(--tm)">€${totalDue} ÷ ${totalTenants} lessees = <strong>€${perPersonShare} each</strong></div>
+        <div style="font-size:.66rem;color:var(--td);margin-top:.25rem">💡 Coordinate with ${bk.tenant_name||'the main lessee'} — usually one of you sends the full total and marks it as paid below.</div>
+      </div>`:''}
       ${bk.landlord_iban||bk.landlord_revolut?`
       <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-bottom:.4rem;font-size:.73rem;color:var(--tm)">
         ${bk.landlord_iban?`🏦 IBAN: <strong>${bk.landlord_iban}</strong><br>`:''}
@@ -2374,6 +2412,38 @@ function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
 
 
 
+
+async function tenantConfirmProposedVisit(visitId){
+  try{
+    const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
+    if(!v){toast('❌ Visit not found');return;}
+    const{data:listing}=await sb.from('listings').select('wants_agent,agent_service,title').eq('id',v.listing_id).maybeSingle();
+    const wantsAgent=listing?.wants_agent&&listing?.agent_service==='full';
+    await sb.from('visits').update({status:wantsAgent?'agent_assigned':'confirmed'}).eq('id',visitId);
+    await sb.from('messages').insert({
+      listing_id:v.listing_id,sender_id:U.id,receiver_id:v.landlord_id,
+      content:`✅ ${P?.full_name||'The lessee'} confirmed the proposed visit for ${listing?.title||'the property'}.`,
+      type:'visit_confirmed'
+    });
+    toast('✅ Visit confirmed!');
+    loadTenantVisits();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function tenantDeclineProposedVisit(visitId){
+  try{
+    const{data:v}=await sb.from('visits').select('*').eq('id',visitId).maybeSingle();
+    if(!v){toast('❌ Visit not found');return;}
+    await sb.from('visits').delete().eq('id',visitId);
+    await sb.from('messages').insert({
+      listing_id:v.listing_id,sender_id:U.id,receiver_id:v.landlord_id,
+      content:`📅 ${P?.full_name||'The lessee'} can't make that date — could you propose another one?`,
+      type:'message'
+    });
+    toast('Sent — waiting on a new proposed date.');
+    loadTenantVisits();
+  }catch(e){toast('❌ '+e.message);}
+}
 
 async function cancelVisit(visitId, agentId, listingId){
   if(!confirm('Cancel this visit? Free if 24h+ before the visit date.'))return;
@@ -2972,7 +3042,7 @@ async function uploadSupportDoc(input,docType){
   try{
     const ext=file.name.split('.').pop();
     const path=`docs/${U.id}/${docType}.${ext}`;
-    const{error}=await sb.storage.from('lessee-documents').upload(path,file,{upsert:true});
+    const{error}=await sb.storage.from('tenant-documents').upload(path,file,{upsert:true});
     if(error)throw new Error(error.message);
 
     // Toujours repartir de la version fraîche en base (pas de la copie en
@@ -2986,7 +3056,7 @@ async function uploadSupportDoc(input,docType){
     if(saveErr)throw new Error(saveErr.message);
     if(P)P.documents=JSON.stringify(docs); // même format que ce que loadDossierStatus() attend
 
-    const{data:urlData}=await sb.storage.from('lessee-documents').createSignedUrl(path,604800);
+    const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(path,604800);
     if(statusEl){
       const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
       statusEl.innerHTML=isImg
@@ -3009,7 +3079,7 @@ async function viewDocument(docType){
   const d=doc[docType];
   if(!d?.path){toast('⚠️ No document uploaded');return;}
   try{
-    const{data}=await sb.storage.from('lessee-documents').createSignedUrl(d.path,604800);
+    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(d.path,604800);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
   }catch(e){toast('❌ Could not open document');}
 }
@@ -3139,7 +3209,7 @@ async function loadDossierStatus(){
       const docIdMap={'bank_statement':'doc-bank-status','emprent_letter':'doc-emprent-status','reference_letter':'doc-ref-status','rent1':'doc-rent1-status','rent2':'doc-rent2-status','rent3':'doc-rent3-status','id':'doc-id-status'};
       const statusEl=document.getElementById(docIdMap[docType]||`doc-${docType.replace(/_/g,'-')}-status`);
       if(!statusEl) continue;
-      const{data:urlData}=await sb.storage.from('lessee-documents').createSignedUrl(doc.path,604800);
+      const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(doc.path,604800);
       if(urlData?.signedUrl){
         const isImg=['jpg','jpeg','png','gif','webp'].includes((doc.ext||'').toLowerCase());
         statusEl.innerHTML = isImg
@@ -3153,8 +3223,8 @@ async function loadDossierStatus(){
 
     // Compléter avec le storage (pour les anciens fichiers sans metadata)
     const[{data:data1},{data:data2}]=await Promise.all([
-      sb.storage.from('lessee-documents').list(`docs/${U.id}/`),
-      sb.storage.from('lessee-documents').list(`id-docs/${U.id}/`)
+      sb.storage.from('tenant-documents').list(`docs/${U.id}/`),
+      sb.storage.from('tenant-documents').list(`id-docs/${U.id}/`)
     ]);
     const allFiles=[...(data1||[]).map(f=>({...f,path:`docs/${U.id}/${f.name}`})),...(data2||[]).map(f=>({...f,path:`id-docs/${U.id}/${f.name}`}))];
     for(const f of allFiles){
@@ -3165,7 +3235,7 @@ async function loadDossierStatus(){
       const docIdMap2={'bank_statement':'doc-bank-status','emprent_letter':'doc-emprent-status','reference_letter':'doc-ref-status','rent1':'doc-rent1-status','rent2':'doc-rent2-status','rent3':'doc-rent3-status','id':'doc-id-status'};
       const statusEl=document.getElementById(docIdMap2[key]||`doc-${key.replace(/_/g,'-')}-status`);
       if(!statusEl) continue;
-      const{data:urlData}=await sb.storage.from('lessee-documents').createSignedUrl(f.path,604800);
+      const{data:urlData}=await sb.storage.from('tenant-documents').createSignedUrl(f.path,604800);
       if(urlData?.signedUrl){
         const isImg=['jpg','jpeg','png','gif','webp'].includes(ext.toLowerCase());
         statusEl.innerHTML = isImg
@@ -3268,9 +3338,9 @@ async function submitIDForVerification(){
   try{
     const idExt = _idFile.name.split('.').pop();
     const selfieExt = _selfieFile.name.split('.').pop();
-    const{error:e1} = await sb.storage.from('lessee-documents').upload(`docs/${U.id}/id.${idExt}`, _idFile, {upsert:true});
+    const{error:e1} = await sb.storage.from('tenant-documents').upload(`docs/${U.id}/id.${idExt}`, _idFile, {upsert:true});
     if(e1) throw new Error(e1.message);
-    const{error:e2} = await sb.storage.from('lessee-documents').upload(`docs/${U.id}/selfie.${selfieExt}`, _selfieFile, {upsert:true});
+    const{error:e2} = await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`, _selfieFile, {upsert:true});
     if(e2) throw new Error(e2.message);
     await sb.from('profiles').update({id_submitted:true, id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
     if(status) status.innerHTML = '<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem">✅</div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
@@ -3350,24 +3420,9 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
       </div>
       <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;margin-bottom:1rem">
         <div style="font-size:.8rem;font-weight:600;color:#F0EDE8;margin-bottom:.6rem">📅 Your move-in details</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
-          <div>
-            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.3rem">Desired move-in date *</label>
-            <input type="date" id="neg-movein" min="${new Date().toISOString().slice(0,10)}" style="width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.8rem;outline:none;font-family:'DM Sans',sans-serif">
-          </div>
-          <div>
-            <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.3rem">Desired stay duration</label>
-            <select id="neg-duration" style="width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.8rem;outline:none;font-family:'DM Sans',sans-serif;cursor:pointer">
-              <option value="">Not specified</option>
-              <option value="1_month">1 month</option>
-              <option value="2_months">2 months</option>
-              <option value="3_months">3 months</option>
-              <option value="6_months">6 months</option>
-              <option value="1_year">1 year</option>
-              <option value="2_years">2 years</option>
-              <option value="open">Open ended</option>
-            </select>
-          </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.3rem">Desired move-in date *</label>
+          <input type="date" id="neg-movein" min="${new Date().toISOString().slice(0,10)}" style="width:100%;padding:.55rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#F0EDE8;font-size:.8rem;outline:none;font-family:'DM Sans',sans-serif">
         </div>
       </div>
       ${commission>0?`
@@ -3472,7 +3527,6 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
   window._submittingApplication=true;
   const moveIn=document.getElementById('neg-movein')?.value;
   if(!moveIn){toast('⚠️ Please select your desired move-in date');window._submittingApplication=false;return;}
-  const duration=document.getElementById('neg-duration')?.value||null;
   const proposedPrice=parseInt(document.getElementById('neg-price')?.value)||originalPrice;
   const extras=[...document.querySelectorAll('.neg-extra:checked')].map(e=>e.value);
   const message=document.getElementById('neg-message')?.value.trim()||'';
@@ -3487,7 +3541,6 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
   let negotiationNote='';
   if(proposedPrice!==originalPrice) negotiationNote+=`💶 Proposed rent: €${proposedPrice}/mo (listed at €${originalPrice}/mo)\n`;
   if(extras.length) negotiationNote+=`🎁 Requested extras: ${extras.join(', ')}\n`;
-  if(duration) negotiationNote+=`📅 Desired stay: ${duration.replace(/_/g,' ')}\n`;
   if(message) negotiationNote+=`💬 "${message}"`;
 
   // Vérifier qu'il n'y a pas déjà une demande pour ce listing
