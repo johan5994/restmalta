@@ -585,7 +585,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <div style="font-weight:700;font-size:.95rem" id="agency-msg-title">—</div>
             <div style="font-size:.72rem;color:var(--terra);font-weight:600;margin-top:.2rem" id="agency-msg-sub">—</div>
           </div>
-          <button onclick="closeAgencyMsg()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <button id="agency-propose-visit-btn" style="display:none;background:var(--terra);color:white;border:none;border-radius:8px;padding:.45rem .8rem;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap" onclick="proposeVisitFromAgencyChat()">📅 Propose a visit</button>
+            <button onclick="closeAgencyMsg()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--td)">✕</button>
+          </div>
         </div>
         <div id="agency-msg-thread" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
         <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem">
@@ -2151,9 +2154,12 @@ async function openAgencyMsg(listingId,otherPartyId,fallbackTitle){
   document.getElementById('agency-msg-modal').style.display='flex';
 
   let personName=fallbackTitle||'Conversation';
+  const pvBtn=document.getElementById('agency-propose-visit-btn');
+  if(pvBtn)pvBtn.style.display='none';
   try{
     const{data:profile}=await sb.from('profiles').select('full_name,role').eq('clerk_id',otherPartyId).maybeSingle();
     if(profile?.full_name)personName=profile.full_name+(profile.role?' ('+profile.role+')':'');
+    if(pvBtn&&listingId&&profile?.role==='tenant')pvBtn.style.display='block';
   }catch(e){}
   let propertyTitle='';
   if(listingId){
@@ -2197,6 +2203,61 @@ async function openAgencyMsg(listingId,otherPartyId,fallbackTitle){
 function closeAgencyMsg(){
   document.getElementById('agency-msg-modal').style.display='none';
   agencyChatListingId=null;agencyChatOtherId=null;
+}
+
+async function proposeVisitFromAgencyChat(){
+  if(!agencyChatListingId||!agencyChatOtherId){
+    toast('❌ Open a lessee conversation about a specific listing first');
+    return;
+  }
+  const listingId=agencyChatListingId,tenantId=agencyChatOtherId;
+
+  const modal=document.createElement('div');
+  modal.id='agency-propose-visit-overlay';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:380px">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">📅 Propose a visit</div>
+      <div class="fg2"><label>Date</label><input class="fi" type="date" id="apv-date"></div>
+      <div class="fg2"><label>Time</label><input class="fi" type="time" id="apv-time" value="14:00"></div>
+      <div style="display:flex;gap:.5rem;margin-top:1rem">
+        <button id="apv-send-btn" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">Send proposal →</button>
+        <button onclick="document.getElementById('agency-propose-visit-overlay').remove()" style="background:var(--s2);color:var(--tm);border:1px solid var(--b);border-radius:10px;padding:.7rem .9rem;font-size:.82rem;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('apv-send-btn').onclick=async()=>{
+    const visitDate=document.getElementById('apv-date')?.value;
+    const visitTime=document.getElementById('apv-time')?.value||'14:00';
+    if(!visitDate){toast('⚠️ Please select a date');return;}
+    const today=new Date();today.setHours(0,0,0,0);
+    if(new Date(visitDate)<today){toast('⚠️ Please select a future date');return;}
+
+    try{
+      const{data:listing}=await sb.from('listings').select('title,zone').eq('id',listingId).maybeSingle();
+      const{data:tprofile}=await sb.from('profiles').select('full_name,email').eq('clerk_id',tenantId).maybeSingle();
+      await sb.from('visits').insert({
+        listing_id:listingId,
+        tenant_id:tenantId,
+        landlord_id:U.id,
+        tenant_name:tprofile?.full_name||'',
+        tenant_email:tprofile?.email||'',
+        visit_date:visitDate,
+        visit_time:visitTime,
+        zone:listing?.zone||'',
+        status:'awaiting_tenant'
+      });
+      const dateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      await sb.from('messages').insert({
+        listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+        content:`📅 The agency proposes a visit:\n\n${listing?.title||'Property'}\n📅 ${dateStr} at ${visitTime}\n\nGo to My Visits to confirm or decline.`,
+        type:'visit_proposed'
+      });
+      modal.remove();
+      toast('✅ Visit proposal sent!');
+    }catch(e){toast('❌ '+e.message);}
+  };
 }
 
 async function sendAgencyMsg(){
@@ -2252,6 +2313,20 @@ async function loadEstimations(){
 async function markEstimationContacted(id){
   await sb.from('estimation_requests').update({status:'contacted'}).eq('id',id);
   loadEstimations();
+}
+
+function renderCoTenantSignatureRows(bk){
+  if(!bk)return '';
+  let coLessees=[];
+  try{coLessees=bk.co_lessees_embed_src?JSON.parse(bk.co_lessees_embed_src):[];}catch(e){}
+  if(!coLessees.length)return '';
+  return coLessees.map(cl=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+      <span style="font-size:.78rem">👥 ${cl.name||'Co-lessee'}</span>
+      ${cl.signed
+        ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
+        :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+    </div>`).join('');
 }
 
 async function loadApplications(){
@@ -2332,6 +2407,7 @@ async function loadApplications(){
                 <span style="font-size:.78rem">👤 Lessee</span>
                 ${b.lease_signed_tenant?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${b.lease_tenant_embed?` <a href="${b.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`:'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
               </div>
+              ${renderCoTenantSignatureRows(b)}
             </div>
 
             <div style="font-size:.68rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Payment</div>
@@ -2459,7 +2535,7 @@ async function sendTenantDossierToOwner(tenantId,listingId,propertyTitle,landlor
         // Lien longue durée (7 jours) — contrairement à la consultation
         // immédiate dans le dashboard qui n'a besoin que de 5 minutes
         try{
-          const{data:signed}=await sb.storage.from('lessee-documents').createSignedUrl(doc.path,604800);
+          const{data:signed}=await sb.storage.from('tenant-documents').createSignedUrl(doc.path,604800);
           if(signed?.signedUrl)lines.push(`- ${docLabels[key]||key}: ${signed.signedUrl}`);
         }catch(e){}
       }
@@ -2546,7 +2622,7 @@ async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn)
 
 async function viewTenantDocAgency(path){
   try{
-    const{data}=await sb.storage.from('lessee-documents').createSignedUrl(path,300);
+    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
     if(data?.signedUrl)window.open(data.signedUrl,'_blank');
     else toast('❌ Could not open document');
   }catch(e){toast('❌ '+e.message);}
