@@ -1509,6 +1509,12 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
 
     // 2 — Générer le bail
     let lessorEmbed=null,lesseeEmbed=null,submissionId=null,coLesseesEmbed=[];
+    // Règle maltaise : le loyer se paie chaque mois à la date d'entrée dans
+    // le logement, pas à un jour fixe choisi au moment de créer l'annonce.
+    // Déclaré ici (hors du try qui suit) pour rester accessible plus loin,
+    // lors de la mise à jour du booking et du message au lessee.
+    const dueDay=startDate?new Date(startDate).getDate():1;
+    const dueSuffix=dueDay===1?'st':dueDay===2?'nd':dueDay===3?'rd':'th';
     try{
       const leaseType=listing?.type==='short'?'short':'long';
       const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
@@ -1516,10 +1522,6 @@ async function generateLeaseFromBooking(bookingId, listingId, tenantId){
       const endFmt=endDate?new Date(endDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
       const price=booking?.monthly_rent||listing?.price||0; // prix réellement convenu (négocié ou non), pas juste le prix affiché sur l'annonce
       const deposit=listing?.deposit||price;
-      // Règle maltaise : le loyer se paie chaque mois à la date d'entrée dans
-      // le logement, pas à un jour fixe choisi au moment de créer l'annonce.
-      const dueDay=startDate?new Date(startDate).getDate():1;
-      const dueSuffix=dueDay===1?'st':dueDay===2?'nd':dueDay===3?'rd':'th';
 
       // Fix 2 — les extras/négociation demandés par le locataire deviennent une clause visible dans le bail
       let negotiationClause='';
@@ -1616,7 +1618,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
     }catch(e){console.warn('Lease generation:',e.message);}
 
     // 3 — Mettre à jour booking
-    await sb.from('bookings').update({
+    const{error:bookingUpdateError}=await sb.from('bookings').update({
       status:'accepted',
       accepted_at:new Date().toISOString(),
       landlord_id:U.id,
@@ -1631,6 +1633,10 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
       payment_due_day:dueDay,
       deposit:listing?.deposit||listing?.price||0
     }).eq('id',bookingId);
+    if(bookingUpdateError){
+      console.error('Booking update failed:',bookingUpdateError.message);
+      toast('⚠️ Lease was generated but saving it failed: '+bookingUpdateError.message);
+    }
 
     // 4 — Listing reserved
     try{await sb.from('listings').update({status:'reserved'}).eq('id',listingId);}catch(e){}
