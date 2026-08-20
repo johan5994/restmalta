@@ -1602,8 +1602,12 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
           submissionId=docuData.submission_id||null;
           // Enrichir chaque lien co-lessee avec son tenant_id (si compte trouvé) pour
           // pouvoir lui afficher sa carte de signature dans SON propre dashboard.
+          // Correspondance par INDEX (extrait du rôle "Lessee 2","Lessee 3"...) —
+          // bien plus fiable qu'un appariement par email, qui peut échouer si
+          // DocuSeal renvoie l'email avec une casse ou un espace différent.
           coLesseesEmbed=(docuData.co_lessees_embed_src||[]).map(cl=>{
-            const match=coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
+            const roleIndex=parseInt((cl.role||'').replace('Lessee ',''),10)-2; // "Lessee 2" → index 0
+            const match=(roleIndex>=0&&coTenants[roleIndex])?coTenants[roleIndex]:coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
             return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
           });
         } else {
