@@ -2951,7 +2951,8 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
           lesseeEmbed=docuData.lessee_embed_src||null;
           submissionId=docuData.submission_id||null;
           coLesseesEmbed=(docuData.co_lessees_embed_src||[]).map(cl=>{
-            const match=coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
+            const roleIndex=parseInt((cl.role||'').replace('Lessee ',''),10)-2; // "Lessee 2" → index 0
+            const match=(roleIndex>=0&&coTenants[roleIndex])?coTenants[roleIndex]:coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
             return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
           });
           if(!lessorEmbed&&!lesseeEmbed){
