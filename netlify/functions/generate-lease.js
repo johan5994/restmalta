@@ -289,6 +289,16 @@ ${(coTenants || []).map((ct, i) => `
     const lesseeData = submitters_data.find(s => s.role === 'Lessee') || submitters_data[1];
     const coLesseeData = submitters_data.filter(s => s.role?.startsWith('Lessee ') && s.role !== 'Lessee');
 
+    // Journal explicite pour diagnostiquer un éventuel décalage entre ce
+    // qu'on envoie à DocuSeal (submitters) et ce qu'il nous renvoie
+    // vraiment (submitters_data) — notamment pour les co-lessees.
+    console.log('DOCUSEAL_SUBMISSION_DEBUG', JSON.stringify({
+      coTenantsRequested: (coTenants || []).length,
+      submittersRequested: submitters.map(s => s.role),
+      submittersReturned: submitters_data.map(s => ({ role: s.role, email: s.email, has_embed_src: !!s.embed_src })),
+      coLesseeMatchedCount: coLesseeData.length
+    }));
+
     return {
       statusCode: 200,
       headers,
