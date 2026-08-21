@@ -12,8 +12,12 @@
   window.__clerk_publishable_key = 'pk_test_YWN0aXZlLWZhbGNvbi05OS5jbGVyay5hY2NvdW50cy5kZXYk';
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
+<script>
+  if(localStorage.getItem('rm_theme')==='dark')document.documentElement.classList.add('dark');
+</script>
 <style>
 :root{--bg:#F5EFE0;--s:#FDFAF4;--s2:#EDE8D8;--b:rgba(26,20,16,.08);--b2:rgba(26,20,16,.15);--terra:#C9553A;--tdim:rgba(201,85,58,.1);--gold:#D4A847;--gdim:rgba(212,168,71,.1);--sea:#2E6B8A;--sdim:rgba(46,107,138,.1);--green:#4CAF7D;--grdim:rgba(76,175,125,.1);--red:#C9553A;--rdim:rgba(201,85,58,.1);--deep:#1A1410;--stone:#6B5F52;--txt:#1A1410;--tm:#6B5F52;--td:#A89880}
+html.dark{--bg:#0F1117;--s:#1A1D27;--s2:#22263A;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--terra:#E05A3A;--tdim:rgba(224,90,58,.15);--gold:#D4A847;--gdim:rgba(212,168,71,.12);--sea:#3A8FB5;--sdim:rgba(58,143,181,.12);--green:#4CAF7D;--grdim:rgba(76,175,125,.12);--red:#E05A5A;--rdim:rgba(224,90,90,.12);--deep:#F0EDE8;--stone:rgba(240,237,232,.45);--txt:#F0EDE8;--tm:rgba(240,237,232,.45);--td:rgba(240,237,232,.25)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh}
 .sb{width:240px;min-height:100vh;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
@@ -138,6 +142,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="sb-user">
     <div class="uav" id="uav">?</div>
     <div style="flex:1;min-width:0"><div class="un" id="uname">Loading...</div><div class="ur">Lessee</div></div>
+    <button class="btn bg bsm" onclick="toggleTheme()" id="theme-toggle-btn" title="Toggle light/dark mode">☀️</button>
     <button class="btn bg bsm" onclick="doLogout()" title="Sign out">↩</button>
   </div>
 </aside>
@@ -1399,12 +1404,20 @@ async function loadMessages(){
     const convs=[...threadMap.values()];
     if(!convs.length){wrap.innerHTML='<div class="empty"><div class="em">💬</div><p>No messages yet.<br>Contact a lessor from any listing!</p></div>';return;}
 
-    // Récupérer les noms des interlocuteurs
+    // Récupérer les noms des interlocuteurs — les agences stockent leur nom
+    // dans une table à part (agency_profiles.agency_name), pas dans profiles.
+    // Sans ça, le nom retombe sur le titre de l'annonce au lieu du nom réel.
     const otherIds=[...new Set(convs.map(c=>c.otherId).filter(id=>id&&id!=='system'))];
     let profileMap={};
     if(otherIds.length){
-      const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name,role').in('clerk_id',otherIds);
+      const[{data:profiles},{data:agencyProfiles}]=await Promise.all([
+        sb.from('profiles').select('clerk_id,full_name,role').in('clerk_id',otherIds),
+        sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',otherIds)
+      ]);
       (profiles||[]).forEach(p=>{profileMap[p.clerk_id]=p;});
+      (agencyProfiles||[]).forEach(a=>{
+        if(a.agency_name)profileMap[a.clerk_id]={...profileMap[a.clerk_id],full_name:a.agency_name,role:'agency'};
+      });
     }
 
     // Vérifier, pour chaque conversation, si une visite ou une demande de
@@ -1425,13 +1438,13 @@ async function loadMessages(){
 
     wrap.innerHTML=convs.map(m=>{
       const other=profileMap[m.otherId];
-      const roleIco=other?.role==='landlord'?'🏠':other?.role==='agent'?'🏆':'💬';
-      const roleTxt=other?.role==='landlord'?'Lessor':other?.role==='agent'?'Agent':'';
+      const roleIco=other?.role==='landlord'?'🏠':other?.role==='agent'?'🏆':other?.role==='agency'?'🏢':'💬';
+      const roleTxt=other?.role==='landlord'?'Lessor':other?.role==='agent'?'Agent':other?.role==='agency'?'Agency':'';
       const name=other?.full_name||m.listings?.title||'Conversation';
       const subtitle=roleTxt?`${roleTxt} · ${m.listings?.title||''} · ${m.listings?.zone||''}`:m.listings?.title||'';
       const isUnread=!m.read&&m.receiver_id===U.id;
       const hasExistingRequest=existingRequestKeys.has(`${m.listing_id}-${m.otherId}`);
-      return`<div class="mitem ${isUnread?'unread':''}" onclick="openMsg('${m.key}','${encodeURIComponent(name)}','${encodeURIComponent(subtitle)}','${m.listing_id||''}','${m.otherId}','${m.key}')">
+      return`<div class="mitem ${isUnread?'unread':''}" data-key="${m.key}" data-name="${name.replace(/"/g,'&quot;')}" data-subtitle="${subtitle.replace(/"/g,'&quot;')}" data-listing="${m.listing_id||''}" data-other="${m.otherId}" onclick="openMsgFromEl(this)">
         <div class="mav" style="font-size:1.1rem">${roleIco}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:.88rem;font-weight:600;margin-bottom:.1rem">${name}</div>
@@ -1455,18 +1468,22 @@ async function loadMessages(){
   }catch(e){console.error('loadMessages:',e);}
 }
 
-async function openMsg(threadKey, titleEnc, subtitleEnc, listingId, receiverId, threadId){
+function openMsgFromEl(el){
+  openMsg(el.dataset.key,el.dataset.name,el.dataset.subtitle,el.dataset.listing,el.dataset.other,el.dataset.key);
+}
+
+async function openMsg(threadKey, title, subtitle, listingId, receiverId, threadId){
   // Aller sur la page chat
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
   document.getElementById('page-chat').classList.add('act');
   document.getElementById('tbt').textContent='Messages';
-  document.getElementById('chat-title').textContent=decodeURIComponent(titleEnc);
-  document.getElementById('chat-sub').textContent=decodeURIComponent(subtitleEnc||'');
+  document.getElementById('chat-title').textContent=title;
+  document.getElementById('chat-sub').textContent=subtitle||'';
   tenantChatListingId=listingId;
   tenantChatReceiverId=receiverId;
   tenantChatThreadId=threadId||makeThreadId(listingId,U.id,receiverId||'');
   
-  document.getElementById('mm-sub').textContent=decodeURIComponent(subtitleEnc);
+  document.getElementById('mm-sub').textContent=subtitle;
   
 
   // Load history
@@ -1810,7 +1827,10 @@ async function fetchTenantVisitData(){
       let coLessees=[];
       try{coLessees=b.co_lessees_embed_src?JSON.parse(b.co_lessees_embed_src):[];}catch(e){}
       const myEntry=coLessees.find(cl=>cl.tenant_id===U.id)||{signed:false,embed_src:null,tenant_id:U.id};
-      coTenantBookings.push({...b,_myCoTenantEntry:myEntry});
+      let edlCoLessees=[];
+      try{edlCoLessees=b.edl_co_lessees_embed_src?JSON.parse(b.edl_co_lessees_embed_src):[];}catch(e){}
+      const myEdlEntry=edlCoLessees.find(cl=>cl.tenant_id===U.id)||{signed:false,embed_src:null,tenant_id:U.id};
+      coTenantBookings.push({...b,_myCoTenantEntry:myEntry,_myEdlCoTenantEntry:myEdlEntry});
     });
   }catch(e){}
 
@@ -2192,18 +2212,27 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       </div>
       ${bk.status==='edl_scheduled'?`
       <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your lessor is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
-      ${bk.edl_tenant_embed?`
+      ${(()=>{
+        // Co-lessee : son propre lien d'EDL vit dans edl_co_lessees_embed_src,
+        // jamais dans bk.edl_tenant_embed (qui ne concerne que le locataire
+        // principal) — même logique que pour le bail juste au-dessus.
+        const myEdlEmbed=coTenantEntry?bk._myEdlCoTenantEntry?.embed_src:bk.edl_tenant_embed;
+        const myEdlSigned=coTenantEntry?bk._myEdlCoTenantEntry?.signed:bk.edl_signed_tenant;
+        const myEdlSignFn=coTenantEntry?`openCoTenantEdlDoc('${bk.id}')`:`openTenantEdlDoc('${bk.id}')`;
+        if(!myEdlEmbed)return'';
+        return`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem">📋 Move-in Inventory (Annex A)</span>
-          ${bk.edl_signed_tenant
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_pdf_url||bk.edl_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
-            :`<button onclick="openTenantEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+          ${myEdlSigned
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span><a href="${bk.edl_pdf_url||myEdlEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a></div>`
+            :`<button onclick="${myEdlSignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
         </div>
       </div>
-      <button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>
-      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.7rem;color:var(--gold);margin-bottom:.75rem">📝 Reminder: submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. This is separate from your RestMalta lease/EDL.</div>`:''}
+      ${!coTenantEntry?`<button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>`:''}
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.7rem;color:var(--gold);margin-bottom:.75rem">📝 Reminder: submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. This is separate from your RestMalta lease/EDL.</div>`;
+      })()}
 
       <!-- Paiement -->
       ${!payConfirmed?`
@@ -2513,6 +2542,32 @@ function collectEdlRoomsTn(){
   }));
 }
 
+// ── Même système que pour le bail côté agence : pas de compte lessor lié →
+// on propose au lessee de transmettre le lien de signature. Pas d'option
+// "signer soi-même" ici — un lessee ne peut pas signer à la place du lessor.
+function showEdlSigningOptionsScreenTenant(bookingId,signLink,landlordEmail,propertyTitle,landlordPhone){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  const mailBody=encodeURIComponent(`Hello,\n\nPlease review and sign the move-in inventory (EDL) for ${propertyTitle} using the link below:\n\n${signLink}\n\nThank you!`);
+  const mailSubject=encodeURIComponent(`Move-in inventory to sign — ${propertyTitle}`);
+  const mailtoHref=landlordEmail&&landlordEmail.includes('@')?`mailto:${landlordEmail}?subject=${mailSubject}&body=${mailBody}`:`mailto:?subject=${mailSubject}&body=${mailBody}`;
+  const waText=encodeURIComponent(`Hello! Please review and sign the move-in inventory (EDL) for ${propertyTitle} using this link:\n\n${signLink}`);
+  const waPhone=landlordPhone?landlordPhone.replace(/[^0-9+]/g,'').replace(/^\+/,''):'';
+  const waHref=`https://wa.me/${waPhone}?text=${waText}`;
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.75rem;max-width:440px;width:100%">
+      <div style="font-size:1.6rem;margin-bottom:.5rem">📋</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">EDL generated — send it to your lessor</div>
+      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Your lessor doesn't seem to have a RestMalta account linked yet — send them the signing link directly.</div>
+      <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;color:var(--td);word-break:break-all;margin-bottom:.75rem">${signLink}</div>
+      <button onclick="navigator.clipboard.writeText('${signLink}');this.innerHTML='✅ Link copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy link</button>
+      <a href="${waHref}" target="_blank" onclick="setTimeout(()=>{this.innerHTML='✅ Sent via WhatsApp';this.style.opacity='.7';},300)" class="btn bg" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem;background:#25D366;color:white;border:none">💬 Send via WhatsApp</a>
+      <a href="${mailtoHref}" onclick="setTimeout(()=>{this.innerHTML='✅ Email opened';this.style.opacity='.7';},300)" class="btn bp" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem">✉️ Send by email</a>
+      <button onclick="this.closest('div[style*=fixed]').remove()" class="btn bg" style="width:100%;justify-content:center">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
 async function generateAnnexAndCompleteTn(){
   const ctx=window._tnEdl;
   if(!ctx)return;
@@ -2536,7 +2591,7 @@ async function generateAnnexAndCompleteTn(){
   try{
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({landlord:landlordField,tenant:tenantField,coTenants,listing:listingField,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
+      body:JSON.stringify({landlord:landlordField,tenant:tenantField,coTenants,listing:listingField,meter_water:meterWater,meter_electricity:meterElec,rooms,photos:window._tnEdlPhotos||{},general_notes:edlNotes,phase:'arrival'})
     });
     const edlData=await res.json();
     edlLandlordEmbed=edlData?.lessor_embed_src||null;
@@ -2577,6 +2632,10 @@ async function generateAnnexAndCompleteTn(){
 
   showEdlStepTn(3);
   toast('🎉 Move-in complete!');
+
+  if(!ctx.booking?.landlord_id&&edlLandlordEmbed){
+    showEdlSigningOptionsScreenTenant(ctx.bookingId,edlLandlordEmbed,ctx.listing?.manual_landlord_email||'',ctx.listing?.title||'the property',ctx.listing?.manual_landlord_phone||'');
+  }
 }
 
 async function viewEdlDossierTenant(bookingId){
@@ -2832,6 +2891,64 @@ function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
 
 
 
+
+async function openCoTenantEdlDoc(bookingId){
+  const{data:bk}=await sb.from('bookings').select('edl_co_lessees_embed_src,id,listing_id,landlord_id').eq('id',bookingId).single();
+  let edlCoLessees=[];
+  try{edlCoLessees=bk?.edl_co_lessees_embed_src?JSON.parse(bk.edl_co_lessees_embed_src):[];}catch(e){}
+  const myEntry=edlCoLessees.find(cl=>cl.tenant_id===U.id);
+  if(!myEntry?.embed_src){toast('❌ EDL document not ready yet');return;}
+
+  if(window.docusealLoaded){doOpenCoTenantEdlDoc(bk,bookingId,myEntry);}
+  else{
+    const s=document.createElement('script');
+    s.src='https://cdn.docuseal.com/js/form.js';
+    s.onload=()=>{window.docusealLoaded=true;doOpenCoTenantEdlDoc(bk,bookingId,myEntry);};
+    document.head.appendChild(s);
+  }
+}
+
+function doOpenCoTenantEdlDoc(bk,bookingId,myEntry){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  const header=document.createElement('div');
+  header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Move-in Inventory (co-lessee)</div>';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
+  closeBtn.textContent='✕';
+  closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
+  header.appendChild(closeBtn);
+  const body2=document.createElement('div');
+  body2.style.cssText='flex:1;overflow:auto;background:white';
+  const form2=document.createElement('docuseal-form');
+  form2.setAttribute('data-src',myEntry.embed_src);
+  form2.setAttribute('data-send-copy-email','false');
+  form2.style.cssText='width:100%;display:block;min-height:100vh';
+  form2.addEventListener('completed',async()=>{
+    toast('✅ Move-in inventory signed!');
+    try{
+      const{data:current}=await sb.from('bookings').select('edl_co_lessees_embed_src').eq('id',bookingId).single();
+      let cl2=[];
+      try{cl2=current?.edl_co_lessees_embed_src?JSON.parse(current.edl_co_lessees_embed_src):[];}catch(e){}
+      const idx=cl2.findIndex(cl=>cl.tenant_id===U.id);
+      if(idx!==-1){
+        cl2[idx].signed=true;
+        await sb.from('bookings').update({edl_co_lessees_embed_src:JSON.stringify(cl2)}).eq('id',bookingId);
+      }
+      await sb.from('messages').insert({
+        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        content:'✅ Co-lessee '+(P?.full_name||'')+' signed the move-in inventory (EDL)!',type:'edl_signed_cotenant'
+      });
+    }catch(e){}
+    modal.remove();
+    loadTenantVisits();
+  });
+  body2.appendChild(form2);
+  modal.appendChild(header);
+  modal.appendChild(body2);
+  document.body.appendChild(modal);
+}
 
 async function tenantConfirmProposedVisit(visitId){
   try{
@@ -4386,6 +4503,17 @@ async function checkCoTenant(idx){
   }
 }
 
+
+function toggleTheme(){
+  const isDark=document.documentElement.classList.toggle('dark');
+  localStorage.setItem('rm_theme',isDark?'dark':'light');
+  const btn=document.getElementById('theme-toggle-btn');
+  if(btn)btn.textContent=isDark?'🌙':'☀️';
+}
+(function syncThemeIcon(){
+  const btn=document.getElementById('theme-toggle-btn');
+  if(btn)btn.textContent=document.documentElement.classList.contains('dark')?'🌙':'☀️';
+})();
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
