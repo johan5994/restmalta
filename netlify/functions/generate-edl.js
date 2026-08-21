@@ -12,6 +12,7 @@ exports.handler = async (event) => {
   try {
     const {
       landlord, tenant, listing,
+      coTenants = [], // même structure que generate-lease.js : [{name,email,...}]
       meter_water, meter_electricity,
       rooms = [], // [{ name, items: [{item, qty, condition_arrival, notes}] }]
       general_notes,
@@ -185,12 +186,23 @@ ${general_notes ? `
     <p>Date: <text-field name="Lessor Date" role="Lessor" required="true" type="date" style="width: 110px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
   <div class="sig-box">
-    <p><strong>LESSEE (Tenant)</strong></p>
+    <p><strong>LESSEE${coTenants?.length ? ' 1' : ''} (Tenant)</strong></p>
     <p>${tenant?.name || '_______________'}</p>
     <p>Signature: <text-field name="Lessee Signature" role="Lessee" required="true" type="signature" style="width: 180px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
     <p>Date: <text-field name="Lessee Date" role="Lessee" required="true" type="date" style="width: 110px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
   </div>
 </div>
+
+${(coTenants || []).map((ct, i) => `
+<div class="sig-block" style="margin-top:20px">
+  <div class="sig-box">
+    <p><strong>LESSEE ${i + 2} (Co-tenant)</strong></p>
+    <p>${ct?.name || '_______________'}</p>
+    <p>Signature: <text-field name="Lessee ${i + 2} Signature" role="Lessee ${i + 2}" required="true" type="signature" style="width: 180px; height: 50px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+    <p>Date: <text-field name="Lessee ${i + 2} Date" role="Lessee ${i + 2}" required="true" type="date" style="width: 110px; height: 16px; display: inline-block; margin-bottom: -4px"> </text-field></p>
+  </div>
+  <div class="sig-box"></div>
+</div>`).join('')}
 
 </body>
 </html>`;
@@ -225,16 +237,23 @@ ${general_notes ? `
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, submission_id: null, lessor_embed_src: null, lessee_embed_src: null, edl_html: html, message: 'No template ID' }) };
     }
 
+    const submitters = [
+      { role: 'Lessor', email: landlord?.email || '', name: landlord?.name || 'Landlord' },
+      { role: 'Lessee', email: tenant?.email || '', name: tenant?.name || 'Tenant' },
+      ...(coTenants || []).map((ct, i) => ({
+        role: `Lessee ${i + 2}`,
+        email: ct?.email || '',
+        name: ct?.name || `Co-tenant ${i + 2}`
+      }))
+    ];
+
     const res = await fetch('https://api.docuseal.eu/submissions', {
       method: 'POST',
       headers: { 'X-Auth-Token': DOCU_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         template_id: templateId,
         send_email: false,
-        submitters: [
-          { role: 'Lessor', email: landlord?.email || '', name: landlord?.name || 'Landlord' },
-          { role: 'Lessee', email: tenant?.email || '', name: tenant?.name || 'Tenant' }
-        ]
+        submitters
       })
     });
 
@@ -249,6 +268,7 @@ ${general_notes ? `
     const submissionId = submitters_data[0]?.submission_id || data.id;
     const lessorData = submitters_data.find(s => s.role === 'Lessor') || submitters_data[0];
     const lesseeData = submitters_data.find(s => s.role === 'Lessee') || submitters_data[1];
+    const coLesseeData = submitters_data.filter(s => s.role?.startsWith('Lessee ') && s.role !== 'Lessee');
 
     return {
       statusCode: 200,
@@ -259,7 +279,8 @@ ${general_notes ? `
         lessor_embed_src: lessorData?.embed_src || null,
         lessee_embed_src: lesseeData?.embed_src || null,
         lessor_slug: lessorData?.slug || null,
-        lessee_slug: lesseeData?.slug || null
+        lessee_slug: lesseeData?.slug || null,
+        co_lessees_embed_src: coLesseeData.map(s => ({ role: s.role, embed_src: s.embed_src, email: s.email }))
       })
     };
 
