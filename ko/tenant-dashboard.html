@@ -853,7 +853,7 @@ function sp(id,btn){
   if(id==='visits'){loadTenantVisits();}
   if(id==='applications'){loadTenantApplicationsPage();}
   if(id==='roommates'){showRmTab('channel');loadRmDmsList();}
-  if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
+  if(id==='profile'){loadProfilee();loadDossierStatus();setTimeout(initPhonePickerTenant,200);}
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -3799,36 +3799,7 @@ async function confirmTenantPayment(bookingId){
 }
 
 
-async function requestReference(){
-  const email=prompt('Enter your previous lessor\'s email:');
-  if(!email||!email.includes('@')){if(email!==null)toast('❌ Invalid email');return;}
-  let error=null;
-  try{
-    const res=await sb.from('references').insert({
-      tenant_id:U.id,
-      landlord_email:email,
-      status:'pending'
-    });
-    error=res.error;
-  }catch(e){error={message:'Table may not exist yet'};}
-  if(error){toast('⏳ Reference request saved! (Table setup needed in Supabase)');return;}
-  toast('✅ Reference request sent to '+email);
-  loadReferences();
-}
 
-async function loadReferences(){
-  const wrap=document.getElementById('references-list');
-  if(!wrap)return;
-  const{data}=await sb.from('references').select('*').eq('tenant_id',U.id);
-  if(!data||!data.length){wrap.innerHTML='<div style="font-size:.82rem;color:var(--td);text-align:center;padding:1rem">No references yet. Request one from a previous lessor!</div>';return;}
-  wrap.innerHTML=data.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--b);font-size:.83rem">
-    <div>
-      <div style="font-weight:600">${r.landlord_email}</div>
-      <div style="font-size:.72rem;color:var(--td);margin-top:.1rem">Requested ${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
-    </div>
-    <span class="badge ${r.status==='confirmed'?'b-green':r.status==='declined'?'b-red':'b-gold'}">${r.status==='confirmed'?'✅ Confirmed':r.status==='declined'?'❌ Declined':'⏳ Pending'}</span>
-  </div>`).join('');
-}
 
 // ── Dossier complet — uploads & vérification ─────────────────
 const DOCS_REQUIRED=['id','emprent_letter'];
