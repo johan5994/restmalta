@@ -1116,7 +1116,8 @@ async function fetchVisitAndApplicationGroups(){
       listing_title:listing?.title||v.listing_title||null,
       full_address:listing?.full_address||null,
       zone:listing?.zone||v.zone||null,
-      listing_price:listing?.price||null
+      listing_price:listing?.price||null,
+      agency_listing:!!listing?.agency_listing
     };
   });
 
@@ -1139,7 +1140,8 @@ async function fetchVisitAndApplicationGroups(){
       id:'bk_'+b.id,listing_id:b.listing_id,tenant_id:b.tenant_id,
       tenant_name:b.tenant_name,status:displayStatus,booking:b,landlord_id:U.id,
       listing_title:listing?.title||null,zone:listing?.zone||null,
-      listing_price:listing?.price||null,has_agent:!!(listing?.wants_agent&&listing?.agent_service==='full')
+      listing_price:listing?.price||null,has_agent:!!(listing?.wants_agent&&listing?.agent_service==='full'),
+      agency_listing:!!listing?.agency_listing
     };
   });
 
@@ -3569,7 +3571,8 @@ async function confirmFirstPaymentReceived(bookingId,received){
     if(received){
       const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
       if(!bk){alert('❌ Booking not found');return;}
-      await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
+      const{error:confirmErr}=await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
+      if(confirmErr){toast('❌ Could not save payment confirmation: '+confirmErr.message);return;}
 
       let listing=null,tenantProfile=null;
       if(bk.listing_id){try{const{data:l}=await sb.from('listings').select('title').eq('id',bk.listing_id).single();listing=l;}catch(e){}}
@@ -3660,6 +3663,49 @@ function renderCoTenantSignatureRows(bk){
     </div>`).join('');
 }
 
+function renderLandlordEdlSection(bk,g){
+  // Bien non géré par une agence, ou agence qui a déjà pris en charge —
+  // comportement inchangé, le bouton direct habituel.
+  if(!g.agency_listing||!bk?.edl_handler||bk.edl_handler==='landlord'){
+    return`<div style="margin-top:.6rem">
+      <button onclick="openLandlordEDL('${bk?.id||''}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>
+    </div>`;
+  }
+  if(bk.edl_handler==='agency'){
+    return`<div style="margin-top:.6rem;font-size:.72rem;color:var(--td)">📋 Move-in inventory: your agency is handling this</div>`;
+  }
+  if(bk.edl_handler==='tenant'){
+    return`<div style="margin-top:.6rem;font-size:.72rem;color:var(--td)">📋 Move-in inventory: your lessee is handling this directly</div>`;
+  }
+  if(bk.edl_handler==='agency_declined'){
+    if(bk.edl_landlord_declined){
+      return`<div style="margin-top:.6rem;font-size:.72rem;color:var(--td)">📋 Move-in inventory: waiting to see if your lessee wants to handle it</div>`;
+    }
+    return`<div style="margin-top:.6rem;background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.65rem">
+      <div style="font-size:.76rem;font-weight:700;margin-bottom:.4rem">📋 Your agency isn't handling the move-in inventory. Would you like to use RestMalta's feature yourself?</div>
+      <div style="display:flex;gap:.4rem">
+        <button onclick="landlordEdlSelfDecision('${bk.id}',true)" style="flex:1;background:var(--terra);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">✅ Yes</button>
+        <button onclick="landlordEdlSelfDecision('${bk.id}',false)" style="flex:1;background:var(--s2);color:var(--tm);border:1px solid var(--b);border-radius:7px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">No</button>
+      </div>
+    </div>`;
+  }
+  return'';
+}
+
+async function landlordEdlSelfDecision(bookingId,wantsIt){
+  try{
+    if(wantsIt){
+      await sb.from('bookings').update({edl_handler:'landlord'}).eq('id',bookingId);
+      toast('✅ Starting move-in inventory');
+      openLandlordEDL(bookingId);
+    }else{
+      await sb.from('bookings').update({edl_landlord_declined:true}).eq('id',bookingId);
+      toast('Noted — your lessee may still choose to handle it');
+      loadVisitsPage();
+    }
+  }catch(e){toast('❌ '+e.message);}
+}
+
 function renderLeaseSection(g){
   const bk=g.booking||null;
   const llSigned=bk?.lease_signed_landlord;
@@ -3720,10 +3766,7 @@ function renderLeaseSection(g){
           :payConfirmed?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅</span>':''}
       </div>
 
-      ${payConfirmed&&bk?.status!=='move_in_ready'?`
-      <div style="margin-top:.6rem">
-        <button onclick="openLandlordEDL('${bk?.id||''}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>
-      </div>`:bk?.status==='move_in_ready'?`
+      ${payConfirmed&&bk?.status!=='move_in_ready'?renderLandlordEdlSection(bk,g):bk?.status==='move_in_ready'?`
       <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.5rem">✅ Move-in inventory completed — lessee has the keys</div>
       <button onclick="viewEdlDossier('${bk?.id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>
       ${bk.edl_landlord_embed?`
@@ -4312,18 +4355,27 @@ async function generateAnnexAndCompleteLL(){
   const lessor={name:ctx.lessor?.full_name||'',email:ctx.lessor?.email||'',passport:ctx.lessor?.passport_number||''};
   const lessee={name:ctx.lessee?.full_name||'',email:ctx.lessee?.email||'',passport:ctx.lessee?.passport_number||'',nationality:ctx.lessee?.nationality||''};
   const listing={address:ctx.listing?.full_address||ctx.listing?.zone||'',price:ctx.listing?.price||0};
+  let coTenants=[];
+  try{coTenants=ctx.booking?.co_tenants_data?JSON.parse(ctx.booking.co_tenants_data):[];}catch(e){}
 
-  let edlLandlordEmbed=null,edlTenantEmbed=null,edlSubmissionId=null;
+  let edlLandlordEmbed=null,edlTenantEmbed=null,edlSubmissionId=null,edlCoLesseesEmbed=[];
   try{
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({landlord:lessor,tenant:lessee,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
+      body:JSON.stringify({landlord:lessor,tenant:lessee,coTenants,listing,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
     });
     const edlData=await res.json();
     console.log('[generate-edl] full response:',edlData);
     edlLandlordEmbed=edlData?.lessor_embed_src||null;
     edlTenantEmbed=edlData?.lessee_embed_src||null;
     edlSubmissionId=edlData?.submission_id||null;
+    // Même correspondance par index de rôle que pour le bail — plus fiable
+    // qu'un appariement par email qui peut échouer sur la moindre différence.
+    edlCoLesseesEmbed=(edlData?.co_lessees_embed_src||[]).map(cl=>{
+      const roleIndex=parseInt((cl.role||'').replace('Lessee ',''),10)-2;
+      const match=(roleIndex>=0&&coTenants[roleIndex])?coTenants[roleIndex]:coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
+      return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
+    });
     if(!edlLandlordEmbed||!edlTenantEmbed){
       console.error('[generate-edl] No sign links in response — message:',edlData?.message);
       if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='⚠️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error — check console');}
@@ -4342,6 +4394,7 @@ async function generateAnnexAndCompleteLL(){
       status:'move_in_ready',
       edl_landlord_embed:edlLandlordEmbed,
       edl_tenant_embed:edlTenantEmbed,
+      edl_co_lessees_embed_src:edlCoLesseesEmbed.length?JSON.stringify(edlCoLesseesEmbed):null,
       edl_submission_id:edlSubmissionId?String(edlSubmissionId):null,
       edl_photos:JSON.stringify(window._llEdlPhotos||{}),
       edl_rooms:JSON.stringify(rooms),
