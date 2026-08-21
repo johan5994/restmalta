@@ -11,6 +11,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  if(localStorage.getItem('rm_theme')==='light')document.documentElement.classList.add('light');
+</script>
 <style>
 :root{
   --bg:#070B14;--s:#0D1220;--s2:#141A2E;--s3:#1B2340;
@@ -19,6 +22,14 @@
   --purple:#8B5CF6;--purpledim:rgba(139,92,246,.15);
   --txt:#F0EDE8;--tm:rgba(240,237,232,.5);--td:rgba(240,237,232,.25);
   --agency:#6366F1;--agencydim:rgba(99,102,241,.15);--agencybright:#818CF8;
+}
+html.light{
+  --bg:#F7F5F1;--s:#FFFFFF;--s2:#F0EDE6;--s3:#E5E0D5;
+  --b:rgba(26,20,16,.08);--b2:rgba(26,20,16,.15);
+  --terra:#C9553A;--gold:#B8862F;--sea:#2E6B8A;--green:#3D8F63;--red:#C9553A;
+  --purple:#7C3AED;--purpledim:rgba(124,58,237,.1);
+  --txt:#1A1410;--tm:rgba(26,20,16,.55);--td:rgba(26,20,16,.35);
+  --agency:#6366F1;--agencydim:rgba(99,102,241,.1);--agencybright:#5457D5;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;overflow-x:hidden}
@@ -213,6 +224,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <button class="ni" onclick="sp('listings',this)"><span class="nico">🏠</span>My Listings<span class="nbadge" id="nb-listings" style="display:none">0</span></button>
     <button class="ni" onclick="sp('visits',this)"><span class="nico">📅</span>Visits<span class="nbadge" id="nb-visits" style="display:none">0</span></button>
     <button class="ni" onclick="sp('applications',this)"><span class="nico">📋</span>Applications<span class="nbadge" id="nb-applications" style="display:none">0</span></button>
+    <button class="ni" onclick="sp('rented',this)"><span class="nico">🏠</span>Rented Properties<span class="nbadge" id="nb-rented" style="display:none">0</span></button>
 
     <div class="nl">Clients</div>
     <button class="ni" onclick="sp('crm',this)"><span class="nico">👥</span>CRM Clients<span class="nbadge" id="nb-leads" style="display:none">0</span></button>
@@ -231,7 +243,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="un" id="uname">Agent</div>
       <div class="ur">Agency Admin</div>
     </div>
-    <button onclick="doLogout()" style="margin-left:auto;background:none;border:none;color:var(--td);cursor:pointer;font-size:1rem">↪</button>
+    <button onclick="toggleTheme()" id="theme-toggle-btn" style="margin-left:auto;background:none;border:none;color:var(--td);cursor:pointer;font-size:1rem" title="Toggle light/dark mode">🌙</button>
+    <button onclick="doLogout()" style="background:none;border:none;color:var(--td);cursor:pointer;font-size:1rem">↪</button>
   </div>
 </div>
 
@@ -257,6 +270,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div class="kcard gold"><div class="klabel">Visits booked</div><div class="kval" id="k-visits">—</div><div class="ksub">This month</div></div>
       <div class="kcard terra"><div class="klabel">Commissions due</div><div class="kval" id="k-commission">€—</div><div class="ksub">Pending collection</div></div>
     </div>
+
+    <div id="overview-team-card"></div>
 
     <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1.2rem">
       <!-- Recent listings -->
@@ -530,6 +545,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">📋 Rental Applications</div><div style="font-size:.78rem;color:var(--td);margin-top:.2rem">Lessees who applied to rent one of your listings</div></div>
     <div id="applications-team-toggle"></div>
     <div id="applications-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+  </div>
+
+  <!-- ── RENTED PROPERTIES ── -->
+  <div class="page" id="page-rented">
+    <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">🏠 Rented Properties</div><div style="font-size:.78rem;color:var(--td);margin-top:.2rem">Move-in complete — properties currently occupied</div></div>
+    <div id="rented-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
   <!-- Modal: Review/unlink the owner account linked to a listing -->
@@ -1266,6 +1287,7 @@ function sp(id, btn){
   if(id==='listings')loadListings();
   if(id==='crm')loadCRM();
   if(id==='applications')loadApplications();
+  if(id==='rented')loadRentedPropertiesAgency();
   if(id==='visits')loadVisits();
   if(id==='messages')loadAgencyMessages();
   if(id==='estimations')loadEstimations();
@@ -1284,6 +1306,7 @@ function getPageSub(id){
 
 // ── Overview ──────────────────────────────────────────────────
 async function loadOverview(){
+  loadTeamOverview();
   try{
     const{data:listings}=await sb.from('listings').select('id,title,zone,price,photos,created_at').eq('agent_id',U.id).order('created_at',{ascending:false}).limit(5);
     const{data:visits}=await sb.from('visits').select('id,status,tenant_name,listing_title,created_at').eq('landlord_id',U.id).order('created_at',{ascending:false}).limit(5);
@@ -1857,6 +1880,58 @@ async function loadAnalytics(){
 
 // ── CRM ───────────────────────────────────────────────────────
 let crmCache={lessees:[],lessors:[]};
+// ── Overview : qui gère quoi dans l'équipe — visible par l'agence uniquement ──
+async function loadTeamOverview(){
+  const wrap=document.getElementById('overview-team-card');
+  if(!wrap)return;
+  if(!isAgencyAdmin()){wrap.innerHTML='';return;} // un membre ne voit pas la répartition des autres
+
+  const members=getTeamMembers();
+  if(!members.length){wrap.innerHTML='';return;}
+
+  wrap.innerHTML=`<div class="card"><div class="ch"><div class="ct">👥 Team Overview</div></div><div class="cb" id="team-overview-body" style="padding:.5rem 0"><div style="text-align:center;padding:1rem"><div class="sp"></div></div></div></div>`;
+  const body=document.getElementById('team-overview-body');
+
+  try{
+    const{data:allListings}=await sb.from('listings').select('id,title,created_by').eq('agent_id',U.id);
+    const listings=allListings||[];
+    const byOwner={}; // nom du membre → [listing_id, ...]
+    listings.forEach(l=>{
+      const owner=l.created_by||'Unassigned';
+      (byOwner[owner]=byOwner[owner]||[]).push(l.id);
+    });
+
+    // Pour chaque membre (+ "Unassigned"), compter les vrais clients distincts
+    // (locataires ayant candidaté/visité) rattachés à ses annonces.
+    const names=[...members.map(m=>m.name),...(byOwner['Unassigned']?['Unassigned']:[])];
+    const rows=await Promise.all(names.map(async name=>{
+      const listingIds=byOwner[name]||[];
+      let clientCount=0;
+      if(listingIds.length){
+        const clientIds=new Set();
+        try{const{data:bks}=await sb.from('bookings').select('tenant_id').in('listing_id',listingIds);(bks||[]).forEach(b=>{if(b.tenant_id)clientIds.add(b.tenant_id);});}catch(e){}
+        try{const{data:vs}=await sb.from('visits').select('tenant_id').in('listing_id',listingIds);(vs||[]).forEach(v=>{if(v.tenant_id)clientIds.add(v.tenant_id);});}catch(e){}
+        clientCount=clientIds.size;
+      }
+      return{name,listingCount:listingIds.length,clientCount};
+    }));
+
+    if(!rows.some(r=>r.listingCount>0)){
+      body.innerHTML='<div style="text-align:center;padding:1rem;color:var(--td);font-size:.8rem">No listings assigned to team members yet.</div>';
+      return;
+    }
+
+    body.innerHTML=rows.map(r=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.55rem 1rem;border-bottom:1px solid var(--b)">
+        <div style="font-size:.85rem;font-weight:600;${r.name==='Unassigned'?'color:var(--td);font-style:italic':''}">${r.name==='Unassigned'?'📋 Unassigned listings':'👤 '+r.name}</div>
+        <div style="display:flex;gap:1.2rem;font-size:.78rem;color:var(--td)">
+          <span>🏠 ${r.listingCount} listing${r.listingCount===1?'':'s'}</span>
+          <span>👥 ${r.clientCount} client${r.clientCount===1?'':'s'}</span>
+        </div>
+      </div>`).join('');
+  }catch(e){body.innerHTML='<div style="color:var(--red);padding:1rem;font-size:.8rem">Error loading team overview</div>';}
+}
+
 async function loadCRM(){
   const wrap=document.getElementById('crm-list');
   wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
@@ -2321,10 +2396,24 @@ function renderCoTenantSignatureRows(bk){
     </div>`).join('');
 }
 
+function renderEdlCoTenantSignatureRows(bk){
+  if(!bk)return '';
+  let edlCoLessees=[];
+  try{edlCoLessees=bk.edl_co_lessees_embed_src?JSON.parse(bk.edl_co_lessees_embed_src):[];}catch(e){}
+  if(!edlCoLessees.length)return '';
+  return edlCoLessees.map(cl=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-top:.3rem">
+      <span style="font-size:.78rem">👥 ${cl.name||'Co-lessee'}</span>
+      ${cl.signed
+        ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}`
+        :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+    </div>`).join('');
+}
+
 // ── Move-in inventory (EDL) — décision + prise en charge par l'agence ──
 function renderAgencyEdlSection(b){
   if(b.status==='move_in_ready'){
-    return`<div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✅ Move-in inventory completed</div>`;
+    return`<div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✅ Move-in inventory completed</div>${renderEdlCoTenantSignatureRows(b)}`;
   }
   if(!b.edl_handler){
     return`<div style="margin-top:.6rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:.65rem">
@@ -2595,6 +2684,119 @@ function collectEdlRoomsAg(){
   }));
 }
 
+// ── Même système que pour le bail : une fois l'EDL généré, l'agence doit
+// pouvoir transmettre le lien de signature au vrai lessor — soit il a un
+// compte RestMalta (on le retrouve et on lui envoie en interne), soit non
+// (WhatsApp, email, ou lien à copier manuellement).
+function showEdlSigningOptionsScreen(bookingId,signLink,landlordEmail,propertyTitle,landlordPhone){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  const mailBody=encodeURIComponent(`Hello,\n\nPlease review and sign the move-in inventory (EDL) for ${propertyTitle} using the link below:\n\n${signLink}\n\nThank you!`);
+  const mailSubject=encodeURIComponent(`Move-in inventory to sign — ${propertyTitle}`);
+  const mailtoHref=landlordEmail&&landlordEmail.includes('@')?`mailto:${landlordEmail}?subject=${mailSubject}&body=${mailBody}`:`mailto:?subject=${mailSubject}&body=${mailBody}`;
+  const waText=encodeURIComponent(`Hello! Please review and sign the move-in inventory (EDL) for ${propertyTitle} using this link:\n\n${signLink}`);
+  const waPhone=landlordPhone?landlordPhone.replace(/[^0-9+]/g,'').replace(/^\+/,''):'';
+  const waHref=`https://wa.me/${waPhone}?text=${waText}`;
+  modal.innerHTML=`
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:16px;padding:1.75rem;max-width:440px;width:100%">
+      <div style="font-size:1.6rem;margin-bottom:.5rem">📋</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem">EDL generated — who signs as Lessor?</div>
+      <div style="font-size:.8rem;color:var(--td);margin-bottom:1rem;line-height:1.5">Sign it yourself now if you're authorized to, or send it to the lessor to sign themselves.</div>
+      <button onclick="this.closest('div[style*=fixed]').remove();signAsAgencyLessorEdl('${bookingId}','${signLink}')" class="btn bp" style="width:100%;justify-content:center;margin-bottom:.75rem">✍️ Sign now myself</button>
+      <div style="text-align:center;font-size:.72rem;color:var(--td);margin-bottom:.75rem">— or send it to the lessor —</div>
+      <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;font-size:.75rem;color:var(--td);word-break:break-all;margin-bottom:.75rem">${signLink}</div>
+      <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:.6rem .75rem;margin-bottom:.75rem">
+        <div style="font-size:.72rem;font-weight:600;margin-bottom:.4rem">📱 Or send directly on RestMalta</div>
+        <div style="display:flex;gap:.4rem">
+          <input class="fi" type="email" id="edl-rm-email" placeholder="owner@email.com" value="${(landlordEmail||'').replace(/"/g,'&quot;')}" style="flex:1;font-size:.78rem">
+          <button onclick="checkAndSendEdlViaRestMalta('${bookingId}','${signLink}','${(propertyTitle||'').replace(/'/g,"\\'")}',this)" class="btn bg bsm" style="white-space:nowrap">🔍 Check</button>
+        </div>
+        <div id="edl-rm-result" style="font-size:.7rem;margin-top:.4rem"></div>
+      </div>
+      <button onclick="navigator.clipboard.writeText('${signLink}');this.innerHTML='✅ Link copied';this.disabled=true;this.style.opacity='.7'" class="btn bg" style="width:100%;justify-content:center;margin-bottom:.5rem">📋 Copy link</button>
+      <a href="${waHref}" target="_blank" onclick="setTimeout(()=>{this.innerHTML='✅ Sent via WhatsApp';this.style.opacity='.7';},300)" class="btn bg" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem;background:#25D366;color:white;border:none">💬 Send via WhatsApp</a>
+      <a href="${mailtoHref}" onclick="setTimeout(()=>{this.innerHTML='✅ Email opened';this.style.opacity='.7';},300)" class="btn bp" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:.5rem">✉️ Send by email</a>
+      <button onclick="this.closest('div[style*=fixed]').remove()" class="btn bg" style="width:100%;justify-content:center">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function signAsAgencyLessorEdl(bookingId,embedSrc){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column';
+  const header=document.createElement('div');
+  header.style.cssText='background:var(--s);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);flex-shrink:0';
+  header.innerHTML='<div style="font-weight:700;font-size:.9rem">✍️ Sign EDL on behalf of the lessor</div>';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
+  closeBtn.textContent='✕';
+  closeBtn.onclick=()=>{modal.remove();loadRentedPropertiesAgency();};
+  header.appendChild(closeBtn);
+  const body=document.createElement('div');
+  body.style.cssText='flex:1;overflow:auto;background:white';
+  const form=document.createElement('docuseal-form');
+  form.setAttribute('data-src',embedSrc);
+  form.setAttribute('data-send-copy-email','false');
+  form.style.cssText='width:100%;display:block;min-height:100vh';
+  form.addEventListener('completed',async()=>{
+    try{await sb.from('bookings').update({edl_signed_landlord:true}).eq('id',bookingId);}catch(e){}
+    toast('✅ EDL signed on behalf of the lessor!');
+    modal.remove();
+    loadRentedPropertiesAgency();
+  });
+  body.appendChild(form);
+  modal.appendChild(header);modal.appendChild(body);
+  document.body.appendChild(modal);
+}
+
+async function checkAndSendEdlViaRestMalta(bookingId,signLink,propertyTitle,btn){
+  const email=document.getElementById('edl-rm-email')?.value.trim();
+  const resultEl=document.getElementById('edl-rm-result');
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='⚠️ Enter a valid email first';}
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent='⏳...';}
+  try{
+    const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
+    if(btn){btn.disabled=false;btn.textContent='🔍 Check';}
+    if(profile){
+      resultEl.style.color='#4CAF7D';
+      resultEl.innerHTML=`✅ Found: <strong>${profile.full_name||'this account'}</strong> — `;
+      const sendBtn=document.createElement('button');
+      sendBtn.textContent='📱 Send';
+      sendBtn.style.cssText='background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem';
+      sendBtn.onclick=()=>sendEdlViaRestMalta(profile.clerk_id,bookingId,signLink,propertyTitle,sendBtn);
+      resultEl.appendChild(sendBtn);
+    }else{
+      resultEl.style.color='var(--red)';
+      resultEl.textContent='No RestMalta account found for this email.';
+    }
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='🔍 Check';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='❌ '+e.message;}
+  }
+}
+
+async function sendEdlViaRestMalta(realLandlordId,bookingId,signLink,propertyTitle,btn){
+  if(btn){btn.disabled=true;btn.textContent='⏳ Sending...';}
+  try{
+    const{data:booking}=await sb.from('bookings').select('listing_id').eq('id',bookingId).maybeSingle();
+    // Le lessor n'avait peut-être pas de compte au moment de la candidature —
+    // maintenant qu'on lui en a trouvé un, on relie le booking pour qu'il
+    // voie tout dans son propre dashboard désormais, pas juste ce message.
+    await sb.from('bookings').update({landlord_id:realLandlordId}).eq('id',bookingId).is('landlord_id',null);
+    const{error}=await sb.from('messages').insert({
+      listing_id:booking?.listing_id||null,sender_id:U.id,receiver_id:realLandlordId,
+      content:`📋 The move-in inventory (EDL) for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
+      type:'edl_ready_agency'
+    });
+    if(error){toast('❌ '+error.message);if(btn){btn.disabled=false;btn.textContent='📱 Send';}return;}
+    if(btn){btn.innerHTML='✅ Sent';}
+    toast('✅ Sent to the owner on RestMalta');
+  }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='📱 Send';}}
+}
+
 async function generateAnnexAndCompleteAg(){
   const ctx=window._agEdl;
   if(!ctx)return;
@@ -2620,7 +2822,7 @@ async function generateAnnexAndCompleteAg(){
   try{
     const res=await fetch('/.netlify/functions/generate-edl',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({landlord:landlordField,tenant:tenantField,coTenants,listing:listingField,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
+      body:JSON.stringify({landlord:landlordField,tenant:tenantField,coTenants,listing:listingField,meter_water:meterWater,meter_electricity:meterElec,rooms,photos:window._agEdlPhotos||{},general_notes:edlNotes,phase:'arrival'})
     });
     const edlData=await res.json();
     edlLandlordEmbed=edlData?.lessor_embed_src||null;
@@ -2662,6 +2864,67 @@ async function generateAnnexAndCompleteAg(){
 
   showEdlStepAg(3);
   toast('🎉 Move-in complete!');
+
+  // Même système que pour le bail : pas de compte lessor lié → on lui
+  // propose de transmettre le lien de signature (email, WhatsApp, ou
+  // vérifier s'il a en fait un compte sous un autre email).
+  if(!ctx.booking?.landlord_id&&edlLandlordEmbed){
+    showEdlSigningOptionsScreen(ctx.bookingId,edlLandlordEmbed,ctx.listing?.manual_landlord_email||'',ctx.listing?.title||'the property',ctx.listing?.manual_landlord_phone||'');
+  }
+}
+
+// ── Rented Properties — biens dont l'état des lieux est terminé, disparus
+// d'Applications (correctement, ils ne sont plus "en cours") mais qui ont
+// besoin d'un endroit où réapparaître pour rester visibles/suivis.
+async function loadRentedPropertiesAgency(){
+  const wrap=document.getElementById('rented-list');
+  if(!wrap)return;
+  wrap.innerHTML='<div style="text-align:center;padding:2rem"><div class="sp"></div></div>';
+  try{
+    const{data:myListingsAll}=await sb.from('listings').select('id,title,zone,price,photos,created_by').eq('agent_id',U.id);
+    const toggleEl=document.getElementById('rented-team-toggle');
+    const myListings=getTeamFilterMode('rented')==='mine'
+      ?(myListingsAll||[]).filter(l=>!l.created_by||l.created_by===getCurrentTeamMember())
+      :(myListingsAll||[]);
+    const listingIds=(myListings||[]).map(l=>l.id);
+    const listingMap={};(myListings||[]).forEach(l=>{listingMap[l.id]=l;});
+
+    if(!listingIds.length){wrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>No listings yet.</p></div>';return;}
+
+    const{data:bookings}=await sb.from('bookings').select('*').in('listing_id',listingIds).eq('status','move_in_ready').order('edl_completed_at',{ascending:false});
+
+    const nb=document.getElementById('nb-rented');
+    if(nb){nb.textContent=(bookings||[]).length;nb.style.display=(bookings||[]).length>0?'inline':'none';}
+
+    if(!(bookings||[]).length){
+      wrap.innerHTML='<div class="empty"><div class="em">🏠</div><p>No rented properties yet — they\'ll appear here once move-in is complete.</p></div>';
+      return;
+    }
+
+    const today=new Date().toISOString().split('T')[0];
+
+    wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+bookings.map(bk=>{
+      const listing=listingMap[bk.listing_id]||{};
+      let leaseEndHtml='';
+      if(bk.lease_end){
+        const daysLeft=Math.ceil((new Date(bk.lease_end)-new Date())/(1000*60*60*24));
+        const urgent=daysLeft<=60;
+        const color=daysLeft<0?'var(--red)':urgent?'var(--gold)':'var(--td)';
+        const label=daysLeft<0?`⚠️ Lease ended ${Math.abs(daysLeft)} days ago`:`📅 Lease ends in ${daysLeft} days`;
+        leaseEndHtml=`<div style="font-size:.7rem;color:${color};font-weight:${urgent?700:400}">${label}</div>`;
+      }
+      return`
+      <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid var(--b)">
+        <div style="width:44px;height:44px;border-radius:8px;background:var(--s2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🏠</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;font-weight:600">${listing.title||'Property'}</div>
+          <div style="font-size:.72rem;color:var(--td)">👤 ${bk.tenant_name||'—'} · €${bk.monthly_rent||listing.price||0}/mo</div>
+          ${leaseEndHtml}
+        </div>
+        <span class="badge b-green" style="font-size:.65rem;flex-shrink:0">✅ Occupied</span>
+      </div>`;
+    }).join('')+'</div></div>';
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading rented properties</div>';console.error(e);}
 }
 
 async function loadApplications(){
@@ -3533,8 +3796,7 @@ async function loadVisits(){
     if(myListingIds.length){
       const{data}=await sb.from('visits').select('*').in('listing_id',myListingIds).order('created_at',{ascending:false});
       byListing=data||[];
-    }
-    const seen=new Set();
+    }    const seen=new Set();
     const visitsAll=[...(byLandlord||[]),...byListing].filter(v=>{
       if(seen.has(v.id))return false;
       seen.add(v.id);
@@ -3544,13 +3806,29 @@ async function loadVisits(){
     const visits=getTeamFilterMode('visits')==='mine'?visitsAll.filter(v=>belongsToCurrentMember(v.listing_id)):visitsAll;
 
     if(!(visits||[]).length){wrap.innerHTML='<div class="empty"><div class="em">📅</div><p>No visits yet.</p></div>';return;}
+
+    // Les visites elles-mêmes n'ont pas de titre d'annonce ni de contact
+    // locataire fiables — on les récupère à la source, jamais un select('*')
+    // sur visits seul ne suffit.
+    const vListingIds=[...new Set(visits.map(v=>v.listing_id).filter(Boolean))];
+    const vTenantIds=[...new Set(visits.map(v=>v.tenant_id).filter(Boolean))];
+    const[{data:vListings},{data:vTenants}]=await Promise.all([
+      vListingIds.length?sb.from('listings').select('id,title').in('id',vListingIds):Promise.resolve({data:[]}),
+      vTenantIds.length?sb.from('profiles').select('clerk_id,email,phone').in('clerk_id',vTenantIds):Promise.resolve({data:[]})
+    ]);
+    const vListingMap={};(vListings||[]).forEach(l=>{vListingMap[l.id]=l.title;});
+    const vTenantMap={};(vTenants||[]).forEach(t=>{vTenantMap[t.clerk_id]=t;});
+
     const nb=document.getElementById('nb-visits');
     const pending=(visits||[]).filter(v=>v.status==='awaiting_landlord').length;
     if(nb){nb.textContent=pending;nb.style.display=pending>0?'inline':'none';}
-    wrap.innerHTML='<table class="tbl"><thead><tr><th>Lessee</th><th>Property</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
-      (visits||[]).map(v=>`<tr>
+    wrap.innerHTML='<table class="tbl"><thead><tr><th>Lessee</th><th>Contact</th><th>Property</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
+      (visits||[]).map(v=>{
+        const t=vTenantMap[v.tenant_id]||{};
+        return`<tr>
         <td style="font-weight:600">${v.tenant_name||'—'}</td>
-        <td style="color:var(--td)">${v.listing_title||'—'}</td>
+        <td style="font-size:.72rem;color:var(--td)">${t.email?`✉️ ${t.email}`:''}${t.email&&t.phone?'<br>':''}${t.phone?`📞 ${t.phone}`:''}${!t.email&&!t.phone?'—':''}</td>
+        <td style="color:var(--td)">${vListingMap[v.listing_id]||v.listing_title||'—'}</td>
         <td style="font-size:.78rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-'}</td>
         <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='completed'?'b-sea':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status==='awaiting_landlord'?'🆕 New':v.status==='confirmed'?'✅ Confirmed':v.status==='completed'?'🏁 Visit done':v.status||'—'}</span></td>
         <td>${v.status==='awaiting_landlord'?`
@@ -3559,7 +3837,7 @@ async function loadVisits(){
             <button onclick="agencyConfirmVisit('${v.id}','wrong_date','${v.listing_id}','${v.tenant_id}')" style="background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer">❌ Can't do it</button>
           </div>`:v.status==='confirmed'?`
           <button onclick="agencyMarkVisitDone('${v.id}')" style="background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer">🏁 Visit done</button>`:'—'}</td>
-      </tr>`).join('')+'</tbody></table>';
+      </tr>`;}).join('')+'</tbody></table>';
   }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error</div>';}
 }
 
@@ -3674,11 +3952,15 @@ async function previewLogo(input){
   preview.innerHTML=`<div class="sp"></div>`;
   try{
     const ext=file.name.split('.').pop();
-    const path=`listing-photos/${U.id}/agency-logo.${ext}`;
-    const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
+    // Nom de fichier unique à chaque upload — un changement de logo est
+    // donc toujours une CRÉATION (INSERT), jamais une mise à jour du même
+    // fichier (UPDATE), qui échoue faute de règle RLS correspondante sur
+    // ce bucket. Même logique que les photos d'annonces, qui marchent déjà.
+    const path=`listing-photos/${U.id}/agency-logo-${Date.now()}.${ext}`;
+    const{error}=await sb.storage.from('listings').upload(path,file,{cacheControl:'3600'});
     if(error)throw new Error(error.message);
     const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
-    const logoUrl=urlData.publicUrl+'?t='+Date.now(); // cache-bust pour voir le nouveau logo tout de suite
+    const logoUrl=urlData.publicUrl;
     preview.innerHTML=`<img src="${logoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
     await sb.from('agency_profiles').update({logo_url:logoUrl}).eq('clerk_id',U.id);
     agencyData={...agencyData,logo_url:logoUrl};
@@ -3697,6 +3979,17 @@ function toast(msg){
 }
 
 // ── Boot ──────────────────────────────────────────────────────
+function toggleTheme(){
+  const isLight=document.documentElement.classList.toggle('light');
+  localStorage.setItem('rm_theme',isLight?'light':'dark');
+  const btn=document.getElementById('theme-toggle-btn');
+  if(btn)btn.textContent=isLight?'☀️':'🌙';
+}
+(function syncThemeIcon(){
+  const btn=document.getElementById('theme-toggle-btn');
+  if(btn)btn.textContent=document.documentElement.classList.contains('light')?'☀️':'🌙';
+})();
+
 async function doLogout(){await window.Clerk.signOut();window.location.reload();}
 
 (async()=>{
