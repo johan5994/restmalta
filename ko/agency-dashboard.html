@@ -2606,14 +2606,14 @@ async function openAgencyEDL(bookingId){
       </div>
 
       <div id="ag-edl-step-3" style="display:none">
-        <div style="background:rgba(76,175,125,.1);border:2px solid rgba(76,175,125,.3);border-radius:14px;padding:1.5rem;text-align:center">
-          <div style="font-size:2.5rem;margin-bottom:.5rem">🎉</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#4CAF7D;margin-bottom:.4rem">Move-in Complete!</div>
-          <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">The lessee has officially moved in.</div>
+        <div style="background:rgba(212,168,71,.1);border:2px solid rgba(212,168,71,.3);border-radius:14px;padding:1.5rem;text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:.5rem">📋</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--gold);margin-bottom:.4rem">EDL sent for signature</div>
+          <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">The property will move to Rented Properties once the lessor and lessee have both signed.</div>
           <div style="font-size:.76rem;color:var(--td);text-align:left;background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:1rem;line-height:2">
-            ✅ EDL completed & sent for signature<br>
-            ✅ Meter readings recorded & annexed<br>
-            ✅ Keys handed over
+            ✅ Inventory & meter readings recorded<br>
+            ⏳ Waiting on lessor's signature<br>
+            ⏳ Waiting on lessee's signature
           </div>
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">📝 Remind the lessor to register the lease at <strong>rentregistration.mt</strong> within 30 days.</div>
           <button onclick="loadApplications()" style="background:var(--agencybright);color:white;border:none;border-radius:10px;padding:.65rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer">← Back to applications</button>
@@ -2846,7 +2846,7 @@ async function generateAnnexAndCompleteAg(){
     await sb.from('bookings').update({
       meter_water:meterWater,
       meter_electricity:meterElec,
-      status:'move_in_ready',
+      status:'edl_scheduled', // pas "move_in_ready" — ça, c'est le webhook qui le décide, une fois lessor + lessee + tous les co-lessees vraiment signés (pas juste le document généré/envoyé)
       edl_landlord_embed:edlLandlordEmbed,
       edl_tenant_embed:edlTenantEmbed,
       edl_co_lessees_embed_src:edlCoLesseesEmbed.length?JSON.stringify(edlCoLesseesEmbed):null,
@@ -2858,12 +2858,12 @@ async function generateAnnexAndCompleteAg(){
     }).eq('id',ctx.bookingId);
   }catch(e){}
 
-  const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 The lessor should register the lease at rentregistration.mt within 30 days.';
-  try{if(ctx.booking?.tenant_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.tenant_id,content:notif,type:'move_in_complete'});}catch(e){}
-  try{if(ctx.booking?.landlord_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.landlord_id,content:notif,type:'move_in_complete'});}catch(e){}
+  const notif='📋 The move-in inventory (EDL) has been generated and sent for signature.\n\n📝 The lessor should register the lease at rentregistration.mt within 30 days.';
+  try{if(ctx.booking?.tenant_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.tenant_id,content:notif,type:'edl_generated'});}catch(e){}
+  try{if(ctx.booking?.landlord_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.landlord_id,content:notif,type:'edl_generated'});}catch(e){}
 
   showEdlStepAg(3);
-  toast('🎉 Move-in complete!');
+  toast('✅ EDL sent for signature!');
 
   // Même système que pour le bail : pas de compte lessor lié → on lui
   // propose de transmettre le lien de signature (email, WhatsApp, ou
@@ -3829,7 +3829,7 @@ async function loadVisits(){
         <td style="font-weight:600">${v.tenant_name||'—'}</td>
         <td style="font-size:.72rem;color:var(--td)">${t.email?`✉️ ${t.email}`:''}${t.email&&t.phone?'<br>':''}${t.phone?`📞 ${t.phone}`:''}${!t.email&&!t.phone?'—':''}</td>
         <td style="color:var(--td)">${vListingMap[v.listing_id]||v.listing_title||'—'}</td>
-        <td style="font-size:.78rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-'}</td>
+        <td style="font-size:.78rem;color:var(--td)">${v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-'}${v.visit_time?` · ${v.visit_time}`:''}</td>
         <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='completed'?'b-sea':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status==='awaiting_landlord'?'🆕 New':v.status==='confirmed'?'✅ Confirmed':v.status==='completed'?'🏁 Visit done':v.status||'—'}</span></td>
         <td>${v.status==='awaiting_landlord'?`
           <div style="display:flex;gap:.3rem">
