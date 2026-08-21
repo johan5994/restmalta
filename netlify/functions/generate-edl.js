@@ -15,6 +15,7 @@ exports.handler = async (event) => {
       coTenants = [], // même structure que generate-lease.js : [{name,email,...}]
       meter_water, meter_electricity,
       rooms = [], // [{ name, items: [{item, qty, condition_arrival, notes}] }]
+      photos = {}, // { room_0: [{url,name}], meter_water: [{url,name}], ... } — sans ça, les photos prises pendant la création de l'EDL n'apparaissaient jamais dans le document réellement signé
       general_notes,
       phase = 'arrival' // 'arrival' ou 'departure'
     } = JSON.parse(event.body);
@@ -22,80 +23,30 @@ exports.handler = async (event) => {
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const phaseLabel = phase === 'departure' ? 'upon Departure' : 'on Arrival';
 
-    // Sections officielle de l'inventaire maltais
-    const officialSections = [
-      {
-        name: 'Exterior Items',
-        items: ['Mailbox','Fences & Gates','Pool/Spa & Equip','Lawn, Trees & Shrubs','Roof','Water tank','Photovoltaic panels','Garage','Bicycle storage','Bins/Waste','Other exterior']
-      },
-      {
-        name: 'Common Areas / Entrance',
-        items: ['Main door','Letterbox','Lift/Elevator','Staircase','Corridor/Hallway','Security system','Other common areas']
-      },
-      {
-        name: 'Living Room / Dining Room',
-        items: ['Sofa / Armchairs','Coffee table','Dining table','Dining chairs','TV / TV unit','Curtains / Blinds','Rug / Carpet','Bookshelf','Artwork','Air conditioning unit','Lights / Fixtures','Walls & Ceiling','Floor','Windows & Doors']
-      },
-      {
-        name: 'Kitchen',
-        items: ['Kitchen cabinets','Worktop','Sink & Taps','Oven / Stove','Microwave','Refrigerator / Freezer','Dishwasher','Washing machine','Dryer','Extractor fan','Kettle / Toaster','Other appliances','Floor','Walls & Tiles']
-      },
-      {
-        name: 'Master Bedroom',
-        items: ['Bed frame & Mattress','Wardrobe / Closet','Bedside tables','Chest of drawers','Desk / Chair','Curtains / Blinds','Mirror','Lights','Walls & Ceiling','Floor','Windows & Door']
-      },
-      {
-        name: 'Bedroom 2',
-        items: ['Bed frame & Mattress','Wardrobe','Furniture','Curtains','Lights','Walls & Ceiling','Floor','Windows & Door']
-      },
-      {
-        name: 'Bedroom 3',
-        items: ['Bed frame & Mattress','Wardrobe','Furniture','Curtains','Lights','Walls & Ceiling','Floor','Windows & Door']
-      },
-      {
-        name: 'Bathroom / WC',
-        items: ['Bath / Shower enclosure','WC / Toilet','Sink & Taps','Mirror / Cabinet','Towel rails','Tiles / Walls','Floor','Ventilation','Lights']
-      },
-      {
-        name: 'Bathroom 2 (if applicable)',
-        items: ['Bath / Shower','WC / Toilet','Sink & Taps','Tiles / Walls','Floor','Lights']
-      },
-      {
-        name: 'Balcony / Terrace',
-        items: ['Garden furniture','Plant pots','BBQ / Grill','Outdoor lighting','Floor / Tiles','Railings']
-      },
-      {
-        name: 'Storage / Utility Room',
-        items: ['Water heater / Boiler','Electrical panel / Fuse box','Storage shelving','Other items']
-      },
-      {
-        name: 'Keys & Access',
-        items: ['Main door keys','Mailbox key','Garage remote / key','Other keys / access cards']
-      }
-    ];
+    // IMPORTANT — la liste "officielle" précédente (12 sections à noms fixes,
+    // ex. "Exterior Items", "Common Areas / Entrance") ne correspondait à
+    // AUCUN des noms envoyés par les 3 interfaces (ex. "Exterior", "Entrance")
+    // : la fusion par égalité de nom ne trouvait donc jamais rien, et toutes
+    // les données saisies (état, quantité, notes) disparaissaient
+    // silencieusement du document réellement signé — exactement le décalage
+    // entre "ce qu'on fait" et "ce qu'on signe" qu'on cherche à corriger ici.
+    // On utilise désormais exactement ce que le client a rempli, tel quel.
+    const allRooms = (rooms || []).map(r => ({
+      name: r.name,
+      items: (r.items || []).map(it => ({
+        item: it.item,
+        qty: it.qty || '',
+        condition: it.condition_arrival || '',
+        notes: it.notes || ''
+      }))
+    }));
 
-    // Fusionner avec les rooms fournis par l'agent
-    const mergeRooms = (official, provided) => {
-      return official.map(sec => {
-        const found = provided.find(r => r.name === sec.name);
-        return {
-          name: sec.name,
-          items: sec.items.map(itemName => {
-            const found_item = found?.items?.find(i => i.item === itemName);
-            return {
-              item: itemName,
-              qty: found_item?.qty || '',
-              condition: found_item?.condition_arrival || '',
-              notes: found_item?.notes || ''
-            };
-          })
-        };
-      });
+    const photoRow = (pics) => {
+      if (!pics || !pics.length) return '';
+      return `<div style="margin-top:6px">${pics.map(p => `<img src="${p.url}" style="width:110px;height:110px;object-fit:cover;border-radius:4px;border:1px solid #ccc;margin-right:6px;margin-bottom:6px" />`).join('')}</div>`;
     };
 
-    const allRooms = mergeRooms(officialSections, rooms);
-
-    const renderTable = (section) => `
+    const renderTable = (section, roomIndex) => `
       <h2 style="font-size:11pt;background:#2c5282;color:white;padding:6px 10px;margin-top:20px">${section.name}</h2>
       <table>
         <thead>
@@ -115,7 +66,8 @@ exports.handler = async (event) => {
             <td style="font-size:9pt">${item.notes || '&nbsp;'}</td>
           </tr>`).join('')}
         </tbody>
-      </table>`;
+      </table>
+      ${photoRow(photos[`room_${roomIndex}`])}`;
 
     const html = `<!DOCTYPE html>
 <html>
@@ -167,10 +119,14 @@ exports.handler = async (event) => {
       <td style="border:none;padding:3px;width:50%">💧 <strong>Water meter:</strong> ${meter_water || '_______________'}</td>
       <td style="border:none;padding:3px;width:50%">⚡ <strong>Electricity meter:</strong> ${meter_electricity || '_______________'}</td>
     </tr>
+    <tr>
+      <td style="border:none;padding:3px;vertical-align:top">${photoRow(photos.meter_water)}</td>
+      <td style="border:none;padding:3px;vertical-align:top">${photoRow(photos.meter_electricity)}</td>
+    </tr>
   </table>
 </div>
 
-${allRooms.map(renderTable).join('')}
+${allRooms.map((r, i) => renderTable(r, i)).join('')}
 
 ${general_notes ? `
 <div style="margin-top:15px;background:#fff9db;border:1px solid #f6d860;border-radius:5px;padding:10px">
