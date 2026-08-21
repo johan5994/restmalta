@@ -2464,14 +2464,14 @@ async function openTenantEDL(bookingId){
       </div>
 
       <div id="tn-edl-step-3" style="display:none">
-        <div style="background:rgba(76,175,125,.1);border:2px solid rgba(76,175,125,.3);border-radius:14px;padding:1.5rem;text-align:center">
-          <div style="font-size:2.5rem;margin-bottom:.5rem">🎉</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#4CAF7D;margin-bottom:.4rem">Move-in Complete!</div>
-          <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">You've officially moved in.</div>
+        <div style="background:rgba(212,168,71,.1);border:2px solid rgba(212,168,71,.3);border-radius:14px;padding:1.5rem;text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:.5rem">📋</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--gold);margin-bottom:.4rem">EDL sent for signature</div>
+          <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">This property will move to Rented status once you and your lessor have both signed.</div>
           <div style="font-size:.76rem;color:var(--td);text-align:left;background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:1rem;line-height:2">
-            ✅ EDL completed & sent for signature<br>
-            ✅ Meter readings recorded & annexed<br>
-            ✅ Keys handed over
+            ✅ Inventory & meter readings recorded<br>
+            ⏳ Waiting on your signature<br>
+            ⏳ Waiting on your lessor's signature
           </div>
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">📝 Remember to submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold)">arms.com.mt</a>.</div>
           <button onclick="loadTenantApplicationsPage()" style="background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer">← Back</button>
@@ -2615,7 +2615,7 @@ async function generateAnnexAndCompleteTn(){
     await sb.from('bookings').update({
       meter_water:meterWater,
       meter_electricity:meterElec,
-      status:'move_in_ready',
+      status:'edl_scheduled', // pas "move_in_ready" — ça, c'est le webhook qui le décide, une fois lessor + lessee + tous les co-lessees vraiment signés (pas juste le document généré/envoyé)
       edl_landlord_embed:edlLandlordEmbed,
       edl_tenant_embed:edlTenantEmbed,
       edl_co_lessees_embed_src:edlCoLesseesEmbed.length?JSON.stringify(edlCoLesseesEmbed):null,
@@ -2627,11 +2627,11 @@ async function generateAnnexAndCompleteTn(){
     }).eq('id',ctx.bookingId);
   }catch(e){}
 
-  const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 Remember to register the lease at rentregistration.mt within 30 days.';
-  try{if(ctx.booking?.landlord_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.landlord_id,content:notif,type:'move_in_complete'});}catch(e){}
+  const notif='📋 The move-in inventory (EDL) has been generated and sent for signature.';
+  try{if(ctx.booking?.landlord_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.landlord_id,content:notif,type:'edl_generated'});}catch(e){}
 
   showEdlStepTn(3);
-  toast('🎉 Move-in complete!');
+  toast('✅ EDL sent for signature!');
 
   if(!ctx.booking?.landlord_id&&edlLandlordEmbed){
     showEdlSigningOptionsScreenTenant(ctx.bookingId,edlLandlordEmbed,ctx.listing?.manual_landlord_email||'',ctx.listing?.title||'the property',ctx.listing?.manual_landlord_phone||'');
