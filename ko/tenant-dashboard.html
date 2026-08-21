@@ -1296,7 +1296,10 @@ async function loadMyLocation(){
   // Ce bien est géré par une agence sans propriétaire lié à un vrai compte
   // RestMalta — personne côté RestMalta pour suivre paiements/gestion.
   // On cache ces onglets plutôt que d'afficher des écrans qui ne servent à rien.
-  const noTracking=!!bk.no_landlord_tracking;
+  // no_landlord_tracking est une photo prise une seule fois à l'acceptation —
+  // on vérifie AUSSI landlord_id en direct, pour rester correct même si un
+  // compte a été relié depuis sans repasser par ce qui a mis ce champ à jour.
+  const noTracking=!!bk.no_landlord_tracking&&!bk.landlord_id;
   ['ml-tabbtn-payments','ml-tabbtn-maintenance','ml-tabbtn-manage'].forEach(id=>{
     const btn=document.getElementById(id);
     if(btn)btn.style.display=noTracking?'none':'inline-block';
@@ -2211,7 +2214,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         ${!coTenantEntry?renderCoTenantSignatureRowsTenant(bk):''}
       </div>
       ${bk.status==='edl_scheduled'?`
-      <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 Your lessor is completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
+      <div style="margin-top:.6rem;background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--sea);font-weight:600">📋 ${bk.edl_handler==='agency'?'Your agency is':'Your lessor is'} completing the move-in inventory (EDL) — you'll be notified once it's ready to sign.</div>`:''}
       ${(()=>{
         // Co-lessee : son propre lien d'EDL vit dans edl_co_lessees_embed_src,
         // jamais dans bk.edl_tenant_embed (qui ne concerne que le locataire
