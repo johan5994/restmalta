@@ -298,6 +298,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="page" id="page-roommates">
       <div style="display:flex;gap:.5rem;margin-bottom:1.2rem;overflow-x-auto">
         <button class="ml-tab" id="rm-tabbtn-channel" onclick="showRmTab('channel')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--terra);color:white">💬 Community Channel</button>
+        <button class="ml-tab" id="rm-tabbtn-dms" onclick="showRmTab('dms')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">✉️ My Messages<span class="badge" id="rm-dms-badge" style="display:none;margin-left:.3rem"></span></button>
         <button class="ml-tab" id="rm-tabbtn-profile" onclick="showRmTab('profile')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">👤 My Profile</button>
         <button class="ml-tab" id="rm-tabbtn-groups" onclick="showRmTab('groups')" style="flex-shrink:0;border:1px solid var(--b);border-radius:20px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--s2);color:var(--tm)">👥 My Groups</button>
       </div>
@@ -314,6 +315,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <input id="rm-channel-input" class="fi" placeholder="Say hi, mention your budget/zone..." style="flex:1;font-size:.83rem" onkeydown="if(event.key==='Enter'){event.preventDefault();sendRmChannelMsg();}">
             <button class="btn bp bsm" onclick="sendRmChannelMsg()">Send →</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Sub-tab: My Messages (DMs) -->
+      <div id="rm-tab-dms" style="display:none">
+        <div class="card">
+          <div class="ch"><div class="ct">✉️ My Messages</div><span style="font-size:.68rem;color:var(--td)">Private conversations with other lessees</span></div>
+          <div id="rm-dms-list" style="padding:.5rem 0"><div style="text-align:center;padding:1.5rem;font-size:.8rem;color:var(--td)">Loading...</div></div>
         </div>
       </div>
 
@@ -817,7 +826,7 @@ function sp(id,btn){
   if(id==='search')loadAlertState();
   if(id==='visits'){loadTenantVisits();}
   if(id==='applications'){loadTenantApplicationsPage();}
-  if(id==='roommates'){showRmTab('channel');}
+  if(id==='roommates'){showRmTab('channel');loadRmDmsList();}
   if(id==='profile'){loadProfilee();loadDossierStatus();loadReferences();setTimeout(initPhonePickerTenant,200);}
 }
 
@@ -830,13 +839,14 @@ let rmDmOtherId=null;
 let rmActiveGroupId=null;
 
 function showRmTab(tab){
-  ['channel','profile','groups'].forEach(t=>{
+  ['channel','dms','profile','groups'].forEach(t=>{
     const panel=document.getElementById('rm-tab-'+t);
     const btn=document.getElementById('rm-tabbtn-'+t);
     if(panel)panel.style.display=t===tab?'block':'none';
     if(btn){btn.style.background=t===tab?'var(--terra)':'var(--s2)';btn.style.color=t===tab?'white':'var(--tm)';}
   });
   if(tab==='channel')loadRmChannel();
+  if(tab==='dms')loadRmDmsList();
   if(tab==='profile')loadRoommateProfile();
   if(tab==='groups')loadRmGroups();
 }
@@ -999,6 +1009,48 @@ function openRmProfileFromChannel(otherId){
   if(confirm(`Message ${name} privately?`))openRmDm(otherId,name);
 }
 
+async function loadRmDmsList(){
+  const wrap=document.getElementById('rm-dms-list');
+  if(!wrap)return;
+  try{
+    const{data}=await sb.from('messages').select('*').is('listing_id',null).eq('type','roommate_dm').or(`sender_id.eq.${U.id},receiver_id.eq.${U.id}`).order('created_at',{ascending:false});
+    const msgs=data||[];
+    if(!msgs.length){
+      wrap.innerHTML='<div style="text-align:center;padding:1.5rem;font-size:.8rem;color:var(--td)">No private messages yet — say hello to someone in the Community Channel 👋</div>';
+      const badge=document.getElementById('rm-dms-badge');if(badge)badge.style.display='none';
+      return;
+    }
+    // Une entrée par interlocuteur — la plus récente en tête
+    const convMap=new Map();
+    msgs.forEach(m=>{
+      const otherId=m.sender_id===U.id?m.receiver_id:m.sender_id;
+      if(!otherId)return;
+      if(!convMap.has(otherId))convMap.set(otherId,m); // déjà trié par date décroissante
+    });
+    const otherIds=[...convMap.keys()];
+    const{data:profiles}=await sb.from('roommate_profiles').select('tenant_id,full_name').in('tenant_id',otherIds);
+    const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.tenant_id]=p.full_name;});
+
+    let unreadTotal=0;
+    wrap.innerHTML=[...convMap.entries()].map(([otherId,m])=>{
+      const isUnread=!m.read&&m.receiver_id===U.id;
+      if(isUnread)unreadTotal++;
+      const name=nameMap[otherId]||'Lessee';
+      const preview=(m.content||'').slice(0,60);
+      return`<div style="padding:.7rem 1rem;border-bottom:1px solid var(--b);cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:${isUnread?'rgba(201,85,58,.06)':'transparent'}" onclick="openRmDm('${otherId}','${name.replace(/'/g,"\\'")}')">
+        <div style="min-width:0">
+          <div style="font-size:.85rem;font-weight:${isUnread?'700':'600'};color:${isUnread?'var(--terra)':'var(--txt)'}">${name}</div>
+          <div style="font-size:.75rem;color:var(--td);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.sender_id===U.id?'You: ':''}${preview}</div>
+        </div>
+        ${isUnread?'<span style="width:8px;height:8px;border-radius:50%;background:var(--terra);flex-shrink:0;margin-left:.5rem"></span>':''}
+      </div>`;
+    }).join('');
+
+    const badge=document.getElementById('rm-dms-badge');
+    if(badge){badge.textContent=unreadTotal;badge.style.display=unreadTotal>0?'inline':'none';}
+  }catch(e){wrap.innerHTML='<div style="text-align:center;padding:1.5rem;font-size:.8rem;color:var(--red)">Error loading messages</div>';}
+}
+
 async function openRmDm(otherId,otherName){
   rmDmOtherId=otherId;
   document.getElementById('rm-dm-title').textContent=otherName||'Conversation';
@@ -1021,6 +1073,13 @@ async function openRmDm(otherId,otherName){
       }).join('');
       thread.scrollTop=thread.scrollHeight;
     }
+    // Marquer comme lus — sinon la liste garde le point rouge indéfiniment
+    try{
+      await sb.from('messages').update({read:true}).is('listing_id',null).eq('type','roommate_dm').eq('sender_id',otherId).eq('receiver_id',U.id).eq('read',false);
+      const badge=document.getElementById('rm-dms-badge');
+      if(document.getElementById('rm-tab-dms')?.style.display!=='none')loadRmDmsList();
+      else if(badge){/* recalculé au prochain passage sur l'onglet */}
+    }catch(e){}
   }catch(e){}
 }
 
