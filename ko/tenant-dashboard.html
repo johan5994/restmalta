@@ -2633,7 +2633,7 @@ async function generateAnnexAndCompleteTn(){
   showEdlStepTn(3);
   toast('✅ EDL sent for signature!');
 
-  if(!ctx.booking?.landlord_id&&edlLandlordEmbed){
+  if(edlLandlordEmbed){
     showEdlSigningOptionsScreenTenant(ctx.bookingId,edlLandlordEmbed,ctx.listing?.manual_landlord_email||'',ctx.listing?.title||'the property',ctx.listing?.manual_landlord_phone||'');
   }
 }
