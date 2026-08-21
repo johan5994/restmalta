@@ -270,7 +270,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
       <!-- Visit groups -->
       <div class="card" style="margin-bottom:1rem">
-        <div class="ch"><div class="ct">👥 Visits en cours</div><span id="visit-groups-count" class="badge b-sea">0</span></div>
+        <div class="ch"><div class="ct">👥 Ongoing Visits</div><span id="visit-groups-count" class="badge b-sea">0</span></div>
         <div class="cb" id="visit-groups-list"><div class="ld"><div class="sp"></div></div></div>
       </div>
 
@@ -921,7 +921,7 @@ async function loadDash(){
     const vc=document.getElementById('visit-groups-count');
     if(vc)vc.textContent=vCount;
     // Widget visits en cours sur dashboard
-    const vw=document.getElementById('visit-groups-dash');
+    const vw=document.getElementById('visit-groups-list');
     if(vw){
       vw.innerHTML=(visitData||[]).length===0
         ?'<div style="text-align:center;color:var(--td);padding:1rem;font-size:.82rem">No ongoing visits</div>'
@@ -2096,7 +2096,7 @@ function generateQuittance(pay){
 }
 
 async function addRentEntry(){
-  const sel=document.getElementById('rent-lessee-select');
+  const sel=document.getElementById('rent-tenant-select');
   sel.innerHTML='<option value="">Loading lessees...</option>';
   document.getElementById('rent-modal').classList.add('open');
 
@@ -2128,7 +2128,7 @@ async function addRentEntry(){
 }
 
 async function submitRentEntry(){
-  const sel=document.getElementById('rent-lessee-select');
+  const sel=document.getElementById('rent-tenant-select');
   const idx=sel.value;
   if(idx===''){toast('❌ Select a lessee');return;}
   const b=window._rentBookings[idx];
@@ -3072,7 +3072,7 @@ async function loadReviewableTenants(){
 }
 
 async function submitReview(){
-  const tenantId=document.getElementById('rev-lessee-select')?.value;
+  const tenantId=document.getElementById('rev-tenant-select')?.value;
   const rating=parseInt(document.getElementById('rev-rating').value);
   const comment=document.getElementById('rev-comment').value.trim();
   if(!tenantId){toast('⚠️ Select a lessee');return;}
