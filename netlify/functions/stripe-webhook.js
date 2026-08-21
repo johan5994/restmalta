@@ -5,6 +5,19 @@ const SUPABASE_URL = 'https://clfqftbvohwybkrtvylo.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
+// Les requêtes Supabase (query builders) n'ont pas de vraie méthode .catch()
+// tant qu'elles ne sont pas awaited — un .catch() enchaîné dessus plante
+// immédiatement avec "catch is not a function". Ces deux wrappers protègent
+// respectivement les actions "au mieux" (notifications) et les lectures
+// .single() qui doivent retourner { data: null } plutôt que planter si
+// zéro ligne trouvée — même paire de fonctions que docuseal-webhook.js.
+async function safe(promise) {
+  try { await promise; } catch (e) { console.error('Non-critical action failed:', e.message); }
+}
+async function safeSingle(promise) {
+  try { return await promise; } catch (e) { return { data: null }; }
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -116,12 +129,11 @@ exports.handler = async (event) => {
     console.log(`Commission paid — lease: ${leaseId}, role: ${role}, session: ${sessionId}`);
 
     // ── Trouver la commission correspondante ──
-    const { data: commission } = await sb
+    const { data: commission } = await safeSingle(sb
       .from('commissions')
       .select('*')
       .eq('lease_id', leaseId)
-      .single()
-      .catch(() => ({ data: null }));
+      .single());
 
     if (!commission) {
       console.log(`No commission found for lease ${leaseId}`);
@@ -143,12 +155,11 @@ exports.handler = async (event) => {
     await sb.from('commissions').update(updates).eq('id', commission.id);
 
     // ── Relire la commission pour avoir l'état à jour ──
-    const { data: updatedCommission } = await sb
+    const { data: updatedCommission } = await safeSingle(sb
       .from('commissions')
       .select('*')
       .eq('id', commission.id)
-      .single()
-      .catch(() => ({ data: null }));
+      .single());
 
     const landlordPaid = role === 'landlord' ? true : updatedCommission?.landlord_paid;
     const tenantPaid = role === 'tenant' ? true : updatedCommission?.tenant_paid;
@@ -157,15 +168,14 @@ exports.handler = async (event) => {
 
     if (landlordPaid && tenantPaid) {
       // ── LES DEUX ONT PAYÉ commissions — vérifier si paiement dépôt/loyer confirmé aussi ──
-      const { data: depoPay } = await sb
+      const { data: depoPay } = await safeSingle(sb
         .from('payments')
         .select('status')
         .eq('lease_id', leaseId)
         .eq('type', 'deposit_and_first_month')
         .eq('status', 'paid')
         .limit(1)
-        .single()
-        .catch(() => ({ data: null }));
+        .single());
 
       if (depoPay) {
         // Tout est payé — débloquer le PDF
@@ -190,9 +200,8 @@ exports.handler = async (event) => {
 // Débloque le PDF et l'envoie aux deux parties
 // ─────────────────────────────────────────────────────────────────
 async function unlockLeasePdf(sb, leaseId) {
-  const { data: lease } = await sb
-    .from('leases').select('*').eq('id', leaseId).single()
-    .catch(() => ({ data: null }));
+  const { data: lease } = await safeSingle(sb
+    .from('leases').select('*').eq('id', leaseId).single());
 
   if (!lease || !lease.pdf_url_locked) {
     console.log(`No locked PDF for lease ${leaseId}`);
@@ -214,13 +223,11 @@ async function unlockLeasePdf(sb, leaseId) {
   const SITE = process.env.URL || 'https://restmalta.com';
 
   // ── Récupérer les profils ──
-  const { data: landlordProfile } = await sb
-    .from('profiles').select('*').eq('clerk_id', lease.landlord_id).single()
-    .catch(() => ({ data: null }));
+  const { data: landlordProfile } = await safeSingle(sb
+    .from('profiles').select('*').eq('clerk_id', lease.landlord_id).single());
 
-  const { data: tenantProfile } = await sb
-    .from('profiles').select('*').eq('clerk_id', lease.tenant_id).single()
-    .catch(() => ({ data: null }));
+  const { data: tenantProfile } = await safeSingle(sb
+    .from('profiles').select('*').eq('clerk_id', lease.tenant_id).single());
 
   const listingTitle = lease.listing_title || 'your property';
 
@@ -264,19 +271,19 @@ async function unlockLeasePdf(sb, leaseId) {
 
   // ── Messages in-app aux deux ──
   if (lease.listing_id) {
-    await sb.from('messages').insert({
+    await safe(sb.from('messages').insert({
       listing_id: lease.listing_id,
       sender_id: 'system',
       receiver_id: lease.landlord_id,
       content: `🎉 Both commissions received!\n\n📄 Your signed lease is now available:\n${signedPdfUrl}\n\nThank you for using RestMalta!`
-    }).catch(() => {});
+    }));
 
-    await sb.from('messages').insert({
+    await safe(sb.from('messages').insert({
       listing_id: lease.listing_id,
       sender_id: 'system',
       receiver_id: lease.tenant_id,
       content: `🎉 Both commissions received!\n\n📄 Your signed lease is now available:\n${signedPdfUrl}\n\nWelcome to your new home! 🏠`
-    }).catch(() => {});
+    }));
   }
 
   console.log(`Lease ${leaseId} — PDF unlocked and sent to both parties`);
@@ -286,9 +293,8 @@ async function unlockLeasePdf(sb, leaseId) {
 // Envoie une relance à la partie qui n'a pas encore payé
 // ─────────────────────────────────────────────────────────────────
 async function sendReminder(sb, leaseId, paidRole, commission) {
-  const { data: lease } = await sb
-    .from('leases').select('*').eq('id', leaseId).single()
-    .catch(() => ({ data: null }));
+  const { data: lease } = await safeSingle(sb
+    .from('leases').select('*').eq('id', leaseId).single());
 
   if (!lease) return;
 
@@ -297,9 +303,8 @@ async function sendReminder(sb, leaseId, paidRole, commission) {
   const unpaidAmount = unpaidRole === 'landlord' ? commission.landlord_amount : commission.tenant_amount;
   const unpaidUrl = unpaidRole === 'landlord' ? commission.landlord_payment_url : commission.tenant_payment_url;
 
-  const { data: unpaidProfile } = await sb
-    .from('profiles').select('*').eq('clerk_id', unpaidId).single()
-    .catch(() => ({ data: null }));
+  const { data: unpaidProfile } = await safeSingle(sb
+    .from('profiles').select('*').eq('clerk_id', unpaidId).single());
 
   const SITE = process.env.URL || 'https://restmalta.com';
   const listingTitle = lease.listing_title || 'your property';
@@ -309,12 +314,12 @@ async function sendReminder(sb, leaseId, paidRole, commission) {
 
   // ── Message in-app ──
   if (lease.listing_id) {
-    await sb.from('messages').insert({
+    await safe(sb.from('messages').insert({
       listing_id: lease.listing_id,
       sender_id: 'system',
       receiver_id: unpaidId,
       content: `⏳ The other party has already paid their commission!\n\n🔒 Your signed lease PDF is waiting — it will be unlocked as soon as you complete your payment.\n\n💳 Pay €${unpaidAmount} now:\n${unpaidUrl}`
-    }).catch(() => {});
+    }));
   }
 
   // ── Email de relance ──
