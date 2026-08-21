@@ -1361,7 +1361,9 @@ async function openDet(id){
   const tl={short:'Short-let (1-6 months)',room_rental:'Room rental',long:'Long-let (1 year+)',for_sale:'For sale'};
   const badge=await getLandlordResponseBadge(l.landlord_id);
   const landlordRating=await getLandlordRating(l.landlord_id);
-  const ratingHtml=landlordRating?`<div style="background:rgba(212,168,71,.1);color:var(--ochre);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">⭐ ${landlordRating.avg.toFixed(1)} lessor rating <span style="font-weight:400;color:var(--stone-l)">(${landlordRating.count} review${landlordRating.count>1?'s':''})</span></div>`:'';
+  const agencyRating=l.agency_listing?await getAgencyRating(l.agent_id):null;
+  const ratingHtml=(landlordRating?`<div style="background:rgba(212,168,71,.1);color:var(--ochre);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">⭐ ${landlordRating.avg.toFixed(1)} lessor rating <span style="font-weight:400;color:var(--stone-l)">(${landlordRating.count} review${landlordRating.count>1?'s':''})</span></div>`:'')
+    +(agencyRating?`<div style="background:rgba(46,107,138,.1);color:var(--sea);border:1px solid rgba(46,107,138,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">⭐ ${agencyRating.avg.toFixed(1)} agency rating <span style="font-weight:400;color:var(--stone-l)">(${agencyRating.count} review${agencyRating.count>1?'s':''})</span></div>`:'');
   const tenureLabels={freehold:'Freehold',leasehold:'Leasehold',perpetual_ground_rent:'Perpetual ground rent'};
   const finishLabels={finished:'Fully finished',furnished:'Finished & furnished',semi_finished:'Semi-finished',shell:'Shell form (bare)'};
   document.getElementById('din').innerHTML=l.type==='for_sale'?`
@@ -2301,6 +2303,13 @@ function initMap(){
 }
 
 // ── Badge "Lessor réactif" ──────────────────────────────────
+async function getAgencyRating(agentId){
+  const{data}=await sb.from('reviews').select('rating').eq('target_id',agentId).eq('type','tenant_to_agency');
+  if(!data||!data.length)return null;
+  const avg=data.reduce((s,r)=>s+r.rating,0)/data.length;
+  return{avg,count:data.length};
+}
+
 async function getLandlordRating(landlordId){
   const{data}=await sb.from('reviews').select('rating').eq('landlord_id',landlordId).eq('type','tenant_to_landlord');
   if(!data||!data.length)return null;
