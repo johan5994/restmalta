@@ -3,6 +3,21 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = 'https://clfqftbvohwybkrtvylo.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+// Les requêtes Supabase (query builders) n'ont pas de vraie méthode .catch()
+// tant qu'elles ne sont pas awaited — un .catch() enchaîné dessus plante
+// immédiatement avec "catch is not a function". Ce wrapper protège les
+// actions "au mieux" (notifications) sans jamais faire planter le webhook.
+async function safe(promise) {
+  try { await promise; } catch (e) { console.error('Non-critical action failed:', e.message); }
+}
+
+// Même problème que safe() ci-dessus, mais pour .single() — qui lève une
+// erreur si zéro ligne trouvée (contrairement à maybeSingle). On veut
+// juste { data: null } dans ce cas, pas un plantage.
+async function safeSingle(promise) {
+  try { return await promise; } catch (e) { return { data: null }; }
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -61,7 +76,7 @@ exports.handler = async (event) => {
               coLessees[idx].signed = true;
               updateData = { co_lessees_embed_src: JSON.stringify(coLessees) };
               if (coLessees[idx].tenant_id) {
-                await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: `✍️ Co-tenant ${coLessees[idx].name || ''} signed the lease!`, type: 'lease_signed_cotenant' }).catch(() => {});
+                await safe(sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: `✍️ Co-tenant ${coLessees[idx].name || ''} signed the lease!`, type: 'lease_signed_cotenant' }));
               }
             }
           }
@@ -75,10 +90,10 @@ exports.handler = async (event) => {
             }
             // Notifier selon qui a signé
             if (updateData.lease_signed_landlord && !booking.lease_signed_landlord) {
-              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '✍️ The landlord signed the lease!\n\nIt\'s your turn — go to your visits page to sign.', type: 'lease_signed_landlord' }).catch(() => {});
+              await safe(sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '✍️ The landlord signed the lease!\n\nIt\'s your turn — go to your visits page to sign.', type: 'lease_signed_landlord' }));
             }
             if (updateData.lease_signed_tenant && !booking.lease_signed_tenant) {
-              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: '✍️ The tenant signed the lease!\n\nWaiting on any remaining co-tenants and first payment.', type: 'lease_signed_tenant' }).catch(() => {});
+              await safe(sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.landlord_id, content: '✍️ The tenant signed the lease!\n\nWaiting on any remaining co-tenants and first payment.', type: 'lease_signed_tenant' }));
             }
 
             // Le bail n'est "entièrement signé" que si landlord + tenant principal
@@ -96,7 +111,7 @@ exports.handler = async (event) => {
             if (landlordDone && tenantDone && allCoTenantsDone) {
               const ibanInfo = booking.landlord_iban ? '\n🏦 IBAN: ' + booking.landlord_iban : '';
               const revInfo = booking.landlord_revolut ? '\n💜 Revolut: ' + booking.landlord_revolut : '';
-              await sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '🎉 Everyone has signed!\n\nPlease transfer deposit + first month to landlord.' + ibanInfo + revInfo + '\n\nClick "I have paid" in your visits page once done.', type: 'lease_fully_signed' }).catch(() => {});
+              await safe(sb2.from('messages').insert({ listing_id: booking.listing_id, sender_id: 'system', receiver_id: booking.tenant_id, content: '🎉 Everyone has signed!\n\nPlease transfer deposit + first month to landlord.' + ibanInfo + revInfo + '\n\nClick "I have paid" in your visits page once done.', type: 'lease_fully_signed' }));
             }
           }
         }
@@ -127,19 +142,59 @@ exports.handler = async (event) => {
             edlUpdate = { edl_signed_landlord: true };
           } else if (role === 'Lessee') {
             edlUpdate = { edl_signed_tenant: true };
+          } else if (role.startsWith('Lessee ')) {
+            // Co-tenant N a signé l'EDL — même logique que pour le bail, mais
+            // dans son propre champ, indépendant du statut de signature du bail.
+            let edlCoLessees = [];
+            try { edlCoLessees = edlBooking.edl_co_lessees_embed_src ? JSON.parse(edlBooking.edl_co_lessees_embed_src) : []; } catch(e) {}
+            const idx = edlCoLessees.findIndex(cl => cl.role === role);
+            if (idx !== -1) {
+              edlCoLessees[idx].signed = true;
+              edlUpdate = { edl_co_lessees_embed_src: JSON.stringify(edlCoLessees) };
+              if (edlCoLessees[idx].tenant_id) {
+                await safe(sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.landlord_id, content: `✍️ Co-tenant ${edlCoLessees[idx].name || ''} signed the move-in inventory (EDL)!`, type: 'edl_signed_cotenant' }));
+              }
+            }
           }
           if (Object.keys(edlUpdate).length) {
             // Capturer le vrai PDF signé — rouvrir le lien de signature après
-            // coup ne montre pas l'état signé, il faut le vrai document fini
-            const pdfUrl = submission.documents?.[0]?.url || submission.audit_log_url || null;
+            // coup ne montre pas l'état signé, il faut le vrai document fini.
+            // BUG corrigé ici : ce code utilisait "submission", une variable qui
+            // n'existe jamais dans ce bloc (elle n'est déclarée que plus bas,
+            // dans le flow "leases" totalement différent) — ça plantait à chaque
+            // fois avant d'atteindre la sauvegarde, donc edl_signed_* n'était
+            // jamais enregistré du tout, même pour le lessor/lessee principal.
+            const pdfUrl = d.documents?.[0]?.url || d.audit_log_url || null;
             if (pdfUrl) edlUpdate.edl_pdf_url = pdfUrl;
 
             await sb3.from('bookings').update(edlUpdate).eq('id', edlBooking.id);
             if (edlUpdate.edl_signed_landlord && !edlBooking.edl_signed_landlord) {
-              await sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.tenant_id, content: '✍️ The landlord signed the move-in inventory (EDL)! Your turn — go to your visits page to sign.', type: 'edl_signed_landlord' }).catch(() => {});
+              await safe(sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.tenant_id, content: '✍️ The landlord signed the move-in inventory (EDL)! Your turn — go to your visits page to sign.', type: 'edl_signed_landlord' }));
             }
             if (edlUpdate.edl_signed_tenant && !edlBooking.edl_signed_tenant) {
-              await sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.landlord_id, content: '✍️ The tenant signed the move-in inventory (EDL)!', type: 'edl_signed_tenant' }).catch(() => {});
+              await safe(sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.landlord_id, content: '✍️ The tenant signed the move-in inventory (EDL)!', type: 'edl_signed_tenant' }));
+            }
+
+            // L'EDL n'est "entièrement signé" que si landlord + tenant principal
+            // + tous les co-tenants ayant un lien de signature ont signé —
+            // même logique que pour le bail.
+            const edlLandlordDone = edlUpdate.edl_signed_landlord || edlBooking.edl_signed_landlord;
+            const edlTenantDone = edlUpdate.edl_signed_tenant || edlBooking.edl_signed_tenant;
+            let edlCoLesseesForCheck = [];
+            try {
+              edlCoLesseesForCheck = edlUpdate.edl_co_lessees_embed_src
+                ? JSON.parse(edlUpdate.edl_co_lessees_embed_src)
+                : (edlBooking.edl_co_lessees_embed_src ? JSON.parse(edlBooking.edl_co_lessees_embed_src) : []);
+            } catch(e) {}
+            const allEdlCoTenantsDone = edlCoLesseesForCheck.every(cl => cl.signed);
+
+            if (edlLandlordDone && edlTenantDone && allEdlCoTenantsDone) {
+              await safe(sb3.from('bookings').update({ status: 'move_in_ready' }).eq('id', edlBooking.id));
+              // C'est ICI, une fois tout le monde vraiment signé (pas à la
+              // génération), que "move-in complete" est réellement vrai.
+              const doneMsg = '🎉 Move-in complete!\n\n✅ Entry inventory (EDL) fully signed by all parties\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 The lessor should register the lease at rentregistration.mt within 30 days.';
+              if (edlBooking.tenant_id) await safe(sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.tenant_id, content: doneMsg, type: 'move_in_complete' }));
+              if (edlBooking.landlord_id) await safe(sb3.from('messages').insert({ listing_id: edlBooking.listing_id, sender_id: 'system', receiver_id: edlBooking.landlord_id, content: doneMsg, type: 'move_in_complete' }));
             }
           }
         }
@@ -159,12 +214,11 @@ exports.handler = async (event) => {
 
       const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      const { data: lease } = await sb
+      const { data: lease } = await safeSingle(sb
         .from('leases')
         .select('*')
         .eq('docuseal_id', String(submissionId))
-        .single()
-        .catch(() => ({ data: null }));
+        .single());
 
       if (lease && pdfUrl) {
         const pdfResponse = await fetch(pdfUrl);
@@ -191,17 +245,14 @@ exports.handler = async (event) => {
             }).eq('id', lease.id);
 
             // ── Récupérer les profils et le listing ──
-            const { data: landlordProfile } = await sb
-              .from('profiles').select('*').eq('clerk_id', lease.landlord_id).single()
-              .catch(() => ({ data: null }));
+            const { data: landlordProfile } = await safeSingle(sb
+              .from('profiles').select('*').eq('clerk_id', lease.landlord_id).single());
 
-            const { data: tenantProfile } = await sb
-              .from('profiles').select('*').eq('clerk_id', lease.tenant_id).single()
-              .catch(() => ({ data: null }));
+            const { data: tenantProfile } = await safeSingle(sb
+              .from('profiles').select('*').eq('clerk_id', lease.tenant_id).single());
 
-            const { data: listing } = await sb
-              .from('listings').select('*').eq('id', lease.listing_id).single()
-              .catch(() => ({ data: null }));
+            const { data: listing } = await safeSingle(sb
+              .from('listings').select('*').eq('id', lease.listing_id).single());
 
             if (landlordProfile && tenantProfile && listing) {
               const SITE = process.env.URL || 'https://restmalta.com';
@@ -236,7 +287,7 @@ exports.handler = async (event) => {
                 const tenantDirect   = commissionData.tenant.method === 'direct_charge';
 
                 // ── Sauvegarder la commission en base ──
-                await sb.from('commissions').insert({
+                await safe(sb.from('commissions').insert({
                   lease_id: lease.id,
                   landlord_amount: commissionData.landlord.amount,
                   tenant_amount: commissionData.tenant.amount,
@@ -248,7 +299,7 @@ exports.handler = async (event) => {
                   landlord_paid: landlordDirect,
                   tenant_paid: tenantDirect,
                   status: (landlordDirect && tenantDirect) ? 'paid' : 'pending'
-                }).catch(() => {});
+                }));
 
                 const listingTitle = listing.title || 'your property';
 
@@ -260,19 +311,19 @@ exports.handler = async (event) => {
                     commissions_paid_at: new Date().toISOString()
                   }).eq('id', lease.id);
 
-                  await sb.from('messages').insert({
+                  await safe(sb.from('messages').insert({
                     listing_id: lease.listing_id,
                     sender_id: 'system',
                     receiver_id: lease.landlord_id,
                     content: `🎉 Your lease is signed and commissions have been collected!\n\n📄 Your signed lease: ${lease.pdf_url_locked}\n\n✅ RestMalta commission of €${commissionData.landlord.amount} has been automatically charged to your card.`
-                  }).catch(() => {});
+                  }));
 
-                  await sb.from('messages').insert({
+                  await safe(sb.from('messages').insert({
                     listing_id: lease.listing_id,
                     sender_id: 'system',
                     receiver_id: lease.tenant_id,
                     content: `🎉 Your lease is signed and commissions have been collected!\n\n📄 Your signed lease: ${lease.pdf_url_locked}\n\n✅ RestMalta commission of €${commissionData.tenant.amount} has been automatically charged to your card.\n\n🏠 Welcome to your new home!`
-                  }).catch(() => {});
+                  }));
 
                 } else {
                   // ── Message landlord ──
@@ -280,12 +331,12 @@ exports.handler = async (event) => {
                     ? `✅ Your lease has been signed!\n\n💳 RestMalta commission of €${commissionData.landlord.amount} has been automatically charged to your card.\n\n🔒 Your signed lease PDF will be sent once the tenant completes their payment.`
                     : `✅ Your lease has been signed by all parties!\n\n💳 Please pay your RestMalta commission of €${commissionData.landlord.amount} to unlock your signed lease PDF:\n${commissionData.landlord.payment_url}\n\n🔒 PDF sent automatically once both parties have paid.`;
 
-                  await sb.from('messages').insert({
+                  await safe(sb.from('messages').insert({
                     listing_id: lease.listing_id,
                     sender_id: 'system',
                     receiver_id: lease.landlord_id,
                     content: landlordMsg
-                  }).catch(() => {});
+                  }));
 
                   // ── Message tenant avec fiche de paiement ──
                   const revTag = landlordProfile.revolut_tag || landlordProfile.bank_details || '';
@@ -302,17 +353,17 @@ exports.handler = async (event) => {
 
                   const tenantMsg = `${commissionMsg}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💶 PAYMENT DUE TO LANDLORD BEFORE MOVE-IN\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 Security deposit: €${deposit}\n🏠 First month rent: €${firstMonth}\n💰 Total: €${totalDue}\n\n🏦 Bank transfer (IBAN):\n${landlordProfile.iban || '—'}\nName: ${landlordProfile.full_name || '—'}${revLink}\n\nOnce you have paid, click "I've paid" below to notify the landlord.`;
 
-                  await sb.from('messages').insert({
+                  await safe(sb.from('messages').insert({
                     listing_id: lease.listing_id,
                     sender_id: 'system',
                     receiver_id: lease.tenant_id,
                     content: tenantMsg,
                     type: 'payment_due'
-                  }).catch(() => {});
+                  }));
                 }
 
                 // ── Email landlord avec lien de paiement ──
-                await fetch(`${SITE}/.netlify/functions/send-email`, {
+                await safe(fetch(`${SITE}/.netlify/functions/send-email`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -326,10 +377,10 @@ exports.handler = async (event) => {
                       listingTitle
                     }
                   })
-                }).catch(() => {});
+                }));
 
                 // ── Email tenant avec lien de paiement ──
-                await fetch(`${SITE}/.netlify/functions/send-email`, {
+                await safe(fetch(`${SITE}/.netlify/functions/send-email`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -343,7 +394,7 @@ exports.handler = async (event) => {
                       listingTitle
                     }
                   })
-                }).catch(() => {});
+                }));
 
                 console.log(`Lease ${lease.id} signed — payment links sent, PDF locked`);
               }
