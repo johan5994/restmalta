@@ -855,7 +855,7 @@ async function sU(clerkUser, showPicker=true) {
         const listingIds=(manualListings||[]).map(l=>l.id);
         if(listingIds.length){
           await sb.from('listings').update({real_landlord_id:U.id}).in('id',listingIds);
-          await sb.from('bookings').update({landlord_id:U.id}).in('listing_id',listingIds).is('landlord_id',null);
+          await sb.from('bookings').update({landlord_id:U.id,no_landlord_tracking:false}).in('listing_id',listingIds).is('landlord_id',null);
         }
       }catch(e){}
     }
@@ -1117,7 +1117,7 @@ async function setRoleAndContinue(role) {
           const listingIds=(manualListings||[]).map(l=>l.id);
           if(listingIds.length){
             await sb.from('listings').update({real_landlord_id:U.id}).in('id',listingIds);
-            await sb.from('bookings').update({landlord_id:U.id}).in('listing_id',listingIds).is('landlord_id',null);
+            await sb.from('bookings').update({landlord_id:U.id,no_landlord_tracking:false}).in('listing_id',listingIds).is('landlord_id',null);
           }
         }catch(e){console.warn('Auto-link manual landlord:',e);}
       }
