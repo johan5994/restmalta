@@ -359,7 +359,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
       <div class="tabs">
         <button class="tab act" onclick="setImportTab('url',this)">🔗 From URL</button>
-        <button class="tab" onclick="setImportTab('bulk',this)">📦 Bulk CSV</button>
       </div>
 
       <!-- URL import -->
@@ -374,23 +373,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
             <button class="btn bp" onclick="importFromURL()" style="width:100%;justify-content:center">🤖 Extract with AI →</button>
             <div id="import-url-result" style="margin-top:.75rem"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bulk CSV -->
-      <div id="import-bulk" style="display:none">
-        <div class="card">
-          <div class="ch"><div class="ct">📦 Bulk Import via CSV</div><a href="#" onclick="downloadCSVTemplate()" class="btn bg bsm">⬇ Template</a></div>
-          <div class="cb">
-            <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Download our CSV template, fill it in with your listings (one per row), and upload. We'll create all listings at once.</div>
-            <div class="import-drop" onclick="document.getElementById('csv-file').click()">
-              <div class="import-icon">📦</div>
-              <div style="font-size:.85rem;font-weight:600;color:var(--agencybright);margin-bottom:.3rem">Upload your CSV file</div>
-              <div style="font-size:.72rem;color:var(--td)">CSV format · Up to 50 listings at once</div>
-              <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVFile(this)">
-            </div>
-            <div id="import-bulk-result" style="margin-top:.75rem"></div>
           </div>
         </div>
       </div>
@@ -1501,7 +1483,7 @@ async function deleteListing(id, title, btn){
 function setImportTab(tab, btn){
   document.querySelectorAll('#page-import .tab').forEach(t=>t.classList.remove('act'));
   btn.classList.add('act');
-  ['url','bulk'].forEach(t=>document.getElementById('import-'+t).style.display='none');
+  ['url'].forEach(t=>document.getElementById('import-'+t).style.display='none');
   document.getElementById('import-'+tab).style.display='block';
 }
 
@@ -1703,39 +1685,6 @@ async function createListing(data){
     toast(isSale?'🚀 Sale listing published successfully!':'🚀 Listing published successfully!');
     sp('listings',null);
   }catch(e){toast('❌ '+e.message);}
-}
-
-function downloadCSVTemplate(){
-  const csv='title,zone,price,bedrooms,bathrooms,description,full_address,furnished,wifi,bills\nModern 2BR Sliema,Sliema,850,2,1,"Furnished flat near seafront","12 Triq il-Kbira Sliema",true,true,excluded';
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='restmalta-listings-template.csv';a.click();
-}
-
-async function handleCSVFile(input){
-  const file=input.files[0];
-  if(!file)return;
-  const text=await file.text();
-  const lines=text.split('\n').filter(l=>l.trim());
-  const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
-  const rows=lines.slice(1).map(l=>{
-    const vals=l.split(',').map(v=>v.trim().replace(/"/g,''));
-    const obj={};headers.forEach((h,i)=>obj[h]=vals[i]||'');
-    return obj;
-  }).filter(r=>r.title&&r.zone);
-  document.getElementById('import-bulk-result').innerHTML=`<div style="background:var(--agencydim);border:1px solid rgba(99,102,241,.3);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--agencybright)">
-    📦 Found <strong>${rows.length} listings</strong> in CSV. <button class="btn bp bsm" onclick="publishBulkCSV(${JSON.stringify(rows).replace(/"/g,'&quot;')})">Publish All →</button></div>`;
-}
-
-async function publishBulkCSV(rows){
-  toast('⏳ Publishing '+rows.length+' listings...');
-  let success=0;
-  for(const r of rows){
-    try{
-      await createListing({title:r.title,zone:r.zone,price:parseFloat(r.price)||0,beds:parseInt(r.bedrooms)||0,description:r.description||'',full_address:r.full_address||''});
-      success++;
-    }catch(e){}
-  }
-  toast(`✅ Published ${success}/${rows.length} listings!`);
 }
 
 // ── New Listing ───────────────────────────────────────────────
@@ -1969,17 +1918,55 @@ async function loadCRM(){
   }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:1rem">Error loading CRM</div>';console.error(e);}
 }
 
+function getCRMFavorites(){
+  try{return agencyData?.crm_favorites?JSON.parse(agencyData.crm_favorites):[];}catch(e){return[];}
+}
+function getCRMHidden(){
+  try{return agencyData?.crm_hidden?JSON.parse(agencyData.crm_hidden):[];}catch(e){return[];}
+}
+
+async function toggleCRMFavorite(clientId){
+  const favs=getCRMFavorites();
+  const idx=favs.indexOf(clientId);
+  if(idx>=0)favs.splice(idx,1);else favs.push(clientId);
+  try{
+    await sb.from('agency_profiles').update({crm_favorites:JSON.stringify(favs)}).eq('clerk_id',U.id);
+    agencyData={...agencyData,crm_favorites:JSON.stringify(favs)};
+  }catch(e){toast('❌ '+e.message);return;}
+  renderCRM(document.querySelector('#page-crm input[placeholder*="Search"]')?.value||'');
+}
+
+async function hideCRMClient(clientId,name){
+  if(!confirm(`Remove ${name||'this client'} from your CRM list? This won't delete their bookings/visits — you can still find them there, just not here.`))return;
+  const hidden=getCRMHidden();
+  if(!hidden.includes(clientId))hidden.push(clientId);
+  try{
+    await sb.from('agency_profiles').update({crm_hidden:JSON.stringify(hidden)}).eq('clerk_id',U.id);
+    agencyData={...agencyData,crm_hidden:JSON.stringify(hidden)};
+  }catch(e){toast('❌ '+e.message);return;}
+  toast('Removed from CRM list');
+  renderCRM(document.querySelector('#page-crm input[placeholder*="Search"]')?.value||'');
+}
+
 function renderCRM(searchQuery){
   const wrap=document.getElementById('crm-list');
   if(!wrap||!crmCache)return;
   let list=currentCRMTab==='lessors'?crmCache.lessors:crmCache.lessees;
 
+  const hidden=getCRMHidden();
+  list=list.filter(x=>!hidden.includes(x.clerk_id));
+
   const q=(searchQuery||'').trim().toLowerCase();
   if(q)list=list.filter(x=>(x.full_name||'').toLowerCase().includes(q)||(x.email||'').toLowerCase().includes(q)||(x.phone||'').toLowerCase().includes(q));
 
+  const favs=getCRMFavorites();
+  list=[...list].sort((a,b)=>(favs.includes(b.clerk_id)?1:0)-(favs.includes(a.clerk_id)?1:0));
+
   if(!list.length){wrap.innerHTML=`<div class="empty"><div class="em">👥</div><p>${q?'No clients match your search.':'No '+currentCRMTab+' yet.'}</p></div>`;return;}
 
-  wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+list.map(x=>`
+  wrap.innerHTML='<div class="card"><div class="cb" style="padding:.5rem 0">'+list.map(x=>{
+    const isFav=favs.includes(x.clerk_id);
+    return`
     <div class="crm-row">
       <div class="crm-av">${(x.full_name||'?')[0].toUpperCase()}</div>
       <div style="flex:1;min-width:0">
@@ -1990,7 +1977,12 @@ function renderCRM(searchQuery){
           ${x.email?`<span>✉️ ${x.email}</span>`:''}
         </div>
       </div>
-    </div>`).join('')+'</div></div>';
+      <div style="display:flex;gap:.3rem;flex-shrink:0">
+        <button onclick="toggleCRMFavorite('${x.clerk_id}')" title="${isFav?'Remove from favourites':'Add to favourites'}" style="background:none;border:none;font-size:1rem;cursor:pointer;color:${isFav?'var(--gold)':'var(--td)'}">${isFav?'⭐':'☆'}</button>
+        <button onclick="hideCRMClient('${x.clerk_id}','${(x.full_name||'').replace(/'/g,"\\'")}')" title="Remove from CRM" style="background:none;border:none;font-size:.9rem;cursor:pointer;color:var(--td)">🗑️</button>
+      </div>
+    </div>`;
+  }).join('')+'</div></div>';
 }
 
 function setCRMTab(tab, btn){
@@ -2329,6 +2321,349 @@ function renderCoTenantSignatureRows(bk){
     </div>`).join('');
 }
 
+// ── Move-in inventory (EDL) — décision + prise en charge par l'agence ──
+function renderAgencyEdlSection(b){
+  if(b.status==='move_in_ready'){
+    return`<div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">✅ Move-in inventory completed</div>`;
+  }
+  if(!b.edl_handler){
+    return`<div style="margin-top:.6rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:.65rem">
+      <div style="font-size:.78rem;font-weight:700;margin-bottom:.4rem">📋 Is your agency handling the move-in inventory for this property?</div>
+      <div style="display:flex;gap:.4rem">
+        <button onclick="agencyEdlDecision('${b.id}',true)" style="flex:1;background:var(--agencybright);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">✅ Yes, we'll do it</button>
+        <button onclick="agencyEdlDecision('${b.id}',false)" style="flex:1;background:var(--s2);color:var(--tm);border:1px solid var(--b);border-radius:7px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer">No, ask lessor/lessee</button>
+      </div>
+    </div>`;
+  }
+  if(b.edl_handler==='agency'){
+    return`<div style="margin-top:.6rem">
+      <button onclick="openAgencyEDL('${b.id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) →</button>
+    </div>`;
+  }
+  if(b.edl_handler==='agency_declined'){
+    return`<div style="margin-top:.6rem;font-size:.72rem;color:var(--td)">📋 Move-in inventory: asked lessor/lessee to handle it directly</div>`;
+  }
+  if(b.edl_handler==='landlord'||b.edl_handler==='tenant'){
+    return`<div style="margin-top:.6rem;font-size:.72rem;color:var(--td)">📋 Move-in inventory: being handled by the ${b.edl_handler==='landlord'?'lessor':'lessee'} directly</div>`;
+  }
+  return'';
+}
+
+async function agencyEdlDecision(bookingId,agencyHandles){
+  try{
+    const{data:bk}=await sb.from('bookings').select('listing_id,landlord_id,tenant_id').eq('id',bookingId).maybeSingle();
+    await sb.from('bookings').update({edl_handler:agencyHandles?'agency':'agency_declined'}).eq('id',bookingId);
+    if(!agencyHandles&&bk){
+      // Prévenir lessor et lessee — à eux de décider qui s'en charge, un seul des deux
+      const notif='📋 Your agency won\'t be handling the move-in inventory (EDL) for this property directly. Would you like to use RestMalta\'s move-in inventory feature yourself? Check your dashboard to decide.';
+      try{if(bk.landlord_id)await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,content:notif,type:'edl_handler_ask'});}catch(e){}
+      try{if(bk.tenant_id)await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,content:notif,type:'edl_handler_ask'});}catch(e){}
+    }
+    toast(agencyHandles?'✅ Starting move-in inventory':'✅ Lessor & lessee notified');
+    loadApplications();
+  }catch(e){toast('❌ '+e.message);}
+}
+
+async function openAgencyEDL(bookingId){
+  if(!bookingId){toast('❌ No booking ID');return;}
+  let booking=null,listing=null,tenant=null,landlord=null;
+  try{const{data:b}=await sb.from('bookings').select('*').eq('id',bookingId).single();booking=b;}catch(e){}
+  if(!booking){toast('❌ Booking not found');return;}
+  try{const{data:l}=await sb.from('listings').select('*').eq('id',booking.listing_id).single();listing=l;}catch(e){}
+  try{const{data:tp}=await sb.from('profiles').select('*').eq('clerk_id',booking.tenant_id).single();tenant=tp;}catch(e){}
+  if(booking.landlord_id)try{const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',booking.landlord_id).maybeSingle();landlord=lp;}catch(e){}
+
+  window._agEdl={bookingId,booking,listing,tenant,landlord};
+
+  if(booking?.status!=='move_in_ready'&&booking?.status!=='edl_scheduled'){
+    try{await sb.from('bookings').update({status:'edl_scheduled'}).eq('id',bookingId);booking.status='edl_scheduled';}catch(e){}
+  }
+
+  const rooms=[
+    {name:'Exterior',items:['Mailbox','Fences & Gates','Pool/Spa','Lawn & Garden','Roof','Water tank','Garage']},
+    {name:'Entrance',items:['Main door','Corridor','Security system']},
+    {name:'Living Room',items:['Sofa','Coffee table','Dining table & chairs','TV & unit','Curtains','Air conditioning','Lights','Walls & Ceiling','Floor']},
+    {name:'Kitchen',items:['Cabinets','Worktop','Sink & Taps','Oven/Stove','Microwave','Refrigerator','Dishwasher','Washing machine','Extractor fan','Floor','Walls']},
+    {name:'Master Bedroom',items:['Bed & Mattress','Wardrobe','Bedside tables','Curtains','Lights','Walls','Floor']},
+    {name:'Bedroom 2',items:['Bed & Mattress','Wardrobe','Furniture','Curtains','Lights','Walls','Floor']},
+    {name:'Bedroom 3',items:['Bed & Mattress','Wardrobe','Furniture','Curtains','Lights','Walls','Floor']},
+    {name:'Bathroom',items:['Bath/Shower','WC','Sink & Taps','Tiles','Floor','Lights']},
+    {name:'Bathroom 2',items:['Bath/Shower','WC','Sink & Taps','Tiles','Floor']},
+    {name:'Balcony/Terrace',items:['Garden furniture','Lighting','Floor','Railings']},
+    {name:'Keys & Access',items:['Main door keys','Mailbox key','Garage remote','Other keys']}
+  ];
+  window._agEdlRooms=rooms;
+  window._agEdlPhotos={};
+
+  const roomsHtml=rooms.map((room,ri)=>`
+    <div style="margin-bottom:.75rem;border:1px solid var(--b);border-radius:10px;overflow:hidden">
+      <div style="background:rgba(99,102,241,.85);color:white;padding:.45rem .75rem;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;justify-content:space-between" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <span>${room.name}</span><span>▼</span>
+      </div>
+      <div style="padding:.4rem">
+        <table style="width:100%;border-collapse:collapse;font-size:.7rem">
+          <thead><tr style="background:var(--s2)">
+            <th style="padding:.3rem .4rem;text-align:left;border-bottom:1px solid var(--b);width:40%">Item</th>
+            <th style="padding:.3rem .4rem;text-align:center;border-bottom:1px solid var(--b);width:12%">Qty</th>
+            <th style="padding:.3rem .4rem;text-align:center;border-bottom:1px solid var(--b);width:24%">Condition</th>
+            <th style="padding:.3rem .4rem;text-align:left;border-bottom:1px solid var(--b)">Notes</th>
+          </tr></thead>
+          <tbody>${room.items.map((item,ii)=>`
+            <tr>
+              <td style="padding:.25rem .4rem;border-bottom:1px solid var(--b)">${item}</td>
+              <td style="padding:.15rem;border-bottom:1px solid var(--b)"><input type="number" min="0" max="99" style="width:100%;text-align:center;background:transparent;border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:.15rem;font-size:.68rem" data-room="${ri}" data-item="${ii}" data-field="qty"></td>
+              <td style="padding:.15rem;border-bottom:1px solid var(--b)"><select style="width:100%;background:var(--s);border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:.15rem;font-size:.68rem" data-room="${ri}" data-item="${ii}" data-field="cond"><option value="">—</option><option value="Good">✅ Good</option><option value="Fair">🟡 Fair</option><option value="Poor">🔴 Poor</option><option value="N/A">N/A</option></select></td>
+              <td style="padding:.15rem;border-bottom:1px solid var(--b)"><input type="text" placeholder="Notes..." style="width:100%;background:transparent;border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:.15rem;font-size:.68rem" data-room="${ri}" data-item="${ii}" data-field="notes"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="padding:.5rem .4rem 0">
+          <label style="display:inline-flex;align-items:center;gap:.35rem;background:var(--s2);border:1px dashed var(--b2);border-radius:7px;padding:.35rem .6rem;font-size:.68rem;font-weight:600;color:var(--tm);cursor:pointer">
+            📷 Add photos<input type="file" accept="image/*" multiple style="display:none" onchange="handleAgEdlRoomPhotos(this,${ri})">
+          </label>
+          <div id="ag-edl-room-photos-${ri}" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem"></div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const wrap=document.getElementById('applications-list');
+  if(!wrap)return;
+
+  wrap.innerHTML=`
+    <div style="max-width:860px;margin:0 auto">
+      <div style="background:linear-gradient(135deg,var(--agencybright),var(--gold));border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:1.1rem;font-weight:800;color:white">📋 Move-in Inventory (EDL)</div>
+          <div style="font-size:.78rem;color:rgba(255,255,255,.85);margin-top:.2rem">${listing?.title||'Property'} · ${listing?.full_address||listing?.zone||'Malta'}</div>
+        </div>
+        <button onclick="loadApplications()" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:.4rem .85rem;font-size:.75rem;cursor:pointer">← Back</button>
+      </div>
+
+      <div style="display:flex;gap:.4rem;margin-bottom:1rem;overflow-x:auto;padding-bottom:.3rem">
+        ${['📏 EDL','🔌 Meters','📎 Annex & Send','✅ Done'].map((s,i)=>`
+          <div id="ag-edl-badge-${i}" onclick="showEdlStepAg(${i})" style="flex-shrink:0;padding:.4rem .75rem;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;background:${i===0?'var(--agencybright)':'var(--s2)'};color:${i===0?'white':'var(--td)'};border:1px solid ${i===0?'transparent':'var(--b)'}">${s}</div>
+        `).join('')}
+      </div>
+
+      <div id="ag-edl-step-0">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.85rem;font-weight:700;margin-bottom:.5rem">📏 Property Inventory & Condition (EDL)</div>
+          <div style="font-size:.73rem;color:var(--td);margin-bottom:.75rem">Fill in the condition of each item. This will be annexed to the lease.</div>
+          ${roomsHtml}
+          <div style="margin-top:.75rem">
+            <div style="font-size:.75rem;font-weight:600;margin-bottom:.25rem">📝 General observations</div>
+            <textarea id="ag-edl-notes" rows="3" placeholder="Any general observations..." style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem;color:var(--txt);font-size:.73rem;resize:vertical"></textarea>
+          </div>
+        </div>
+        <button onclick="showEdlStepAg(1)" style="width:100%;background:var(--agencybright);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.85rem;font-weight:700;cursor:pointer">Next → Meter Readings ⚡</button>
+      </div>
+
+      <div id="ag-edl-step-1" style="display:none">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.85rem;font-weight:700;margin-bottom:.5rem">🔌 Meter Readings</div>
+          <div style="font-size:.73rem;color:var(--td);margin-bottom:.75rem">These will be annexed to the signed lease as Annex A.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div>
+              <div style="font-size:.73rem;font-weight:600;color:var(--sea);margin-bottom:.3rem">💧 Water meter</div>
+              <input type="text" id="ag-meter-water" placeholder="e.g. 00123456" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .7rem;color:var(--txt);font-size:.85rem">
+              <label style="display:inline-flex;align-items:center;gap:.35rem;background:var(--s2);border:1px dashed var(--b2);border-radius:7px;padding:.35rem .6rem;font-size:.68rem;font-weight:600;color:var(--tm);cursor:pointer;margin-top:.4rem">
+                📷 Add photo<input type="file" accept="image/*" multiple style="display:none" onchange="handleAgEdlMeterPhotos(this,'water')">
+              </label>
+              <div id="ag-edl-meter-photos-water" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem"></div>
+            </div>
+            <div>
+              <div style="font-size:.73rem;font-weight:600;color:var(--gold);margin-bottom:.3rem">⚡ Electricity meter</div>
+              <input type="text" id="ag-meter-electricity" placeholder="e.g. 00789012" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .7rem;color:var(--txt);font-size:.85rem">
+              <label style="display:inline-flex;align-items:center;gap:.35rem;background:var(--s2);border:1px dashed var(--b2);border-radius:7px;padding:.35rem .6rem;font-size:.68rem;font-weight:600;color:var(--tm);cursor:pointer;margin-top:.4rem">
+                📷 Add photo<input type="file" accept="image/*" multiple style="display:none" onchange="handleAgEdlMeterPhotos(this,'electricity')">
+              </label>
+              <div id="ag-edl-meter-photos-electricity" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem"></div>
+            </div>
+          </div>
+          <div style="margin-top:.65rem;background:rgba(212,168,71,.08);border-radius:8px;padding:.55rem;font-size:.7rem;color:var(--gold)">
+            ⚠️ Take photos of both meters. These readings will be annexed to the lease.
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button onclick="showEdlStepAg(0)" style="flex:1;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
+          <button onclick="showEdlStepAg(2)" style="flex:2;background:var(--agencybright);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">Next → Annex & Send 📎</button>
+        </div>
+      </div>
+
+      <div id="ag-edl-step-2" style="display:none">
+        <div style="background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.85rem;font-weight:700;margin-bottom:.35rem">📎 Annex to Lease & Generate Documents</div>
+          <div style="font-size:.73rem;color:var(--td);margin-bottom:.75rem">This will generate and send to both lessor and lessee:<br>• Annex A — EDL (Inventory & Condition Form) with meter readings</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.65rem">
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Main door keys (qty)</div>
+              <input type="number" id="ag-keys-main" value="2" min="0" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Mailbox keys (qty)</div>
+              <input type="number" id="ag-keys-mailbox" value="1" min="0" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
+            </div>
+            <div>
+              <div style="font-size:.72rem;font-weight:600;margin-bottom:.2rem">Number of residents <span style="font-size:.62rem;color:var(--td);font-weight:400">(for lease registration)</span></div>
+              <input type="number" id="ag-arms-residents" value="1" min="1" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
+            </div>
+          </div>
+          <div id="ag-annex-status" style="display:none;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.55rem;font-size:.73rem;color:#4CAF7D;margin-bottom:.5rem"></div>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button onclick="showEdlStepAg(1)" style="flex:1;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
+          <button onclick="generateAnnexAndCompleteAg()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer">📎 Generate Annex A & Complete →</button>
+        </div>
+      </div>
+
+      <div id="ag-edl-step-3" style="display:none">
+        <div style="background:rgba(76,175,125,.1);border:2px solid rgba(76,175,125,.3);border-radius:14px;padding:1.5rem;text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:.5rem">🎉</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#4CAF7D;margin-bottom:.4rem">Move-in Complete!</div>
+          <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem">The lessee has officially moved in.</div>
+          <div style="font-size:.76rem;color:var(--td);text-align:left;background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:1rem;line-height:2">
+            ✅ EDL completed & sent for signature<br>
+            ✅ Meter readings recorded & annexed<br>
+            ✅ Keys handed over
+          </div>
+          <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">📝 Remind the lessor to register the lease at <strong>rentregistration.mt</strong> within 30 days.</div>
+          <button onclick="loadApplications()" style="background:var(--agencybright);color:white;border:none;border-radius:10px;padding:.65rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer">← Back to applications</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function showEdlStepAg(step){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('ag-edl-step-'+i);
+    if(el)el.style.display=i===step?'block':'none';
+    const badge=document.getElementById('ag-edl-badge-'+i);
+    if(badge){
+      badge.style.background=i===step?'var(--agencybright)':'var(--s2)';
+      badge.style.color=i===step?'white':'var(--td)';
+      badge.style.border='1px solid '+(i===step?'transparent':'var(--b)');
+    }
+  }
+}
+
+async function handleAgEdlRoomPhotos(input,roomIndex){
+  const files=[...input.files];
+  if(!files.length)return;
+  await uploadAgEdlPhotos(files,`room_${roomIndex}`,`ag-edl-room-photos-${roomIndex}`);
+}
+
+async function handleAgEdlMeterPhotos(input,meterType){
+  const files=[...input.files];
+  if(!files.length)return;
+  await uploadAgEdlPhotos(files,`meter_${meterType}`,`ag-edl-meter-photos-${meterType}`);
+}
+
+async function uploadAgEdlPhotos(files,key,previewElId){
+  const ctx=window._agEdl;
+  if(!ctx)return;
+  window._agEdlPhotos[key]=window._agEdlPhotos[key]||[];
+  const previewEl=document.getElementById(previewElId);
+  for(const file of files){
+    if(file.size>8*1024*1024){toast('❌ '+file.name+' too large — max 8MB');continue;}
+    const placeholder=document.createElement('div');
+    placeholder.style.cssText='width:44px;height:44px;border-radius:6px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--td)';
+    placeholder.textContent='⏳';
+    if(previewEl)previewEl.appendChild(placeholder);
+    try{
+      const ext=file.name.split('.').pop();
+      const path=`edl/${ctx.bookingId}/${key}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.${ext}`;
+      const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
+      if(error)throw new Error(error.message);
+      const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
+      window._agEdlPhotos[key].push({path,url:urlData.publicUrl,name:file.name});
+      if(placeholder){placeholder.style.background='';placeholder.textContent='';placeholder.innerHTML=`<img src="${urlData.publicUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--green)">`;}
+    }catch(e){if(placeholder){placeholder.textContent='❌';placeholder.title=e.message;}}
+  }
+}
+
+function collectEdlRoomsAg(){
+  const rooms=window._agEdlRooms;
+  if(!rooms)return[];
+  return rooms.map((room,ri)=>({
+    name:room.name,
+    items:room.items.map((itemName,ii)=>({
+      item:itemName,
+      qty:document.querySelector(`[data-room="${ri}"][data-item="${ii}"][data-field="qty"]`)?.value||'',
+      condition_arrival:document.querySelector(`[data-room="${ri}"][data-item="${ii}"][data-field="cond"]`)?.value||'',
+      notes:document.querySelector(`[data-room="${ri}"][data-item="${ii}"][data-field="notes"]`)?.value||''
+    }))
+  }));
+}
+
+async function generateAnnexAndCompleteAg(){
+  const ctx=window._agEdl;
+  if(!ctx)return;
+
+  const meterWater=document.getElementById('ag-meter-water')?.value||'';
+  const meterElec=document.getElementById('ag-meter-electricity')?.value||'';
+  const edlNotes=document.getElementById('ag-edl-notes')?.value||'';
+  const armsResidents=document.getElementById('ag-arms-residents')?.value||'1';
+  const rooms=collectEdlRoomsAg();
+
+  const statusEl=document.getElementById('ag-annex-status');
+  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ Generating Annex A (EDL)...';}
+
+  // L'agence remplit le formulaire, mais ce sont le vrai lessor et le vrai
+  // lessee qui signent — jamais l'agence elle-même, comme pour le bail.
+  const landlordField={name:ctx.landlord?.full_name||ctx.listing?.manual_landlord_name||'',email:ctx.landlord?.email||ctx.listing?.manual_landlord_email||'',passport:ctx.landlord?.passport_number||''};
+  const tenantField={name:ctx.tenant?.full_name||ctx.booking?.tenant_name||'',email:ctx.tenant?.email||ctx.booking?.tenant_email||'',passport:ctx.tenant?.passport_number||'',nationality:ctx.tenant?.nationality||''};
+  const listingField={address:ctx.listing?.full_address||ctx.listing?.zone||'',price:ctx.listing?.price||0};
+  let coTenants=[];
+  try{coTenants=ctx.booking?.co_tenants_data?JSON.parse(ctx.booking.co_tenants_data):[];}catch(e){}
+
+  let edlLandlordEmbed=null,edlTenantEmbed=null,edlSubmissionId=null,edlCoLesseesEmbed=[];
+  try{
+    const res=await fetch('/.netlify/functions/generate-edl',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({landlord:landlordField,tenant:tenantField,coTenants,listing:listingField,meter_water:meterWater,meter_electricity:meterElec,rooms,general_notes:edlNotes,phase:'arrival'})
+    });
+    const edlData=await res.json();
+    edlLandlordEmbed=edlData?.lessor_embed_src||null;
+    edlTenantEmbed=edlData?.lessee_embed_src||null;
+    edlSubmissionId=edlData?.submission_id||null;
+    edlCoLesseesEmbed=(edlData?.co_lessees_embed_src||[]).map(cl=>{
+      const roleIndex=parseInt((cl.role||'').replace('Lessee ',''),10)-2;
+      const match=(roleIndex>=0&&coTenants[roleIndex])?coTenants[roleIndex]:coTenants.find(ct=>ct.email&&cl.email&&ct.email.toLowerCase()===cl.email.toLowerCase());
+      return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
+    });
+    if(!edlLandlordEmbed||!edlTenantEmbed){
+      if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='⚠️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error');}
+    }else{
+      if(statusEl)statusEl.textContent='✅ Annex A (EDL) sent for signature!';
+    }
+  }catch(e){
+    if(statusEl){statusEl.style.color='var(--terra)';statusEl.textContent='❌ Could not generate EDL: '+e.message;}
+  }
+
+  try{
+    await sb.from('bookings').update({
+      meter_water:meterWater,
+      meter_electricity:meterElec,
+      status:'move_in_ready',
+      edl_landlord_embed:edlLandlordEmbed,
+      edl_tenant_embed:edlTenantEmbed,
+      edl_co_lessees_embed_src:edlCoLesseesEmbed.length?JSON.stringify(edlCoLesseesEmbed):null,
+      edl_submission_id:edlSubmissionId?String(edlSubmissionId):null,
+      edl_photos:JSON.stringify(window._agEdlPhotos||{}),
+      edl_rooms:JSON.stringify(rooms),
+      edl_completed_at:new Date().toISOString(),
+      number_of_residents:parseInt(armsResidents)||1
+    }).eq('id',ctx.bookingId);
+  }catch(e){}
+
+  const notif='🎉 Move-in complete!\n\n✅ Entry inventory (EDL) signed\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 The lessor should register the lease at rentregistration.mt within 30 days.';
+  try{if(ctx.booking?.tenant_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.tenant_id,content:notif,type:'move_in_complete'});}catch(e){}
+  try{if(ctx.booking?.landlord_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.landlord_id,content:notif,type:'move_in_complete'});}catch(e){}
+
+  showEdlStepAg(3);
+  toast('🎉 Move-in complete!');
+}
+
 async function loadApplications(){
   const wrap=document.getElementById('applications-list');
   if(!wrap)return;
@@ -2414,6 +2749,8 @@ async function loadApplications(){
             <div style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
               ${paymentRow}
             </div>
+
+            ${leaseSigned&&paymentConfirmed?renderAgencyEdlSection(b):''}
           </div>
         </div>`;
       }).join('');
