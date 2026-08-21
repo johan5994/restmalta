@@ -463,6 +463,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
           </div>
         </div>
       </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="ch"><div class="ct">Review your agency</div></div>
+        <div class="cb">
+          <div class="fg"><label class="fl">Which agency?</label><select class="fsel" id="rev-agency-select"><option value="">Loading...</option></select></div>
+          <div id="rev-no-agencies" style="display:none;font-size:.82rem;color:var(--tm);margin-bottom:.5rem">You'll be able to review an agency once you've actually rented through them.</div>
+          <div id="rev-agency-form" style="display:none">
+            <div class="fg"><label class="fl">Rating</label>
+              <div style="display:flex;gap:.5rem;margin-bottom:.5rem" id="agency-stars-wrap">
+                <span class="star-btn active" onclick="setAgencyRating(1)">⭐</span>
+                <span class="star-btn active" onclick="setAgencyRating(2)">⭐</span>
+                <span class="star-btn active" onclick="setAgencyRating(3)">⭐</span>
+                <span class="star-btn active" onclick="setAgencyRating(4)">⭐</span>
+                <span class="star-btn active" onclick="setAgencyRating(5)">⭐</span>
+              </div>
+              <input type="hidden" id="rev-agency-rating" value="5">
+            </div>
+            <div class="fg"><label class="fl">Your experience</label><textarea class="fta" id="rev-agency-comment" rows="4" placeholder="Was the agency responsive? Did they manage the process well?"></textarea></div>
+            <button class="btn bp" onclick="submitAgencyReview()">Submit review →</button>
+          </div>
+        </div>
+      </div>
       <div class="card">
         <div class="ch"><div class="ct">Reviews I submitted</div></div>
         <div class="cb" id="my-reviews"><div class="ld"><div class="sp"></div></div></div>
@@ -3283,8 +3304,12 @@ async function loadReviewableLandlords(){
       if(formEl)formEl.style.display='none';
       return;
     }
-    const{data:profiles}=await sb.from('profiles').select('clerk_id,full_name').in('clerk_id',remaining);
+    const[{data:profiles},{data:agencyProfiles}]=await Promise.all([
+      sb.from('profiles').select('clerk_id,full_name').in('clerk_id',remaining),
+      sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',remaining)
+    ]);
     const nameMap={};(profiles||[]).forEach(p=>{nameMap[p.clerk_id]=p.full_name;});
+    (agencyProfiles||[]).forEach(a=>{if(a.agency_name)nameMap[a.clerk_id]=a.agency_name+' (Agency)';});
     sel.innerHTML='<option value="">Select a lessor...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Lessor'}</option>`).join('');
     sel.style.display='block';
     if(noneEl)noneEl.style.display='none';
@@ -3294,8 +3319,77 @@ async function loadReviewableLandlords(){
   }
 }
 
+async function loadReviewableAgencies(){
+  const sel=document.getElementById('rev-agency-select');
+  const noneEl=document.getElementById('rev-no-agencies');
+  const formEl=document.getElementById('rev-agency-form');
+  if(!sel)return;
+  try{
+    // agent_id est toujours l'agence elle-même sur un bien géré en agence —
+    // fiable contrairement à landlord_id, qui peut aussi bien pointer vers
+    // l'agence (pas de vrai propriétaire relié) que vers le vrai propriétaire.
+    const{data:bookings}=await sb.from('bookings').select('listing_id').eq('tenant_id',U.id).in('status',['move_in_ready','completed','active']);
+    const listingIds=[...new Set((bookings||[]).map(b=>b.listing_id).filter(Boolean))];
+    if(!listingIds.length){sel.innerHTML='';sel.style.display='none';if(noneEl)noneEl.style.display='block';if(formEl)formEl.style.display='none';return;}
+    const{data:listings}=await sb.from('listings').select('id,agent_id').eq('agency_listing',true).in('id',listingIds).not('agent_id','is',null);
+    const agencyIds=[...new Set((listings||[]).map(l=>l.agent_id))];
+    if(!agencyIds.length){sel.innerHTML='';sel.style.display='none';if(noneEl)noneEl.style.display='block';if(formEl)formEl.style.display='none';return;}
+
+    const{data:already}=await sb.from('reviews').select('target_id').eq('reviewer_id',U.id).eq('type','tenant_to_agency').in('target_id',agencyIds);
+    const reviewedIds=new Set((already||[]).map(r=>r.target_id));
+    const remaining=agencyIds.filter(id=>!reviewedIds.has(id));
+    if(!remaining.length){
+      sel.innerHTML='';sel.style.display='none';
+      if(noneEl){noneEl.style.display='block';noneEl.textContent='You\'ve already reviewed all your agencies. Thanks for the feedback!';}
+      if(formEl)formEl.style.display='none';
+      return;
+    }
+    const{data:agencyProfiles}=await sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',remaining);
+    const nameMap={};(agencyProfiles||[]).forEach(a=>{nameMap[a.clerk_id]=a.agency_name;});
+    sel.innerHTML='<option value="">Select an agency...</option>'+remaining.map(id=>`<option value="${id}">${nameMap[id]||'Agency'}</option>`).join('');
+    sel.style.display='block';
+    if(noneEl)noneEl.style.display='none';
+    if(formEl)formEl.style.display='block';
+  }catch(e){
+    sel.innerHTML='<option value="">Could not load</option>';
+  }
+}
+
+let selectedAgencyRating=5;
+function setAgencyRating(r){
+  selectedAgencyRating=r;
+  document.getElementById('rev-agency-rating').value=r;
+  document.querySelectorAll('#agency-stars-wrap .star-btn').forEach((s,i)=>s.classList.toggle('active',i<r));
+}
+
+async function submitAgencyReview(){
+  const agencyId=document.getElementById('rev-agency-select')?.value;
+  const comment=document.getElementById('rev-agency-comment').value.trim();
+  if(!agencyId){toast('⚠️ Select an agency');return;}
+  if(!comment){toast('Please write a comment');return;}
+  if(!selectedAgencyRating){toast('⚠️ Select a rating');return;}
+
+  const{data:realListing}=await sb.from('listings').select('id').eq('agent_id',agencyId).eq('agency_listing',true).in('id',
+    (await sb.from('bookings').select('listing_id').eq('tenant_id',U.id).in('status',['move_in_ready','completed','active'])).data?.map(b=>b.listing_id)||[]
+  ).limit(1).maybeSingle();
+  if(!realListing){toast('❌ You can only review an agency you\'ve actually rented through');return;}
+  const{data:existingReview}=await sb.from('reviews').select('id').eq('reviewer_id',U.id).eq('target_id',agencyId).eq('type','tenant_to_agency').maybeSingle();
+  if(existingReview){toast('❌ You already reviewed this agency');return;}
+
+  const{error}=await sb.from('reviews').insert({
+    reviewer_id:U.id,rating:selectedAgencyRating,comment,type:'tenant_to_agency',
+    target_id:agencyId
+  });
+  if(error){toast('❌ '+error.message);return;}
+  toast('✅ Review submitted! Thank you.');
+  document.getElementById('rev-agency-comment').value='';
+  selectedAgencyRating=5;
+  loadMyReviews();
+  loadReviewableAgencies();
+}
+
 async function submitReview(){
-  const landlordId=document.getElementById('rev-lessor-select')?.value;
+  const landlordId=document.getElementById('rev-landlord-select')?.value;
   const comment=document.getElementById('rev-comment').value.trim();
   if(!landlordId){toast('⚠️ Select a lessor');return;}
   if(!comment){toast('Please write a comment');return;}
@@ -3320,6 +3414,7 @@ async function submitReview(){
   document.querySelectorAll('.star-btn').forEach(s=>s.classList.remove('active'));
   loadMyReviews();
   loadReviewableLandlords();
+  loadReviewableAgencies();
 }
 
 async function loadMyReviews(){
@@ -3328,6 +3423,7 @@ async function loadMyReviews(){
   loadReviewsAboutMe();
   loadRateAgentCard();
   loadReviewableLandlords();
+  loadReviewableAgencies();
 }
 
 async function loadRateAgentCard(){
