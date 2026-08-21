@@ -3674,8 +3674,29 @@ function renderLandlordEdlSection(bk,g){
   // Bien non géré par une agence, ou agence qui a déjà pris en charge —
   // comportement inchangé, le bouton direct habituel.
   if(!g.agency_listing||!bk?.edl_handler||bk.edl_handler==='landlord'){
-    return`<div style="margin-top:.6rem">
-      <button onclick="openLandlordEDL('${bk?.id||''}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>
+    if(!bk?.edl_landlord_embed){
+      // Formulaire pas encore rempli — rien à écraser, ouvrir l'assistant est correct.
+      return`<div style="margin-top:.6rem">
+        <button onclick="openLandlordEDL('${bk?.id||''}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) & keys →</button>
+      </div>`;
+    }
+    // Un EDL a déjà été généré — montrer le vrai statut plutôt que de
+    // laisser rouvrir l'assistant et écraser silencieusement la
+    // soumission existante (potentiellement déjà signée par le lessee).
+    return`<div style="margin-top:.6rem;display:flex;flex-direction:column;gap:.3rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+        <span style="font-size:.78rem">🏠 You</span>
+        ${bk.edl_signed_landlord
+          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>`
+          :`<button onclick="openLandlordEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">✍️ Sign now</button>`}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+        <span style="font-size:.78rem">👤 Lessee</span>
+        ${bk.edl_signed_tenant
+          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>`
+          :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+      </div>
+      ${renderEdlCoTenantSignatureRows(bk)}
     </div>`;
   }
   if(bk.edl_handler==='agency'){
