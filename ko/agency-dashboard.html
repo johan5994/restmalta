@@ -2425,8 +2425,30 @@ function renderAgencyEdlSection(b){
     </div>`;
   }
   if(b.edl_handler==='agency'){
-    return`<div style="margin-top:.6rem">
-      <button onclick="openAgencyEDL('${b.id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) →</button>
+    if(!b.edl_landlord_embed){
+      // Formulaire pas encore rempli — ouvrir l'assistant est correct ici,
+      // rien à écraser puisqu'aucune soumission n'existe encore.
+      return`<div style="margin-top:.6rem">
+        <button onclick="openAgencyEDL('${b.id}')" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer">📋 Move-in inventory (EDL) →</button>
+      </div>`;
+    }
+    // Un EDL a déjà été généré — montrer le vrai statut de signature plutôt
+    // que de laisser rouvrir l'assistant et écraser silencieusement la
+    // soumission existante (potentiellement déjà signée par une partie).
+    return`<div style="margin-top:.6rem;display:flex;flex-direction:column;gap:.3rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+        <span style="font-size:.78rem">🏠 Lessor</span>
+        ${b.edl_signed_landlord
+          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>`
+          :`<button onclick="showEdlSigningOptionsScreen('${b.id}','${b.edl_landlord_embed}','','${(b.listing_title||'').replace(/'/g,"\\'")}','')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">🔗 Send / sign</button>`}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+        <span style="font-size:.78rem">👤 Lessee</span>
+        ${b.edl_signed_tenant
+          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>`
+          :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+      </div>
+      ${renderEdlCoTenantSignatureRows(b)}
     </div>`;
   }
   if(b.edl_handler==='agency_declined'){
@@ -2868,7 +2890,7 @@ async function generateAnnexAndCompleteAg(){
   // Même système que pour le bail : pas de compte lessor lié → on lui
   // propose de transmettre le lien de signature (email, WhatsApp, ou
   // vérifier s'il a en fait un compte sous un autre email).
-  if(!ctx.booking?.landlord_id&&edlLandlordEmbed){
+  if(edlLandlordEmbed){
     showEdlSigningOptionsScreen(ctx.bookingId,edlLandlordEmbed,ctx.listing?.manual_landlord_email||'',ctx.listing?.title||'the property',ctx.listing?.manual_landlord_phone||'');
   }
 }
