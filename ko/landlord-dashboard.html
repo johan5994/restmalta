@@ -3620,35 +3620,6 @@ async function retryCreatePaymentRecords(bookingId){
   await confirmFirstPaymentReceived(bookingId,true);
 }
 
-async function loadTenantDocuments(tenantId,bookingId){
-  const el=document.getElementById('lessee-docs-'+bookingId);
-  if(!el)return;
-  try{
-    const{data:profile}=await sb.from('profiles').select('documents').eq('clerk_id',tenantId).single();
-    const raw=profile?.documents;
-    if(!raw){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
-    const docs=typeof raw==='string'?JSON.parse(raw):raw;
-    const docLabels={id:'🪪 ID/Passport',bank_statement:'🏦 Bank statement',emprent_letter:'💼 Employment letter',reference_letter:'⭐ Reference letter',rent1:'🧾 Rent receipt 1',rent2:'🧾 Rent receipt 2',rent3:'🧾 Rent receipt 3'};
-    const entries=Object.entries(docs).filter(([,d])=>d?.path);
-    if(!entries.length){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
-    el.innerHTML=entries.map(([key,doc])=>{
-      return '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.35rem .6rem;margin-bottom:.25rem">'
-        +'<div style="font-size:.75rem;font-weight:600">'+(docLabels[key]||key)+'</div>'
-        +'<button data-path="'+doc.path+'" onclick="viewTenantDoc(this.dataset.path)" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">View</button>'
-        +'</div>';
-    }).join('');
-  }catch(e){if(el)el.innerHTML='<div style="font-size:.72rem;color:var(--red)">Error loading</div>';}
-}
-
-async function viewTenantDoc(path){
-  try{
-    const{data}=await sb.storage.from('tenant-documents').createSignedUrl(path,300);
-    if(data?.signedUrl)window.open(data.signedUrl,'_blank');
-    else toast('❌ Could not open document');
-  }catch(e){toast('❌ '+e.message);}
-}
-
-
 function renderCoTenantSignatureRows(bk){
   if(!bk)return '';
   let coLessees=[];
@@ -4463,40 +4434,6 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
   }
   console.log('[generateRentScheduleLL] inserted',rows.length,'rent rows, first due:',rows[0]?.due_date);
   return rows[0]?.due_date||null; // date du tout premier loyer récurrent, utile pour informer le locataire
-}
-
-async function generateFirstPaymentReceiptLL(bk,listingTitle,tenantName){
-  try{
-    const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-      body{font-family:Georgia,serif;max-width:650px;margin:0 auto;padding:40px;color:#1a1a1a}
-      h1{font-size:1.4rem;border-bottom:2px solid #C9553A;padding-bottom:.5rem}
-      .row{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #eee}
-      .total{font-weight:700;font-size:1.1rem;padding-top:.75rem}
-      </style></head><body>
-      <h1>🧾 Payment Receipt</h1>
-      <p>Date issued: ${today}</p>
-      <p><strong>Lessor:</strong> ${P?.full_name||'—'}</p>
-      <p><strong>Lessee:</strong> ${tenantName||'—'}</p>
-      <p><strong>Property:</strong> ${listingTitle||'—'}</p>
-      <div style="margin-top:1.5rem">
-        <div class="row"><span>Security deposit</span><span>€${bk.monthly_rent||0}</span></div>
-        <div class="row"><span>First month's rent</span><span>€${bk.monthly_rent||0}</span></div>
-        <div class="row total"><span>Total received</span><span>€${(bk.monthly_rent||0)*2}</span></div>
-      </div>
-      <p style="margin-top:2rem;font-size:.85rem;color:#666">This receipt confirms that the above amounts were received directly by the lessor. It is issued for the lessee's records and does not constitute a RestMalta payment (RestMalta does not hold or process rent/deposit funds).</p>
-    </body></html>`;
-
-    const blob=new Blob([html],{type:'text/html'});
-    const path=`receipts/${bk.id}_${Date.now()}.html`;
-    const{error:upErr}=await sb.storage.from('listings').upload(path,blob,{contentType:'text/html',upsert:true});
-    if(upErr){console.warn('Receipt upload:',upErr);return;}
-    const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
-    const receiptUrl=urlData?.publicUrl;
-    if(receiptUrl){
-      await sb.from('payments').update({receipt_url:receiptUrl}).eq('booking_id',bk.id).eq('status','paid').is('receipt_url',null);
-    }
-  }catch(e){console.warn('generateFirstPaymentReceiptLL:',e);}
 }
 
 async function confirmTenantPayment(bookingId){
