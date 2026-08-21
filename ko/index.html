@@ -846,6 +846,19 @@ async function sU(clerkUser, showPicker=true) {
   if (data && data.role) {
     P = data;
     updN();
+    // Même vérification qu'à la première inscription — une agence a pu
+    // ajouter un nouveau bien en mode manuel pour ce même email APRÈS que
+    // ce propriétaire ait déjà créé son compte, à un moment différent.
+    if(data.role==='landlord'&&data.email){
+      try{
+        const{data:manualListings}=await sb.from('listings').select('id').ilike('manual_landlord_email',data.email).is('real_landlord_id',null);
+        const listingIds=(manualListings||[]).map(l=>l.id);
+        if(listingIds.length){
+          await sb.from('listings').update({real_landlord_id:U.id}).in('id',listingIds);
+          await sb.from('bookings').update({landlord_id:U.id}).in('listing_id',listingIds).is('landlord_id',null);
+        }
+      }catch(e){}
+    }
   } else {
     const full_name = clerkUser.fullName || clerkUser.firstName || '';
     P = data || { clerk_id: U.id, full_name, email: U.email, role: null };
@@ -1093,7 +1106,23 @@ async function setRoleAndContinue(role) {
     updN();
     toast('🎉 Welcome to RestMalta!');
 
-    if(role === 'landlord') window.location.href = '/landlord-dashboard.html';
+    if(role === 'landlord') {
+      // Relier automatiquement les biens/réservations déjà saisis manuellement
+      // (sans compte) par une agence, si l'email correspond — sinon un
+      // propriétaire qui crée son compte après coup ne voit jamais ses
+      // biens déjà loués apparaître dans son dashboard.
+      if(email){
+        try{
+          const{data:manualListings}=await sb.from('listings').select('id').ilike('manual_landlord_email',email).is('real_landlord_id',null);
+          const listingIds=(manualListings||[]).map(l=>l.id);
+          if(listingIds.length){
+            await sb.from('listings').update({real_landlord_id:U.id}).in('id',listingIds);
+            await sb.from('bookings').update({landlord_id:U.id}).in('listing_id',listingIds).is('landlord_id',null);
+          }
+        }catch(e){console.warn('Auto-link manual landlord:',e);}
+      }
+      window.location.href = '/landlord-dashboard.html';
+    }
     else if(role === 'agency') window.location.href = '/agency-dashboard.html';
     else { loadL(); updC(); go('home'); }
 
@@ -1321,7 +1350,7 @@ async function openDet(id){
     if(l.features){
       const extra=JSON.parse(l.features);
       extra.forEach(f=>{
-        if(f.toLowerCase().trim()==='furnished')return;
+        if(f.toLowerCase().includes('furnished'))return;
         if(!fe.some(x=>x.toLowerCase().includes(f.toLowerCase())))fe.push('✅ '+f);
       });
     }
