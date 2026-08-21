@@ -550,6 +550,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <!-- ── RENTED PROPERTIES ── -->
   <div class="page" id="page-rented">
     <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700">🏠 Rented Properties</div><div style="font-size:.78rem;color:var(--td);margin-top:.2rem">Move-in complete — properties currently occupied</div></div>
+    <div id="rented-team-toggle"></div>
     <div id="rented-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
@@ -2905,6 +2906,7 @@ async function loadRentedPropertiesAgency(){
   try{
     const{data:myListingsAll}=await sb.from('listings').select('id,title,zone,price,photos,created_by').eq('agent_id',U.id);
     const toggleEl=document.getElementById('rented-team-toggle');
+    if(toggleEl)toggleEl.innerHTML=renderTeamFilterToggle('rented','loadRentedPropertiesAgency');
     const myListings=getTeamFilterMode('rented')==='mine'
       ?(myListingsAll||[]).filter(l=>!l.created_by||l.created_by===getCurrentTeamMember())
       :(myListingsAll||[]);
