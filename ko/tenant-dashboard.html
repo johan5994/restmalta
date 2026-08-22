@@ -2243,7 +2243,21 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         const myEdlEmbed=coTenantEntry?bk._myEdlCoTenantEntry?.embed_src:bk.edl_tenant_embed;
         const myEdlSigned=coTenantEntry?bk._myEdlCoTenantEntry?.signed:bk.edl_signed_tenant;
         const myEdlSignFn=coTenantEntry?`openCoTenantEdlDoc('${bk.id}')`:`openTenantEdlDoc('${bk.id}')`;
-        if(!myEdlEmbed)return'';
+        if(!myEdlEmbed&&bk.status!=='move_in_ready')return'';
+        if(!myEdlEmbed&&bk.status==='move_in_ready'){
+          // Le statut confirme que tout le monde a signé, mais le lien
+          // précis manque ici — ne jamais rester muet sur un EDL réellement terminé.
+          return`
+      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem">📋 Move-in Inventory (Annex A)</span>
+          <div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600">✅ Signed</span>${bk.edl_pdf_url?`<a href="${bk.edl_pdf_url}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none">📄 View</a>`:''}</div>
+        </div>
+      </div>
+      ${!coTenantEntry?`<button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem">📋 View full inventory dossier (with photos) →</button>`:''}
+      <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.7rem;color:var(--gold);margin-bottom:.75rem">📝 Reminder: submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. This is separate from your RestMalta lease/EDL.</div>`;
+        }
         return`
       <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
