@@ -4086,17 +4086,27 @@ async function openLandlordEDL(bookingId){
       </div>
     </div>`).join('');
 
-  const wrap=document.getElementById('visits-page-list');
-  if(!wrap)return;
+  let wrap=document.getElementById('visits-page-list');
+  let usingOverlay=false;
+  if(!wrap){
+    // Le bouton a été cliqué depuis une page sans cet élément précis
+    // (ex: Rented Properties plutôt que Visits) — ne jamais rester
+    // silencieux, ouvrir l'assistant dans une vraie fenêtre à la place.
+    usingOverlay=true;
+    wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:9999;overflow:auto;padding:1.5rem';
+    document.body.appendChild(wrap);
+  }
 
   wrap.innerHTML=`
     <div style="max-width:860px;margin:0 auto">
+      ${usingOverlay?`<button onclick="this.closest('div[style*=fixed]').remove()" style="background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem 1rem;font-size:.8rem;cursor:pointer;margin-bottom:1rem">← Close</button>`:''}
       <div style="background:linear-gradient(135deg,var(--terra),var(--gold));border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:1.1rem;font-weight:800;color:white">📋 Move-in Inventory (EDL)</div>
           <div style="font-size:.78rem;color:rgba(255,255,255,.85);margin-top:.2rem">${listing?.title||'Property'} · ${listing?.full_address||listing?.zone||'Malta'}</div>
         </div>
-        <button onclick="loadVisitsPage()" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:.4rem .85rem;font-size:.75rem;cursor:pointer">← Back</button>
+        <button onclick="${usingOverlay?"this.closest('div[style*=fixed]').remove()":'loadVisitsPage()'}" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:.4rem .85rem;font-size:.75rem;cursor:pointer">← Back</button>
       </div>
 
       <div style="display:flex;gap:.4rem;margin-bottom:1rem;overflow-x:auto;padding-bottom:.3rem">
@@ -4188,7 +4198,7 @@ async function openLandlordEDL(bookingId){
           </div>
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem">📝 Remember to register the lease at <strong>rentregistration.mt</strong> within 30 days.</div>
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.75rem">📝 Also submit ARMS Form H (change of occupants) and Form N (meter verification authorisation) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold)">arms.com.mt</a>.</div>
-          <button onclick="loadVisitsPage()" style="background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer">← Back to visits</button>
+          <button onclick="${usingOverlay?"this.closest('div[style*=fixed]').remove()":'loadVisitsPage()'}" style="background:var(--terra);color:white;border:none;border-radius:10px;padding:.65rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer">← Back to visits</button>
         </div>
       </div>
     </div>`;
