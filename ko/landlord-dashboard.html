@@ -4086,17 +4086,14 @@ async function openLandlordEDL(bookingId){
       </div>
     </div>`).join('');
 
-  let wrap=document.getElementById('visits-page-list');
-  let usingOverlay=false;
-  if(!wrap){
-    // Le bouton a été cliqué depuis une page sans cet élément précis
-    // (ex: Rented Properties plutôt que Visits) — ne jamais rester
-    // silencieux, ouvrir l'assistant dans une vraie fenêtre à la place.
-    usingOverlay=true;
-    wrap=document.createElement('div');
-    wrap.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:9999;overflow:auto;padding:1.5rem';
-    document.body.appendChild(wrap);
-  }
+  // Toujours une vraie fenêtre superposée, jamais dépendant d'un élément
+  // de page précis — ce bouton apparaît sur plusieurs pages différentes
+  // (Visits, Applications...), et essayer de deviner le bon conteneur
+  // à chaque fois s'est révélé peu fiable. Ceci marche, point final.
+  const wrap=document.createElement('div');
+  const usingOverlay=true;
+  wrap.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:999999;overflow:auto;padding:1.5rem';
+  document.body.appendChild(wrap);
 
   wrap.innerHTML=`
     <div style="max-width:860px;margin:0 auto">
