@@ -190,6 +190,11 @@ exports.handler = async (event) => {
 
             if (edlLandlordDone && edlTenantDone && allEdlCoTenantsDone) {
               await safe(sb3.from('bookings').update({ status: 'move_in_ready' }).eq('id', edlBooking.id));
+              // Le bien est maintenant réellement loué — le retirer des
+              // annonces actives (compteur "Active listings" + recherche
+              // publique), sinon il reste indéfiniment affiché comme
+              // disponible malgré tout le monde ayant signé.
+              if (edlBooking.listing_id) await safe(sb3.from('listings').update({ active: false, status: 'rented' }).eq('id', edlBooking.listing_id));
               // C'est ICI, une fois tout le monde vraiment signé (pas à la
               // génération), que "move-in complete" est réellement vrai.
               const doneMsg = '🎉 Move-in complete!\n\n✅ Entry inventory (EDL) fully signed by all parties\n✅ Meter readings recorded\n✅ Keys handed over\n\n📝 The lessor should register the lease at rentregistration.mt within 30 days.';
