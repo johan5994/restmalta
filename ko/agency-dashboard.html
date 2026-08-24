@@ -1587,7 +1587,7 @@ function showImportPreview(data){
           <input type="text" id="prev-feature-input" placeholder="Add another feature..." style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.5rem .65rem;color:var(--txt);font-size:.8rem" onkeydown="if(event.key==='Enter'){event.preventDefault();addFeatureTag('prev-features-tags',this.value);this.value='';}">
           <button type="button" onclick="addFeatureTag('prev-features-tags',document.getElementById('prev-feature-input').value);document.getElementById('prev-feature-input').value=''" style="background:var(--agencybright);color:white;border:none;border-radius:8px;padding:.5rem .9rem;font-size:.8rem;font-weight:600;cursor:pointer">+ Add</button>
         </div>
-        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Exactement ce qui a été trouvé sur la page source — clique le ✕ pour retirer, ou ajoute-en d'autres.</div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:.4rem">Exactly what was found on the source page — click the ✕ to remove, or add more.</div>
       </div>
       <div class="fg" style="grid-column:1/-1">
         <label class="fl">Photos found${photos.length?' ('+photos.length+')':''}</label>
@@ -2148,8 +2148,12 @@ async function loadAgencyMessages(){
     let roleMap={},nameMap={};
     if(otherIds.length){
       try{
-        const{data:profiles}=await sb.from('profiles').select('clerk_id,role,full_name').in('clerk_id',otherIds);
+        const[{data:profiles},{data:agencyProfiles}]=await Promise.all([
+          sb.from('profiles').select('clerk_id,role,full_name').in('clerk_id',otherIds),
+          sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',otherIds)
+        ]);
         (profiles||[]).forEach(p=>{roleMap[p.clerk_id]=p.role;nameMap[p.clerk_id]=p.full_name;});
+        (agencyProfiles||[]).forEach(p=>{if(p.agency_name){nameMap[p.clerk_id]=p.agency_name;roleMap[p.clerk_id]='agency';}});
       }catch(e){}
     }
 
@@ -2197,7 +2201,7 @@ function renderAgencyMessages(){
   wrap.innerHTML=shown.map(m=>{
     const date=new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
     const listing=listingMap[m.listing_id];
-    const displayName=listing?.title||nameMap[m._other_id]||'Conversation';
+    const displayName=nameMap[m._other_id]||listing?.title||'Conversation';
     const preview=(m.content||'').split('\n')[0]||'';
     const isUnread=!m.read&&m.receiver_id===U.id;
     return`<div style="padding:.75rem 1rem;background:${isUnread?'rgba(76,175,125,.06)':'var(--s2)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="openAgencyMsg('${m.listing_id||''}','${m._other_id}','${displayName.replace(/'/g,"\\'")}')">
@@ -2318,7 +2322,7 @@ async function proposeVisitFromAgencyChat(){
       });
       const dateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
       await sb.from('messages').insert({
-        listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+        listing_id:listingId,sender_id:'system',receiver_id:tenantId,
         content:`📅 The agency proposes a visit:\n\n${listing?.title||'Property'}\n📅 ${dateStr} at ${visitTime}\n\nGo to My Visits to confirm or decline.`,
         type:'visit_proposed'
       });
@@ -2810,7 +2814,7 @@ async function sendEdlViaRestMalta(realLandlordId,bookingId,signLink,propertyTit
     // voie tout dans son propre dashboard désormais, pas juste ce message.
     await sb.from('bookings').update({landlord_id:realLandlordId}).eq('id',bookingId).is('landlord_id',null);
     const{error}=await sb.from('messages').insert({
-      listing_id:booking?.listing_id||null,sender_id:U.id,receiver_id:realLandlordId,
+      listing_id:booking?.listing_id||null,sender_id:'system',receiver_id:realLandlordId,
       content:`📋 The move-in inventory (EDL) for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
       type:'edl_ready_agency'
     });
@@ -3234,7 +3238,7 @@ async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn)
   if(btn){btn.disabled=true;btn.textContent='⏳ Sending...';}
   try{
     const{error}=await sb.from('messages').insert({
-      listing_id:listingId,sender_id:U.id,receiver_id:realLandlordId,
+      listing_id:listingId,sender_id:'system',receiver_id:realLandlordId,
       content:'📤 Your agency wants your opinion on a candidate:\n\n'+dossierText,
       type:'candidate_review'
     });
@@ -3277,7 +3281,7 @@ async function agencyConfirmPaymentReceived(bookingId){
 
     if(bk.tenant_id){
       await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
         content:'✅ Your agency confirmed receiving your payment!\n\nEverything is set for your move-in — you\'ll be contacted for the entry inventory.',
         type:'payment_confirmed'
       });
@@ -3688,7 +3692,7 @@ async function sendLeaseViaRestMalta(realLandlordId,bookingId,signLink,propertyT
   try{
     const{data:booking}=await sb.from('bookings').select('listing_id').eq('id',bookingId).maybeSingle();
     const{error}=await sb.from('messages').insert({
-      listing_id:booking?.listing_id||null,sender_id:U.id,receiver_id:realLandlordId,
+      listing_id:booking?.listing_id||null,sender_id:'system',receiver_id:realLandlordId,
       content:`📄 The lease for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
       type:'lease_ready_agency'
     });
@@ -3879,7 +3883,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
       await sb.from('visits').update({status:'confirmed'}).eq('id',visitId);
       if(tenantId){
         await sb.from('messages').insert({
-          listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+          listing_id:listingId,sender_id:'system',receiver_id:tenantId,
           visit_id:visitId,
           content:'✅ Your visit is confirmed! Your agency has confirmed the date.',
           type:'visit_confirmed'
@@ -3890,7 +3894,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
       await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);
       if(tenantId){
         await sb.from('messages').insert({
-          listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+          listing_id:listingId,sender_id:'system',receiver_id:tenantId,
           visit_id:visitId,
           content:'❌ Sorry, we can\'t make this visit date work. Please suggest another date or contact us to reschedule.',
           type:'visit_declined'
