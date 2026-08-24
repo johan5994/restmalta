@@ -1722,7 +1722,7 @@ async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
   try{
     await sb.from('visits').update({status:'date_rejected',proposed_date:newDate,proposed_time:newTime}).eq('id',visitId);
     await sb.from('messages').insert({
-      listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+      listing_id:listingId,sender_id:'system',receiver_id:tenantId,
       content:`📅 The lessor proposes a new date for your visit:\n\n📅 ${new Date(newDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} at ${newTime}\n\nPlease go to your dashboard → My Visits to confirm or request another date.`,
       type:'visit_date_proposed'
     });
@@ -1742,7 +1742,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
     if(!wantsAgent){
       try{
         await sb.from('messages').insert({
-          listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+          listing_id:listingId,sender_id:'system',receiver_id:tenantId,
           visit_id:visitId,
           content:'✅ Your visit is confirmed! The lessor has confirmed the date.',
           type:'visit_confirmed'
@@ -2203,7 +2203,7 @@ async function sendReminder(id){
     if(!pay.tenant_id){toast('❌ No lessee linked to this payment');return;}
     const dueLabel=pay.due_date?new Date(pay.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'soon';
     const{error}=await sb.from('messages').insert({
-      listing_id:pay.listing_id,sender_id:U.id,receiver_id:pay.tenant_id,
+      listing_id:pay.listing_id,sender_id:'system',receiver_id:pay.tenant_id,
       content:`💶 Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
       type:'rent_reminder'
     });
@@ -2225,7 +2225,7 @@ async function sendAllReminders(){
     for(const pay of toRemind){
       const dueLabel=pay.due_date?new Date(pay.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'soon';
       await sb.from('messages').insert({
-        listing_id:pay.listing_id,sender_id:U.id,receiver_id:pay.tenant_id,
+        listing_id:pay.listing_id,sender_id:'system',receiver_id:pay.tenant_id,
         content:`💶 Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
         type:'rent_reminder'
       }).catch(()=>{});
@@ -2325,19 +2325,21 @@ async function loadMessages(){
 
   allMsgs=Array.from(convMap.values()).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
-  // Pour les conversations sans annonce (ex: contact direct à une agence),
-  // récupérer le nom de l'interlocuteur pour ne pas juste afficher "Listing"
-  const noListingIds=[...new Set(allMsgs.filter(m=>!m.listing_id&&m._other_id&&m._other_id!=='system').map(m=>m._other_id))];
-  if(noListingIds.length){
+  // Récupérer le nom de l'interlocuteur pour toute conversation où il
+  // pourrait s'agir d'une agence — sinon l'affichage retombe sur le titre
+  // de l'annonce, même quand une annonce EST bien liée à la conversation
+  // (ex : un propriétaire qui contacte une agence à propos de son bien).
+  const allOtherIds=[...new Set(allMsgs.filter(m=>m._other_id&&m._other_id!=='system').map(m=>m._other_id))];
+  if(allOtherIds.length){
     try{
       const[{data:agencyProfiles},{data:regularProfiles}]=await Promise.all([
-        sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',noListingIds),
-        sb.from('profiles').select('clerk_id,full_name').in('clerk_id',noListingIds)
+        sb.from('agency_profiles').select('clerk_id,agency_name').in('clerk_id',allOtherIds),
+        sb.from('profiles').select('clerk_id,full_name').in('clerk_id',allOtherIds)
       ]);
       const nameMap={};
       (regularProfiles||[]).forEach(p=>{nameMap[p.clerk_id]=p.full_name;});
       (agencyProfiles||[]).forEach(p=>{nameMap[p.clerk_id]=p.agency_name;}); // agence prioritaire si les deux existent
-      allMsgs=allMsgs.map(m=>(!m.listing_id&&nameMap[m._other_id])?{...m,_other_name:nameMap[m._other_id]}:m);
+      allMsgs=allMsgs.map(m=>nameMap[m._other_id]?{...m,_other_name:nameMap[m._other_id]}:m);
     }catch(e){}
   }
 
@@ -2350,7 +2352,7 @@ function renderMessages(){
   wrap.innerHTML=allMsgs.map(m=>{
     const otherId=m._other_id||m.sender_id;
     const isUnread=!m.read&&m.receiver_id===U.id;
-    const displayName=m.listings?.title||m._other_name||'Conversation';
+    const displayName=m._other_name||m.listings?.title||'Conversation';
     return`<div class="mitem ${isUnread?'unread':''}" onclick="openMsgChat('${m.id}','${displayName.replace(/'/g,"\\'")}','${m.listing_id||''}','${otherId}')">
       <div class="mav">${displayName[0].toUpperCase()}</div>
       <div style="flex:1;min-width:0">
@@ -2522,7 +2524,7 @@ async function proposeVisitFromChat(){
       });
       const dateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
       await sb.from('messages').insert({
-        listing_id:listingId,sender_id:U.id,receiver_id:tenantId,
+        listing_id:listingId,sender_id:'system',receiver_id:tenantId,
         content:`📅 The lessor proposes a visit:\n\n${listing?.title||'Property'}\n📅 ${dateStr} at ${visitTime}\n\nGo to My Visits to confirm or decline.`,
         type:'visit_proposed'
       });
@@ -2867,8 +2869,8 @@ async function loadMaintenance(){
   const sc={open:'to',in_progress:'tip',resolved:'tr'};
   const sl={open:'⚠️ Open',in_progress:'🔧 In progress',resolved:'✅ Resolved'};
   const pl={high:'🔴 High priority',medium:'🟡 Medium priority',low:'🟢 Low priority'};
-  const ico={Plomberie:'🚰',Électricité:'💡',Climatisation:'❄️','Portes/Fenêtres':'🚪',Nuisibles:'🪲',Structure:'🏗️',Serrure:'🔒',Électroménager:'🍳',Internet:'📶'};
-  if(!allTickets.length){wrap.innerHTML='<div class="empty"><div class="em">✅</div><p>None ticket de maintenance</p></div>';return;}
+  const ico={Plumbing:'🚰',Electricity:'💡','Heating/AC':'❄️','Doors/Windows':'🚪',Pests:'🪲',Structure:'🏗️',Lock:'🔒',Appliances:'🍳',Internet:'📶'};
+  if(!allTickets.length){wrap.innerHTML='<div class="empty"><div class="em">✅</div><p>No maintenance tickets</p></div>';return;}
   wrap.innerHTML=allTickets.map(t=>{
     let photos=[];
     try{photos=t.photos?JSON.parse(t.photos):[];}catch(e){}
@@ -2892,7 +2894,6 @@ async function loadMaintenance(){
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <button class="btn bg bsm" onclick="handleTicket('${t.id}','self')">🔧 I'll fix it myself</button>
           <button class="btn bg bsm" onclick="handleTicket('${t.id}','mandate_self')">📋 Hire a contractor (myself)</button>
-          <button class="btn bp bsm" onclick="handleTicket('${t.id}','mandate_app')">🏆 Get quotes via RestMalta</button>
         </div>
       </div>`:''}
       ${t.status==='in_progress'?`<div style="display:flex;gap:.4rem"><button class="btn bp bsm" onclick="updateTicket('${t.id}','resolved')">✅ Mark resolved</button><button class="btn bg bsm" onclick="updateTicket('${t.id}','open')">↩ Reopen</button></div>`:''}
@@ -2908,9 +2909,10 @@ async function handleTicket(id, action){
     if(ticket?.tenant_id){
       await sb.from('messages').insert({
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
-        sender_id:U.id,
+        sender_id:'system',
         receiver_id:ticket.tenant_id,
-        content:`🔧 Your ticket "${ticket.title}" has been taken care of. The lessor will'occuper de la réparation. You serez contacté for convenir d'un appointment si nécessaire.`
+        content:`🔧 Your ticket "${ticket.title}" has been taken care of. The lessor will handle the repair themselves. You'll be contacted to arrange a suitable time if needed.`,
+        type:'ticket_auto'
       });
     }
     toast('🔧 Ticket handled — lessee notified.');
@@ -2920,31 +2922,13 @@ async function handleTicket(id, action){
     if(ticket?.tenant_id){
       await sb.from('messages').insert({
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
-        sender_id:U.id,
+        sender_id:'system',
         receiver_id:ticket.tenant_id,
-        content:`📋 Your ticket "${ticket.title}" est en cours de traitement. Un prestataire externe va intervenir. You serez contacté for la date d'intervention.`
+        content:`📋 Your ticket "${ticket.title}" is being processed. An external contractor will be handling it. You'll be contacted with a date for the visit.`,
+        type:'ticket_auto'
       });
     }
     toast('📋 Contractor assigned — lessee notified.');
-  } else if(action==='mandate_app'){
-    await sb.from('tickets').update({status:'in_progress',resolution:'mandate_app'}).eq('id',id);
-    // Create devis request in Supabase
-    await sb.from('devis_requests').insert({
-      ticket_id:id,
-      landlord_id:U.id,
-      status:'pending',
-      created_at:new Date().toISOString()
-    });
-    const{data:ticket}=await sb.from('tickets').select('*').eq('id',id).maybeSingle();
-    if(ticket?.tenant_id){
-      await sb.from('messages').insert({
-        listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
-        sender_id:U.id,
-        receiver_id:ticket.tenant_id,
-        content:`🏆 RestMalta is looking for contractors for your ticket "${ticket.title}". Several quotes will be presented within 24-48h.`
-      });
-    }
-    toast('🏆 Quote request sent! You\'ll receive several offers within 24-48h.');
   }
   loadMaintenance();
 }
@@ -3563,7 +3547,7 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
         }
         if(bk.tenant_id){
           await sb.from('messages').insert({
-            listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
+            listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
             content:'✅ Lessor signed '+title,type:dbField
           });
         }
@@ -4000,7 +3984,7 @@ async function setEDLDate(bookingId){
   if(bk){
     try{
       await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.tenant_id,
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
         content:'📋 EDL date confirmed: '+new Date(input.value).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'\n\nPlease be present for the key handover.',
         type:'edl_scheduled'
       });
@@ -4031,7 +4015,7 @@ async function openLandlordEDL(bookingId){
     if(booking?.tenant_id){
       try{
         await sb.from('messages').insert({
-          listing_id:booking.listing_id,sender_id:U.id,receiver_id:booking.tenant_id,
+          listing_id:booking.listing_id,sender_id:'system',receiver_id:booking.tenant_id,
           content:'📋 Your lessor has started the move-in inventory (EDL). You\'ll be notified once it\'s ready to sign.',
           type:'edl_started'
         });
