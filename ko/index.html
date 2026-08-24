@@ -29,6 +29,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="RestMalta">
 <link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2020,13 +2022,13 @@ async function doPost(){
       window.location.href=data.checkout_url;
     }catch(e){
       sA(err,'Listing created, but activation failed: '+e.message+'. You can retry from your dashboard.');
-      updC();loadL();setTimeout(()=>{go('dash');loadDash();},2500);
+      setTimeout(()=>{window.location.href='/landlord-dashboard.html';},2500);
     }
   }else{
     sA(ok,"🎉 Listing published! It's now live on RestMalta.");
     updC();loadL();
     if(listing)offerBoostAfterPublish(listing.id,listing.title,listing.type);
-    else setTimeout(()=>{go('dash');loadDash();},1800);
+    else setTimeout(()=>{window.location.href='/landlord-dashboard.html';},1800);
   }
 }
 
@@ -2043,7 +2045,7 @@ function offerBoostAfterPublish(listingId,listingTitle,listingType){
       <div style="font-weight:800;font-size:1.05rem;margin-bottom:.4rem">Want more eyes on your listing?</div>
       <div style="font-size:.82rem;color:var(--stone-l);margin-bottom:1.2rem;line-height:1.6">Boost "${listingTitle}" to the top of search results for <strong>${days} days</strong> — one-time payment of <strong>${price}</strong>.</div>
       <button class="btn btn-p" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="startBoostPayment('${listingId}','${listingTitle.replace(/'/g,"\\'")}','${listingType}')">🔥 Boost for ${price} →</button>
-      <button class="btn btn-s" style="width:100%;justify-content:center" onclick="document.getElementById('boost-offer-modal').remove();go('dash');loadDash();">Maybe later — I'll do it from My Listings</button>
+      <button class="btn btn-s" style="width:100%;justify-content:center" onclick="window.location.href='/landlord-dashboard.html'">Maybe later — I'll do it from My Listings</button>
     </div>`;
   document.body.appendChild(modal);
 }
@@ -2364,7 +2366,23 @@ async function requestReference(){
 
 // PWA Service Worker
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js');
+  navigator.serviceWorker.register('/sw.js').then(reg=>{
+    // Vérifier activement s'il existe une version plus récente à chaque
+    // chargement — sans ça, un visiteur déjà installé peut rester bloqué
+    // sur une ancienne version du Service Worker (et donc de sa logique
+    // de cache) pendant longtemps avant que le navigateur ne pense à
+    // revérifier de lui-même.
+    reg.update();
+  });
+  // Une fois qu'un nouveau Service Worker prend le contrôle (mise à jour
+  // détectée et activée), recharger automatiquement pour que le
+  // visiteur voie vraiment le nouveau contenu tout de suite.
+  let refreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(refreshing)return;
+    refreshing=true;
+    window.location.reload();
+  });
 }
 </script>
 </body>
