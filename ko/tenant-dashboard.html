@@ -734,21 +734,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 <div class="mover" id="tick-modal" onclick="if(event.target.id==='tick-modal')this.classList.remove('open')">
   <div class="modal" style="max-height:90vh;overflow-y:auto">
     <button class="mclose" onclick="document.getElementById('tick-modal').classList.remove('open')">✕</button>
-    <div class="mt">🔧 Signaler un problème</div>
+    <div class="mt">🔧 Report a problem</div>
     <div class="ms">Describe the issue — your lessor will be notified immediately</div>
 
-    <div class="fg"><label class="fl">Type de problème *</label>
+    <div class="fg"><label class="fl">Type of problem *</label>
       <select class="fsel" id="tick-type">
-        <option value="Plomberie">🚰 Plomberie (fuite, robinet, WC)</option>
+        <option value="Plumbing">🚰 Plumbing (leak, tap, WC)</option>
         <option value="Electricity">💡 Electricity (outage, socket, lighting)</option>
-        <option value="Climatisation">❄️ Climatisation / Chauffage</option>
+        <option value="Heating/AC">❄️ Heating / Air conditioning</option>
         <option value="Doors/Windows">🚪 Doors / Windows</option>
-        <option value="Nuisibles">🪲 Nuisibles / Insectes</option>
-        <option value="Structure">🏗️ Dommages structurels</option>
+        <option value="Pests">🪲 Pests / Insects</option>
+        <option value="Structure">🏗️ Structural damage</option>
         <option value="Lock">🔒 Lock / Security</option>
         <option value="Appliances">🍳 Appliances (oven, fridge...)</option>
         <option value="Internet">📶 Internet / TV</option>
-        <option value="Autre">❓ Autre</option>
+        <option value="Other">❓ Other</option>
       </select>
     </div>
 
@@ -2356,7 +2356,7 @@ async function openTenantEDL(bookingId){
     if(booking?.landlord_id){
       try{
         await sb.from('messages').insert({
-          listing_id:booking.listing_id,sender_id:U.id,receiver_id:booking.landlord_id,
+          listing_id:booking.listing_id,sender_id:'system',receiver_id:booking.landlord_id,
           content:'📋 Your lessee has started the move-in inventory (EDL). You\'ll be notified once it\'s ready to sign.',
           type:'edl_started'
         });
@@ -2774,7 +2774,7 @@ function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
         updateOk=true;
       }
       await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
         content:'✅ Lessee signed '+title,type:dbField
       });
     }catch(e){
@@ -2855,7 +2855,7 @@ function doOpenTenantLeaseDoc(bk,bookingId){
       const{error:signErr}=await sb.from('bookings').update({lease_signed_tenant:true,lease_signed_tenant_at:new Date().toISOString()}).eq('id',bookingId);
       if(signErr)console.error('Could not save signature status (webhook should catch up):',signErr.message);
       await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
         content:'✅ Lessee signed the lease!',type:'lease_signed_tenant'
       });
     }catch(e){}
@@ -2913,7 +2913,7 @@ function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
         await sb.from('bookings').update({co_lessees_embed_src:JSON.stringify(cl2)}).eq('id',bookingId);
       }
       await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
         content:'✅ Co-lessee '+(P?.full_name||'')+' signed the lease!',type:'lease_signed_cotenant'
       });
     }catch(e){}
@@ -2975,7 +2975,7 @@ function doOpenCoTenantEdlDoc(bk,bookingId,myEntry){
         await sb.from('bookings').update({edl_co_lessees_embed_src:JSON.stringify(cl2)}).eq('id',bookingId);
       }
       await sb.from('messages').insert({
-        listing_id:bk.listing_id,sender_id:U.id,receiver_id:bk.landlord_id,
+        listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,
         content:'✅ Co-lessee '+(P?.full_name||'')+' signed the move-in inventory (EDL)!',type:'edl_signed_cotenant'
       });
     }catch(e){}
@@ -2996,7 +2996,7 @@ async function tenantConfirmProposedVisit(visitId){
     const wantsAgent=listing?.wants_agent&&listing?.agent_service==='full';
     await sb.from('visits').update({status:wantsAgent?'agent_assigned':'confirmed'}).eq('id',visitId);
     await sb.from('messages').insert({
-      listing_id:v.listing_id,sender_id:U.id,receiver_id:v.landlord_id,
+      listing_id:v.listing_id,sender_id:'system',receiver_id:v.landlord_id,
       content:`✅ ${P?.full_name||'The lessee'} confirmed the proposed visit for ${listing?.title||'the property'}.`,
       type:'visit_confirmed'
     });
@@ -3011,7 +3011,7 @@ async function tenantDeclineProposedVisit(visitId){
     if(!v){toast('❌ Visit not found');return;}
     await sb.from('visits').delete().eq('id',visitId);
     await sb.from('messages').insert({
-      listing_id:v.listing_id,sender_id:U.id,receiver_id:v.landlord_id,
+      listing_id:v.listing_id,sender_id:'system',receiver_id:v.landlord_id,
       content:`📅 ${P?.full_name||'The lessee'} can't make that date — could you propose another one?`,
       type:'message'
     });
@@ -3904,7 +3904,7 @@ async function checkDossierBeforeVisit(){
   // Check identity verified
   const idVerified=P?.verified||false;
   const issues=[];
-  if(!profileComplete)issues.push('Incomplete profile (nom, passeport, date de naissance, nationalité, adresse)');
+  if(!profileComplete)issues.push('Incomplete profile (name, passport, date of birth, nationality, address)');
   if(!uploadedDocs['id'])issues.push('Passeport / ID non uploadé');
   if(!uploadedDocs['emprent_letter'])issues.push('Lettre d\'employeur ou d\'admission non uploadée');
   if(!idVerified)issues.push('Identity not verified (selfie + ID required)');
@@ -4157,7 +4157,7 @@ async function submitNegotiationAndRent(listingId, listingTitle, contactId, orig
   // Collecter les co-lessees MAINTENANT — leurs champs DOM disparaissent
   // avec cette modal, donc on résout tout avant de la fermer.
   const coTenantsFull=(window._coTenantsData||[])
-    .map((d,i)=>d&&!d.hasAccount?collectCoTenantManualFields(i):d)
+    .map((d,i)=>d&&(!d.hasAccount||d.incomplete)?collectCoTenantManualFields(i):d)
     .filter(Boolean);
 
   document.querySelector('#nego-modal-overlay')?.remove();
@@ -4300,11 +4300,22 @@ async function lookupCoTenant(slotId){
 
   let profile=null;
   try{
-    const{data}=await sb.from('profiles').select('*').eq('email',email).maybeSingle();
+    const{data}=await sb.from('profiles').select('*').eq('email',email).eq('role','tenant').maybeSingle();
     profile=data;
   }catch(e){}
 
+  // Vérifier que le compte trouvé a bien un profil suffisamment rempli
+  // pour figurer sur un bail — sinon ça casse la génération plus tard,
+  // silencieusement, avec des champs vides sur le document.
+  const missingFields=[];
   if(profile){
+    if(!profile.full_name)missingFields.push('name');
+    if(!profile.passport_number)missingFields.push('passport/ID');
+    if(!profile.nationality)missingFields.push('nationality');
+    if(!profile.home_address)missingFields.push('home address');
+  }
+
+  if(profile&&!missingFields.length){
     resultEl.innerHTML=`<span style="color:#4CAF7D">✅ Found: <strong>${profile.full_name||'RestMalta account'}</strong> — their profile will be used for the lease.</span>`;
     manualEl.style.display='none';
     manualEl.innerHTML='';
@@ -4315,8 +4326,22 @@ async function lookupCoTenant(slotId){
       address:profile.home_address||'',
       phone:profile.phone||'',verified:!!profile.verified
     };
+  }else if(profile&&missingFields.length){
+    resultEl.innerHTML=`<span style="color:var(--gold)">⚠️ Found their RestMalta account, but their profile is missing: ${missingFields.join(', ')}. Ask them to complete their profile first, or fill in their details manually below.</span>`;
+    manualEl.style.display='block';
+    manualEl.innerHTML=`
+      <div class="fg"><label class="fl">Full name</label><input class="fi" id="ct-name-${slotId}" type="text" value="${(profile.full_name||'').replace(/"/g,'&quot;')}"></div>
+      <div class="fg"><label class="fl">Phone</label><input class="fi" id="ct-phone-${slotId}" type="text" value="${(profile.phone||'').replace(/"/g,'&quot;')}"></div>
+      <div class="fg"><label class="fl">Passport / ID number</label><input class="fi" id="ct-passport-${slotId}" type="text" value="${(profile.passport_number||'').replace(/"/g,'&quot;')}"></div>
+      <div class="fg"><label class="fl">Nationality</label><input class="fi" id="ct-nat-${slotId}" type="text" value="${(profile.nationality||'').replace(/"/g,'&quot;')}"></div>
+      <div class="fg"><label class="fl">Home address</label><input class="fi" id="ct-addr-${slotId}" type="text" value="${(profile.home_address||'').replace(/"/g,'&quot;')}"></div>
+`;
+    // On a bien trouvé un vrai compte (tenant_id conservé) — mais tant
+    // que les champs manquants ne sont pas remplis ci-dessus, l'envoi
+    // final revalidera avant de permettre de continuer.
+    window._coTenantsData[slotId]={hasAccount:true,incomplete:true,tenant_id:profile.clerk_id,email};
   }else{
-    resultEl.innerHTML=`<span style="color:var(--gold)">⚠️ No RestMalta account found for this email — please fill in their details below.</span>`;
+    resultEl.innerHTML=`<span style="color:var(--gold)">⚠️ No RestMalta lessee account found for this email — please fill in their details below.</span>`;
     manualEl.style.display='block';
     manualEl.innerHTML=`
       <div class="fg"><label class="fl">Full name</label><input class="fi" id="ct-name-${slotId}" type="text"></div>
@@ -4332,9 +4357,10 @@ async function lookupCoTenant(slotId){
 // Reads back whatever manual fields the user typed (called right before submit)
 function collectCoTenantManualFields(slotId){
   const d=window._coTenantsData[slotId];
-  if(!d||d.hasAccount)return d;
+  if(!d)return d;
+  if(d.hasAccount&&!d.incomplete)return d; // compte réel, déjà complet — rien à recollecter
   return{
-    hasAccount:false,tenant_id:null,
+    hasAccount:!!d.hasAccount,tenant_id:d.hasAccount?d.tenant_id:null,
     name:document.getElementById(`ct-name-${slotId}`)?.value.trim()||'',
     email:d.email||'',
     phone:document.getElementById(`ct-phone-${slotId}`)?.value.trim()||'',
