@@ -340,6 +340,8 @@ footer ul a:hover{color:var(--terra)}
   .dgrid{grid-template-columns:1fr}.frow{grid-template-columns:1fr}
 }
 </style>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>.ic{width:1em;height:1em;display:inline-block;vertical-align:-0.15em;stroke-width:2}</style>
 </head>
 <body>
 
@@ -367,11 +369,11 @@ footer ul a:hover{color:var(--terra)}
       <h1><em>RestMalta</em> — The safer way to rent in Malta.</h1>
       <p class="hero-desc">Verified listings, real-time chat with lessors, guided visits and e-signed leases — all in one place. No cash to strangers, no vanishing "agents" from a WhatsApp group. Free for lessees.</p>
       <div class="hero-acts">
-        <button class="btn btn-p" onclick="stl()">🔍 Browse listings</button>
-        <button class="btn btn-s" onclick="chkPost()">🏠 List your flat</button>
+        <button class="btn btn-p" onclick="stl()"><i data-lucide=search class=ic></i> Browse listings</button>
+        <button class="btn btn-s" onclick="chkPost()"><i data-lucide=home class=ic></i> List your flat</button>
       </div>
       <div id="hero-agencies-link" onclick="go('agencies')" style="display:none;margin-top:1rem;align-items:center;gap:.6rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:100px;padding:.55rem 1.1rem;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(99,102,241,.16)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">
-        <span style="font-size:1.1rem">🏢</span>
+        <span style="font-size:1.1rem"><i data-lucide=building-2 class=ic></i></span>
         <span style="font-size:.85rem;font-weight:700;color:#4F46E5">Selling or renting through an agency? Browse agencies →</span>
       </div>
 
@@ -381,7 +383,7 @@ footer ul a:hover{color:var(--terra)}
     </div>
     <div class="hero-r">
       <div class="pcard">
-        <div style="padding:1rem 1rem 0;font-size:.72rem;font-weight:700;color:var(--stone-l);text-transform:uppercase;letter-spacing:.6px">✦ Live on RestMalta right now</div>
+        <div style="padding:1rem 1rem 0;font-size:.72rem;font-weight:700;color:var(--stone-l);text-transform:uppercase;letter-spacing:.6px"><i data-lucide=sparkle class=ic></i> Live on RestMalta right now</div>
         <div class="pitems" id="hero-live-listings">
           <div class="pitem"><div class="pi"><div class="pt">Loading real listings…</div></div></div>
         </div>
@@ -392,7 +394,7 @@ footer ul a:hover{color:var(--terra)}
 
   <div class="search-sec" id="la">
     <div class="sbar">
-      <div class="sf"><label>📍 Zone</label><input list="zones-list" id="fz" onchange="loadL()" oninput="loadL()" placeholder="Any zone..." style="border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--deep);font-weight:500;padding:.3rem 0;border-bottom:1.5px solid rgba(107,95,82,.2);outline:none;width:100%">
+      <div class="sf"><label><i data-lucide=map-pin class=ic></i> Zone</label><input list="zones-list" id="fz" onchange="loadL()" oninput="loadL()" placeholder="Any zone..." style="border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--deep);font-weight:500;padding:.3rem 0;border-bottom:1.5px solid rgba(107,95,82,.2);outline:none;width:100%">
 <datalist id="zones-list">
   <option value="St. Julian's"><option value="Sliema"><option value="Valletta"><option value="Msida">
   <option value="Gzira"><option value="Gozo"><option value="Birkirkara"><option value="Swieqi">
@@ -400,16 +402,16 @@ footer ul a:hover{color:var(--terra)}
   <option value="Mosta"><option value="Naxxar"><option value="Rabat"><option value="Mdina">
   <option value="Marsaskala"><option value="Marsaxlokk"><option value="Birgu"><option value="Senglea">
 </datalist></div>
-      <div class="sf"><label>📅 Type</label><select id="ft" onchange="loadL();toggleSaleFilterUI()">
+      <div class="sf"><label><i data-lucide=calendar class=ic></i> Type</label><select id="ft" onchange="loadL();toggleSaleFilterUI()">
         <option value="">All types</option>
-        <option value="short">🏠 Short-let only</option>
-        <option value="long">📅 Long-let only</option>
-        <option value="room_rental">🔑 Room rental</option>
-        <option value="for_sale">🏷️ For sale</option>
+        <option value="short"><i data-lucide=home class=ic></i> Short-let only</option>
+        <option value="long"><i data-lucide=calendar class=ic></i> Long-let only</option>
+        <option value="room_rental"><i data-lucide=key class=ic></i> Room rental</option>
+        <option value="for_sale"><i data-lucide=tag class=ic></i>️ For sale</option>
       </select></div>
       <div class="sf" id="fp-wrap"><label>💶 Budget max</label><select id="fp" onchange="loadL()"><option value="">Any budget</option><option value="400">Under €400</option><option value="600">Under €600</option><option value="900">Under €900</option><option value="1500">Under €1,500</option></select></div>
-      <div class="sf"><label>📋 Attestation</label><select id="fa" onchange="loadL()"><option value="">All</option><option value="yes">✅ Attestation OK</option></select></div>
-      <div class="sf"><label>🏠 Listed by</label><select id="fsrc" onchange="loadL()"><option value="">Owner or agency</option><option value="owner">👤 Direct from owner</option><option value="agency">🏢 Via an agency</option></select></div>
+      <div class="sf"><label><i data-lucide=clipboard-list class=ic></i> Attestation</label><select id="fa" onchange="loadL()"><option value="">All</option><option value="yes"><i data-lucide=check-circle-2 class=ic></i> Attestation OK</option></select></div>
+      <div class="sf"><label><i data-lucide=home class=ic></i> Listed by</label><select id="fsrc" onchange="loadL()"><option value="">Owner or agency</option><option value="owner"><i data-lucide=user class=ic></i> Direct from owner</option><option value="agency"><i data-lucide=building-2 class=ic></i> Via an agency</option></select></div>
       <button class="btn btn-p" onclick="loadL()">Search →</button>
     </div>
   </div>
@@ -418,7 +420,7 @@ footer ul a:hover{color:var(--terra)}
     <div class="ls-head">
       <div><h2>Latest listings</h2><p style="font-size:.82rem;color:var(--stone-l);margin-top:.2rem" id="lc"></p></div>
       <div style="display:flex;gap:.5rem;align-items:center">
-        <button class="btn btn-s btn-sm" id="view-toggle" onclick="toggleMapView()">🗺 Map view</button>
+        <button class="btn btn-s btn-sm" id="view-toggle" onclick="toggleMapView()"><i data-lucide=map class=ic></i> Map view</button>
         <button class="btn btn-s btn-sm" onclick="chkPost()">+ Post your flat</button>
       </div>
     </div>
@@ -430,20 +432,20 @@ footer ul a:hover{color:var(--terra)}
   </div>
 
   <div class="hiw">
-    <div class="stag">✦ Simple process</div>
+    <div class="stag"><i data-lucide=sparkle class=ic></i> Simple process</div>
     <h2>How <em>RestMalta</em> works</h2>
     <p>A different experience depending on who you are — see the full step-by-step for lessees, lessors and agencies.</p>
     <a href="/how-it-works.html" style="display:inline-block;background:var(--terra);color:white;text-decoration:none;padding:.9rem 2.2rem;border-radius:100px;font-weight:700;font-size:.92rem">See how it works →</a>
   </div>
 
   <div class="feat">
-    <div class="stag">✦ Platform features</div>
+    <div class="stag"><i data-lucide=sparkle class=ic></i> Platform features</div>
     <h2>Everything you need,<br><em>nothing</em> you don't.</h2>
     <div class="fgrid">
-      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">💬</div><h3>Real-time chat</h3><p>Instant messaging between lessees and lessors. Messages appear live — no refreshing, no waiting. Like WhatsApp, built into the platform.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(99,102,241,.15)">🏢</div><h3>Real estate agencies</h3><p>Agencies manage everything on your behalf — listing, visits, applications, lease, move-in — with their own dashboard and a public directory profile lessors can browse and contact directly.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)">📋</div><h3>Digital lessee dossier</h3><p>Upload your ID, employment letter, bank statements and references once — lessors see your verified profile and documents in one click. Co-lessees get their own dossier too.</p></div>
-      <div class="fc"><div class="fci" style="background:rgba(139,92,246,.15)">📷</div><h3>Photographed move-in inventory</h3><p>Every room and meter reading is logged and photographed at move-in, kept as proof both parties can access anytime — no more disputes over who broke what.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)"><i data-lucide=message-circle class=ic></i></div><h3>Real-time chat</h3><p>Instant messaging between lessees and lessors. Messages appear live — no refreshing, no waiting. Like WhatsApp, built into the platform.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(99,102,241,.15)"><i data-lucide=building-2 class=ic></i></div><h3>Real estate agencies</h3><p>Agencies manage everything on your behalf — listing, visits, applications, lease, move-in — with their own dashboard and a public directory profile lessors can browse and contact directly.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(201,85,58,.15)"><i data-lucide=clipboard-list class=ic></i></div><h3>Digital lessee dossier</h3><p>Upload your ID, employment letter, bank statements and references once — lessors see your verified profile and documents in one click. Co-lessees get their own dossier too.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(139,92,246,.15)"><i data-lucide=camera class=ic></i></div><h3>Photographed move-in inventory</h3><p>Every room and meter reading is logged and photographed at move-in, kept as proof both parties can access anytime — no more disputes over who broke what.</p></div>
     </div>
   </div>
 
@@ -454,7 +456,7 @@ footer ul a:hover{color:var(--terra)}
       <div><h4>For lessors</h4><ul><li><a onclick="chkPost()">Post a flat</a></li><li><a onclick="go('agencies')">Browse agencies</a></li><li><a onclick="go('auth')">Dashboard</a></li></ul></div>
       <div><h4>Legal</h4><ul><li><a href="/terms.html">Terms of service</a></li><li><a href="/privacy.html">Privacy policy</a></li><li><a href="/cookies.html">Cookie policy</a></li><li><a href="/contact.html">Contact us</a></li></ul></div>
     </div>
-    <div class="fbot"><p>© 2026 RestMalta. Made with ☀️ in Malta.</p><p>Not affiliated with the Maltese government. RestMalta is not a real estate agency.</p></div>
+    <div class="fbot"><p>© 2026 RestMalta. Made with <i data-lucide=sun class=ic></i>️ in Malta.</p><p>Not affiliated with the Maltese government. RestMalta is not a real estate agency.</p></div>
   </footer>
 </div>
 
@@ -474,7 +476,7 @@ footer ul a:hover{color:var(--terra)}
       </button>
     </div>
     <div style="margin-top:1.5rem;font-size:.75rem;color:var(--stone-l);text-align:center;line-height:1.6">
-      ✅ Free for lessees · 🔒 Secure · 🇲🇹 Malta only
+      <i data-lucide=check-circle-2 class=ic></i> Free for lessees · <i data-lucide=lock class=ic></i> Secure · 🇲🇹 Malta only
     </div>
   </div></div>
 </div>
@@ -488,44 +490,44 @@ footer ul a:hover{color:var(--terra)}
       <h3>How would you like to list your property?</h3>
       <div class="post-choice-grid" style="display:flex;flex-direction:column;gap:.85rem;margin-top:1rem">
         <div onclick="document.getElementById('post-choice-screen').style.display='none';document.getElementById('post-self-form').style.display='block'" style="cursor:pointer;background:var(--stone-xl);border:2px solid var(--b2);border-radius:12px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s" onmouseover="this.style.borderColor='var(--terra)'" onmouseout="this.style.borderColor='var(--b2)'">
-          <div style="font-size:1.8rem;flex-shrink:0">✍️</div>
+          <div style="font-size:1.8rem;flex-shrink:0"><i data-lucide=pen-line class=ic></i>️</div>
           <div><div style="font-weight:700;margin-bottom:.2rem">I'll fill in the details myself</div><div style="font-size:.78rem;color:var(--stone-l)">Title, photos, price — you're in control. You also handle visits & inventory. 10% platform fee from lessee.</div></div>
         </div>
         <div onclick="go('agencies')" style="cursor:pointer;background:rgba(99,102,241,.06);border:2px solid rgba(99,102,241,.2);border-radius:12px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s" onmouseover="this.style.borderColor='#6366F1'" onmouseout="this.style.borderColor='rgba(99,102,241,.2)'">
-          <div style="font-size:1.8rem;flex-shrink:0">🏢</div>
+          <div style="font-size:1.8rem;flex-shrink:0"><i data-lucide=building-2 class=ic></i></div>
           <div><div style="font-weight:700;margin-bottom:.2rem;color:#6366F1">Browse real estate agencies</div><div style="font-size:.78rem;color:var(--stone-l)">Contact a professional agency directly — see their zones and any current offers (e.g. first year of management free).</div></div>
         </div>
       </div>
     </div>
 
     <div class="fcard" id="post-self-form" style="display:none">
-      <h3>📋 Listing details</h3>
+      <h3><i data-lucide=clipboard-list class=ic></i> Listing details</h3>
 
       <!-- Lease type -->
       <div class="fg2">
         <label>Lease type *</label>
         <div class="ttog">
-          <button class="tbtn active" onclick="setT(this,'short')">🏠 Short-let only</button>
-          <button class="tbtn" onclick="setT(this,'long')">📅 Long-let only</button>
-          <button class="tbtn" onclick="setT(this,'room_rental')">🔑 Room rental</button>
-          <button class="tbtn" onclick="setT(this,'for_sale')">🏷️ For sale</button>
+          <button class="tbtn active" onclick="setT(this,'short')"><i data-lucide=home class=ic></i> Short-let only</button>
+          <button class="tbtn" onclick="setT(this,'long')"><i data-lucide=calendar class=ic></i> Long-let only</button>
+          <button class="tbtn" onclick="setT(this,'room_rental')"><i data-lucide=key class=ic></i> Room rental</button>
+          <button class="tbtn" onclick="setT(this,'for_sale')"><i data-lucide=tag class=ic></i>️ For sale</button>
         </div>
         <input type="hidden" id="pt" value="short">
         <div id="type-info" style="margin-top:.5rem;font-size:.72rem;color:var(--stone-l);line-height:1.5">
-          🏠 Short-let: short-term rental (tourism, internship, expat). Malta-specific lease.
+          <i data-lucide=home class=ic></i> Short-let: short-term rental (tourism, internship, expat). Malta-specific lease.
         </div>
       </div>
 
       <!-- Short-let specific options -->
       <div id="shortlet-opts" style="background:rgba(201,85,58,.05);border:1px solid rgba(201,85,58,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--terra);margin-bottom:.3rem">🏠 Short-let</div>
-        <div style="font-size:.75rem;color:var(--stone-l);line-height:1.6">⚠️ Duration fixed by Maltese law (Cap. 604) — minimum 1 month, maximum 6 months. Cannot be renewed.</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--terra);margin-bottom:.3rem"><i data-lucide=home class=ic></i> Short-let</div>
+        <div style="font-size:.75rem;color:var(--stone-l);line-height:1.6"><i data-lucide=alert-triangle class=ic></i>️ Duration fixed by Maltese law (Cap. 604) — minimum 1 month, maximum 6 months. Cannot be renewed.</div>
       </div>
 
       <!-- Long-let options -->
       <div id="longlet-opts" style="display:none;background:rgba(46,107,138,.05);border:1px solid rgba(46,107,138,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.3rem">📅 Long-let</div>
-        <div style="font-size:.75rem;color:var(--stone-l);line-height:1.6">⚠️ Minimum 1 year lease required by Maltese law (Cap. 604).</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--sea);margin-bottom:.3rem"><i data-lucide=calendar class=ic></i> Long-let</div>
+        <div style="font-size:.75rem;color:var(--stone-l);line-height:1.6"><i data-lucide=alert-triangle class=ic></i>️ Minimum 1 year lease required by Maltese law (Cap. 604).</div>
         <div class="frow" style="margin-top:.5rem">
         </div>
         <div style="font-size:.68rem;color:var(--stone-l);margin-top:.3rem">ℹ️ Di Fermo = minimum period during which lessee cannot leave without penalty. Must be minimum 1 year.</div>
@@ -565,7 +567,7 @@ footer ul a:hover{color:var(--terra)}
 
       <!-- Champs spécifiques à une vente — n'apparaissent qu'en mode "For sale" -->
       <div id="pt-sale-details-wrap" style="display:none;background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:#6366F1;margin-bottom:.6rem">🏷️ Sale details</div>
+        <div style="font-size:.78rem;font-weight:700;color:#6366F1;margin-bottom:.6rem"><i data-lucide=tag class=ic></i>️ Sale details</div>
         <div class="frow">
           <div class="fg2"><label>Tenure *</label><select class="fi" id="p-tenure"><option value="freehold">Freehold</option><option value="leasehold">Leasehold</option><option value="perpetual_ground_rent">Perpetual ground rent</option></select></div>
           <div class="fg2"><label>Finish status *</label><select class="fi" id="p-finish"><option value="finished">Fully finished</option><option value="furnished">Finished & furnished</option><option value="semi_finished">Semi-finished</option><option value="shell">Shell form (bare)</option></select></div>
@@ -583,28 +585,28 @@ footer ul a:hover{color:var(--terra)}
 
       <!-- Lease Agreement Attestation -->
       <div id="section-attestation" style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem">📋 Lease Agreement Attestation <span style="font-size:.65rem;font-weight:400;color:var(--stone-l)">(Malta — required for some non-EU residence permits)</span></div>
+        <div style="font-size:.78rem;font-weight:700;color:#8B5CF6;margin-bottom:.4rem"><i data-lucide=clipboard-list class=ic></i> Lease Agreement Attestation <span style="font-size:.65rem;font-weight:400;color:var(--stone-l)">(Malta — required for some non-EU residence permits)</span></div>
         <div style="font-size:.73rem;color:var(--stone);margin-bottom:.6rem;line-height:1.5">Some non-EU lessees need a notary-attested lease for their residence permit. Do you accept these lessees? If yes, a badge will appear on your listing. The lessee manages the notary process themselves — RestMalta does not handle this.</div>
         <div style="display:flex;gap:1rem;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-no" value="no" checked> ❌ No — standard lease only</label>
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-yes" value="yes"> ✅ Yes — I accept lessees needing attestation</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-no" value="no" checked> <i data-lucide=x-circle class=ic></i> No — standard lease only</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;cursor:pointer"><input type="radio" name="attestation" id="att-yes" value="yes"> <i data-lucide=check-circle-2 class=ic></i> Yes — I accept lessees needing attestation</label>
         </div>
       </div>
 
       <!-- Room rental legal notice (point 3) -->
       <div id="room_rental-notice" style="display:none;background:rgba(212,168,71,.07);border:1px solid rgba(212,168,71,.25);border-radius:10px;padding:.85rem 1rem;margin-top:.5rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--ochre);margin-bottom:.5rem">🛏 Room rental / Colocation details</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--ochre);margin-bottom:.5rem"><i data-lucide=bed-double class=ic></i> Room rental / Colocation details</div>
         <div class="frow">
           <div class="fg2"><label>Room type</label>
             <select class="fi" id="p-room-type" style="cursor:pointer">
-              <option value="private">🚪 Private room (own bedroom)</option>
-              <option value="shared">👥 Shared room</option>
+              <option value="private"><i data-lucide=door-open class=ic></i> Private room (own bedroom)</option>
+              <option value="shared"><i data-lucide=users class=ic></i> Shared room</option>
             </select>
           </div>
           <div class="fg2"><label>Bathroom</label>
             <select class="fi" id="p-room-bathroom" style="cursor:pointer">
-              <option value="shared">🚿 Shared bathroom</option>
-              <option value="private">🚿 Private bathroom</option>
+              <option value="shared"><i data-lucide=shower-head class=ic></i> Shared bathroom</option>
+              <option value="private"><i data-lucide=shower-head class=ic></i> Private bathroom</option>
             </select>
           </div>
           <div class="fg2"><label>People already in flat</label>
@@ -620,7 +622,7 @@ footer ul a:hover{color:var(--terra)}
           </div>
         </div>
         <div style="font-size:.73rem;color:var(--stone);line-height:1.6;margin-top:.5rem">
-          ⚠️ By posting a room rental, you confirm you have the owner's consent to sublet and accept that RestMalta does not handle Housing Authority registration.<br>
+          <i data-lucide=alert-triangle class=ic></i>️ By posting a room rental, you confirm you have the owner's consent to sublet and accept that RestMalta does not handle Housing Authority registration.<br>
         </div>
         <label style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem;font-size:.78rem;cursor:pointer">
           <input type="checkbox" id="room_rental-confirm" required> I confirm I have read and accept these obligations
@@ -631,7 +633,7 @@ footer ul a:hover{color:var(--terra)}
 
       <!-- Lease conditions — auto-fills the bail -->
       <div id="section-lease-cond" style="background:rgba(46,107,138,.06);border:1px solid rgba(46,107,138,.15);border-radius:12px;padding:1rem;margin-bottom:1rem">
-        <div style="font-size:.85rem;font-weight:700;color:var(--sea);margin-bottom:.75rem">📄 Lease conditions <span style="font-weight:400;font-size:.75rem;color:var(--stone-l)">— used to auto-generate your Malta lease</span></div>
+        <div style="font-size:.85rem;font-weight:700;color:var(--sea);margin-bottom:.75rem"><i data-lucide=file-text class=ic></i> Lease conditions <span style="font-weight:400;font-size:.75rem;color:var(--stone-l)">— used to auto-generate your Malta lease</span></div>
         <div class="frow">
           <div class="fg2" style="grid-column:1/-1">
             <label>Full property address in Malta *</label>
@@ -644,8 +646,8 @@ footer ul a:hover{color:var(--terra)}
 
           <div class="fg2"><label>Bills situation</label>
             <select class="fi" id="p-bills" style="cursor:pointer">
-              <option value="included">✅ All bills included in rent</option>
-              <option value="excluded">❌ Bills not included — lessee pays separately</option>
+              <option value="included"><i data-lucide=check-circle-2 class=ic></i> All bills included in rent</option>
+              <option value="excluded"><i data-lucide=x-circle class=ic></i> Bills not included — lessee pays separately</option>
             </select>
           </div>
         </div>
@@ -653,32 +655,32 @@ footer ul a:hover{color:var(--terra)}
 
       <div class="fg2"><label>Amenities</label>
         <div class="cbwrap">
-          <label class="cl"><input type="checkbox" id="pfu" checked> 🛋️ Furnished</label>
-          <label class="cl"><input type="checkbox" id="pwi"> 📶 WiFi available</label>
-          <label class="cl"><input type="checkbox" id="pac"> ❄️ A/C</label>
-          <label class="cl"><input type="checkbox" id="ppk"> 🚗 Parking</label>
-          <label class="cl"><input type="checkbox" id="ppool"> 🏊 Pool</label>
-          <label class="cl"><input type="checkbox" id="pbalc"> 🌿 Balcony/Terrace</label>
+          <label class="cl"><input type="checkbox" id="pfu" checked> <i data-lucide=sofa class=ic></i>️ Furnished</label>
+          <label class="cl"><input type="checkbox" id="pwi"> <i data-lucide=wifi class=ic></i> WiFi available</label>
+          <label class="cl"><input type="checkbox" id="pac"> <i data-lucide=snowflake class=ic></i>️ A/C</label>
+          <label class="cl"><input type="checkbox" id="ppk"> <i data-lucide=car class=ic></i> Parking</label>
+          <label class="cl"><input type="checkbox" id="ppool"> <i data-lucide=waves class=ic></i> Pool</label>
+          <label class="cl"><input type="checkbox" id="pbalc"> <i data-lucide=leaf class=ic></i> Balcony/Terrace</label>
           <label class="cl"><input type="checkbox" id="ppets" style="display:none"> </label>
-          <label class="cl"><input type="checkbox" id="pwash"> 🫧 Washing machine</label>
-          <label class="cl"><input type="checkbox" id="pdish"> 🍽️ Dishwasher</label>
+          <label class="cl"><input type="checkbox" id="pwash"> <i data-lucide=washing-machine class=ic></i> Washing machine</label>
+          <label class="cl"><input type="checkbox" id="pdish"> <i data-lucide=utensils class=ic></i>️ Dishwasher</label>
         </div>
       </div>
       <div class="fg2">
-        <label>📸 Photos * <span style="font-size:.72rem;color:var(--terra);font-weight:700">Minimum 1 photo required to publish</span></label>
+        <label><i data-lucide=camera class=ic></i> Photos * <span style="font-size:.72rem;color:var(--terra);font-weight:700">Minimum 1 photo required to publish</span></label>
         <div id="photo-upload-area" style="border:2px dashed var(--terra);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;background:rgba(201,85,58,.03)" onclick="document.getElementById('photo-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--terra)';this.style.background='rgba(201,85,58,.07)'" ondragleave="this.style.borderColor='var(--terra)';this.style.background='rgba(201,85,58,.03)'" ondrop="handleDrop(event)">
-          <div style="font-size:2rem;margin-bottom:.5rem">📷</div>
+          <div style="font-size:2rem;margin-bottom:.5rem"><i data-lucide=camera class=ic></i></div>
           <div style="font-size:.85rem;color:var(--terra);font-weight:600">Click or drag & drop your photos here</div>
           <div style="font-size:.72rem;color:var(--stone-l);margin-top:.3rem">JPG, PNG · Max 5MB each · Max 5 photos · At least 1 required</div>
           <input type="file" id="photo-input" multiple accept="image/*" style="display:none" onchange="handlePhotos(this.files)">
         </div>
         <div id="photo-previews" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
-        <div id="photo-required-msg" style="font-size:.75rem;color:var(--terra);margin-top:.3rem;display:none">⚠️ Please add at least 1 photo before publishing.</div>
+        <div id="photo-required-msg" style="font-size:.75rem;color:var(--terra);margin-top:.3rem;display:none"><i data-lucide=alert-triangle class=ic></i>️ Please add at least 1 photo before publishing.</div>
       </div>
       <div class="fg2" style="grid-column:1/-1">
-        <label>🎥 Virtual visit video <span style="font-weight:400;color:var(--stone-l)">(optional)</span></label>
+        <label><i data-lucide=video class=ic></i> Virtual visit video <span style="font-weight:400;color:var(--stone-l)">(optional)</span></label>
         <div style="border:2px dashed rgba(107,95,82,.2);border-radius:12px;padding:1rem;text-align:center;cursor:pointer;background:var(--warm)" onclick="document.getElementById('video-input').click()">
-          <div style="font-size:1.5rem;margin-bottom:.3rem">🎥</div>
+          <div style="font-size:1.5rem;margin-bottom:.3rem"><i data-lucide=video class=ic></i></div>
           <div style="font-size:.82rem;color:var(--stone)">Upload a video tour of your flat (max 50MB)</div>
           <div style="font-size:.7rem;color:var(--stone-l);margin-top:.2rem">MP4, MOV — lessees can watch before requesting a visit</div>
           <input type="file" id="video-input" accept="video/*" style="display:none" onchange="handleVideo(this)">
@@ -686,7 +688,7 @@ footer ul a:hover{color:var(--terra)}
         <div id="video-preview" style="margin-top:.5rem"></div>
       </div>
       <div class="aerr" id="poer"></div><div class="aok" id="pook"></div>
-      <button class="btn btn-p" style="width:100%;justify-content:center;padding:.85rem;font-size:.95rem;margin-top:.5rem" onclick="doPost()">🚀 Publish my listing →</button>
+      <button class="btn btn-p" style="width:100%;justify-content:center;padding:.85rem;font-size:.95rem;margin-top:.5rem" onclick="doPost()"><i data-lucide=rocket class=ic></i> Publish my listing →</button>
     </div>
   </div>
 </div>
@@ -695,13 +697,13 @@ footer ul a:hover{color:var(--terra)}
 <div class="page" id="page-agencies">
   <div class="pwrap" style="max-width:760px">
     <button class="btn btn-s" style="margin-bottom:1.5rem" onclick="go('post')">← Back</button>
-    <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;margin-bottom:.4rem">🏢 Browse real estate agencies</h2>
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;margin-bottom:.4rem"><i data-lucide=building-2 class=ic></i> Browse real estate agencies</h2>
     <p style="color:var(--stone);font-size:.9rem;margin-bottom:1.5rem">Enter your property's address and we'll show you agencies covering that area — including any current offers.</p>
 
     <div class="fcard" style="margin-bottom:1.5rem">
       <div class="fg2"><label>Your property's address in Malta *</label><input class="fi" id="ag-search-address" placeholder="12 Triq il-Kbira, Sliema, Malta"></div>
       <div id="ag-search-status" style="font-size:.8rem;margin:-.4rem 0 .6rem"></div>
-      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="searchAgencies()">🔍 Find agencies near me →</button>
+      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="searchAgencies()"><i data-lucide=search class=ic></i> Find agencies near me →</button>
     </div>
 
     <div id="ag-search-results"></div>
@@ -712,7 +714,7 @@ footer ul a:hover{color:var(--terra)}
 <div class="page" id="page-det">
   <div class="dwrap">
     <div style="margin-bottom:.75rem">
-      <div class="dhero" id="dh"><button class="bbtn" onclick="go('home')">← Back</button>🏠</div>
+      <div class="dhero" id="dh"><button class="bbtn" onclick="go('home')">← Back</button><i data-lucide=home class=ic></i></div>
       <div class="dphoto-thumbs" id="dthumbs"></div>
     </div>
     <div class="dgrid">
@@ -732,13 +734,13 @@ footer ul a:hover{color:var(--terra)}
 
         <!-- Amenities -->
         <div style="margin-top:1rem">
-          <div style="font-size:.82rem;font-weight:700;margin-bottom:.5rem;color:var(--stone)">✨ Features & amenities</div>
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.5rem;color:var(--stone)"><i data-lucide=sparkles class=ic></i> Features & amenities</div>
           <div id="dfe" style="display:flex;flex-wrap:wrap;gap:.4rem"></div>
         </div>
 
         <!-- Infos bail -->
         <div style="margin-top:1.2rem;background:white;border-radius:14px;padding:1rem;border:1px solid rgba(107,95,82,.08)">
-          <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--stone)">📋 Lease details</div>
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.6rem;color:var(--stone)"><i data-lucide=clipboard-list class=ic></i> Lease details</div>
           <div id="din"></div>
         </div>
 
@@ -758,11 +760,11 @@ footer ul a:hover{color:var(--terra)}
           <div id="contact-direct-wrap">
             <div class="fg2"><label>Your message to the lessor</label><textarea class="fta" id="dmsg" rows="3" placeholder="Hi! I'm interested in your listing. I'm looking for…"></textarea></div>
             <button class="btn btn-p" style="width:100%;justify-content:center" onclick="sendMsg()">Send message →</button>
-            <button class="btn btn-s" id="visit-req-btn" style="width:100%;justify-content:center;margin-top:.5rem;display:none" onclick="requestVisitFromDetail()">📅 Request a visit</button>
+            <button class="btn btn-s" id="visit-req-btn" style="width:100%;justify-content:center;margin-top:.5rem;display:none" onclick="requestVisitFromDetail()"><i data-lucide=calendar class=ic></i> Request a visit</button>
             <div id="visit-req-hint" style="font-size:.7rem;color:var(--stone-l);text-align:center;margin-top:.5rem">Send a message first — you'll be able to request a visit once you've reached out.</div>
           </div>
 
-          <p style="margin-top:.6rem;font-size:.68rem;color:var(--stone-l);text-align:center">🔒 Your contact details are never shared directly</p>
+          <p style="margin-top:.6rem;font-size:.68rem;color:var(--stone-l);text-align:center"><i data-lucide=lock class=ic></i> Your contact details are never shared directly</p>
         </div>
       </div>
     </div>
@@ -789,7 +791,7 @@ footer ul a:hover{color:var(--terra)}
 <!-- REAL-TIME CHAT MODAL -->
 <div class="mover" id="mo" onclick="cmo(event)">
   <div class="modal" style="display:flex;flex-direction:column;height:520px;max-height:90vh">
-    <button class="mclose" onclick="closeM()">✕</button>
+    <button class="mclose" onclick="closeM()"><i data-lucide=x class=ic></i></button>
     <div class="mt" id="moti"></div>
     <div class="ms" id="most"></div>
     <div id="chat-status" style="font-size:.7rem;color:var(--stone-l);margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem">
@@ -806,6 +808,15 @@ footer ul a:hover{color:var(--terra)}
 
 <div class="toast" id="t"></div>
 
+<script>
+// ── Icônes (remplace les émojis) — convertit automatiquement tout nouveau
+// <i data-lucide="..."> ajouté au DOM, y compris le contenu généré
+// dynamiquement en JS (innerHTML), pas seulement au chargement initial.
+if(window.lucide){
+  lucide.createIcons();
+  new MutationObserver(()=>{lucide.createIcons();}).observe(document.body,{childList:true,subtree:true});
+}
+</script>
 <script>
 // ── Supabase (DB only — no auth) ─────────────────────────────
 const SU='https://clfqftbvohwybkrtvylo.supabase.co';
@@ -883,8 +894,8 @@ async function searchAgencies(){
   const addr=document.getElementById('ag-search-address')?.value.trim();
   const statusEl=document.getElementById('ag-search-status');
   const resultsEl=document.getElementById('ag-search-results');
-  if(!addr){toast('⚠️ Enter your property\'s address');return;}
-  statusEl.innerHTML='<span style="color:var(--stone-l)">📍 Locating address...</span>';
+  if(!addr){toast('<i data-lucide=alert-triangle class=ic></i>️ Enter your property\'s address');return;}
+  statusEl.innerHTML='<span style="color:var(--stone-l)"><i data-lucide=map-pin class=ic></i> Locating address...</span>';
   resultsEl.innerHTML='';
 
   try{
@@ -892,7 +903,7 @@ async function searchAgencies(){
     const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,{headers:{'Accept-Language':'en'}});
     const results=await res.json();
     if(!results||!results.length){
-      statusEl.innerHTML='<span style="color:var(--terra)">❌ Could not locate this address — try being more specific</span>';
+      statusEl.innerHTML='<span style="color:var(--terra)"><i data-lucide=x-circle class=ic></i> Could not locate this address — try being more specific</span>';
       return;
     }
     const lat=parseFloat(results[0].lat),lng=parseFloat(results[0].lon);
@@ -905,30 +916,30 @@ async function searchAgencies(){
     });
 
     if(!matching.length){
-      statusEl.innerHTML=`<span style="color:var(--terra)">📍 Zone identified: <strong>${nearestZone}</strong> — no agencies currently cover this area</span>`;
-      resultsEl.innerHTML='<div class="empty" style="padding:2rem;text-align:center;color:var(--stone-l)"><div style="font-size:2rem;margin-bottom:.5rem">🏢</div>No agencies found for this zone yet.</div>';
+      statusEl.innerHTML=`<span style="color:var(--terra)"><i data-lucide=map-pin class=ic></i> Zone identified: <strong>${nearestZone}</strong> — no agencies currently cover this area</span>`;
+      resultsEl.innerHTML='<div class="empty" style="padding:2rem;text-align:center;color:var(--stone-l)"><div style="font-size:2rem;margin-bottom:.5rem"><i data-lucide=building-2 class=ic></i></div>No agencies found for this zone yet.</div>';
       return;
     }
-    statusEl.innerHTML=`<span style="color:#4CAF7D">✅ Zone identified: <strong>${nearestZone}</strong> — ${matching.length} agenc${matching.length>1?'ies':'y'} available</span>`;
+    statusEl.innerHTML=`<span style="color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Zone identified: <strong>${nearestZone}</strong> — ${matching.length} agenc${matching.length>1?'ies':'y'} available</span>`;
     resultsEl.innerHTML=matching.map(a=>`
       <div class="fcard" style="margin-bottom:1rem;display:flex;gap:1rem;align-items:flex-start">
         <div style="width:56px;height:56px;border-radius:10px;background:var(--sand);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
-          ${a.logo_url?`<img src="${a.logo_url}" style="width:100%;height:100%;object-fit:cover">`:'🏢'}
+          ${a.logo_url?`<img src="${a.logo_url}" style="width:100%;height:100%;object-fit:cover">`:'<i data-lucide=building-2 class=ic></i>'}
         </div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:1rem;margin-bottom:.2rem">${a.agency_name||'Agency'}</div>
           <div style="font-size:.78rem;color:var(--stone-l);margin-bottom:.5rem">${a.bio||''}</div>
-          ${a.current_offer?`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .7rem;font-size:.78rem;color:#2d7a56;font-weight:600;margin-bottom:.5rem;display:inline-block">🎁 ${a.current_offer}</div>`:''}
-          <div style="font-size:.7rem;color:var(--stone-l);margin-bottom:.6rem">📍 ${(a.zones||'').split(',').filter(Boolean).length} zones covered, including ${nearestZone}</div>
-          <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem">📐 They'll get back to you with a quote or a call</div>
+          ${a.current_offer?`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.4rem .7rem;font-size:.78rem;color:#2d7a56;font-weight:600;margin-bottom:.5rem;display:inline-block"><i data-lucide=gift class=ic></i> ${a.current_offer}</div>`:''}
+          <div style="font-size:.7rem;color:var(--stone-l);margin-bottom:.6rem"><i data-lucide=map-pin class=ic></i> ${(a.zones||'').split(',').filter(Boolean).length} zones covered, including ${nearestZone}</div>
+          <div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.6rem"><i data-lucide=ruler class=ic></i> They'll get back to you with a quote or a call</div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <button class="btn btn-p bsm" onclick="contactAgency('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">💬 Contact this agency →</button>
-            <button class="btn btn-s bsm" onclick="requestEstimation('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')">📐 Request an estimation</button>
+            <button class="btn btn-p bsm" onclick="contactAgency('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')"><i data-lucide=message-circle class=ic></i> Contact this agency →</button>
+            <button class="btn btn-s bsm" onclick="requestEstimation('${a.clerk_id}','${(a.agency_name||'Agency').replace(/'/g,"\\'")}')"><i data-lucide=ruler class=ic></i> Request an estimation</button>
           </div>
         </div>
       </div>`).join('');
   }catch(e){
-    statusEl.innerHTML='<span style="color:var(--terra)">⚠️ Could not check this address right now</span>';
+    statusEl.innerHTML='<span style="color:var(--terra)"><i data-lucide=alert-triangle class=ic></i>️ Could not check this address right now</span>';
   }
 }
 
@@ -941,10 +952,10 @@ async function requestEstimation(agencyId,agencyName){
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
   modal.innerHTML=`
     <div style="background:white;border-radius:18px;padding:1.75rem;max-width:420px;width:100%">
-      <div style="font-weight:800;font-size:1.05rem;margin-bottom:.3rem">📐 Request an estimation from ${agencyName}</div>
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:.3rem"><i data-lucide=ruler class=ic></i> Request an estimation from ${agencyName}</div>
       <div style="font-size:.8rem;color:var(--stone-l);margin-bottom:1.1rem">Tell them a bit about your property — they'll get back to you directly.</div>
       <div class="fg2"><label>What kind of estimation?</label>
-        <select class="fi" id="est-req-type"><option value="rental">🏠 Rental estimation</option><option value="sale">🏷️ Sale estimation</option></select>
+        <select class="fi" id="est-req-type"><option value="rental"><i data-lucide=home class=ic></i> Rental estimation</option><option value="sale"><i data-lucide=tag class=ic></i>️ Sale estimation</option></select>
       </div>
       <div class="fg2"><label>Property address *</label><input class="fi" id="est-req-address" value="${prefillAddress.replace(/"/g,'&quot;')}" placeholder="12 Triq il-Kbira, Sliema"></div>
       <div class="fg2"><label>Anything else? (optional)</label><textarea class="fi" id="est-req-notes" rows="3" placeholder="Property type, size, condition..."></textarea></div>
@@ -956,7 +967,7 @@ async function requestEstimation(agencyId,agencyName){
 
 async function submitEstimationRequest(agencyId){
   const address=document.getElementById('est-req-address')?.value.trim();
-  if(!address){toast('⚠️ Property address is required');return;}
+  if(!address){toast('<i data-lucide=alert-triangle class=ic></i>️ Property address is required');return;}
   const requestType=document.getElementById('est-req-type')?.value||'rental';
   const notes=document.getElementById('est-req-notes')?.value.trim()||'';
   try{
@@ -969,10 +980,10 @@ async function submitEstimationRequest(agencyId){
       address,notes,
       status:'pending'
     });
-    if(error){console.error('[estimation_requests] insert failed:',error);toast('❌ '+error.message);return;}
+    if(error){console.error('[estimation_requests] insert failed:',error);toast('<i data-lucide=x-circle class=ic></i> '+error.message);return;}
     document.getElementById('est-req-modal')?.remove();
-    toast('✅ Estimation request sent!');
-  }catch(e){toast('❌ '+e.message);}
+    toast('<i data-lucide=check-circle-2 class=ic></i> Estimation request sent!');
+  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);}
 }
 
 async function contactAgency(agencyId,agencyName){
@@ -984,9 +995,9 @@ async function contactAgency(agencyId,agencyName){
       sender_id:U.id,receiver_id:agencyId,
       content:msg,type:'landlord_to_agency'
     });
-    if(error){console.error('[contactAgency] insert failed:',error);toast('❌ '+error.message);return;}
-    toast('✅ Message sent! The agency will get back to you.');
-  }catch(e){toast('❌ '+e.message);}
+    if(error){console.error('[contactAgency] insert failed:',error);toast('<i data-lucide=x-circle class=ic></i> '+error.message);return;}
+    toast('<i data-lucide=check-circle-2 class=ic></i> Message sent! The agency will get back to you.');
+  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);}
 }
 
 async function geocodeAddress(){
@@ -994,18 +1005,18 @@ async function geocodeAddress(){
   const statusEl=document.getElementById('address-map-status');
   const mapEl=document.getElementById('address-map');
   if(!addr||!statusEl||!mapEl)return;
-  statusEl.textContent='📍 Locating address...';
+  statusEl.textContent='<i data-lucide=map-pin class=ic></i> Locating address...';
   try{
     const query=addr.toLowerCase().includes('malta')?addr:addr+', Malta';
     const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,{headers:{'Accept-Language':'en'}});
     const results=await res.json();
     if(!results||!results.length){
-      statusEl.textContent='⚠️ Could not locate this address — you can still publish, just double-check it\'s written clearly';
+      statusEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Could not locate this address — you can still publish, just double-check it\'s written clearly';
       mapEl.style.display='none';
       return;
     }
     const lat=parseFloat(results[0].lat),lng=parseFloat(results[0].lon);
-    statusEl.textContent='✅ Address located';
+    statusEl.textContent='<i data-lucide=check-circle-2 class=ic></i> Address located';
     mapEl.style.display='block';
     if(!addressMapInstance){
       addressMapInstance=L.map('address-map').setView([lat,lng],16);
@@ -1017,7 +1028,7 @@ async function geocodeAddress(){
     }
     L.marker([lat,lng]).addTo(addressMapInstance);
   }catch(e){
-    statusEl.textContent='⚠️ Could not check this address right now';
+    statusEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Could not check this address right now';
     mapEl.style.display='none';
   }
 }
@@ -1035,16 +1046,16 @@ function showRolePicker(name) {
       <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;color:#F0EDE8;margin-bottom:.3rem">Welcome${name?' '+name:''}!</div>
       <div style="font-size:.82rem;color:rgba(240,237,232,.4);margin-bottom:1.6rem">Who are you on RestMalta?</div>
       <div style="display:flex;flex-direction:column;gap:.5rem">
-        <button onclick="confirmRoleChoice('tenant','🎒','Tenant / Intern','Looking for a flat in Malta')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
-          <span style="font-size:1.4rem;flex-shrink:0">🎒</span>
+        <button onclick="confirmRoleChoice('tenant','<i data-lucide=briefcase class=ic></i>','Tenant / Intern','Looking for a flat in Malta')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+          <span style="font-size:1.4rem;flex-shrink:0"><i data-lucide=briefcase class=ic></i></span>
           <div><div>Lessee / Intern</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">Looking for a flat in Malta</div></div>
         </button>
-        <button onclick="confirmRoleChoice('landlord','🏠','Landlord','I want to list my property')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
-          <span style="font-size:1.4rem;flex-shrink:0">🏠</span>
+        <button onclick="confirmRoleChoice('landlord','<i data-lucide=home class=ic></i>','Landlord','I want to list my property')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+          <span style="font-size:1.4rem;flex-shrink:0"><i data-lucide=home class=ic></i></span>
           <div><div>Lessor</div><div style="font-size:.7rem;color:rgba(240,237,232,.35);font-weight:400;margin-top:.1rem">I want to list my property</div></div>
         </button>
-        <button onclick="confirmRoleChoice('agency','🏢','Real Estate Agency','Publish listings · CRM · Team')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(99,102,241,.4);background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(99,102,241,.22),rgba(139,92,246,.14))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08))'">
-          <span style="font-size:1.4rem;flex-shrink:0">🏢</span>
+        <button onclick="confirmRoleChoice('agency','<i data-lucide=building-2 class=ic></i>','Real Estate Agency','Publish listings · CRM · Team')" style="width:100%;padding:.9rem 1rem;border-radius:12px;border:1px solid rgba(99,102,241,.4);background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.85rem;text-align:left;color:#F0EDE8;transition:all .2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(99,102,241,.22),rgba(139,92,246,.14))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08))'">
+          <span style="font-size:1.4rem;flex-shrink:0"><i data-lucide=building-2 class=ic></i></span>
           <div style="flex:1">
             <div style="color:#818CF8">Real Estate Agency</div>
             <div style="font-size:.7rem;color:rgba(129,140,248,.55);font-weight:400;margin-top:.1rem">Publish listings · CRM · Team</div>
@@ -1082,7 +1093,7 @@ async function setRoleAndContinue(role) {
   if(modal) modal.remove();
 
   try {
-    if(!U){toast('❌ Please sign in first');return;}
+    if(!U){toast('<i data-lucide=x-circle class=ic></i> Please sign in first');return;}
 
     const full_name = P?.full_name || U.clerk?.fullName || U.clerk?.firstName || '';
     const email = P?.email || U.email || U.clerk?.primaryEmailAddress?.emailAddress || '';
@@ -1106,7 +1117,7 @@ async function setRoleAndContinue(role) {
 
     P = data;
     updN();
-    toast('🎉 Welcome to RestMalta!');
+    toast('<i data-lucide=party-popper class=ic></i> Welcome to RestMalta!');
 
     if(role === 'landlord') {
       // Relier automatiquement les biens/réservations déjà saisis manuellement
@@ -1130,7 +1141,7 @@ async function setRoleAndContinue(role) {
 
   } catch(e) {
     console.error('setRoleAndContinue error:', e);
-    toast('❌ ' + e.message);
+    toast('<i data-lucide=x-circle class=ic></i> ' + e.message);
   }
 }
 
@@ -1141,7 +1152,7 @@ function updN(){
   if(U&&P){
     const n=P.full_name?.split(' ')[0]||'?';
     const avatar=`<div style="width:32px;height:32px;border-radius:50%;background:var(--terra);color:white;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;cursor:pointer" onclick="goToDash()">${n[0].toUpperCase()}</div>`;
-    na.innerHTML=avatar+`<span style="font-size:.82rem;color:var(--stone);font-weight:500;cursor:pointer" onclick="goToDash()">${n}</span><button class="btn btn-p btn-sm" onclick="goToDash()">📊 Dashboard</button><button class="btn btn-s btn-sm" onclick="doLogout()">Sign out</button>`;
+    na.innerHTML=avatar+`<span style="font-size:.82rem;color:var(--stone);font-weight:500;cursor:pointer" onclick="goToDash()">${n}</span><button class="btn btn-p btn-sm" onclick="goToDash()"><i data-lucide=bar-chart-3 class=ic></i> Dashboard</button><button class="btn btn-s btn-sm" onclick="doLogout()">Sign out</button>`;
     np.style.display=P.role==='landlord'?'inline':'none';
     nd.style.display='inline';
     const heroAgLink=document.getElementById('hero-agencies-link');
@@ -1156,10 +1167,10 @@ function go(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove
 function stl(){go('home');setTimeout(()=>document.getElementById('la').scrollIntoView({behavior:'smooth'}),100);}
 
 async function signInWithGoogle(){
-  try { clerk.openSignIn({}); } catch(e) { toast('❌ '+e.message); }
+  try { clerk.openSignIn({}); } catch(e) { toast('<i data-lucide=x-circle class=ic></i> '+e.message); }
 }
 async function signInWithFacebook(){
-  try { clerk.openSignIn({}); } catch(e) { toast('❌ '+e.message); }
+  try { clerk.openSignIn({}); } catch(e) { toast('<i data-lucide=x-circle class=ic></i> '+e.message); }
 }
 
 function goToDash(){
@@ -1168,7 +1179,7 @@ function goToDash(){
   else window.location.href='/tenant-dashboard.html';
 }
 
-async function doLogout(){await clerk.signOut();toast('👋 See you soon!');go('home');updN();}
+async function doLogout(){await clerk.signOut();toast('<i data-lucide=hand class=ic></i> See you soon!');go('home');updN();}
 
 function toggleSaleFilterUI(){
   const isSale=document.getElementById('ft')?.value==='for_sale';
@@ -1182,11 +1193,11 @@ async function loadHeroListings(){
   try{
     const{data}=await sb.from('listings').select('id,title,zone,price,type,spots').eq('active',true).not('status','in','("reserved","rented")').order('boosted_until',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false}).limit(3);
     if(!data||!data.length){wrap.innerHTML='<div class="pitem" style="cursor:default"><div class="pi"><div class="pt">No listings live yet</div><div class="ps">Be the first to post one!</div></div></div>';return;}
-    const typeIcon={short:'🏠',long:'🔑',room_rental:'🌊',for_sale:'🏷️'};
+    const typeIcon={short:'<i data-lucide=home class=ic></i>',long:'<i data-lucide=key class=ic></i>',room_rental:'<i data-lucide=waves class=ic></i>',for_sale:'<i data-lucide=tag class=ic></i>️'};
     const typeLabel={short:'Short-let',long:'Long-let',room_rental:'Room',for_sale:'For sale'};
     wrap.innerHTML=data.map(l=>`
       <div class="pitem" onclick="openDet('${l.id}')">
-        <div class="pe">${typeIcon[l.type]||'🏠'}</div>
+        <div class="pe">${typeIcon[l.type]||'<i data-lucide=home class=ic></i>'}</div>
         <div class="pi"><div class="pt">${typeLabel[l.type]||''} · ${l.zone||'Malta'}</div><div class="ps">${l.title||''}</div></div>
         <div class="pp">€${l.price}${l.type==='for_sale'?'':'/mo'}</div>
       </div>`).join('');
@@ -1212,7 +1223,7 @@ async function loadL(){
     return new Date(b.created_at)-new Date(a.created_at);
   });
   window._currentListings=sorted;
-  if(!sorted.length){g.innerHTML=`<div class="empty"><div class="emo">🏠</div><p>No listings found. Try adjusting your filters!</p><button class="btn btn-p" onclick="chkPost()">Post your flat →</button></div>`;document.getElementById('lc').textContent='';return;}
+  if(!sorted.length){g.innerHTML=`<div class="empty"><div class="emo"><i data-lucide=home class=ic></i></div><p>No listings found. Try adjusting your filters!</p><button class="btn btn-p" onclick="chkPost()">Post your flat →</button></div>`;document.getElementById('lc').textContent='';return;}
   document.getElementById('lc').textContent=`${sorted.length} listing${sorted.length>1?'s':''} found`;
   g.innerHTML=sorted.map(rCard).join('');
   if(mapView)initMap();
@@ -1221,32 +1232,32 @@ async function loadL(){
 async function updC(){const{count}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('active',true);document.getElementById('sc').textContent=count??'0';}
 
 function rCard(l){
-  const ic={short:'🏠',room_rental:'🔑',long:'📅',for_sale:'🏷️'};
+  const ic={short:'<i data-lucide=home class=ic></i>',room_rental:'<i data-lucide=key class=ic></i>',long:'<i data-lucide=calendar class=ic></i>',for_sale:'<i data-lucide=tag class=ic></i>️'};
   const bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)',for_sale:'linear-gradient(135deg,#F3EEFB,#E1D4F5)'};
-  const lb={short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'📅 Long-let',for_sale:'🏷️ For sale'};
+  const lb={short:'<i data-lucide=home class=ic></i> Short-let',room_rental:'<i data-lucide=key class=ic></i> Room rental',long:'<i data-lucide=calendar class=ic></i> Long-let',for_sale:'<i data-lucide=tag class=ic></i>️ For sale'};
   const lbColor={short:'#C9553A',room_rental:'#D4A847',long:'#2E6B8A',for_sale:'#6366F1'};
   const tags=[l.furnished?'Furnished':null,l.wifi?'WiFi':null,l.bills_included?'Bills incl.':null,l.ac?'A/C':null,l.parking?'Parking':null,l.pool?'Pool':null,l.balcony?'Balcony':null,l.spots>1?`${l.spots} spots`:null].filter(Boolean).slice(0,3);
   const fr=l.available_indefinitely?'Available indefinitely':l.available_from?'From '+new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Available now';
   // Listing source badge — agency or direct from owner
   const sourceBadge=l.agency_listing?
-    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏢 ${l.agency_name||'Real Estate Agency'}</span>`:
-    `<span style="position:absolute;top:.5rem;left:.5rem;background:rgba(76,175,125,.9);color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px">🏠 Direct from owner</span>`;
+    `<span style="position:absolute;top:.5rem;left:.5rem;background:#8B5CF6;color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px"><i data-lucide=building-2 class=ic></i> ${l.agency_name||'Real Estate Agency'}</span>`:
+    `<span style="position:absolute;top:.5rem;left:.5rem;background:rgba(76,175,125,.9);color:white;font-size:.58rem;font-weight:700;padding:.2rem .45rem;border-radius:100px"><i data-lucide=home class=ic></i> Direct from owner</span>`;
   // Attestation badge — only show when accepted, and never for agency listings (info not collected)
   const attBadge=(l.accepts_attestation&&!l.agency_listing)?
-    `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(46,107,138,.9);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px">📋 Att. ✅</span>`:'';
+    `<span style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(46,107,138,.9);color:white;font-size:.55rem;font-weight:700;padding:.15rem .4rem;border-radius:100px"><i data-lucide=clipboard-list class=ic></i> Att. <i data-lucide=check-circle-2 class=ic></i></span>`:'';
   const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
   const boostBadge=isBoosted?
-    `<span style="position:absolute;bottom:.5rem;left:.5rem;background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;font-size:.58rem;font-weight:800;padding:.2rem .5rem;border-radius:100px;box-shadow:0 2px 6px rgba(220,38,38,.4)">🔥 Boosted</span>`:'';
+    `<span style="position:absolute;bottom:.5rem;left:.5rem;background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;font-size:.58rem;font-weight:800;padding:.2rem .5rem;border-radius:100px;box-shadow:0 2px 6px rgba(220,38,38,.4)"><i data-lucide=flame class=ic></i> Boosted</span>`:'';
   return`<div class="lcard" onclick="openDet('${l.id}')" style="${isBoosted?'box-shadow:0 0 0 2px #F59E0B,0 4px 14px rgba(245,158,11,.25)':''}">
     <div class="limg" style="background:${bg[l.type]||bg.room_rental}">
-      ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'🏠'}</span>`}
+      ${l.photos&&l.photos.length>0?`<img src="${l.photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0" onerror="this.style.display='none'" alt="${l.title}">`:`<span style="font-size:3rem">${ic[l.type]||'<i data-lucide=home class=ic></i>'}</span>`}
       <span style="position:absolute;top:.5rem;right:.5rem;background:${lbColor[l.type]||'#C9553A'};color:white;font-size:.65rem;font-weight:700;padding:.25rem .6rem;border-radius:100px">${lb[l.type]||'Listing'}</span>
       ${sourceBadge}${attBadge}${boostBadge}
     </div>
     <div class="lbody">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
         <div style="min-width:0">
-          <div class="lzone">📍 ${l.zone}</div>
+          <div class="lzone"><i data-lucide=map-pin class=ic></i> ${l.zone}</div>
           <div class="ltitle">${l.title}</div>
         </div>
         ${l.agency_logo_url?`<img src="${l.agency_logo_url}" style="width:32px;height:32px;object-fit:cover;border-radius:7px;border:1px solid var(--stone-xl);flex-shrink:0" alt="${l.agency_name||'Agency'}">`:''}
@@ -1276,7 +1287,7 @@ async function openDet(id){
       }).catch(e=>console.error('[views] fetch failed:',e.message));
     }
   }catch(e){console.error('[views] outer error:',e.message);}
-  const ic={short:'🏠',room_rental:'🔑',long:'🏛️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
+  const ic={short:'<i data-lucide=home class=ic></i>',room_rental:'<i data-lucide=key class=ic></i>',long:'<i data-lucide=landmark class=ic></i>️'},bg={short:'linear-gradient(135deg,#FEF0E8,#FDDCC6)',room_rental:'linear-gradient(135deg,#FEF9EC,#FBF0C8)',long:'linear-gradient(135deg,#EAF3F8,#CDE3EE)'};
   // Photos carousel
   const photos=l.photos&&l.photos.length>0?l.photos:[];
   let currentPhoto=0;
@@ -1303,15 +1314,15 @@ async function openDet(id){
     showPhoto(0);
     if(thumbs){
       thumbs.innerHTML=photos.map((p,i)=>`<img src="${p}" class="dphoto-thumb${i===0?' active':''}" onclick="window.showPhoto(${i})" loading="lazy">`).join('');
-      if(l.video_url)thumbs.innerHTML+=`<div style="width:72px;height:52px;border-radius:8px;background:#1a1410;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;border:2px solid transparent" onclick="document.getElementById('dh').innerHTML='<button class=\'bbtn\' onclick=\'go(\\\'home\\\')\'>← Back</button><video src=\'${l.video_url}\' controls autoplay style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:20px\'></video>'">🎥</div>`;
+      if(l.video_url)thumbs.innerHTML+=`<div style="width:72px;height:52px;border-radius:8px;background:#1a1410;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;border:2px solid transparent" onclick="document.getElementById('dh').innerHTML='<button class=\'bbtn\' onclick=\'go(\\\'home\\\')\'>← Back</button><video src=\'${l.video_url}\' controls autoplay style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:20px\'></video>'"><i data-lucide=video class=ic></i></div>`;
     }
   } else {
-    h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><span style="font-size:7rem">${ic[l.type]||'🏠'}</span>`;
+    h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><span style="font-size:7rem">${ic[l.type]||'<i data-lucide=home class=ic></i>'}</span>`;
     if(thumbs)thumbs.innerHTML='';
   }
 
   document.getElementById('dti').textContent=l.title;
-  document.getElementById('dzo').textContent='📍 '+l.zone+(l.address?' · '+l.address:'');
+  document.getElementById('dzo').textContent='<i data-lucide=map-pin class=ic></i> '+l.zone+(l.address?' · '+l.address:'');
   document.getElementById('dde').textContent=l.description||'No description provided.';
   document.getElementById('dpr').textContent='€'+(l.type==='for_sale'?(l.sale_price||l.price):l.price);
   const dprPer=document.getElementById('dpr-per');
@@ -1319,33 +1330,33 @@ async function openDet(id){
 
   // Specs rapides
   const specs=[];
-  if(l.bedrooms||l.spots)specs.push(`🛏 ${l.bedrooms||l.spots} bedroom${(l.bedrooms||l.spots)>1?'s':''}`);
-  if(l.baths)specs.push(`🚿 ${l.baths} bathroom${l.baths>1?'s':''}`);
-  if(l.sqm)specs.push(`📐 ${l.sqm} m²`);
-  specs.push({short:'🏠 Short-let',room_rental:'🔑 Room rental',long:'🏛 Long-let',for_sale:'🏷️ For sale'}[l.type]||l.type);
-  if(l.video_url)specs.push('🎥 Virtual tour');
+  if(l.bedrooms||l.spots)specs.push(`<i data-lucide=bed-double class=ic></i> ${l.bedrooms||l.spots} bedroom${(l.bedrooms||l.spots)>1?'s':''}`);
+  if(l.baths)specs.push(`<i data-lucide=shower-head class=ic></i> ${l.baths} bathroom${l.baths>1?'s':''}`);
+  if(l.sqm)specs.push(`<i data-lucide=ruler class=ic></i> ${l.sqm} m²`);
+  specs.push({short:'<i data-lucide=home class=ic></i> Short-let',room_rental:'<i data-lucide=key class=ic></i> Room rental',long:'<i data-lucide=landmark class=ic></i> Long-let',for_sale:'<i data-lucide=tag class=ic></i>️ For sale'}[l.type]||l.type);
+  if(l.video_url)specs.push('<i data-lucide=video class=ic></i> Virtual tour');
   document.getElementById('dspecs').innerHTML=specs.map(s=>`<span class="dfeat" style="background:var(--s2);border:1px solid var(--b2);font-size:.78rem;padding:.3rem .7rem;border-radius:20px">${s}</span>`).join('');
 
   // Amenities
   const fe=[
-    l.furnished?'✅ Furnished':null,
-    l.wifi?'📶 WiFi available':null,
-    l.bills_included?'💡 Bills included':null,
-    l.ac?'❄️ A/C':null,
-    l.parking?'🚗 Parking':null,
-    l.pool?'🏊 Pool':null,
-    l.balcony?'🌿 Balcony/Terrace':null,
-    l.washing_machine?'🫧 Washing machine':null,
-    l.dishwasher?'🍽 Dishwasher':null,
-    l.elevator?'🛗 Elevator':null,
-    l.garden?'🌳 Garden':null,
-    l.sea_view?'🌊 Sea view':null,
-    l.accepts_attestation?'📋 Attestation accepted':null,
+    l.furnished?'<i data-lucide=check-circle-2 class=ic></i> Furnished':null,
+    l.wifi?'<i data-lucide=wifi class=ic></i> WiFi available':null,
+    l.bills_included?'<i data-lucide=lightbulb class=ic></i> Bills included':null,
+    l.ac?'<i data-lucide=snowflake class=ic></i>️ A/C':null,
+    l.parking?'<i data-lucide=car class=ic></i> Parking':null,
+    l.pool?'<i data-lucide=waves class=ic></i> Pool':null,
+    l.balcony?'<i data-lucide=leaf class=ic></i> Balcony/Terrace':null,
+    l.washing_machine?'<i data-lucide=washing-machine class=ic></i> Washing machine':null,
+    l.dishwasher?'<i data-lucide=utensils class=ic></i> Dishwasher':null,
+    l.elevator?'<i data-lucide=arrow-up-down class=ic></i> Elevator':null,
+    l.garden?'<i data-lucide=trees class=ic></i> Garden':null,
+    l.sea_view?'<i data-lucide=waves class=ic></i> Sea view':null,
+    l.accepts_attestation?'<i data-lucide=clipboard-list class=ic></i> Attestation accepted':null,
   ].filter(Boolean);
   // Fusionner avec les features cochées côté agence (tableau JSON libre) —
   // "Furnished" est explicitement exclu ici : il a déjà sa propre étiquette
-  // fiable et mutuellement exclusive juste au-dessus (✅/❌ selon l.furnished).
-  // Le laisser passer créait "❌ Unfurnished" ET "✅ Furnished" ensemble,
+  // fiable et mutuellement exclusive juste au-dessus (<i data-lucide=check-circle-2 class=ic></i>/<i data-lucide=x-circle class=ic></i> selon l.furnished).
+  // Le laisser passer créait "<i data-lucide=x-circle class=ic></i> Unfurnished" ET "<i data-lucide=check-circle-2 class=ic></i> Furnished" ensemble,
   // car la vérification de doublon (substring, sensible à la casse) ne
   // détectait jamais que les deux décrivaient la même chose.
   try{
@@ -1353,7 +1364,7 @@ async function openDet(id){
       const extra=JSON.parse(l.features);
       extra.forEach(f=>{
         if(f.toLowerCase().includes('furnished'))return;
-        if(!fe.some(x=>x.toLowerCase().includes(f.toLowerCase())))fe.push('✅ '+f);
+        if(!fe.some(x=>x.toLowerCase().includes(f.toLowerCase())))fe.push('<i data-lucide=check-circle-2 class=ic></i> '+f);
       });
     }
   }catch(e){}
@@ -1364,27 +1375,27 @@ async function openDet(id){
   const badge=await getLandlordResponseBadge(l.landlord_id);
   const landlordRating=await getLandlordRating(l.landlord_id);
   const agencyRating=l.agency_listing?await getAgencyRating(l.agent_id):null;
-  const ratingHtml=(landlordRating?`<div style="background:rgba(212,168,71,.1);color:var(--ochre);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">⭐ ${landlordRating.avg.toFixed(1)} lessor rating <span style="font-weight:400;color:var(--stone-l)">(${landlordRating.count} review${landlordRating.count>1?'s':''})</span></div>`:'')
-    +(agencyRating?`<div style="background:rgba(46,107,138,.1);color:var(--sea);border:1px solid rgba(46,107,138,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">⭐ ${agencyRating.avg.toFixed(1)} agency rating <span style="font-weight:400;color:var(--stone-l)">(${agencyRating.count} review${agencyRating.count>1?'s':''})</span></div>`:'');
+  const ratingHtml=(landlordRating?`<div style="background:rgba(212,168,71,.1);color:var(--ochre);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem"><i data-lucide=star class=ic></i> ${landlordRating.avg.toFixed(1)} lessor rating <span style="font-weight:400;color:var(--stone-l)">(${landlordRating.count} review${landlordRating.count>1?'s':''})</span></div>`:'')
+    +(agencyRating?`<div style="background:rgba(46,107,138,.1);color:var(--sea);border:1px solid rgba(46,107,138,.25);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem"><i data-lucide=star class=ic></i> ${agencyRating.avg.toFixed(1)} agency rating <span style="font-weight:400;color:var(--stone-l)">(${agencyRating.count} review${agencyRating.count>1?'s':''})</span></div>`:'');
   const tenureLabels={freehold:'Freehold',leasehold:'Leasehold',perpetual_ground_rent:'Perpetual ground rent'};
   const finishLabels={finished:'Fully finished',furnished:'Finished & furnished',semi_finished:'Semi-finished',shell:'Shell form (bare)'};
   document.getElementById('din').innerHTML=l.type==='for_sale'?`
     ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">${badge}</div>`:''}
     ${ratingHtml}
-    <div class="crow"><span>Type</span><span>🏷️ For sale</span></div>
+    <div class="crow"><span>Type</span><span><i data-lucide=tag class=ic></i>️ For sale</span></div>
     ${l.tenure?`<div class="crow"><span>Tenure</span><span>${tenureLabels[l.tenure]||l.tenure}</span></div>`:''}
     ${l.finish_status?`<div class="crow"><span>Finish status</span><span>${finishLabels[l.finish_status]||l.finish_status}</span></div>`:''}
     <div class="crow"><span>EPC rating</span><span>${l.epc_rating?'Class '+l.epc_rating:'Not available yet'}</span></div>
     ${l.service_charge?`<div class="crow"><span>Annual service charge</span><span>€${l.service_charge}/year</span></div>`:''}
     ${l.permit_number?`<div class="crow"><span>Planning permit</span><span>${l.permit_number}</span></div>`:''}
-    ${l.sda?`<div class="crow"><span>Special Designated Area</span><span>✅ Yes — no AIP permit needed for foreign buyers</span></div>`:''}
+    ${l.sda?`<div class="crow"><span>Special Designated Area</span><span><i data-lucide=check-circle-2 class=ic></i> Yes — no AIP permit needed for foreign buyers</span></div>`:''}
     ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}`:`
     ${badge?`<div style="background:rgba(76,175,125,.1);color:#4CAF7D;border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.5rem">${badge}</div>`:''}
     ${ratingHtml}
     <div class="crow"><span>Type</span><span>${tl[l.type]||l.type}</span></div>
     <div class="crow"><span>Available from</span><span>${l.available_from?new Date(l.available_from).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Now'}</span></div>
     <div class="crow"><span>Deposit</span><span>${l.deposit?'€'+l.deposit:'None'}</span></div>
-    ${l.bills_situation?`<div class="crow"><span>Bills</span><span>${l.bills_situation==='included'?'✅ Included in rent':'❌ Lessee pays separately'}</span></div>`:''}
+    ${l.bills_situation?`<div class="crow"><span>Bills</span><span>${l.bills_situation==='included'?'<i data-lucide=check-circle-2 class=ic></i> Included in rent':'<i data-lucide=x-circle class=ic></i> Lessee pays separately'}</span></div>`:''}
     ${l.payment_due_day?`<div class="crow"><span>Rent due</span><span>${l.payment_due_day==='last'?'Last day of month':l.payment_due_day+' of the month'}</span></div>`:''}
     ${l.full_address?`<div class="crow"><span>Address</span><span>${l.full_address}</span></div>`:''}`;
 
@@ -1432,7 +1443,7 @@ function openFullscreen(src){
 }
 
 function findNotaire(){
-  toast('🔍 Opening partner notary directory...');
+  toast('<i data-lucide=search class=ic></i> Opening partner notary directory...');
   window.open('https://www.notarymalta.com','_blank');
 }
 
@@ -1492,7 +1503,7 @@ async function inviteCoTenants(listingId, coTenantEmails){
 
 async function requestVisitFromDetail(){
   if(!U){toast('Please sign in first');go('auth');return;}
-  if(!AL){toast('❌ Listing not loaded');return;}
+  if(!AL){toast('<i data-lucide=x-circle class=ic></i> Listing not loaded');return;}
 
   const missing=[];
   if(!P?.full_name)missing.push('Full name');
@@ -1501,7 +1512,7 @@ async function requestVisitFromDetail(){
   if(!P?.date_of_birth)missing.push('Date of birth');
   if(!P?.home_address)missing.push('Home address');
   if(missing.length>0){
-    toast('❌ Complete your profile before requesting a visit');
+    toast('<i data-lucide=x-circle class=ic></i> Complete your profile before requesting a visit');
     alert(`Please complete your profile first.\n\nMissing: ${missing.join(', ')}\n\nGo to your dashboard → Profile → fill in all fields → Save.`);
     return;
   }
@@ -1511,7 +1522,7 @@ async function requestVisitFromDetail(){
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
   modal.innerHTML=`
     <div style="background:white;border-radius:20px;padding:1.5rem;width:100%;max-width:400px">
-      <div style="font-size:1rem;font-weight:800;margin-bottom:1rem">📅 Request a visit</div>
+      <div style="font-size:1rem;font-weight:800;margin-bottom:1rem"><i data-lucide=calendar class=ic></i> Request a visit</div>
       <div style="font-size:.78rem;color:var(--stone);margin-bottom:1rem">${(AL.title||'This property').replace(/</g,'&lt;')}</div>
       <div class="fg2"><label>Preferred date</label><input class="fi" type="date" id="vr-date"></div>
       <div class="fg2"><label>Preferred time</label><input class="fi" type="time" id="vr-time" value="14:00"></div>
@@ -1525,9 +1536,9 @@ async function requestVisitFromDetail(){
   document.getElementById('vr-send-btn').onclick=async()=>{
     const visitDate=document.getElementById('vr-date')?.value;
     const visitTime=document.getElementById('vr-time')?.value||'14:00';
-    if(!visitDate){toast('⚠️ Please select a date');return;}
+    if(!visitDate){toast('<i data-lucide=alert-triangle class=ic></i>️ Please select a date');return;}
     const today=new Date();today.setHours(0,0,0,0);
-    if(new Date(visitDate)<today){toast('⚠️ Please select a future date');return;}
+    if(new Date(visitDate)<today){toast('<i data-lucide=alert-triangle class=ic></i>️ Please select a future date');return;}
 
     try{
       await sb.from('visits').insert({
@@ -1541,19 +1552,19 @@ async function requestVisitFromDetail(){
         zone:AL.zone||'',
         status:'awaiting_landlord'
       });
-    }catch(e){toast('❌ '+e.message);return;}
+    }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);return;}
 
     try{
       const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
       await sb.from('messages').insert({
         listing_id:AL.id,sender_id:'system',receiver_id:AL.landlord_id,
-        content:'📅 '+(P?.full_name||'A lessee')+' requested a visit\n\n'+(AL.title||'Property')+'\nDate: '+visitDateStr+' at '+visitTime+'\n\nCheck your visits page to confirm.',
+        content:'<i data-lucide=calendar class=ic></i> '+(P?.full_name||'A lessee')+' requested a visit\n\n'+(AL.title||'Property')+'\nDate: '+visitDateStr+' at '+visitTime+'\n\nCheck your visits page to confirm.',
         type:'visit_request'
       });
     }catch(e){}
 
     modal.remove();
-    toast('✅ Visit request sent! Check My Dashboard → My Visits.');
+    toast('<i data-lucide=check-circle-2 class=ic></i> Visit request sent! Check My Dashboard → My Visits.');
   };
 }
 
@@ -1571,7 +1582,7 @@ async function sendMsg(){
   if(!P?.date_of_birth)missingFields.push('Date of birth');
   if(!P?.home_address)missingFields.push('Home address');
   if(missingFields.length>0){
-    toast('❌ Complete your profile before contacting a lessor');
+    toast('<i data-lucide=x-circle class=ic></i> Complete your profile before contacting a lessor');
     alert(`Please complete your profile first.\n\nMissing: ${missingFields.join(', ')}\n\nGo to your dashboard → Profile → fill in all fields → Save.`);
     return;
   }
@@ -1582,9 +1593,9 @@ async function sendMsg(){
     const invited=await inviteCoTenants(AL.id, coTenantEmails);
     const notFound=invited.filter(i=>!i.found).map(i=>i.email);
     if(notFound.length){
-      setTimeout(()=>toast(`⚠️ ${notFound.length} co-lessee(s) don't have a RestMalta account yet — invite them to sign up.`),1000);
+      setTimeout(()=>toast(`<i data-lucide=alert-triangle class=ic></i>️ ${notFound.length} co-lessee(s) don't have a RestMalta account yet — invite them to sign up.`),1000);
     }
-    c+=`\n\n👥 Group visit — co-lessees: ${coTenantEmails.join(', ')}`;
+    c+=`\n\n<i data-lucide=users class=ic></i> Group visit — co-lessees: ${coTenantEmails.join(', ')}`;
   }
 
   const{error}=await sb.from('messages').insert({
@@ -1594,7 +1605,7 @@ async function sendMsg(){
     content:filterContactData(c) // masquer numéros/emails
   });
   if(error){toast('Error: '+error.message);return;}
-  toast('✅ Message sent!');
+  toast('<i data-lucide=check-circle-2 class=ic></i> Message sent!');
   document.getElementById('dmsg').value='';
   const vBtn=document.getElementById('visit-req-btn'),vHint=document.getElementById('visit-req-hint');
   if(vBtn){vBtn.style.display='flex';}
@@ -1605,11 +1616,11 @@ async function sendMsg(){
 function filterContactData(text){
   if(!text)return text;
   // Numéros maltais (+356 ou locaux)
-  text=text.replace(/(?:\+356|00356)?\s?[279]\d{3}\s?\d{4}/g,'[📵 Number hidden by RestMalta]');
+  text=text.replace(/(?:\+356|00356)?\s?[279]\d{3}\s?\d{4}/g,'[<i data-lucide=phone-off class=ic></i> Number hidden by RestMalta]');
   // Numéros internationaux
-  text=text.replace(/(\+\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g,'[📵 Number hidden by RestMalta]');
+  text=text.replace(/(\+\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g,'[<i data-lucide=phone-off class=ic></i> Number hidden by RestMalta]');
   // Emails
-  text=text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[📧 Email hidden by RestMalta]');
+  text=text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[<i data-lucide=mail class=ic></i> Email hidden by RestMalta]');
   // WhatsApp / Telegram
   text=text.replace(/whatsapp|telegram|signal|viber/gi,'[RestMalta chat only]');
   return text;
@@ -1617,7 +1628,7 @@ function filterContactData(text){
 
 async function requestLease(){
   // Lease is now generated by lessor from their dashboard
-  toast('📄 Lease signing is initiated by the lessor. They will send you a DocuSeal email to sign.');
+  toast('<i data-lucide=file-text class=ic></i> Lease signing is initiated by the lessor. They will send you a DocuSeal email to sign.');
 }
 
 function setT(el,t){
@@ -1670,10 +1681,10 @@ function setT(el,t){
   if(secAtt)secAtt.style.display=(isRoom||isSale)?'none':'block';
   if(secLease)secLease.style.display=(isRoom||isSale)?'none':'block';
   const infos={
-    short:'🏠 Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltese law. Cannot be renewed.',
-    long:'📅 Long-let only: minimum 1 year lease. You refuse short-term rentals.',
-    room_rental:'🔑 Room rental: written owner consent required. Housing Authority registration is your responsibility.',
-    for_sale:'🏷️ For sale: your listing stays online for €2/week, billed automatically after publishing. Cancel anytime.'
+    short:'<i data-lucide=home class=ic></i> Short-let: short-term rental (tourism, internship, expat). Max 6 months by Maltese law. Cannot be renewed.',
+    long:'<i data-lucide=calendar class=ic></i> Long-let only: minimum 1 year lease. You refuse short-term rentals.',
+    room_rental:'<i data-lucide=key class=ic></i> Room rental: written owner consent required. Housing Authority registration is your responsibility.',
+    for_sale:'<i data-lucide=tag class=ic></i>️ For sale: your listing stays online for €2/week, billed automatically after publishing. Cancel anytime.'
   };
   if(typeInfo)typeInfo.textContent=infos[t]||'';
 
@@ -1716,7 +1727,7 @@ function onAvailableFromChange(val){
 
 function chkPost(){
   if(!U){toast('Please sign in to post a listing');go('auth');return;}
-  if(P?.role!=='landlord'){toast('⚠️ You need a landlord account to post.');return;}
+  if(P?.role!=='landlord'){toast('<i data-lucide=alert-triangle class=ic></i>️ You need a landlord account to post.');return;}
 
   // Vérifier les champs essentiels du profil
   const missing=[];
@@ -1728,8 +1739,8 @@ function chkPost(){
   if(missing.length>0){
     // Afficher un message clair et rediriger vers le profil
     const msg=missing.length===1
-      ? `⚠️ Please complete your profile before posting — missing: ${missing[0]}`
-      : `⚠️ Please complete your profile before posting — ${missing.length} fields missing`;
+      ? `<i data-lucide=alert-triangle class=ic></i>️ Please complete your profile before posting — missing: ${missing[0]}`
+      : `<i data-lucide=alert-triangle class=ic></i>️ Please complete your profile before posting — ${missing.length} fields missing`;
 
     // Toast visible + modal de confirmation
     toast(msg);
@@ -1739,7 +1750,7 @@ function chkPost(){
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
     overlay.innerHTML=`
       <div style="background:var(--card,#1a1a1a);border-radius:16px;padding:2rem;max-width:360px;width:100%;text-align:center">
-        <div style="font-size:2.5rem;margin-bottom:.75rem">📋</div>
+        <div style="font-size:2.5rem;margin-bottom:.75rem"><i data-lucide=clipboard-list class=ic></i></div>
         <div style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Complete your profile first</div>
         <div style="font-size:.82rem;color:var(--td,#888);margin-bottom:1rem;line-height:1.5">To post a listing, RestMalta needs to verify your identity.<br><br>Missing: <strong style="color:var(--terra)">${missing.join(', ')}</strong></div>
         <button onclick="this.closest('[style*=fixed]').remove();window.location.href='/landlord-dashboard.html?tab=profile'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:10px;padding:.85rem;font-size:.95rem;font-weight:700;cursor:pointer">Complete my profile →</button>
@@ -1779,13 +1790,13 @@ function handlePhotos(files) {
   const previews = document.getElementById('photo-previews');
   Array.from(files).slice(0, 5 - uploadedPhotos.length).forEach(file => {
     if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) { toast('❌ File too large — max 5MB'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast('<i data-lucide=x-circle class=ic></i> File too large — max 5MB'); return; }
     uploadedPhotos.push(file);
     const reader = new FileReader();
     reader.onload = e => {
       const div = document.createElement('div');
       div.style.cssText = 'position:relative;width:80px;height:80px';
-      div.innerHTML = `<img src="${e.target.result}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--green)"><button onclick="removePhoto(this,${uploadedPhotos.length-1})" style="position:absolute;top:-6px;right:-6px;background:var(--terra);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>`;
+      div.innerHTML = `<img src="${e.target.result}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--green)"><button onclick="removePhoto(this,${uploadedPhotos.length-1})" style="position:absolute;top:-6px;right:-6px;background:var(--terra);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center"><i data-lucide=x class=ic></i></button>`;
       previews.appendChild(div);
       updatePhotoArea();
     };
@@ -1797,13 +1808,13 @@ function handlePhotos(files) {
 function handleVideo(input){
   const file=input.files?.[0];
   if(!file)return;
-  if(!file.type.startsWith('video/')){toast('❌ Please select a video file');input.value='';return;}
-  if(file.size>50*1024*1024){toast('❌ Video too large — max 50MB');input.value='';return;}
+  if(!file.type.startsWith('video/')){toast('<i data-lucide=x-circle class=ic></i> Please select a video file');input.value='';return;}
+  if(file.size>50*1024*1024){toast('<i data-lucide=x-circle class=ic></i> Video too large — max 50MB');input.value='';return;}
   const preview=document.getElementById('video-preview');
   preview.innerHTML=`<div style="display:flex;align-items:center;gap:.5rem;background:var(--warm);border-radius:8px;padding:.5rem .75rem">
-    <span style="font-size:1.2rem">🎥</span>
+    <span style="font-size:1.2rem"><i data-lucide=video class=ic></i></span>
     <span style="font-size:.8rem;color:var(--stone);flex:1">${file.name}</span>
-    <button onclick="removeVideo()" style="background:var(--terra);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:.7rem;cursor:pointer">✕</button>
+    <button onclick="removeVideo()" style="background:var(--terra);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:.7rem;cursor:pointer"><i data-lucide=x class=ic></i></button>
   </div>`;
 }
 
@@ -1825,7 +1836,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const file=this.files[0];
     if(!file)return;
     const url=URL.createObjectURL(file);
-    document.getElementById('video-preview').innerHTML=`<video src="${url}" controls style="width:100%;border-radius:8px;max-height:200px;margin-top:.5rem"></video><div style="font-size:.72rem;color:var(--stone-l);margin-top:.3rem">✅ ${file.name} · ${(file.size/1024/1024).toFixed(1)}MB</div>`;
+    document.getElementById('video-preview').innerHTML=`<video src="${url}" controls style="width:100%;border-radius:8px;max-height:200px;margin-top:.5rem"></video><div style="font-size:.72rem;color:var(--stone-l);margin-top:.3rem"><i data-lucide=check-circle-2 class=ic></i> ${file.name} · ${(file.size/1024/1024).toFixed(1)}MB</div>`;
   });
 
   // Ouvrir directement une annonce depuis #listing-ID
@@ -1841,13 +1852,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   const activateId=urlParams.get('activate_sale');
   if(activateId)setTimeout(()=>openSaleActivation(activateId),600);
   if(urlParams.get('sale_activated')){
-    setTimeout(()=>toast('✅ Your listing is now live on RestMalta!'),600);
+    setTimeout(()=>toast('<i data-lucide=check-circle-2 class=ic></i> Your listing is now live on RestMalta!'),600);
     window.history.replaceState({},'',window.location.pathname);
   }else if(urlParams.get('sale_cancelled')){
     setTimeout(()=>toast('Activation cancelled — you can try again anytime from the link in your email.'),600);
     window.history.replaceState({},'',window.location.pathname);
   }else if(urlParams.get('boost_activated')){
-    setTimeout(()=>toast('🔥 Boost activated! Your listing now shows at the top of search results.'),600);
+    setTimeout(()=>toast('<i data-lucide=flame class=ic></i> Boost activated! Your listing now shows at the top of search results.'),600);
     window.history.replaceState({},'',window.location.pathname);
   }else if(urlParams.get('boost_cancelled')){
     setTimeout(()=>toast('Boost payment cancelled — you can try again anytime from My Listings.'),600);
@@ -1857,23 +1868,23 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 async function openSaleActivation(listingId){
   const{data:l}=await sb.from('listings').select('id,title,zone,sale_price,price,landlord_email,sale_subscription_status').eq('id',listingId).maybeSingle();
-  if(!l){toast('❌ Listing not found');return;}
-  if(l.sale_subscription_status==='active'){toast('✅ This listing is already active');return;}
+  if(!l){toast('<i data-lucide=x-circle class=ic></i> Listing not found');return;}
+  if(l.sale_subscription_status==='active'){toast('<i data-lucide=check-circle-2 class=ic></i> This listing is already active');return;}
 
   const modal=document.createElement('div');
   modal.id='sale-activation-modal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
   modal.innerHTML=`
     <div style="background:white;border-radius:18px;padding:1.75rem;max-width:420px;width:100%">
-      <div style="font-size:2rem;margin-bottom:.5rem;text-align:center">🏷️</div>
+      <div style="font-size:2rem;margin-bottom:.5rem;text-align:center"><i data-lucide=tag class=ic></i>️</div>
       <div style="font-weight:800;font-size:1.1rem;margin-bottom:.3rem;text-align:center">Activate your listing</div>
       <div style="background:var(--sand);border-radius:10px;padding:.75rem 1rem;margin:1rem 0">
         <div style="font-weight:700">${l.title}</div>
-        <div style="font-size:.78rem;color:var(--stone-l)">📍 ${l.zone} · €${l.sale_price||l.price}</div>
+        <div style="font-size:.78rem;color:var(--stone-l)"><i data-lucide=map-pin class=ic></i> ${l.zone} · €${l.sale_price||l.price}</div>
       </div>
       <div style="font-size:.82rem;color:var(--stone);margin-bottom:1rem;line-height:1.6">Your listing stays online for <strong>€2/week</strong>, billed automatically. Cancel anytime — the listing goes offline the moment you do.</div>
       <div class="fg2"><label>Your email *</label><input class="fi" id="sale-act-email" type="email" value="${l.landlord_email||''}" placeholder="you@email.com"></div>
-      <button id="sale-act-btn" class="btn btn-p" style="width:100%;justify-content:center;margin-top:.5rem" onclick="this.disabled=true;confirmSaleActivation('${listingId}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate for €2/week →</button>
+      <button id="sale-act-btn" class="btn btn-p" style="width:100%;justify-content:center;margin-top:.5rem" onclick="this.disabled=true;confirmSaleActivation('${listingId}','${(l.title||'').replace(/'/g,"\\'")}')"><i data-lucide=credit-card class=ic></i> Activate for €2/week →</button>
       <button class="btn btn-s" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById('sale-activation-modal').remove()">Not now</button>
     </div>`;
   document.body.appendChild(modal);
@@ -1881,7 +1892,7 @@ async function openSaleActivation(listingId){
 
 async function confirmSaleActivation(listingId,listingTitle){
   const email=document.getElementById('sale-act-email')?.value.trim();
-  if(!email){toast('⚠️ Enter your email');return;}
+  if(!email){toast('<i data-lucide=alert-triangle class=ic></i>️ Enter your email');return;}
   const btn=document.getElementById('sale-act-btn');
   if(btn){btn.textContent='Redirecting to payment...';btn.disabled=true;}
   try{
@@ -1893,8 +1904,8 @@ async function confirmSaleActivation(listingId,listingTitle){
     if(!data.success)throw new Error(data.error||'Could not start subscription');
     window.location.href=data.checkout_url;
   }catch(e){
-    toast('❌ '+e.message);
-    if(btn){btn.textContent='💳 Activate for €2/week →';btn.disabled=false;}
+    toast('<i data-lucide=x-circle class=ic></i> '+e.message);
+    if(btn){btn.textContent='<i data-lucide=credit-card class=ic></i> Activate for €2/week →';btn.disabled=false;}
   }
 }
 
@@ -1925,7 +1936,7 @@ async function doPost(){
     document.getElementById('photo-upload-area').style.borderColor='var(--terra)';
     document.getElementById('photo-upload-area').style.boxShadow='0 0 0 3px rgba(201,85,58,.2)';
     document.getElementById('photo-upload-area').scrollIntoView({behavior:'smooth',block:'center'});
-    sA(err,'⚠️ At least 1 photo is required to publish your listing.');
+    sA(err,'<i data-lucide=alert-triangle class=ic></i>️ At least 1 photo is required to publish your listing.');
     return;
   }
 
@@ -2025,7 +2036,7 @@ async function doPost(){
       setTimeout(()=>{window.location.href='/landlord-dashboard.html';},2500);
     }
   }else{
-    sA(ok,"🎉 Listing published! It's now live on RestMalta.");
+    sA(ok,"<i data-lucide=party-popper class=ic></i> Listing published! It's now live on RestMalta.");
     updC();loadL();
     if(listing)offerBoostAfterPublish(listing.id,listing.title,listing.type);
     else setTimeout(()=>{window.location.href='/landlord-dashboard.html';},1800);
@@ -2041,10 +2052,10 @@ function offerBoostAfterPublish(listingId,listingTitle,listingType){
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
   modal.innerHTML=`
     <div style="background:white;border-radius:18px;padding:1.75rem;max-width:400px;width:100%;text-align:center">
-      <div style="font-size:2rem;margin-bottom:.5rem">🔥</div>
+      <div style="font-size:2rem;margin-bottom:.5rem"><i data-lucide=flame class=ic></i></div>
       <div style="font-weight:800;font-size:1.05rem;margin-bottom:.4rem">Want more eyes on your listing?</div>
       <div style="font-size:.82rem;color:var(--stone-l);margin-bottom:1.2rem;line-height:1.6">Boost "${listingTitle}" to the top of search results for <strong>${days} days</strong> — one-time payment of <strong>${price}</strong>.</div>
-      <button class="btn btn-p" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="startBoostPayment('${listingId}','${listingTitle.replace(/'/g,"\\'")}','${listingType}')">🔥 Boost for ${price} →</button>
+      <button class="btn btn-p" style="width:100%;justify-content:center;margin-bottom:.5rem" onclick="startBoostPayment('${listingId}','${listingTitle.replace(/'/g,"\\'")}','${listingType}')"><i data-lucide=flame class=ic></i> Boost for ${price} →</button>
       <button class="btn btn-s" style="width:100%;justify-content:center" onclick="window.location.href='/landlord-dashboard.html'">Maybe later — I'll do it from My Listings</button>
     </div>`;
   document.body.appendChild(modal);
@@ -2059,10 +2070,10 @@ async function loadDash(){
 
 async function loadML(){
   const w=document.getElementById('myl');
-  if(P?.role!=='landlord'){w.innerHTML='<div class="empty"><div class="emo">🏠</div><p>Switch to a landlord account to post and manage listings.</p></div>';return;}
+  if(P?.role!=='landlord'){w.innerHTML='<div class="empty"><div class="emo"><i data-lucide=home class=ic></i></div><p>Switch to a landlord account to post and manage listings.</p></div>';return;}
   const{data}=await sb.from('listings').select('*').eq('landlord_id',U.id).order('created_at',{ascending:false});
-  if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo">📋</div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
-  const ic={short:'🏠',room_rental:'🔑',long:'🏛️',for_sale:'🏷️'};
+  if(!data||data.length===0){w.innerHTML=`<div class="empty"><div class="emo"><i data-lucide=clipboard-list class=ic></i></div><p>No listings yet. Post your first flat and start receiving messages!</p><button class="btn btn-p" onclick="go('post')">Post my first listing →</button></div>`;return;}
+  const ic={short:'<i data-lucide=home class=ic></i>',room_rental:'<i data-lucide=key class=ic></i>',long:'<i data-lucide=landmark class=ic></i>️',for_sale:'<i data-lucide=tag class=ic></i>️'};
   w.innerHTML=data.map(l=>{
     const isSale=l.type==='for_sale';
     const pendingSale=isSale&&l.sale_subscription_status!=='active';
@@ -2070,21 +2081,21 @@ async function loadML(){
     const dotClass=pendingSale?'dg':l.active?'dg':'dr';
     const priceLabel=isSale?`€${l.sale_price||l.price}`:`€${l.price}/mo`;
     const isBoosted=l.boosted_until&&new Date(l.boosted_until).getTime()>Date.now();
-    const boostLabel=isBoosted?`🔥 Boosted until ${new Date(l.boosted_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:'';
-    const boostBtn=!pendingSale?(l.active?`<button class="btn btn-s btn-sm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPayment('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'🔥 Extend boost':'🚀 Boost'}</button>`:`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Activate the listing first — a paused listing doesn't show in search, so boosting it does nothing">🚀 Boost</button>`):'';
+    const boostLabel=isBoosted?`<i data-lucide=flame class=ic></i> Boosted until ${new Date(l.boosted_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:'';
+    const boostBtn=!pendingSale?(l.active?`<button class="btn btn-s btn-sm" style="${isBoosted?'':'background:linear-gradient(135deg,#F59E0B,#DC2626);color:white;border:none'}" onclick="startBoostPayment('${l.id}','${(l.title||'').replace(/'/g,"\\'")}','${l.type}')">${isBoosted?'<i data-lucide=flame class=ic></i> Extend boost':'<i data-lucide=rocket class=ic></i> Boost'}</button>`:`<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Activate the listing first — a paused listing doesn't show in search, so boosting it does nothing"><i data-lucide=rocket class=ic></i> Boost</button>`):'';
     const actionBtn=isSale
       ?(l.active
         ?`<button class="btn btn-s btn-sm" onclick="togL('${l.id}',true)">Pause</button>`
-        :`<button class="btn btn-p btn-sm" onclick="retrySaleActivation('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')">💳 Activate</button>`)
+        :`<button class="btn btn-p btn-sm" onclick="retrySaleActivation('${l.id}','${(l.title||'').replace(/'/g,"\\'")}')"><i data-lucide=credit-card class=ic></i> Activate</button>`)
       :`<button class="btn ${l.active?'btn-s':'btn-p'} btn-sm" onclick="togL('${l.id}',${l.active})">${l.active?'Pause':'Activate'}</button>`;
-    return`<div class="mlcard"><div class="mlico">${ic[l.type]||'🏠'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">${priceLabel} · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}${boostLabel?' · '+boostLabel:''}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}${boostBtn}</div></div>`;
+    return`<div class="mlcard"><div class="mlico">${ic[l.type]||'<i data-lucide=home class=ic></i>'}</div><div class="mli"><div class="mlt">${l.title}</div><div class="mls">${priceLabel} · ${l.zone} · <span class="dot ${dotClass}"></span>${statusLabel}${boostLabel?' · '+boostLabel:''}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-s btn-sm" onclick="openDet('${l.id}')">View</button>${actionBtn}${boostBtn}</div></div>`;
   }).join('');
 }
 
 async function startBoostPayment(listingId,listingTitle,listingType){
   const btn=event?.target;
   if(btn){if(btn.disabled)return;btn.disabled=true;btn.dataset.origText=btn.textContent;btn.textContent='⏳ Redirecting...';}
-  toast('💳 Redirecting to payment...');
+  toast('<i data-lucide=credit-card class=ic></i> Redirecting to payment...');
   try{
     const res=await fetch('/.netlify/functions/create-boost-payment',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -2094,8 +2105,8 @@ async function startBoostPayment(listingId,listingTitle,listingType){
     if(!data.success)throw new Error(data.error||'Could not start payment');
     window.location.href=data.checkout_url;
   }catch(e){
-    toast('❌ '+e.message);
-    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'🚀 Boost';}
+    toast('<i data-lucide=x-circle class=ic></i> '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'<i data-lucide=rocket class=ic></i> Boost';}
   }
 }
 
@@ -2111,23 +2122,23 @@ async function retrySaleActivation(listingId,listingTitle){
     if(!data.success)throw new Error(data.error||'Could not start subscription');
     window.location.href=data.checkout_url;
   }catch(e){
-    toast('❌ '+e.message);
-    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'💳 Activate';}
+    toast('<i data-lucide=x-circle class=ic></i> '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'<i data-lucide=credit-card class=ic></i> Activate';}
   }
 }
 
-async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'✅ Listing activated');loadML();updC();}
+async function togL(id,a){await sb.from('listings').update({active:!a}).eq('id',id);toast(a?'⏸ Listing paused':'<i data-lucide=check-circle-2 class=ic></i> Listing activated');loadML();updC();}
 
 async function loadMM(){
   const w=document.getElementById('mym'),field=P?.role==='landlord'?'receiver_id':'sender_id';
   const{data}=await sb.from('messages').select('*, listings(title,zone,id)').eq(field,U.id).order('created_at',{ascending:false});
-  if(!data||data.length===0){w.innerHTML='<div class="empty"><div class="emo">💬</div><p>No messages yet. When lessees contact you, they\'ll appear here.</p></div>';return;}
+  if(!data||data.length===0){w.innerHTML='<div class="empty"><div class="emo"><i data-lucide=message-circle class=ic></i></div><p>No messages yet. When lessees contact you, they\'ll appear here.</p></div>';return;}
   // Deduplicate by listing
   const seen=new Set();const unique=[];
   data.forEach(m=>{if(!seen.has(m.listing_id)){seen.add(m.listing_id);unique.push(m);}});
   w.innerHTML=unique.map(m=>{
     const otherId=P?.role==='landlord'?m.sender_id:m.receiver_id;
-    return`<div class="msgcard" onclick="opM('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.content.replace(/'/g,"\\'")}','${m.listings?.zone||''}','${m.listing_id||''}','${otherId||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.15rem">${m.listings?.title||'Listing'}</div><div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.2rem">📍 ${m.listings?.zone||''}</div><div class="mprev">${m.content}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0"><span class="mtime">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>${!m.read?'<div class="ubadge"></div>':''}</div></div>`;
+    return`<div class="msgcard" onclick="opM('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.content.replace(/'/g,"\\'")}','${m.listings?.zone||''}','${m.listing_id||''}','${otherId||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;margin-bottom:.15rem">${m.listings?.title||'Listing'}</div><div style="font-size:.72rem;color:var(--stone-l);margin-bottom:.2rem"><i data-lucide=map-pin class=ic></i> ${m.listings?.zone||''}</div><div class="mprev">${m.content}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0"><span class="mtime">${new Date(m.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>${!m.read?'<div class="ubadge"></div>':''}</div></div>`;
   }).join('');
 }
 
@@ -2143,7 +2154,7 @@ async function opM(id, title, content, zone, listingId, receiverId){
   currentChatListingId=listingId||null;
   currentChatReceiverId=receiverId||null;
   document.getElementById('moti').textContent=title;
-  document.getElementById('most').textContent='📍 '+zone;
+  document.getElementById('most').textContent='<i data-lucide=map-pin class=ic></i> '+zone;
   document.getElementById('mo').classList.add('open');
 
   // Load all messages for this conversation
@@ -2202,7 +2213,7 @@ async function sendR(){
     content:r,
     read:false
   });
-  if(error){toast('❌ Failed to send: '+error.message);return;}
+  if(error){toast('<i data-lucide=x-circle class=ic></i> Failed to send: '+error.message);return;}
 }
 
 function closeM(){
@@ -2211,8 +2222,8 @@ function closeM(){
 }
 function cmo(e){if(e.target.id==='mo')closeM();}
 
-function sA(el,msg){el.textContent=msg;el.style.display='block';}
-function toast(msg){const t=document.getElementById('t');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+function sA(el,msg){el.innerHTML=msg;el.style.display='block';}
+function toast(msg){const t=document.getElementById('t');t.innerHTML=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
 
 // ── Map view ─────────────────────────────────────────────────
 let mapInstance=null;
@@ -2261,12 +2272,12 @@ function toggleMapView(){
   if(mapView){
     mc.style.display='block';
     lg.style.display='none';
-    btn.textContent='📋 List view';
+    btn.textContent='<i data-lucide=clipboard-list class=ic></i> List view';
     initMap();
   } else {
     mc.style.display='none';
     lg.style.display='grid';
-    btn.textContent='🗺 Map view';
+    btn.textContent='<i data-lucide=map class=ic></i> Map view';
   }
 }
 
@@ -2295,7 +2306,7 @@ function initMap(){
       marker.bindPopup(`
         <div style="min-width:200px">
           <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">${l.title}</div>
-          <div style="font-size:.78rem;color:#666;margin-bottom:.5rem">📍 ${l.zone} · €${l.price}/mo</div>
+          <div style="font-size:.78rem;color:#666;margin-bottom:.5rem"><i data-lucide=map-pin class=ic></i> ${l.zone} · €${l.price}/mo</div>
           <button onclick="openDet('${l.id}')" style="background:#C9553A;color:white;border:none;padding:.4rem .8rem;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">View listing →</button>
         </div>
       `);
@@ -2328,7 +2339,7 @@ async function getLandlordResponseBadge(landlordId){
   if(!data||data.length<2)return null;
   // Check if landlord replied within 2h on average
   const replies=data.filter(m=>m.sender_id===landlordId);
-  if(replies.length>=3)return'⚡ Fast responder';
+  if(replies.length>=3)return'<i data-lucide=zap class=ic></i> Fast responder';
   return null;
 }
 
@@ -2336,15 +2347,15 @@ async function getLandlordResponseBadge(landlordId){
 async function uploadVisitVideo(input, listingId){
   const file=input.files[0];
   if(!file)return;
-  if(file.size>50*1024*1024){toast('❌ Video max 50MB');return;}
+  if(file.size>50*1024*1024){toast('<i data-lucide=x-circle class=ic></i> Video max 50MB');return;}
   toast('⏳ Uploading video...');
   const ext=file.name.split('.').pop();
   const path=`videos/${listingId}/visit.${ext}`;
   const{data,error}=await sb.storage.from('listings').upload(path,file,{upsert:true,cacheControl:'3600'});
-  if(error){toast('❌ '+error.message);return;}
+  if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);return;}
   const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
   await sb.from('listings').update({video_url:urlData.publicUrl}).eq('id',listingId);
-  toast('✅ Visit video uploaded!');
+  toast('<i data-lucide=check-circle-2 class=ic></i> Visit video uploaded!');
 }
 
 // ── Système de références lessee ─────────────────────────────
@@ -2361,27 +2372,13 @@ async function requestReference(){
       created_at:new Date().toISOString()
     });
   }catch(e){}
-  toast('✅ Reference request sent to '+email+'! They\'ll receive an email to confirm.');
+  toast('<i data-lucide=check-circle-2 class=ic></i> Reference request sent to '+email+'! They\'ll receive an email to confirm.');
 }
 
 // PWA Service Worker
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').then(reg=>{
-    // Vérifier activement s'il existe une version plus récente à chaque
-    // chargement — sans ça, un visiteur déjà installé peut rester bloqué
-    // sur une ancienne version du Service Worker (et donc de sa logique
-    // de cache) pendant longtemps avant que le navigateur ne pense à
-    // revérifier de lui-même.
     reg.update();
-  });
-  // Une fois qu'un nouveau Service Worker prend le contrôle (mise à jour
-  // détectée et activée), recharger automatiquement pour que le
-  // visiteur voie vraiment le nouveau contenu tout de suite.
-  let refreshing=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(refreshing)return;
-    refreshing=true;
-    window.location.reload();
   });
 }
 </script>
