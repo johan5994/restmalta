@@ -340,7 +340,7 @@ footer ul a:hover{color:var(--terra)}
   .dgrid{grid-template-columns:1fr}.frow{grid-template-columns:1fr}
 }
 </style>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
 <style>.ic{width:1em;height:1em;display:inline-block;vertical-align:-0.15em;stroke-width:2}</style>
 </head>
 <body>
@@ -812,10 +812,18 @@ footer ul a:hover{color:var(--terra)}
 // ── Icônes (remplace les émojis) — convertit automatiquement tout nouveau
 // <i data-lucide="..."> ajouté au DOM, y compris le contenu généré
 // dynamiquement en JS (innerHTML), pas seulement au chargement initial.
-if(window.lucide){
-  lucide.createIcons();
-  new MutationObserver(()=>{lucide.createIcons();}).observe(document.body,{childList:true,subtree:true});
+// Lucide se charge en "defer" (pour ne jamais bloquer l'affichage de la
+// page) — donc on attend qu'il soit vraiment prêt plutôt que de ne vérifier
+// qu'une seule fois immédiatement, ce qui le raterait systématiquement.
+function initLucideIcons(){
+  if(window.lucide){
+    lucide.createIcons();
+    new MutationObserver(()=>{lucide.createIcons();}).observe(document.body,{childList:true,subtree:true});
+  }else{
+    setTimeout(initLucideIcons,50);
+  }
 }
+initLucideIcons();
 </script>
 <script>
 // ── Supabase (DB only — no auth) ─────────────────────────────
