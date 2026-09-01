@@ -1035,7 +1035,7 @@ async function retrySaleActivationLL(listingId,listingTitle){
     window.location.href=data.checkout_url;
   }catch(e){
     toast('<i data-lucide=x-circle class=ic></i> '+e.message);
-    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'<i data-lucide=credit-card class=ic></i> Activate';}
+    if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.origText||'<i data-lucide=credit-card class=ic></i> Activate';}
   }
 }
 
@@ -1053,7 +1053,7 @@ async function startBoostPaymentLL(listingId,listingTitle,listingType){
     window.location.href=data.checkout_url;
   }catch(e){
     toast('<i data-lucide=x-circle class=ic></i> '+e.message);
-    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'<i data-lucide=rocket class=ic></i> Boost';}
+    if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.origText||'<i data-lucide=rocket class=ic></i> Boost';}
   }
 }
 
@@ -1521,7 +1521,7 @@ async function loadBookingDossier(booking){
         const paidDiv=document.createElement('div');
         paidDiv.id='paycheck-'+booking.id;
         paidDiv.style.cssText='margin-top:.4rem;font-size:.72rem;color:#4CAF7D;font-weight:600';
-        paidDiv.textContent='<i data-lucide=check-circle-2 class=ic></i> Payment confirmed';
+        paidDiv.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Payment confirmed';
         container.appendChild(paidDiv);
         // Vérifier que les paiements existent VRAIMENT — un ancien clic
         // fait avant certains correctifs a pu confirmer sans rien créer
@@ -1874,7 +1874,7 @@ let groupChatChannel=null;
 
 async function openGroupChatModal(groupId, listingTitle, tenantName){
   // Use the messages modal but for group context
-  document.getElementById('msg-chat-name').textContent=`<i data-lucide=users class=ic></i> Groupe — ${listingTitle}`;
+  document.getElementById('msg-chat-name').innerHTML=`<i data-lucide=users class=ic></i> Groupe — ${listingTitle}`;
   document.getElementById('msg-chat-sub').innerHTML=`<span style="font-size:.7rem;color:var(--td)">Lessee: ${tenantName} · Phone numbers hidden until lease is signed</span>`;
   activeChatListingId=groupId; // use groupId as channel key
   activeChatSenderId=null;
@@ -2987,7 +2987,7 @@ async function submitTicket(){
 async function loadReviews(){
   const{data}=await sb.from('reviews').select('*').eq('landlord_id',U.id).eq('type','tenant_to_landlord').order('created_at',{ascending:false});
   const avg=(data||[]).length?((data||[]).reduce((s,r)=>s+r.rating,0)/(data||[]).length).toFixed(1):0;
-  document.getElementById('my-rating').textContent=avg?`${avg} <i data-lucide=star class=ic></i>`:'—';
+  document.getElementById('my-rating').innerHTML=avg?`${avg} <i data-lucide=star class=ic></i>`:'—';
   document.getElementById('total-reviews').textContent=(data||[]).length;
   const wrap=document.getElementById('reviews-list');
   wrap.innerHTML=(data||[]).map(r=>`<div class="rcard"><div class="stars">${'<i data-lucide=star class=ic></i>'.repeat(r.rating)}</div><div style="font-size:.83rem;color:var(--tm);margin-top:.3rem;line-height:1.5">${r.comment||'No comment'}</div><div class="rauthor">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div></div>`).join('')||'<div class="empty"><div class="em"><i data-lucide=star class=ic></i></div><p>No reviews yet</p></div>';
@@ -3138,8 +3138,8 @@ function updateLLCompleteness(){
   const banner=document.getElementById('profile-incomplete-banner');
   const missingEl=document.getElementById('ll-missing-count');
   if(bar){bar.style.width=pct+'%';bar.style.background=pct===100?'var(--green)':pct>60?'var(--sea)':'var(--terra)';}
-  if(text)text.textContent=pct===100?'<i data-lucide=check-circle-2 class=ic></i> Profile complete!':pct+'% complete';
-  if(pctEl)pctEl.textContent=pct===100?'<i data-lucide=check-circle-2 class=ic></i> Complete':pct+'% complete';
+  if(text)text.innerHTML=pct===100?'<i data-lucide=check-circle-2 class=ic></i> Profile complete!':pct+'% complete';
+  if(pctEl)pctEl.innerHTML=pct===100?'<i data-lucide=check-circle-2 class=ic></i> Complete':pct+'% complete';
   if(banner){
     banner.style.display='block';
     banner.style.background=pct===100?'rgba(76,175,125,.08)':'rgba(212,168,71,.1)';
@@ -3193,7 +3193,7 @@ async function loadProfilee(){
   const llUploadSection = document.getElementById('ll-verify-upload-section');
   const llBadge = document.getElementById('verify-badge-ll');
   if(P.verified){
-    if(llBadge){llBadge.className='badge b-green';llBadge.textContent='<i data-lucide=check-circle-2 class=ic></i> Verified';}
+    if(llBadge){llBadge.className='badge b-green';llBadge.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Verified';}
     if(llUploadSection) llUploadSection.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem"><i data-lucide=check-circle-2 class=ic></i></div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.3rem">Identity Verified</div><div style="font-size:.78rem;color:var(--tm)">Your <i data-lucide=check-circle-2 class=ic></i> badge is visible on all your listings.</div></div>`;
   } else if(P.id_submitted){
     if(llBadge){llBadge.className='badge b-gold';llBadge.textContent='⏳ Pending';}
@@ -3241,7 +3241,7 @@ async function uploadDoc(input,type){
   const path=`docs/${U.id}/${type}.${ext}`;
   const{error}=await sb.storage.from('listings').upload(path,file,{upsert:true});
   if(error){toast('Upload error: '+error.message);return;}
-  document.getElementById('verify-badge-ll').textContent=`<i data-lucide=check-circle-2 class=ic></i> ${type==='id'?'ID':'Property proof'} uploaded`;
+  document.getElementById('verify-badge-ll').innerHTML=`<i data-lucide=check-circle-2 class=ic></i> ${type==='id'?'ID':'Property proof'} uploaded`;
   document.getElementById('verify-badge-ll').className='badge b-gold';
   toast(`<i data-lucide=check-circle-2 class=ic></i> ${type==='id'?'ID':'Property proof'} uploaded!`);
 }
@@ -3490,7 +3490,7 @@ function openSigningDocLL(embedSrc,title,bookingId){
     header.innerHTML='<div style="font-weight:700;font-size:.9rem"><i data-lucide=pen-line class=ic></i>️ '+(title||'Document')+'</div>';
     const closeBtn=document.createElement('button');
     closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-    closeBtn.textContent='<i data-lucide=x class=ic></i>';
+    closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
     closeBtn.onclick=()=>{modal.remove();refreshCurrentBookingView();};
     header.appendChild(closeBtn);
     const body=document.createElement('div');
@@ -3506,7 +3506,7 @@ function openSigningDocLL(embedSrc,title,bookingId){
         try{
           const{error:updErr}=await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId);
           if(updErr){
-            alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nBooking ID: '+bookingId);
+            alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nBooking ID: '+bookingId);
           }else{
             updateOk=true;
           }
@@ -3522,7 +3522,7 @@ function openSigningDocLL(embedSrc,title,bookingId){
               });
             }catch(e){}
           }
-        }catch(e){alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);}
+        }catch(e){alert('❌ Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);}
       }
       if(updateOk)toast('<i data-lucide=check-circle-2 class=ic></i> Signed!');
       setTimeout(()=>{modal.remove();refreshCurrentBookingView();},1500);
@@ -3557,7 +3557,7 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
     header.innerHTML='<div style="font-weight:700;font-size:.9rem"><i data-lucide=pen-line class=ic></i>️ '+title+'</div>';
     const closeBtn=document.createElement('button');
     closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-    closeBtn.textContent='<i data-lucide=x class=ic></i>';
+    closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
     closeBtn.onclick=()=>{modal.remove();refreshCurrentBookingView();};
     header.appendChild(closeBtn);
     const body=document.createElement('div');
@@ -3571,7 +3571,7 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
       try{
         const{error:updErr}=await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
         if(updErr){
-          alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nField: '+dbField+'\nBooking ID: '+bookingId);
+          alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nField: '+dbField+'\nBooking ID: '+bookingId);
         }else{
           updateOk=true;
         }
@@ -3582,7 +3582,7 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
           });
         }
       }catch(e){
-        alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);
+        alert('❌ Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);
       }
       if(updateOk)toast('<i data-lucide=check-circle-2 class=ic></i> Signed!');
       setTimeout(()=>{modal.remove();loadVisitsPage();},1200);
@@ -3606,7 +3606,7 @@ async function confirmFirstPaymentReceived(bookingId,received){
   try{
     if(received){
       const{data:bk}=await sb.from('bookings').select('*').eq('id',bookingId).single();
-      if(!bk){alert('<i data-lucide=x-circle class=ic></i> Booking not found');return;}
+      if(!bk){alert('❌ Booking not found');return;}
       const{error:confirmErr}=await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
       if(confirmErr){toast('<i data-lucide=x-circle class=ic></i> Could not save payment confirmation: '+confirmErr.message);return;}
 
@@ -3624,14 +3624,14 @@ async function confirmFirstPaymentReceived(bookingId,received){
       }
 
       if(!bk.tenant_id||!bk.listing_id||!bk.monthly_rent){
-        alert(`<i data-lucide=alert-triangle class=ic></i>️ Payments NOT created — missing data on this booking:\ntenant_id: ${bk.tenant_id?'<i data-lucide=check class=ic></i>':'<i data-lucide=x-circle class=ic></i> MISSING'}\nlisting_id: ${bk.listing_id?'<i data-lucide=check class=ic></i>':'<i data-lucide=x-circle class=ic></i> MISSING'}\nmonthly_rent: ${bk.monthly_rent?'<i data-lucide=check class=ic></i> '+bk.monthly_rent:'<i data-lucide=x-circle class=ic></i> MISSING'}`);
+        alert(`⚠️ Payments NOT created — missing data on this booking:\ntenant_id: ${bk.tenant_id?'✓':'❌ MISSING'}\nlisting_id: ${bk.listing_id?'✓':'❌ MISSING'}\nmonthly_rent: ${bk.monthly_rent?'✓ '+bk.monthly_rent:'❌ MISSING'}`);
       }else{
         const today=new Date().toISOString().split('T')[0];
         const{error:payErr}=await sb.from('payments').insert([
           {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'deposit',status:'paid',paid_at:new Date().toISOString(),due_date:today},
           {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
         ]);
-        if(payErr)alert('<i data-lucide=x-circle class=ic></i> Payments insert FAILED:\n'+payErr.message+'\n\nCode: '+(payErr.code||'—')+'\nDetails: '+(payErr.details||'—'));
+        if(payErr)alert('❌ Payments insert FAILED:\n'+payErr.message+'\n\nCode: '+(payErr.code||'—')+'\nDetails: '+(payErr.details||'—'));
       }
 
       if(bk.tenant_id){
@@ -3648,7 +3648,7 @@ async function confirmFirstPaymentReceived(bookingId,received){
       toast('<i data-lucide=alert-triangle class=ic></i>️ Lessee notified — payment not received.');
     }
     loadVisitsPage();
-  }catch(e){alert('<i data-lucide=x-circle class=ic></i> '+e.message);}
+  }catch(e){alert('❌ '+e.message);}
 }
 
 async function retryCreatePaymentRecords(bookingId){
@@ -3842,7 +3842,7 @@ function checkPaymentRecordsExist(bookingId){
         if(span)span.outerHTML='<span style="font-size:.78rem"><i data-lucide=check-circle-2 class=ic></i> Payment confirmed</span>';
         const actionSlot=el.querySelectorAll('span,button')[1]||el.lastElementChild;
         const btn=document.createElement('button');
-        btn.textContent='<i data-lucide=alert-triangle class=ic></i>️ Fix missing records';
+        btn.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Fix missing records';
         btn.style.cssText='background:var(--gold);color:#1a1a1a;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer';
         btn.onclick=()=>retryCreatePaymentRecords(bookingId);
         if(actionSlot&&actionSlot.parentElement===el)el.replaceChild(btn,actionSlot);
@@ -4266,7 +4266,7 @@ async function uploadEdlPhotos(files,key,previewElId){
         placeholder.innerHTML=`<img src="${urlData.publicUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--green)">`;
       }
     }catch(e){
-      if(placeholder){placeholder.textContent='<i data-lucide=x-circle class=ic></i>';placeholder.title=e.message;}
+      if(placeholder){placeholder.innerHTML='<i data-lucide=x-circle class=ic></i>';placeholder.title=e.message;}
     }
   }
 }
@@ -4428,13 +4428,13 @@ async function generateAnnexAndCompleteLL(){
     });
     if(!edlLandlordEmbed||!edlTenantEmbed){
       console.error('[generate-edl] No sign links in response — message:',edlData?.message);
-      if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error — check console');}
+      if(statusEl){statusEl.style.color='var(--gold)';statusEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error — check console');}
     }else{
-      if(statusEl)statusEl.textContent='<i data-lucide=check-circle-2 class=ic></i> Annex A (EDL) sent for signature!';
+      if(statusEl)statusEl.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Annex A (EDL) sent for signature!';
     }
   }catch(e){
     console.error('[generate-edl] request failed:',e.message);
-    if(statusEl){statusEl.style.color='var(--terra)';statusEl.textContent='<i data-lucide=x-circle class=ic></i> Could not generate EDL: '+e.message;}
+    if(statusEl){statusEl.style.color='var(--terra)';statusEl.innerHTML='<i data-lucide=x-circle class=ic></i> Could not generate EDL: '+e.message;}
   }
 
   try{
@@ -4516,17 +4516,17 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
 }
 
 async function confirmTenantPayment(bookingId){
-  if(!bookingId){alert('<i data-lucide=x-circle class=ic></i> No booking ID');return;}
+  if(!bookingId){alert('❌ No booking ID');return;}
   if(!confirm('Confirm you received the lessee\'s payment?')) return;
 
   let bk=null,listing=null,tenantProfile=null;
-  try{const{data:b,error:bErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();bk=b;if(bErr)alert('<i data-lucide=alert-triangle class=ic></i>️ Could not load booking: '+bErr.message);}catch(e){alert('<i data-lucide=alert-triangle class=ic></i>️ Booking load error: '+e.message);}
-  if(!bk){alert('<i data-lucide=x-circle class=ic></i> No booking found for this ID — stopping.');return;}
+  try{const{data:b,error:bErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();bk=b;if(bErr)alert('⚠️ Could not load booking: '+bErr.message);}catch(e){alert('⚠️ Booking load error: '+e.message);}
+  if(!bk){alert('❌ No booking found for this ID — stopping.');return;}
   if(bk?.listing_id){try{const{data:l}=await sb.from('listings').select('title').eq('id',bk.listing_id).single();listing=l;}catch(e){}}
   if(bk?.tenant_id){try{const{data:t}=await sb.from('profiles').select('full_name,email').eq('clerk_id',bk.tenant_id).maybeSingle();tenantProfile=t;}catch(e){}}
 
   const{error}=await sb.from('bookings').update({first_payment_confirmed:true}).eq('id',bookingId);
-  if(error){alert('<i data-lucide=x-circle class=ic></i> '+error.message);return;}
+  if(error){alert('❌ '+error.message);return;}
 
   // Prochaine échéance — règle maltaise : le loyer se paie chaque mois à la
   // date d'entrée dans le logement, pas le 1er du mois.
@@ -4541,7 +4541,7 @@ async function confirmTenantPayment(bookingId){
   // 'first_rent' (not 'rent') so it doesn't get counted twice by the
   // recurring monthly schedule generator, which only looks for 'rent'.
   if(!bk?.tenant_id||!bk?.listing_id||!bk?.monthly_rent){
-    alert(`<i data-lucide=alert-triangle class=ic></i>️ Payments NOT created — missing data on this booking:\ntenant_id: ${bk?.tenant_id?'<i data-lucide=check class=ic></i> '+bk.tenant_id:'<i data-lucide=x-circle class=ic></i> MISSING'}\nlisting_id: ${bk?.listing_id?'<i data-lucide=check class=ic></i> '+bk.listing_id:'<i data-lucide=x-circle class=ic></i> MISSING'}\nmonthly_rent: ${bk?.monthly_rent?'<i data-lucide=check class=ic></i> '+bk.monthly_rent:'<i data-lucide=x-circle class=ic></i> MISSING'}`);
+    alert(`⚠️ Payments NOT created — missing data on this booking:\ntenant_id: ${bk?.tenant_id?'✓ '+bk.tenant_id:'❌ MISSING'}\nlisting_id: ${bk?.listing_id?'✓ '+bk.listing_id:'❌ MISSING'}\nmonthly_rent: ${bk?.monthly_rent?'✓ '+bk.monthly_rent:'❌ MISSING'}`);
   }else{
     const today=new Date().toISOString().split('T')[0];
     const{error:payErr}=await sb.from('payments').insert([
@@ -4549,7 +4549,7 @@ async function confirmTenantPayment(bookingId){
       {landlord_id:U.id,tenant_id:bk.tenant_id,listing_id:bk.listing_id,booking_id:bk.id,tenant_name:tenantProfile?.full_name||null,tenant_email:tenantProfile?.email||null,amount:bk.monthly_rent,type:'first_rent',status:'paid',paid_at:new Date().toISOString(),due_date:today}
     ]);
     if(payErr){
-      alert('<i data-lucide=x-circle class=ic></i> Payments insert FAILED:\n'+payErr.message+'\n\nCode: '+(payErr.code||'—')+'\nDetails: '+(payErr.details||'—'));
+      alert('❌ Payments insert FAILED:\n'+payErr.message+'\n\nCode: '+(payErr.code||'—')+'\nDetails: '+(payErr.details||'—'));
     }
   }
 
@@ -4805,11 +4805,11 @@ function toggleTheme(){
   const isLight=document.documentElement.classList.toggle('light');
   localStorage.setItem('rm_theme',isLight?'light':'dark');
   const btn=document.getElementById('theme-toggle-btn');
-  if(btn)btn.textContent=isLight?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
+  if(btn)btn.innerHTML=isLight?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
 }
 (function syncThemeIcon(){
   const btn=document.getElementById('theme-toggle-btn');
-  if(btn)btn.textContent=document.documentElement.classList.contains('light')?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
+  if(btn)btn.innerHTML=document.documentElement.classList.contains('light')?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
 })();
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
