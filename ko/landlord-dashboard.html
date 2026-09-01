@@ -187,6 +187,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
 @media(max-width:900px){
   .fi,.fsel,.fta{font-size:16px!important}
+  /* Toutes les grilles en style inline (2, 3, 4 colonnes, etc.) —
+     jamais couvertes par les classes nommées ci-dessous, puisqu'un
+     style en ligne ne peut être écrasé que via son propre attribut. */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns:2fr 1fr"],
+  [style*="grid-template-columns:280px 1fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:1fr 1fr 1fr"],
+  [style*="grid-template-columns:repeat(3,1fr)"],
+  [style*="grid-template-columns:repeat(2,1fr)"]{grid-template-columns:1fr 1fr!important}
+  [style*="grid-template-columns:280px 1fr"]{height:auto!important;max-height:80vh}
   .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.5)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}#mob-menu{display:inline-flex}}
 </style>
   <script src="https://js.stripe.com/v3/"></script>
