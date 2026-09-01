@@ -180,7 +180,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .crm-av{width:34px;height:34px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:var(--agencybright);flex-shrink:0}
 
 /* ── Responsive note ── */
-@media(max-width:900px){.kgrid{grid-template-columns:1fr 1fr}.main{margin-left:0}.sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0)!important;box-shadow:0 0 40px rgba(0,0,0,.5)}#mob-menu{display:inline-flex}}
+@media(max-width:900px){.fi,.fsel{font-size:16px!important}.kgrid{grid-template-columns:1fr 1fr}.main{margin-left:0}.sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0)!important;box-shadow:0 0 40px rgba(0,0,0,.5)}#mob-menu{display:inline-flex}}
 #mob-menu{display:none}
 .tag-suggest{cursor:pointer;text-decoration:underline;color:var(--agencybright)}
 .tag-suggest:hover{opacity:.8}
@@ -332,7 +332,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
     </div>
     <div id="listings-team-toggle"></div>
-    <div id="listings-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+    <div id="listings-list" style="overflow-x:auto"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
 
     <!-- Modal: Edit Listing -->
     <div id="edit-listing-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target.id==='edit-listing-modal')closeEditListing()">
@@ -571,7 +571,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   <div class="page" id="page-visits">
     <div style="margin-bottom:1.2rem"><div style="font-size:1rem;font-weight:700"><i data-lucide=calendar class=ic></i> All Visits</div></div>
     <div id="visits-team-toggle"></div>
-    <div id="visits-list"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
+    <div id="visits-list" style="overflow-x:auto"><div style="text-align:center;padding:2rem"><div class="sp"></div></div></div>
   </div>
 
   <!-- ── MESSAGES ── -->
@@ -2353,7 +2353,7 @@ async function proposeVisitFromAgencyChat(){
       const dateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:`<i data-lucide=calendar class=ic></i> The agency proposes a visit:\n\n${listing?.title||'Property'}\n<i data-lucide=calendar class=ic></i> ${dateStr} at ${visitTime}\n\nGo to My Visits to confirm or decline.`,
+        content:`📅 The agency proposes a visit:\n\n${listing?.title||'Property'}\n📅 ${dateStr} at ${visitTime}\n\nGo to My Visits to confirm or decline.`,
         type:'visit_proposed'
       });
       modal.remove();
@@ -2501,7 +2501,7 @@ async function agencyEdlDecision(bookingId,agencyHandles){
     await sb.from('bookings').update({edl_handler:agencyHandles?'agency':'agency_declined'}).eq('id',bookingId);
     if(!agencyHandles&&bk){
       // Prévenir lessor et lessee — à eux de décider qui s'en charge, un seul des deux
-      const notif='<i data-lucide=clipboard-list class=ic></i> Your agency won\'t be handling the move-in inventory (EDL) for this property directly. Would you like to use RestMalta\'s move-in inventory feature yourself? Check your dashboard to decide.';
+      const notif='📋 Your agency won\'t be handling the move-in inventory (EDL) for this property directly. Would you like to use RestMalta\'s move-in inventory feature yourself? Check your dashboard to decide.';
       try{if(bk.landlord_id)await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.landlord_id,content:notif,type:'edl_handler_ask'});}catch(e){}
       try{if(bk.tenant_id)await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,content:notif,type:'edl_handler_ask'});}catch(e){}
     }
@@ -2546,8 +2546,8 @@ async function openAgencyEDL(bookingId){
       <div style="background:rgba(99,102,241,.85);color:white;padding:.45rem .75rem;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;justify-content:space-between" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
         <span>${room.name}</span><span>▼</span>
       </div>
-      <div style="padding:.4rem">
-        <table style="width:100%;border-collapse:collapse;font-size:.7rem">
+      <div style="padding:.4rem;overflow-x:auto">
+        <table style="width:100%;min-width:480px;border-collapse:collapse;font-size:.7rem">
           <thead><tr style="background:var(--s2)">
             <th style="padding:.3rem .4rem;text-align:left;border-bottom:1px solid var(--b);width:40%">Item</th>
             <th style="padding:.3rem .4rem;text-align:center;border-bottom:1px solid var(--b);width:12%">Qty</th>
@@ -2845,7 +2845,7 @@ async function sendEdlViaRestMalta(realLandlordId,bookingId,signLink,propertyTit
     await sb.from('bookings').update({landlord_id:realLandlordId}).eq('id',bookingId).is('landlord_id',null);
     const{error}=await sb.from('messages').insert({
       listing_id:booking?.listing_id||null,sender_id:'system',receiver_id:realLandlordId,
-      content:`<i data-lucide=clipboard-list class=ic></i> The move-in inventory (EDL) for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
+      content:`📋 The move-in inventory (EDL) for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
       type:'edl_ready_agency'
     });
     if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}return;}
@@ -2915,7 +2915,7 @@ async function generateAnnexAndCompleteAg(){
     }).eq('id',ctx.bookingId);
   }catch(e){}
 
-  const notif='<i data-lucide=clipboard-list class=ic></i> The move-in inventory (EDL) has been generated and sent for signature.\n\n<i data-lucide=file-edit class=ic></i> The lessor should register the lease at rentregistration.mt within 30 days.';
+  const notif='📋 The move-in inventory (EDL) has been generated and sent for signature.\n\n📄 The lessor should register the lease at rentregistration.mt within 30 days.';
   try{if(ctx.booking?.tenant_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.tenant_id,content:notif,type:'edl_generated'});}catch(e){}
   try{if(ctx.booking?.landlord_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.landlord_id,content:notif,type:'edl_generated'});}catch(e){}
 
@@ -3269,7 +3269,7 @@ async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn)
   try{
     const{error}=await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:realLandlordId,
-      content:'<i data-lucide=upload class=ic></i> Your agency wants your opinion on a candidate:\n\n'+dossierText,
+      content:' Your agency wants your opinion on a candidate:\n\n'+dossierText,
       type:'candidate_review'
     });
     if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}return;}
@@ -3312,7 +3312,7 @@ async function agencyConfirmPaymentReceived(bookingId){
     if(bk.tenant_id){
       await sb.from('messages').insert({
         listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-        content:'<i data-lucide=check-circle-2 class=ic></i> Your agency confirmed receiving your payment!\n\nEverything is set for your move-in — you\'ll be contacted for the entry inventory.',
+        content:'✅ Your agency confirmed receiving your payment!\n\nEverything is set for your move-in — you\'ll be contacted for the entry inventory.',
         type:'payment_confirmed'
       });
     }
@@ -3664,7 +3664,7 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
     if(tenantId){
       try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:'<i data-lucide=party-popper class=ic></i> Your application has been accepted!\n\n<i data-lucide=file-text class=ic></i> Your lease is ready to sign — check your visits page.'+paymentNote,
+        content:'🎉 Your application has been accepted!\n\n📄 Your lease is ready to sign — check your visits page.'+paymentNote,
         type:'booking_accepted'
       });}catch(e){}
     }
@@ -3674,7 +3674,7 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
     if(listing?.landlord_has_account&&listing?.real_landlord_id&&lessorEmbed){
       try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:listing.real_landlord_id,
-        content:`<i data-lucide=file-text class=ic></i> A new lease is ready for your signature!\n\n<i data-lucide=home class=ic></i> ${listing.title||'Your property'}\n\nYour agency accepted a lessee application — go to "Agency-managed" in your dashboard to review and sign.`,
+        content:`📄 A new lease is ready for your signature!\n\n🏠 ${listing.title||'Your property'}\n\nYour agency accepted a lessee application — go to "Agency-managed" in your dashboard to review and sign.`,
         type:'lease_ready_agency'
       });}catch(e){}
     }
@@ -3723,7 +3723,7 @@ async function sendLeaseViaRestMalta(realLandlordId,bookingId,signLink,propertyT
     const{data:booking}=await sb.from('bookings').select('listing_id').eq('id',bookingId).maybeSingle();
     const{error}=await sb.from('messages').insert({
       listing_id:booking?.listing_id||null,sender_id:'system',receiver_id:realLandlordId,
-      content:`<i data-lucide=file-text class=ic></i> The lease for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
+      content:`📄 The lease for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
       type:'lease_ready_agency'
     });
     if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}return;}
@@ -3915,7 +3915,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:tenantId,
           visit_id:visitId,
-          content:'<i data-lucide=check-circle-2 class=ic></i> Your visit is confirmed! Your agency has confirmed the date.',
+          content:'✅ Your visit is confirmed! Your agency has confirmed the date.',
           type:'visit_confirmed'
         });
       }
@@ -3926,7 +3926,7 @@ async function agencyConfirmVisit(visitId,response,listingId,tenantId){
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:tenantId,
           visit_id:visitId,
-          content:'<i data-lucide=x-circle class=ic></i> Sorry, we can\'t make this visit date work. Please suggest another date or contact us to reschedule.',
+          content:'❌ Sorry, we can\'t make this visit date work. Please suggest another date or contact us to reschedule.',
           type:'visit_declined'
         });
       }
