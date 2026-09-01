@@ -291,7 +291,7 @@ footer ul a:hover{color:var(--terra)}
 .empty .emo{font-size:3rem;margin-bottom:1rem}
 .empty p{font-size:.9rem;margin-bottom:1.5rem;line-height:1.6}
 
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--deep);color:white;padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;left:1.5rem;max-width:400px;margin-left:auto;background:var(--deep);color:white;padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .toast.show{transform:translateY(0);opacity:1}
 
 
@@ -301,6 +301,10 @@ footer ul a:hover{color:var(--terra)}
 .promo-banner-close:hover{background:rgba(255,255,255,.35)}
 
 @media(max-width:768px){
+  .fi,.fsel,.fta{font-size:16px!important}
+  #map-container{height:320px!important}
+  .dphoto-main{height:240px!important}
+  .dphoto-nav{width:40px!important;height:40px!important}
   .deposit-grid{grid-template-columns:1fr 1fr!important}
   body{overflow-x:hidden!important}
   *{max-width:100vw}
@@ -327,8 +331,11 @@ footer ul a:hover{color:var(--terra)}
   .nav-links{display:none!important}
   .nav-act{gap:.4rem!important}
   .nav-act span{display:none!important}
-  .nav-act .btn-sm{padding:.4rem .65rem!important;font-size:.72rem!important}
+  .nav-act .btn-sm{padding:.4rem .65rem!important;font-size:.72rem!important;min-height:44px}
   .deposit-grid{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:1200px) and (min-width:901px){
+  .lgrid{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:900px){
   nav{padding:1rem 1.5rem}.nav-links{display:none}
@@ -1578,7 +1585,7 @@ async function requestVisitFromDetail(){
       const visitDateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
       await sb.from('messages').insert({
         listing_id:AL.id,sender_id:'system',receiver_id:AL.landlord_id,
-        content:'<i data-lucide=calendar class=ic></i> '+(P?.full_name||'A lessee')+' requested a visit\n\n'+(AL.title||'Property')+'\nDate: '+visitDateStr+' at '+visitTime+'\n\nCheck your visits page to confirm.',
+        content:'📅 '+(P?.full_name||'A lessee')+' requested a visit\n\n'+(AL.title||'Property')+'\nDate: '+visitDateStr+' at '+visitTime+'\n\nCheck your visits page to confirm.',
         type:'visit_request'
       });
     }catch(e){}
