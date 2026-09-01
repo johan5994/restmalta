@@ -2592,7 +2592,7 @@ async function uploadTnEdlPhotos(files,key,previewElId){
       const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
       window._tnEdlPhotos[key].push({path,url:urlData.publicUrl,name:file.name});
       if(placeholder){placeholder.style.background='';placeholder.textContent='';placeholder.innerHTML=`<img src="${urlData.publicUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--green)">`;}
-    }catch(e){if(placeholder){placeholder.textContent='<i data-lucide=x-circle class=ic></i>';placeholder.title=e.message;}}
+    }catch(e){if(placeholder){placeholder.innerHTML='<i data-lucide=x-circle class=ic></i>';placeholder.title=e.message;}}
   }
 }
 
@@ -2671,12 +2671,12 @@ async function generateAnnexAndCompleteTn(){
       return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
     });
     if(!edlLandlordEmbed||!edlTenantEmbed){
-      if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error');}
+      if(statusEl){statusEl.style.color='var(--gold)';statusEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error');}
     }else{
-      if(statusEl)statusEl.textContent='<i data-lucide=check-circle-2 class=ic></i> Annex A (EDL) sent for signature!';
+      if(statusEl)statusEl.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Annex A (EDL) sent for signature!';
     }
   }catch(e){
-    if(statusEl){statusEl.style.color='var(--terra)';statusEl.textContent='<i data-lucide=x-circle class=ic></i> Could not generate EDL: '+e.message;}
+    if(statusEl){statusEl.style.color='var(--terra)';statusEl.innerHTML='<i data-lucide=x-circle class=ic></i> Could not generate EDL: '+e.message;}
   }
 
   try{
@@ -2785,7 +2785,7 @@ function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
   header.innerHTML='<div style="font-weight:700;font-size:.9rem">'+title+'</div>';
   const closeBtn=document.createElement('button');
   closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-  closeBtn.textContent='<i data-lucide=x class=ic></i>';
+  closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
   closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
   header.appendChild(closeBtn);
   const body=document.createElement('div');
@@ -2799,7 +2799,7 @@ function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
     try{
       const{error:updErr}=await sb.from('bookings').update({[dbField]:true}).eq('id',bookingId);
       if(updErr){
-        alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nField: '+dbField+'\nBooking ID: '+bookingId);
+        alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message+'\n\nField: '+dbField+'\nBooking ID: '+bookingId);
       }else{
         updateOk=true;
       }
@@ -2808,7 +2808,7 @@ function doOpenTenantDoc(bk,bookingId,embedSrc,dbField,title){
         content:'<i data-lucide=check-circle-2 class=ic></i> Lessee signed '+title,type:dbField
       });
     }catch(e){
-      alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);
+      alert('❌ Signed on DocuSeal, but an error occurred updating RestMalta:\n'+e.message);
     }
     if(updateOk)toast('<i data-lucide=check-circle-2 class=ic></i> Signed!');
     modal.remove();
@@ -2870,7 +2870,7 @@ function doOpenTenantLeaseDoc(bk,bookingId){
   header.innerHTML='<div style="font-weight:700;font-size:.9rem"><i data-lucide=pen-line class=ic></i>️ Lease Agreement</div>';
   const closeBtn=document.createElement('button');
   closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-  closeBtn.textContent='<i data-lucide=x class=ic></i>';
+  closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
   closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
   header.appendChild(closeBtn);
   const body=document.createElement('div');
@@ -2922,7 +2922,7 @@ function doOpenCoTenantLeaseDoc(bk,bookingId,myEntry){
   header.innerHTML='<div style="font-weight:700;font-size:.9rem"><i data-lucide=pen-line class=ic></i>️ Lease Agreement (co-lessee)</div>';
   const closeBtn=document.createElement('button');
   closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-  closeBtn.textContent='<i data-lucide=x class=ic></i>';
+  closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
   closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
   header.appendChild(closeBtn);
   const body2=document.createElement('div');
@@ -2984,7 +2984,7 @@ function doOpenCoTenantEdlDoc(bk,bookingId,myEntry){
   header.innerHTML='<div style="font-weight:700;font-size:.9rem"><i data-lucide=pen-line class=ic></i>️ Move-in Inventory (co-lessee)</div>';
   const closeBtn=document.createElement('button');
   closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-  closeBtn.textContent='<i data-lucide=x class=ic></i>';
+  closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
   closeBtn.onclick=()=>{modal.remove();loadTenantVisits();};
   header.appendChild(closeBtn);
   const body2=document.createElement('div');
@@ -3062,7 +3062,7 @@ async function cancelVisit(visitId, agentId, listingId){
   const isLate=hoursUntil<24;
 
   if(isLate){
-    if(!confirm('<i data-lucide=alert-triangle class=ic></i>️ Less than 24 hours before the visit. The landlord/agent will be notified this is a late cancellation. Continue cancelling?'))return;
+    if(!confirm('⚠️ Less than 24 hours before the visit. The landlord/agent will be notified this is a late cancellation. Continue cancelling?'))return;
   }
 
   // Marquer la visite comme annulée
@@ -3310,7 +3310,7 @@ async function declarePaid(paymentId){
   }).eq('id',paymentId);
   if(error){
     toast('<i data-lucide=x-circle class=ic></i> '+error.message);
-    if(btn){btn.disabled=false;btn.textContent='<i data-lucide=check-circle-2 class=ic></i> I paid →';}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=check-circle-2 class=ic></i> I paid →';}
     return;
   }
   toast('<i data-lucide=check-circle-2 class=ic></i> Payment declared! Your lessor will confirm receipt.');
@@ -3556,7 +3556,7 @@ async function loadProfilee(){
   const badge = document.getElementById('verify-badge');
   if(P.verified){
     badge.className='badge b-green';
-    badge.textContent='<i data-lucide=check-circle-2 class=ic></i> Verified';
+    badge.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Verified';
     if(uploadSection) uploadSection.innerHTML=`
       <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center">
         <div style="font-size:2rem;margin-bottom:.4rem"><i data-lucide=check-circle-2 class=ic></i></div>
@@ -3624,7 +3624,7 @@ async function uploadID(input){
   const ext=file.name.split('.').pop();
   const{error}=await sb.storage.from('listings').upload('ids/'+U.id+'/id.'+ext,file,{upsert:true});
   if(error){toast('Upload error: '+error.message);return;}
-  document.getElementById('id-status').textContent='<i data-lucide=check-circle-2 class=ic></i> Document uploaded — pending review';
+  document.getElementById('id-status').innerHTML='<i data-lucide=check-circle-2 class=ic></i> Document uploaded — pending review';
   document.getElementById('id-status').style.color='var(--green)';
   toast('<i data-lucide=check-circle-2 class=ic></i> ID uploaded successfully!');
 }
@@ -3671,7 +3671,7 @@ async function loadAlertState(){
   }
   const isActive=data?.active;
   if(badge){badge.textContent=isActive?'Active':'Not active';badge.className='badge '+(isActive?'b-green':'b-dim');}
-  if(activateBtn)activateBtn.textContent=isActive?'<i data-lucide=bell class=ic></i> Update alert →':'<i data-lucide=bell class=ic></i> Activate alert →';
+  if(activateBtn)activateBtn.innerHTML=isActive?'<i data-lucide=bell class=ic></i> Update alert →':'<i data-lucide=bell class=ic></i> Activate alert →';
   if(deactivateBtn)deactivateBtn.style.display=isActive?'block':'none';
   if(document.getElementById('nb-alerts'))document.getElementById('nb-alerts').style.display=isActive?'inline':'none';
   loadAlertMatches(data);
@@ -3748,7 +3748,7 @@ async function uploadSupportDoc(input,docType){
     checkDossierComplete();
     toast('<i data-lucide=check-circle-2 class=ic></i> Document uploaded!');
   }catch(e){
-    if(statusEl){statusEl.textContent='<i data-lucide=x-circle class=ic></i> Upload failed';statusEl.style.color='var(--red)';}
+    if(statusEl){statusEl.innerHTML='<i data-lucide=x-circle class=ic></i> Upload failed';statusEl.style.color='var(--red)';}
     toast('<i data-lucide=x-circle class=ic></i> '+e.message);
   }
 }
@@ -3869,7 +3869,7 @@ async function loadDossierStatus(){
           ? `<a href="${urlData.signedUrl}" target="_blank"><img src="${urlData.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem"></a><div style="font-size:.65rem;color:var(--green);margin-top:.1rem"><i data-lucide=check-circle-2 class=ic></i> Uploaded</div>`
           : `<a href="${urlData.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> View document →</a>`;
       } else {
-        statusEl.textContent='<i data-lucide=check-circle-2 class=ic></i> Uploaded';
+        statusEl.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Uploaded';
         statusEl.style.color='var(--green)';
       }
     }
@@ -3895,7 +3895,7 @@ async function loadDossierStatus(){
           ? `<a href="${urlData.signedUrl}" target="_blank"><img src="${urlData.signedUrl}" style="height:40px;border-radius:4px;border:1px solid var(--green);cursor:pointer;margin-top:.2rem"></a><div style="font-size:.65rem;color:var(--green);margin-top:.1rem"><i data-lucide=check-circle-2 class=ic></i> Uploaded</div>`
           : `<a href="${urlData.signedUrl}" target="_blank" style="color:var(--green);font-size:.72rem;text-decoration:none;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> View document →</a>`;
       } else {
-        statusEl.textContent='<i data-lucide=check-circle-2 class=ic></i> Uploaded';
+        statusEl.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Uploaded';
         statusEl.style.color='var(--green)';
       }
     }
@@ -4084,12 +4084,12 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
         <div id="nego-card-status">${hasCard?`<div style="font-size:.72rem;color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem"><i data-lucide=alert-triangle class=ic></i>️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=credit-card class=ic></i> Register my card first →</button>`}</div>
       </div>
       <div style="display:flex;gap:.5rem" id="nego-action-buttons">
-        ${hasCard?`<button id="nego-submit-btn" onclick="this.disabled=true;this.textContent='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed"><i data-lucide=rocket class=ic></i> Send application →</button>`}
+        ${hasCard?`<button id="nego-submit-btn" onclick="this.disabled=true;this.innerHTML='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed"><i data-lucide=rocket class=ic></i> Send application →</button>`}
       `:`
         <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem"><i data-lucide=building-2 class=ic></i> This property is managed by an agency — you pay nothing to RestMalta to apply.</div>
       </div>
       <div style="display:flex;gap:.5rem" id="nego-action-buttons">
-        <button id="nego-submit-btn" onclick="this.disabled=true;this.textContent='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>
+        <button id="nego-submit-btn" onclick="this.disabled=true;this.innerHTML='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>
       `}
         <button onclick="document.getElementById('nego-modal-overlay').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
       </div>
@@ -4158,7 +4158,7 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
           sendBtn.style.background='#E05A3A';
           sendBtn.style.color='white';
           sendBtn.style.cursor='pointer';
-          sendBtn.textContent='<i data-lucide=rocket class=ic></i> Send application →';
+          sendBtn.innerHTML='<i data-lucide=rocket class=ic></i> Send application →';
           sendBtn.onclick=()=>submitNegotiationAndRent(listingId,listingTitle,contactId,price);
         }
       }
@@ -4167,7 +4167,7 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
         showNegotiationModal(listingId,listingTitle,contactId,price);
       }
     }catch(e){
-      errEl.textContent='<i data-lucide=x-circle class=ic></i> '+e.message;
+      errEl.innerHTML='<i data-lucide=x-circle class=ic></i> '+e.message;
       errEl.style.display='block';
       btn.textContent='Save card →';btn.disabled=false;
     }
@@ -4472,9 +4472,9 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
         sp('visits',document.querySelector('.ni[onclick*="visits"]'));
         loadTenantVisits();
       }catch(e){
-        errEl.textContent='<i data-lucide=x-circle class=ic></i> '+e.message;
+        errEl.innerHTML='<i data-lucide=x-circle class=ic></i> '+e.message;
         errEl.style.display='block';
-        btn.textContent='<i data-lucide=rocket class=ic></i> Send application →';btn.disabled=false;
+        btn.innerHTML='<i data-lucide=rocket class=ic></i> Send application →';btn.disabled=false;
       }
     };
     return;
@@ -4563,9 +4563,9 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
       sp('visits',document.querySelector('.ni[onclick*="visits"]'));
       loadTenantVisits();
     }catch(e){
-      errEl.textContent='<i data-lucide=x-circle class=ic></i> '+e.message;
+      errEl.innerHTML='<i data-lucide=x-circle class=ic></i> '+e.message;
       errEl.style.display='block';
-      btn.textContent='<i data-lucide=lock class=ic></i> Pay & send application →';btn.disabled=false;
+      btn.innerHTML='<i data-lucide=lock class=ic></i> Pay & send application →';btn.disabled=false;
     }
   };
 }
@@ -4648,11 +4648,11 @@ function toggleTheme(){
   const isDark=document.documentElement.classList.toggle('dark');
   localStorage.setItem('rm_theme',isDark?'dark':'light');
   const btn=document.getElementById('theme-toggle-btn');
-  if(btn)btn.textContent=isDark?'<i data-lucide=moon class=ic></i>':'<i data-lucide=sun class=ic></i>️';
+  if(btn)btn.innerHTML=isDark?'<i data-lucide=moon class=ic></i>':'<i data-lucide=sun class=ic></i>️';
 }
 (function syncThemeIcon(){
   const btn=document.getElementById('theme-toggle-btn');
-  if(btn)btn.textContent=document.documentElement.classList.contains('dark')?'<i data-lucide=moon class=ic></i>':'<i data-lucide=sun class=ic></i>️';
+  if(btn)btn.innerHTML=document.documentElement.classList.contains('dark')?'<i data-lucide=moon class=ic></i>':'<i data-lucide=sun class=ic></i>️';
 })();
 
 async function doLogout(){await clerk.signOut();window.location.href='/';}
