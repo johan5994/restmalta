@@ -1154,7 +1154,7 @@ async function submitAgencyAdminPin(isFirstTime){
   const pin=document.getElementById('pin-input')?.value.trim();
   const errEl=document.getElementById('pin-error');
   if(!pin||!/^\d{4}$/.test(pin)){
-    if(errEl){errEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Enter exactly 4 digits';errEl.style.display='block';}
+    if(errEl){errEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Enter exactly 4 digits';errEl.style.display='block';}
     return;
   }
 
@@ -1167,7 +1167,7 @@ async function submitAgencyAdminPin(isFirstTime){
     selectTeamMember('__AGENCY_ADMIN__');
   }else{
     if(agencyData?.admin_pin!==pin){
-      if(errEl){errEl.textContent='<i data-lucide=x-circle class=ic></i> Wrong PIN — try again';errEl.style.display='block';}
+      if(errEl){errEl.innerHTML='<i data-lucide=x-circle class=ic></i> Wrong PIN — try again';errEl.style.display='block';}
       document.getElementById('pin-input').value='';
       return;
     }
@@ -1201,7 +1201,7 @@ async function submitTeamMemberPin(name,isFirstTime){
   const pin=document.getElementById('pin-input')?.value.trim();
   const errEl=document.getElementById('pin-error');
   if(!pin||!/^\d{4}$/.test(pin)){
-    if(errEl){errEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Enter exactly 4 digits';errEl.style.display='block';}
+    if(errEl){errEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Enter exactly 4 digits';errEl.style.display='block';}
     return;
   }
 
@@ -1218,7 +1218,7 @@ async function submitTeamMemberPin(name,isFirstTime){
     selectTeamMember(name);
   }else{
     if(members[idx]?.pin!==pin){
-      if(errEl){errEl.textContent='<i data-lucide=x-circle class=ic></i> Wrong PIN — try again';errEl.style.display='block';}
+      if(errEl){errEl.innerHTML='<i data-lucide=x-circle class=ic></i> Wrong PIN — try again';errEl.style.display='block';}
       document.getElementById('pin-input').value='';
       return;
     }
@@ -1528,7 +1528,7 @@ async function deleteListing(id, title, btn){
   if(!confirm(`Delete listing "${title}"? This cannot be undone.`)) return;
   btn.textContent='⏳';
   const{error}=await sb.from('listings').delete().eq('id',id);
-  if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);btn.textContent='<i data-lucide=trash-2 class=ic></i>';return;}
+  if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);btn.innerHTML='<i data-lucide=trash-2 class=ic></i>';return;}
   toast('<i data-lucide=check-circle-2 class=ic></i> Listing deleted');
   loadListings();
 }
@@ -2084,7 +2084,7 @@ function renderCRM(searchQuery){
         </div>
       </div>
       <div style="display:flex;gap:.3rem;flex-shrink:0">
-        <button onclick="toggleCRMFavorite('${x.clerk_id}')" title="${isFav?'Remove from favourites':'Add to favourites'}" style="background:none;border:none;font-size:1rem;cursor:pointer;color:${isFav?'var(--gold)':'var(--td)'}">${isFav?'<i data-lucide=star class=ic></i>':'<i data-lucide=star class=ic></i>'}</button>
+        <button onclick="toggleCRMFavorite('${x.clerk_id}')" title="${isFav?'Remove from favourites':'Add to favourites'}" style="background:none;border:none;font-size:1rem;cursor:pointer;color:${isFav?'var(--gold)':'var(--td)'}"><i data-lucide=star class=ic style="${isFav?'fill:var(--gold)':''}"></i></button>
         <button onclick="hideCRMClient('${x.clerk_id}','${(x.full_name||'').replace(/'/g,"\\'")}')" title="Remove from CRM" style="background:none;border:none;font-size:.9rem;cursor:pointer;color:var(--td)"><i data-lucide=trash-2 class=ic></i>️</button>
       </div>
     </div>`;
@@ -2112,7 +2112,7 @@ function setAgencyMsgTab(tab,btn){
   });
   btn.classList.add('act');
   btn.style.background='var(--agencybright)';btn.style.color='white';btn.style.borderColor='var(--agencybright)';
-  document.getElementById('agency-messages-title').textContent=tab==='lessees'?'<i data-lucide=message-circle class=ic></i> Conversations with lessees':'<i data-lucide=home class=ic></i> Conversations with lessors';
+  document.getElementById('agency-messages-title').innerHTML=tab==='lessees'?'<i data-lucide=message-circle class=ic></i> Conversations with lessees':'<i data-lucide=home class=ic></i> Conversations with lessors';
   renderAgencyMessages();
 }
 
@@ -2723,7 +2723,7 @@ async function uploadAgEdlPhotos(files,key,previewElId){
       const{data:urlData}=sb.storage.from('listings').getPublicUrl(path);
       window._agEdlPhotos[key].push({path,url:urlData.publicUrl,name:file.name});
       if(placeholder){placeholder.style.background='';placeholder.textContent='';placeholder.innerHTML=`<img src="${urlData.publicUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--green)">`;}
-    }catch(e){if(placeholder){placeholder.textContent='<i data-lucide=x-circle class=ic></i>';placeholder.title=e.message;}}
+    }catch(e){if(placeholder){placeholder.innerHTML='<i data-lucide=x-circle class=ic></i>';placeholder.title=e.message;}}
   }
 }
 
@@ -2786,7 +2786,7 @@ function signAsAgencyLessorEdl(bookingId,embedSrc){
   header.innerHTML='<div style="font-weight:700;font-size:.9rem"><i data-lucide=pen-line class=ic></i>️ Sign EDL on behalf of the lessor</div>';
   const closeBtn=document.createElement('button');
   closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-  closeBtn.textContent='<i data-lucide=x class=ic></i>';
+  closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
   closeBtn.onclick=()=>{modal.remove();loadRentedPropertiesAgency();};
   header.appendChild(closeBtn);
   const body=document.createElement('div');
@@ -2810,18 +2810,18 @@ async function checkAndSendEdlViaRestMalta(bookingId,signLink,propertyTitle,btn)
   const email=document.getElementById('edl-rm-email')?.value.trim();
   const resultEl=document.getElementById('edl-rm-result');
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Enter a valid email first';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Enter a valid email first';}
     return;
   }
   if(btn){btn.disabled=true;btn.textContent='⏳...';}
   try{
     const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
-    if(btn){btn.disabled=false;btn.textContent='<i data-lucide=search class=ic></i> Check';}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
     if(profile){
       resultEl.style.color='#4CAF7D';
       resultEl.innerHTML=`<i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'this account'}</strong> — `;
       const sendBtn=document.createElement('button');
-      sendBtn.textContent='<i data-lucide=smartphone class=ic></i> Send';
+      sendBtn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';
       sendBtn.style.cssText='background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem';
       sendBtn.onclick=()=>sendEdlViaRestMalta(profile.clerk_id,bookingId,signLink,propertyTitle,sendBtn);
       resultEl.appendChild(sendBtn);
@@ -2830,8 +2830,8 @@ async function checkAndSendEdlViaRestMalta(bookingId,signLink,propertyTitle,btn)
       resultEl.textContent='No RestMalta account found for this email.';
     }
   }catch(e){
-    if(btn){btn.disabled=false;btn.textContent='<i data-lucide=search class=ic></i> Check';}
-    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='<i data-lucide=x-circle class=ic></i> '+e.message;}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.innerHTML='<i data-lucide=x-circle class=ic></i> '+e.message;}
   }
 }
 
@@ -2848,10 +2848,10 @@ async function sendEdlViaRestMalta(realLandlordId,bookingId,signLink,propertyTit
       content:`<i data-lucide=clipboard-list class=ic></i> The move-in inventory (EDL) for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
       type:'edl_ready_agency'
     });
-    if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.textContent='<i data-lucide=smartphone class=ic></i> Send';}return;}
+    if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}return;}
     if(btn){btn.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Sent';}
     toast('<i data-lucide=check-circle-2 class=ic></i> Sent to the owner on RestMalta');
-  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);if(btn){btn.disabled=false;btn.textContent='<i data-lucide=smartphone class=ic></i> Send';}}
+  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}}
 }
 
 async function generateAnnexAndCompleteAg(){
@@ -2891,12 +2891,12 @@ async function generateAnnexAndCompleteAg(){
       return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
     });
     if(!edlLandlordEmbed||!edlTenantEmbed){
-      if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error');}
+      if(statusEl){statusEl.style.color='var(--gold)';statusEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ EDL saved, but signature links failed: '+(edlData?.message||'unknown error');}
     }else{
-      if(statusEl)statusEl.textContent='<i data-lucide=check-circle-2 class=ic></i> Annex A (EDL) sent for signature!';
+      if(statusEl)statusEl.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Annex A (EDL) sent for signature!';
     }
   }catch(e){
-    if(statusEl){statusEl.style.color='var(--terra)';statusEl.textContent='<i data-lucide=x-circle class=ic></i> Could not generate EDL: '+e.message;}
+    if(statusEl){statusEl.style.color='var(--terra)';statusEl.innerHTML='<i data-lucide=x-circle class=ic></i> Could not generate EDL: '+e.message;}
   }
 
   try{
@@ -3239,18 +3239,18 @@ async function checkAndSendDossierViaRestMalta(listingId,dossierText,btn){
   const email=document.getElementById('dossier-rm-email')?.value.trim();
   const resultEl=document.getElementById('dossier-rm-result');
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Enter a valid email first';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Enter a valid email first';}
     return;
   }
   if(btn){btn.disabled=true;btn.textContent='⏳...';}
   try{
     const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
-    if(btn){btn.disabled=false;btn.textContent='<i data-lucide=search class=ic></i> Check';}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
     if(profile){
       resultEl.style.color='#4CAF7D';
       resultEl.innerHTML=`<i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'this account'}</strong> — `;
       const sendBtn=document.createElement('button');
-      sendBtn.textContent='<i data-lucide=smartphone class=ic></i> Send';
+      sendBtn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';
       sendBtn.style.cssText='background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem';
       sendBtn.onclick=()=>sendDossierViaRestMalta(profile.clerk_id,listingId,dossierText,sendBtn);
       resultEl.appendChild(sendBtn);
@@ -3259,8 +3259,8 @@ async function checkAndSendDossierViaRestMalta(listingId,dossierText,btn){
       resultEl.textContent='No RestMalta account found for this email.';
     }
   }catch(e){
-    if(btn){btn.disabled=false;btn.textContent='<i data-lucide=search class=ic></i> Check';}
-    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='<i data-lucide=x-circle class=ic></i> '+e.message;}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.innerHTML='<i data-lucide=x-circle class=ic></i> '+e.message;}
   }
 }
 
@@ -3272,10 +3272,10 @@ async function sendDossierViaRestMalta(realLandlordId,listingId,dossierText,btn)
       content:'<i data-lucide=upload class=ic></i> Your agency wants your opinion on a candidate:\n\n'+dossierText,
       type:'candidate_review'
     });
-    if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.textContent='<i data-lucide=smartphone class=ic></i> Send';}return;}
+    if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}return;}
     if(btn){btn.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Sent';}
     toast('<i data-lucide=check-circle-2 class=ic></i> Sent to the owner on RestMalta');
-  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);if(btn){btn.disabled=false;btn.textContent='<i data-lucide=smartphone class=ic></i> Send';}}
+  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}}
 }
 
 async function viewTenantDocAgency(path){
@@ -3290,13 +3290,13 @@ async function agencyConfirmPaymentReceived(bookingId){
   if(!confirm('Confirm the deposit + first month\'s rent have been received?'))return;
   try{
     const{data:bk,error:fetchErr}=await sb.from('bookings').select('*').eq('id',bookingId).single();
-    if(fetchErr||!bk){alert('<i data-lucide=x-circle class=ic></i> Could not load booking: '+(fetchErr?.message||'not found'));return;}
+    if(fetchErr||!bk){alert('❌ Could not load booking: '+(fetchErr?.message||'not found'));return;}
 
     const{error:updErr}=await sb.from('bookings').update({
       first_payment_confirmed:true,
       first_payment_sent:true
     }).eq('id',bookingId);
-    if(updErr){alert('<i data-lucide=x-circle class=ic></i> Could not confirm payment:\n\n'+updErr.message+'\n\nCode: '+(updErr.code||'—'));return;}
+    if(updErr){alert('❌ Could not confirm payment:\n\n'+updErr.message+'\n\nCode: '+(updErr.code||'—'));return;}
 
     if(bk.tenant_id&&bk.listing_id&&bk.monthly_rent){
       let lessee=null;
@@ -3318,7 +3318,7 @@ async function agencyConfirmPaymentReceived(bookingId){
     }
     toast('<i data-lucide=check-circle-2 class=ic></i> Payment confirmed! Ready for move-in.');
     loadApplications();
-  }catch(e){alert('<i data-lucide=x-circle class=ic></i> '+e.message);}
+  }catch(e){alert('❌ '+e.message);}
 }
 
 async function declineApplicationAgency(bookingId,listingId,tenantId){
@@ -3464,7 +3464,7 @@ async function saveManualLandlordEdit(){
     }).eq('id',_ownerLinkListingId).select();
     if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);return;}
     if(!data||!data.length){
-      alert('<i data-lucide=x-circle class=ic></i> The save reported no error but changed 0 rows.\n\nThis usually means a database security rule (RLS) is silently blocking updates on the listings table — ask the developer to check/disable RLS on it.');
+      alert('❌ The save reported no error but changed 0 rows.\n\nThis usually means a database security rule (RLS) is silently blocking updates on the listings table — ask the developer to check/disable RLS on it.');
       return;
     }
     toast('<i data-lucide=check-circle-2 class=ic></i> Owner details updated — you can now retry generating the lease');
@@ -3575,7 +3575,7 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
     // DocuSeal exige un email valide pour chaque signataire — vérifier avant
     // d'appeler l'API plutôt que d'envoyer une requête vouée à l'échec
     if(!landlordInfo?.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(landlordInfo.email)){
-      alert('<i data-lucide=x-circle class=ic></i> Cannot generate the lease: the lessor\'s email is missing or invalid.\n\nGo to My Listings → ⋮ menu → Owner account, and add a valid email for this property\'s owner before trying again.');
+      alert('❌ Cannot generate the lease: the lessor\'s email is missing or invalid.\n\nGo to My Listings → ⋮ menu → Owner account, and add a valid email for this property\'s owner before trying again.');
       toast('<i data-lucide=x-circle class=ic></i> Missing or invalid lessor email');
       return;
     }
@@ -3614,17 +3614,17 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
             return{role:cl.role,embed_src:cl.embed_src,email:cl.email,name:match?.name||'',tenant_id:match?.tenant_id||null,signed:false};
           });
           if(!lessorEmbed&&!lesseeEmbed){
-            alert('<i data-lucide=alert-triangle class=ic></i>️ The lease function ran but returned no signing links.\n\nMessage: '+(docuData.message||'—')+'\n\nThis usually means DocuSeal isn\'t configured correctly on the server (missing API key) — check the Netlify environment variables.');
+            alert('⚠️ The lease function ran but returned no signing links.\n\nMessage: '+(docuData.message||'—')+'\n\nThis usually means DocuSeal isn\'t configured correctly on the server (missing API key) — check the Netlify environment variables.');
           }
         }else{
-          alert('<i data-lucide=x-circle class=ic></i> Lease generation failed:\n\n'+(docuData.error||docuData.message||'Unknown error'));
+          alert('❌ Lease generation failed:\n\n'+(docuData.error||docuData.message||'Unknown error'));
         }
       }else{
         const errText=await docuRes.text().catch(()=>'');
-        alert('<i data-lucide=x-circle class=ic></i> The lease server function returned an error (HTTP '+docuRes.status+'):\n\n'+errText.slice(0,300));
+        alert('❌ The lease server function returned an error (HTTP '+docuRes.status+'):\n\n'+errText.slice(0,300));
       }
     }catch(e){
-      alert('<i data-lucide=x-circle class=ic></i> Could not reach the lease generation function:\n\n'+e.message);
+      alert('❌ Could not reach the lease generation function:\n\n'+e.message);
     }
 
     // landlord_id reste l'agence pour la messagerie/le suivi au quotidien —
@@ -3647,11 +3647,11 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
       no_landlord_tracking:!(listing?.landlord_has_account)
     }).eq('id',bookingId).select();
     if(updateErr){
-      alert('<i data-lucide=x-circle class=ic></i> Could not accept the booking:\n\n'+updateErr.message+'\n\nCode: '+(updateErr.code||'—')+'\nDetails: '+(updateErr.details||'—'));
+      alert('❌ Could not accept the booking:\n\n'+updateErr.message+'\n\nCode: '+(updateErr.code||'—')+'\nDetails: '+(updateErr.details||'—'));
       return;
     }
     if(!updateResult||!updateResult.length){
-      alert('<i data-lucide=x-circle class=ic></i> The booking update reported no error but changed 0 rows.\n\nThis usually means a database security rule (RLS) is silently blocking updates on the bookings table — ask the developer to check/disable RLS on it.\n\nBooking ID: '+bookingId);
+      alert('❌ The booking update reported no error but changed 0 rows.\n\nThis usually means a database security rule (RLS) is silently blocking updates on the bookings table — ask the developer to check/disable RLS on it.\n\nBooking ID: '+bookingId);
       return;
     }
 
@@ -3692,18 +3692,18 @@ async function checkAndSendLeaseViaRestMalta(bookingId,signLink,propertyTitle,bt
   const email=document.getElementById('lease-rm-email')?.value.trim();
   const resultEl=document.getElementById('lease-rm-result');
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Enter a valid email first';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Enter a valid email first';}
     return;
   }
   if(btn){btn.disabled=true;btn.textContent='⏳...';}
   try{
     const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
-    if(btn){btn.disabled=false;btn.textContent='<i data-lucide=search class=ic></i> Check';}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
     if(profile){
       resultEl.style.color='#4CAF7D';
       resultEl.innerHTML=`<i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'this account'}</strong> — `;
       const sendBtn=document.createElement('button');
-      sendBtn.textContent='<i data-lucide=smartphone class=ic></i> Send';
+      sendBtn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';
       sendBtn.style.cssText='background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem';
       sendBtn.onclick=()=>sendLeaseViaRestMalta(profile.clerk_id,bookingId,signLink,propertyTitle,sendBtn);
       resultEl.appendChild(sendBtn);
@@ -3712,8 +3712,8 @@ async function checkAndSendLeaseViaRestMalta(bookingId,signLink,propertyTitle,bt
       resultEl.textContent='No RestMalta account found for this email.';
     }
   }catch(e){
-    if(btn){btn.disabled=false;btn.textContent='<i data-lucide=search class=ic></i> Check';}
-    if(resultEl){resultEl.style.color='var(--red)';resultEl.textContent='<i data-lucide=x-circle class=ic></i> '+e.message;}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
+    if(resultEl){resultEl.style.color='var(--red)';resultEl.innerHTML='<i data-lucide=x-circle class=ic></i> '+e.message;}
   }
 }
 
@@ -3726,10 +3726,10 @@ async function sendLeaseViaRestMalta(realLandlordId,bookingId,signLink,propertyT
       content:`<i data-lucide=file-text class=ic></i> The lease for ${propertyTitle} is ready for your signature!\n\n${signLink}`,
       type:'lease_ready_agency'
     });
-    if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.textContent='<i data-lucide=smartphone class=ic></i> Send';}return;}
+    if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}return;}
     if(btn){btn.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Sent';}
     toast('<i data-lucide=check-circle-2 class=ic></i> Sent to the owner on RestMalta');
-  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);if(btn){btn.disabled=false;btn.textContent='<i data-lucide=smartphone class=ic></i> Send';}}
+  }catch(e){toast('<i data-lucide=x-circle class=ic></i> '+e.message);if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';}}
 }
 
 function showLeaseSigningOptionsScreen(bookingId,signLink,landlordEmail,propertyTitle,landlordPhone){
@@ -3774,7 +3774,7 @@ function signAsAgencyLessor(bookingId,embedSrc){
     header.innerHTML='<div style="font-weight:700;font-size:.9rem"><i data-lucide=pen-line class=ic></i>️ Sign lease on behalf of the lessor</div>';
     const closeBtn=document.createElement('button');
     closeBtn.style.cssText='background:none;border:none;color:var(--txt);font-size:1.2rem;cursor:pointer';
-    closeBtn.textContent='<i data-lucide=x class=ic></i>';
+    closeBtn.innerHTML='<i data-lucide=x class=ic></i>';
     closeBtn.onclick=()=>{modal.remove();loadApplications();};
     header.appendChild(closeBtn);
     const body=document.createElement('div');
@@ -3788,13 +3788,13 @@ function signAsAgencyLessor(bookingId,embedSrc){
       try{
         const{data:updData,error:updErr}=await sb.from('bookings').update({lease_signed_landlord:true}).eq('id',bookingId).select();
         if(updErr){
-          alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message);
+          alert('❌ Signed on DocuSeal, but could not update status in RestMalta:\n'+updErr.message);
         }else if(!updData||!updData.length){
-          alert('<i data-lucide=x-circle class=ic></i> Signed on DocuSeal, but the status update affected 0 rows in RestMalta.\n\nThis usually means a database security rule (RLS) is silently blocking this update — ask the developer to check/disable RLS on the bookings table.\n\nBooking ID: '+bookingId);
+          alert('❌ Signed on DocuSeal, but the status update affected 0 rows in RestMalta.\n\nThis usually means a database security rule (RLS) is silently blocking this update — ask the developer to check/disable RLS on the bookings table.\n\nBooking ID: '+bookingId);
         }else{
           updateOk=true;
         }
-      }catch(e){alert('<i data-lucide=x-circle class=ic></i> '+e.message);}
+      }catch(e){alert('❌ '+e.message);}
       if(updateOk)toast('<i data-lucide=check-circle-2 class=ic></i> Signed as authorized representative!');
       setTimeout(()=>{modal.remove();loadApplications();},1200);
     });
@@ -4041,11 +4041,11 @@ function toggleTheme(){
   const isLight=document.documentElement.classList.toggle('light');
   localStorage.setItem('rm_theme',isLight?'light':'dark');
   const btn=document.getElementById('theme-toggle-btn');
-  if(btn)btn.textContent=isLight?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
+  if(btn)btn.innerHTML=isLight?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
 }
 (function syncThemeIcon(){
   const btn=document.getElementById('theme-toggle-btn');
-  if(btn)btn.textContent=document.documentElement.classList.contains('light')?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
+  if(btn)btn.innerHTML=document.documentElement.classList.contains('light')?'<i data-lucide=sun class=ic></i>️':'<i data-lucide=moon class=ic></i>';
 })();
 
 async function doLogout(){await window.Clerk.signOut();window.location.reload();}
