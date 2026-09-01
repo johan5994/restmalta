@@ -142,9 +142,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <div class="nl">Documents & Finance</div>
     <button class="ni" onclick="sp('mylocation',this)"><span class="nico"><i data-lucide=home class=ic></i></span>My Rental</button>
     <button class="ni" onclick="sp('roommates',this)"><span class="nico"><i data-lucide=users class=ic></i></span>Find a roommate</button>
-    <div class="nl">Reviews & Profilee</div>
+    <div class="nl">Reviews & Profile</div>
     <button class="ni" onclick="sp('reviews',this)"><span class="nico"><i data-lucide=star class=ic></i></span>Leave a review</button>
     <button class="ni" onclick="sp('profile',this)"><span class="nico"><i data-lucide=user class=ic></i></span>My profile</button>
+    <button class="ni" onclick="window.location.href='/'"><span class="nico"><i data-lucide=globe class=ic></i></span>Back to site</button>
   </nav>
   <div class="sb-user">
     <div class="uav" id="uav">?</div>
@@ -554,9 +555,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             </div>
           </div>
 
-          <!-- Profilee completeness indicator -->
+          <!-- Profile completeness indicator -->
           <div id="profile-completeness" style="margin-top:1rem;background:var(--tdim);border-radius:10px;padding:.85rem 1rem;font-size:.8rem">
-            <div style="font-weight:700;margin-bottom:.5rem">Profilee completeness</div>
+            <div style="font-weight:700;margin-bottom:.5rem">Profile completeness</div>
             <div id="completeness-bar-wrap" style="background:var(--b);border-radius:100px;height:8px;margin-bottom:.5rem">
               <div id="completeness-bar" style="background:var(--terra);height:8px;border-radius:100px;width:0%;transition:width .3s"></div>
             </div>
@@ -3597,7 +3598,7 @@ function updateProfileeCompleteness(){
   if(bar)bar.style.width=pct+'%';
   if(bar)bar.style.background=pct===100?'var(--green)':pct>50?'var(--sea)':'var(--terra)';
   if(text){
-    if(pct===100)text.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Profilee complete — you can contact lessors and request visits';
+    if(pct===100)text.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Profile complete — you can contact lessors and request visits';
     else text.innerHTML=`${pct}% complete — fill in all required fields to unlock contact & visits`;
     text.style.color=pct===100?'var(--green)':'var(--td)';
   }
@@ -3621,7 +3622,7 @@ async function saveProfilee(){
   Object.assign(P,updates);
   updateProfileeCompleteness();
   const ok=document.getElementById('prof-ok');ok.style.display='inline';setTimeout(()=>ok.style.display='none',3000);
-  toast('<i data-lucide=check-circle-2 class=ic></i> Profilee saved!');
+  toast('<i data-lucide=check-circle-2 class=ic></i> Profile saved!');
 }
 
 async function uploadID(input){
