@@ -185,7 +185,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--s2);color:var(--txt);padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;border:1px solid var(--b2);box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .toast.show{transform:translateY(0);opacity:1}
 
-@media(max-width:900px){.sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.5)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}#mob-menu{display:inline-flex}}
+@media(max-width:900px){
+  .fi,.fsel,.fta{font-size:16px!important}
+  .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.5)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}#mob-menu{display:inline-flex}}
 </style>
   <script src="https://js.stripe.com/v3/"></script>
 <style>
@@ -312,7 +314,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div style="font-size:1rem;font-weight:700">My Listings</div>
         <button class="btn bp bsm" onclick="openNewListing()">+ Add listing</button>
       </div>
-      <div class="card" style="overflow:hidden">
+      <div class="card" style="overflow-x:auto">
         <table class="tbl">
           <thead><tr><th>Property</th><th>Type</th><th>Price</th><th>Status</th><th>Available</th><th>Actions</th></tr></thead>
           <tbody id="listings-tbody"><tr><td colspan="6"><div class="ld"><div class="sp"></div></div></td></tr></tbody>
@@ -388,10 +390,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
             <option value="late">Overdue <i data-lucide=alert-triangle class=ic></i>️</option>
           </select>
         </div>
+        <div style="overflow-x:auto">
         <table class="tbl">
           <thead><tr><th>Lessee</th><th>Property</th><th>Amount</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="pay-tbody"><tr><td colspan="6"><div class="ld"><div class="sp"></div></div></td></tr></tbody>
         </table>
+        </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -1710,21 +1714,21 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
 
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:'<i data-lucide=party-popper class=ic></i> Your application has been accepted!\n\n'
-        +'<i data-lucide=file-text class=ic></i> Your lease is ready to sign — check your visits page.\n\n'
-        +'━━━━━━━━━━━━━━\n<i data-lucide=euro class=ic></i> AMOUNT DUE TO LANDLORD\n━━━━━━━━━━━━━━\n'
-        +'<i data-lucide=lock class=ic></i> Security deposit: €'+deposit+'\n'
-        +'<i data-lucide=home class=ic></i> First month (prorata): calculated in your visits page\n'
-        +(holdingPaid?'<i data-lucide=check-circle-2 class=ic></i> Holding released: €'+holdingPaid+'\n':'')
+      content:'🎉 Your application has been accepted!\n\n'
+        +'📄 Your lease is ready to sign — check your visits page.\n\n'
+        +'━━━━━━━━━━━━━━\n💶 AMOUNT DUE TO LANDLORD\n━━━━━━━━━━━━━━\n'
+        +'🔒 Security deposit: €'+deposit+'\n'
+        +'🏠 First month (prorata): calculated in your visits page\n'
+        +(holdingPaid?'✅ Holding released: €'+holdingPaid+'\n':'')
         +ibanInfo+revInfo
-        +'\n<i data-lucide=clipboard-list class=ic></i> Entry inventory done on move-in day once lease is signed.',
+        +'\n📋 Entry inventory done on move-in day once lease is signed.',
       type:'booking_accepted'
     });}catch(e){}
 
     // 6 — Notifier lessor
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:U.id,
-      content:'<i data-lucide=check-circle-2 class=ic></i> Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the lessee will transfer the deposit + first month.',
+      content:'✅ Accepted! Your lease is ready to sign in your visits page.\n\nOnce both parties sign, the lessee will transfer the deposit + first month.',
       type:'lease_ready'
     });}catch(e){}
 
@@ -1732,7 +1736,7 @@ ${leaseType==='long'?`<h2>Termination &amp; Renewal</h2><ol><li>The lessee may t
     try{
       const{data:visit}=await sb.from('visits').select('agent_id').eq('listing_id',listingId).in('status',['completed','agent_assigned','confirmed','booking_pending']).order('created_at',{ascending:false}).limit(1).maybeSingle();
       if(visit?.agent_id){
-        try{await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,content:'<i data-lucide=clipboard-list class=ic></i> Application accepted!\n\n<i data-lucide=home class=ic></i> '+(listing?.title||'Property')+'\n<i data-lucide=user class=ic></i> Lessee: '+(tenantProfile?.full_name||'—')+'\n\nLease being signed.',type:'booking_accepted'});}catch(e){}
+        try{await sb.from('messages').insert({listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,content:'📋 Application accepted!\n\n🏠 '+(listing?.title||'Property')+'\n👤 Lessee: '+(tenantProfile?.full_name||'—')+'\n\nLease being signed.',type:'booking_accepted'});}catch(e){}
         try{await sb.from('visits').update({status:'edl_scheduled'}).eq('agent_id',visit.agent_id).eq('listing_id',listingId);}catch(e){}
       }
     }catch(e){}
@@ -1753,7 +1757,7 @@ async function sendLLProposedDate(visitId, listingId, tenantId, overlay){
     await sb.from('visits').update({status:'date_rejected',proposed_date:newDate,proposed_time:newTime}).eq('id',visitId);
     await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:`<i data-lucide=calendar class=ic></i> The lessor proposes a new date for your visit:\n\n<i data-lucide=calendar class=ic></i> ${new Date(newDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} at ${newTime}\n\nPlease go to your dashboard → My Visits to confirm or request another date.`,
+      content:`📅 The lessor proposes a new date for your visit:\n\n📅 ${new Date(newDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} at ${newTime}\n\nPlease go to your dashboard → My Visits to confirm or request another date.`,
       type:'visit_date_proposed'
     });
     toast('<i data-lucide=check-circle-2 class=ic></i> New date sent to lessee.');
@@ -1774,7 +1778,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:tenantId,
           visit_id:visitId,
-          content:'<i data-lucide=check-circle-2 class=ic></i> Your visit is confirmed! The lessor has confirmed the date.',
+          content:'✅ Your visit is confirmed! The lessor has confirmed the date.',
           type:'visit_confirmed'
         });
       }catch(e){}
@@ -1804,7 +1808,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
           .eq('type','visit_request')
           .maybeSingle();
 
-        const newContent=`<i data-lucide=check-circle-2 class=ic></i> LANDLORD CONFIRMED — this visit is yours\n\nProperty: ${listingFull?.title||'Listing'}\nAddress: ${listingFull?.full_address||listingFull?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n<i data-lucide=key class=ic></i> Key access: ${keyInfo}${keyDetail}`;
+        const newContent=`✅ LANDLORD CONFIRMED — this visit is yours\n\nProperty: ${listingFull?.title||'Listing'}\nAddress: ${listingFull?.full_address||listingFull?.zone||'Malta'}\nDate: ${visitDateStr}\nTenant: ${visit?.tenant_name||'—'}\n\n🔑 Key access: ${keyInfo}${keyDetail}`;
 
         if(existing?.id){
           await sb.from('messages').update({content:newContent,read:false}).eq('id',existing.id);
@@ -1826,7 +1830,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
       listing_id:listingId,
       sender_id:'system',
       receiver_id:tenantId,
-      content:`<i data-lucide=calendar class=ic></i> Unfortunately the lessor is not available on your requested date.\n\nThe property is still available — please request a visit with a different date.`,
+      content:`📅 Unfortunately the lessor is not available on your requested date.\n\nThe property is still available — please request a visit with a different date.`,
       type:'visit_rejected'
     });
     // Send email to lessee
@@ -1844,7 +1848,7 @@ async function landlordConfirmVisit(visitId, response, listingId, tenantId){
       listing_id:listingId,
       sender_id:'system',
       receiver_id:tenantId,
-      content:`<i data-lucide=x-circle class=ic></i> We're sorry — this property is no longer available.
+      content:`❌ We're sorry — this property is no longer available.
 
 We recommend searching for other listings on RestMalta.`,
       type:'visit_cancelled'
@@ -1923,7 +1927,7 @@ async function joinVisit(groupId){
     sender_id:U.id,
     sender_name:P?.full_name||'Lessor',
     sender_role:'landlord',
-    content:'<i data-lucide=hand class=ic></i> The lessor has joined the conversation and will be present during the visit.'
+    content:' The lessor has joined the conversation and will be present during the visit.'
   });
   toast('<i data-lucide=check-circle-2 class=ic></i> You joined the visit!');
   loadVisitsPage();
@@ -2009,13 +2013,13 @@ async function confirmPaymentReceived(id){
           if(lease.landlord_id){
             try{await sb.from('messages').insert({
               listing_id:lease.listing_id,sender_id:'system',receiver_id:lease.landlord_id,
-              content:`<i data-lucide=party-popper class=ic></i> All payments confirmed!\n\n<i data-lucide=file-text class=ic></i> Your signed lease is now available:\n${lease.pdf_url_locked}`,
+              content:`🎉 All payments confirmed!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}`,
             });}catch(e){}
           }
           if(lease.tenant_id){
             try{await sb.from('messages').insert({
               listing_id:lease.listing_id,sender_id:'system',receiver_id:lease.tenant_id,
-              content:`<i data-lucide=party-popper class=ic></i> Payment confirmed by your lessor!\n\n<i data-lucide=file-text class=ic></i> Your signed lease is now available:\n${lease.pdf_url_locked}\n\n<i data-lucide=alert-triangle class=ic></i>️ Register your lease at rentregistration.mt within 10 days.`,
+              content:`🎉 Payment confirmed by your lessor!\n\n📄 Your signed lease is now available:\n${lease.pdf_url_locked}\n\n⚠️ Register your lease at rentregistration.mt within 10 days.`,
             });}catch(e){}
           }
         }
@@ -2041,7 +2045,7 @@ async function confirmPaymentReceived(id){
           listing_id:pay.listing_id,
           sender_id:'system',
           receiver_id:agentId,
-          content:`<i data-lucide=euro class=ic></i> Payment confirmed by lessor!\n\n<i data-lucide=home class=ic></i> ${pay.listing_title||'Property'}\n<i data-lucide=user class=ic></i> Lessee: ${pay.tenant_name||'—'}\n\n<i data-lucide=clipboard-list class=ic></i> Please proceed with the entry inventory check.\nGo to your dashboard → My Visits to mark the entry inventory as done.`,
+          content:`💶 Payment confirmed by lessor!\n\n🏠 ${pay.listing_title||'Property'}\n👤 Lessee: ${pay.tenant_name||'—'}\n\n📋 Please proceed with the entry inventory check.\nGo to your dashboard → My Visits to mark the entry inventory as done.`,
           type:'entry_inventory_needed'
         });}catch(e){}
       }
@@ -2052,7 +2056,7 @@ async function confirmPaymentReceived(id){
           listing_id:pay.listing_id,
           sender_id:'system',
           receiver_id:visit.tenant_id,
-          content:`<i data-lucide=check-circle-2 class=ic></i> Your payment has been confirmed by the lessor!\n\n<i data-lucide=clipboard-list class=ic></i> The agent will now proceed with the entry inventory check before you move in.\n\nYou will be notified once everything is ready.`,
+          content:`✅ Your payment has been confirmed by the lessor!\n\n📋 The agent will now proceed with the entry inventory check before you move in.\n\nYou will be notified once everything is ready.`,
           type:'payment_confirmed'
         });}catch(e){}
       }
@@ -2234,7 +2238,7 @@ async function sendReminder(id){
     const dueLabel=pay.due_date?new Date(pay.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'soon';
     const{error}=await sb.from('messages').insert({
       listing_id:pay.listing_id,sender_id:'system',receiver_id:pay.tenant_id,
-      content:`<i data-lucide=euro class=ic></i> Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
+      content:`💶 Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
       type:'rent_reminder'
     });
     if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);return;}
@@ -2256,7 +2260,7 @@ async function sendAllReminders(){
       const dueLabel=pay.due_date?new Date(pay.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'soon';
       await sb.from('messages').insert({
         listing_id:pay.listing_id,sender_id:'system',receiver_id:pay.tenant_id,
-        content:`<i data-lucide=euro class=ic></i> Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
+        content:`💶 Friendly reminder: your rent of €${pay.amount||0} was due on ${dueLabel}. Please arrange payment via bank transfer or Revolut and mark it as paid in your dashboard once sent.`,
         type:'rent_reminder'
       }).catch(()=>{});
     }
@@ -2555,7 +2559,7 @@ async function proposeVisitFromChat(){
       const dateStr=new Date(visitDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:`<i data-lucide=calendar class=ic></i> The lessor proposes a visit:\n\n${listing?.title||'Property'}\n<i data-lucide=calendar class=ic></i> ${dateStr} at ${visitTime}\n\nGo to My Visits to confirm or decline.`,
+        content:`📅 The lessor proposes a visit:\n\n${listing?.title||'Property'}\n📅 ${dateStr} at ${visitTime}\n\nGo to My Visits to confirm or decline.`,
         type:'visit_proposed'
       });
       modal.remove();
@@ -2606,7 +2610,7 @@ async function disputePayment(msgId, listingId){
   if(tenantId){
     try{await sb.from('messages').insert({
       listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-      content:`<i data-lucide=alert-triangle class=ic></i>️ Your lessor has not yet received your payment.\n\nPlease check that you sent the correct amount to the correct IBAN/Revolut and try again.\n\nIf you believe this is an error, please contact the lessor directly via messages.`,
+      content:`⚠️ Your lessor has not yet received your payment.\n\nPlease check that you sent the correct amount to the correct IBAN/Revolut and try again.\n\nIf you believe this is an error, please contact the lessor directly via messages.`,
       type:'payment_not_received'
     });}catch(e){}
   }
@@ -2707,7 +2711,7 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
       // Notifier lessee
       try{await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:`<i data-lucide=party-popper class=ic></i> The lessor has accepted your application!\n\n<i data-lucide=file-text class=ic></i> Your lease has been sent by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
+        content:`🎉 The lessor has accepted your application!\n\n📄 Your lease has been sent by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
         type:'lease_sent'
       });}catch(e){}
 
@@ -2715,7 +2719,7 @@ async function acceptAndGenerateLease(visitId, listingId, tenantId, startDate, e
       if(visit?.agent_id){
         try{await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
-          content:`<i data-lucide=party-popper class=ic></i> Lease generated for ${listing.title||'the property'}!\n\nTenant: ${tenantProfile.full_name||'—'}\nLease sent via DocuSeal for signature. Great work! <i data-lucide=award class=ic></i>`,
+          content:`🎉 Lease generated for ${listing.title||'the property'}!\n\nTenant: ${tenantProfile.full_name||'—'}\nLease sent via DocuSeal for signature. Great work! 🏆`,
           type:'lease_sent'
         });}catch(e){}
       }
@@ -2811,14 +2815,14 @@ async function respondToTenantInterest(msgId, visitId, listingId, accept){
         if(visit?.tenant_id){
           try{await sb.from('messages').insert({
             listing_id:listingId,sender_id:'system',receiver_id:visit.tenant_id,
-            content:`<i data-lucide=party-popper class=ic></i> The lessor has accepted your application!\n\n<i data-lucide=file-text class=ic></i> Your lease has been sent to you by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
+            content:`🎉 The lessor has accepted your application!\n\n📄 Your lease has been sent to you by email for e-signature via DocuSeal.\n\nPlease check your email and sign the lease. Once both parties have signed, you will receive the payment details.`,
             type:'lease_sent'
           });}catch(e){}
         }
         if(visit?.agent_id){
           try{await sb.from('messages').insert({
             listing_id:listingId,sender_id:'system',receiver_id:visit.agent_id,
-            content:`<i data-lucide=party-popper class=ic></i> Lease generated for ${visit.listing_title||'the property'}!\n\nTenant: ${visit.tenant_name||'—'}\nLease sent via DocuSeal for signature. Great work! <i data-lucide=award class=ic></i>`,
+            content:`🎉 Lease generated for ${visit.listing_title||'the property'}!\n\nTenant: ${visit.tenant_name||'—'}\nLease sent via DocuSeal for signature. Great work! 🏆`,
             type:'lease_sent'
           });}catch(e){}
         }
@@ -2941,7 +2945,7 @@ async function handleTicket(id, action){
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:'system',
         receiver_id:ticket.tenant_id,
-        content:`<i data-lucide=wrench class=ic></i> Your ticket "${ticket.title}" has been taken care of. The lessor will handle the repair themselves. You'll be contacted to arrange a suitable time if needed.`,
+        content:`🔧 Your ticket "${ticket.title}" has been taken care of. The lessor will handle the repair themselves. You'll be contacted to arrange a suitable time if needed.`,
         type:'ticket_auto'
       });
     }
@@ -2954,7 +2958,7 @@ async function handleTicket(id, action){
         listing_id:ticket.listing_id||'00000000-0000-0000-0000-000000000000',
         sender_id:'system',
         receiver_id:ticket.tenant_id,
-        content:`<i data-lucide=clipboard-list class=ic></i> Your ticket "${ticket.title}" is being processed. An external contractor will be handling it. You'll be contacted with a date for the visit.`,
+        content:`📋 Your ticket "${ticket.title}" is being processed. An external contractor will be handling it. You'll be contacted with a date for the visit.`,
         type:'ticket_auto'
       });
     }
@@ -3464,7 +3468,7 @@ async function regenLease(bookingId, listingId, tenantId){
         try{
           await sb.from('messages').insert({
             listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-            content:'<i data-lucide=file-text class=ic></i> Your lease is ready to sign! Go to your visits page.',
+            content:'📄 Your lease is ready to sign! Go to your visits page.',
             type:'lease_ready'
           });
         }catch(e){}
@@ -3517,7 +3521,7 @@ function openSigningDocLL(embedSrc,title,bookingId){
             try{
               await sb.from('messages').insert({
                 listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-                content:'<i data-lucide=pen-line class=ic></i>️ The lessor has signed the lease!\n\nIt\'s your turn — go to your visits page to sign.',
+                content:'✍️ The lessor has signed the lease!\n\nIt\'s your turn — go to your visits page to sign.',
                 type:'lease_signed_landlord'
               });
             }catch(e){}
@@ -3578,7 +3582,7 @@ function doOpenLandlordDoc(bk,bookingId,embedSrc,dbField,title){
         if(bk.tenant_id){
           await sb.from('messages').insert({
             listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-            content:'<i data-lucide=check-circle-2 class=ic></i> Lessor signed '+title,type:dbField
+            content:'✅ Lessor signed '+title,type:dbField
           });
         }
       }catch(e){
@@ -3635,7 +3639,7 @@ async function confirmFirstPaymentReceived(bookingId,received){
       }
 
       if(bk.tenant_id){
-        await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,content:`<i data-lucide=check-circle-2 class=ic></i> Payment confirmed by lessor!\n\nEverything is set for your move-in. Your agent will contact you for the entry inventory.\n\n<i data-lucide=calendar class=ic></i> Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,type:'payment_confirmed'});
+        await sb.from('messages').insert({listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,content:`✅ Payment confirmed by lessor!\n\nEverything is set for your move-in. Your agent will contact you for the entry inventory.\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,type:'payment_confirmed'});
       }
       toast('<i data-lucide=check-circle-2 class=ic></i> Payment confirmed! Lessee notified.');
       if(bk)generateFirstPaymentReceiptLL(bk,listing?.title,tenantProfile?.full_name);
@@ -3643,7 +3647,7 @@ async function confirmFirstPaymentReceived(bookingId,received){
       await sb.from('bookings').update({first_payment_sent:false}).eq('id',bookingId);
       const{data:b}=await sb.from('bookings').select('tenant_id,listing_id').eq('id',bookingId).single();
       if(b?.tenant_id){
-        await sb.from('messages').insert({listing_id:b.listing_id,sender_id:'system',receiver_id:b.tenant_id,content:'<i data-lucide=alert-triangle class=ic></i>️ Payment not received yet.\n\nThe lessor has not received your payment. Please check the transfer and try again.',type:'payment_not_received'});
+        await sb.from('messages').insert({listing_id:b.listing_id,sender_id:'system',receiver_id:b.tenant_id,content:'⚠️ Payment not received yet.\n\nThe lessor has not received your payment. Please check the transfer and try again.',type:'payment_not_received'});
       }
       toast('<i data-lucide=alert-triangle class=ic></i>️ Lessee notified — payment not received.');
     }
@@ -4015,7 +4019,7 @@ async function setEDLDate(bookingId){
     try{
       await sb.from('messages').insert({
         listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-        content:'<i data-lucide=clipboard-list class=ic></i> EDL date confirmed: '+new Date(input.value).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'\n\nPlease be present for the key handover.',
+        content:'📋 EDL date confirmed: '+new Date(input.value).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'\n\nPlease be present for the key handover.',
         type:'edl_scheduled'
       });
     }catch(e){}
@@ -4046,7 +4050,7 @@ async function openLandlordEDL(bookingId){
       try{
         await sb.from('messages').insert({
           listing_id:booking.listing_id,sender_id:'system',receiver_id:booking.tenant_id,
-          content:'<i data-lucide=clipboard-list class=ic></i> Your lessor has started the move-in inventory (EDL). You\'ll be notified once it\'s ready to sign.',
+          content:'📋 Your lessor has started the move-in inventory (EDL). You\'ll be notified once it\'s ready to sign.',
           type:'edl_started'
         });
       }catch(e){}
@@ -4074,8 +4078,8 @@ async function openLandlordEDL(bookingId){
       <div style="background:rgba(224,90,58,.85);color:white;padding:.45rem .75rem;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;justify-content:space-between" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
         <span>${room.name}</span><span>▼</span>
       </div>
-      <div style="padding:.4rem">
-        <table style="width:100%;border-collapse:collapse;font-size:.7rem">
+      <div style="padding:.4rem;overflow-x:auto">
+        <table style="width:100%;min-width:480px;border-collapse:collapse;font-size:.7rem">
           <thead><tr style="background:var(--s2)">
             <th style="padding:.3rem .4rem;text-align:left;border-bottom:1px solid var(--b);width:40%">Item</th>
             <th style="padding:.3rem .4rem;text-align:center;border-bottom:1px solid var(--b);width:12%">Qty</th>
@@ -4349,8 +4353,8 @@ async function viewEdlDossier(bookingId){
     if(!itemsWithData.length&&!pics.length)return '';
     return `<div style="margin-bottom:.65rem;border:1px solid var(--b);border-radius:10px;overflow:hidden">
       <div style="background:var(--s2);padding:.4rem .65rem;font-size:.75rem;font-weight:700">${room.name}</div>
-      <div style="padding:.5rem .65rem">
-        ${itemsWithData.length?`<table style="width:100%;border-collapse:collapse;font-size:.68rem;margin-bottom:.4rem">
+      <div style="padding:.5rem .65rem;overflow-x:auto">
+        ${itemsWithData.length?`<table style="width:100%;min-width:280px;border-collapse:collapse;font-size:.68rem;margin-bottom:.4rem">
           ${itemsWithData.map(it=>`<tr><td style="padding:.15rem 0;color:var(--tm)">${it.item}${it.qty?' ('+it.qty+')':''}</td><td style="padding:.15rem 0;text-align:right">${it.condition_arrival?({'Good':'<i data-lucide=check-circle-2 class=ic></i> Good','Fair':'<i data-lucide=circle class=ic></i> Fair','Poor':'<i data-lucide=circle class=ic></i> Poor','N/A':'N/A'}[it.condition_arrival]||it.condition_arrival):''}</td></tr>${it.notes?`<tr><td colspan="2" style="padding:0 0 .3rem;color:var(--td);font-size:.64rem">↳ ${it.notes}</td></tr>`:''}`).join('')}
         </table>`:''}
         ${pics.length?`<div style="display:flex;gap:.4rem;flex-wrap:wrap">${pics.map(p=>`<a href="${p.url}" target="_blank"><img src="${p.url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--b2)"></a>`).join('')}</div>`:''}
@@ -4457,7 +4461,7 @@ async function generateAnnexAndCompleteLL(){
 
   // Form H n'est plus co-signé sur RestMalta — c'est une déclaration ARMS que le
   // propriétaire remet directement, pas un document type bail. On garde juste le rappel.
-  const notif='<i data-lucide=clipboard-list class=ic></i> The move-in inventory (EDL) has been generated and sent for signature.';
+  const notif='📋 The move-in inventory (EDL) has been generated and sent for signature.';
   try{
     if(ctx.booking?.tenant_id)await sb.from('messages').insert({listing_id:ctx.booking.listing_id,sender_id:'system',receiver_id:ctx.booking.tenant_id,content:notif,type:'edl_generated'});
   }catch(e){}
@@ -4557,7 +4561,7 @@ async function confirmTenantPayment(bookingId){
   try{
     await sb.from('messages').insert({
       listing_id:bk.listing_id,sender_id:'system',receiver_id:bk.tenant_id,
-      content:`<i data-lucide=check-circle-2 class=ic></i> Your lessor confirmed receiving your payment!\n\n<i data-lucide=calendar class=ic></i> Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,
+      content:`✅ Your lessor confirmed receiving your payment!\n\n📅 Your next rent payment is due on ${nextDueLabel} — rent is paid monthly on your move-in date, not the 1st of the month.`,
       type:'payment_confirmed'
     });
   }catch(e){}
@@ -4653,7 +4657,7 @@ async function acceptDirectBooking(listingId, tenantId){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:'<i data-lucide=party-popper class=ic></i> Your application has been accepted!\n\n<i data-lucide=file-text class=ic></i> Your lease is ready to sign — check your visits page.',
+        content:'🎉 Your application has been accepted!\n\n📄 Your lease is ready to sign — check your visits page.',
         type:'booking_accepted'
       });
     }catch(e){}
@@ -4663,7 +4667,7 @@ async function acceptDirectBooking(listingId, tenantId){
       try{
         await sb.from('messages').insert({
           listing_id:listingId,sender_id:'system',receiver_id:coTenantId,
-          content:'<i data-lucide=party-popper class=ic></i> The rental application has been accepted!\n\nYou are a co-lessee on this lease.\n\n<i data-lucide=file-text class=ic></i> Your lease is ready to sign — check your visits page.',
+          content:'🎉 The rental application has been accepted!\n\nYou are a co-lessee on this lease.\n\n📄 Your lease is ready to sign — check your visits page.',
           type:'booking_accepted'
         });
       }catch(e){}
@@ -4725,7 +4729,7 @@ async function declineDirectBooking(listingId, tenantId){
     try{
       await sb.from('messages').insert({
         listing_id:listingId,sender_id:'system',receiver_id:tenantId,
-        content:'<i data-lucide=x-circle class=ic></i> Your application has been declined.\n\n<i data-lucide=wallet class=ic></i> The RestMalta fee authorization has been released — nothing was charged.',
+        content:'❌ Your application has been declined.\n\n The RestMalta fee authorization has been released — nothing was charged.',
         type:'booking_declined'
       });
     }catch(e){}
