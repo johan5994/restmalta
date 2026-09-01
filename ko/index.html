@@ -1025,18 +1025,18 @@ async function geocodeAddress(){
   const statusEl=document.getElementById('address-map-status');
   const mapEl=document.getElementById('address-map');
   if(!addr||!statusEl||!mapEl)return;
-  statusEl.textContent='<i data-lucide=map-pin class=ic></i> Locating address...';
+  statusEl.innerHTML='<i data-lucide=map-pin class=ic></i> Locating address...';
   try{
     const query=addr.toLowerCase().includes('malta')?addr:addr+', Malta';
     const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,{headers:{'Accept-Language':'en'}});
     const results=await res.json();
     if(!results||!results.length){
-      statusEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Could not locate this address — you can still publish, just double-check it\'s written clearly';
+      statusEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Could not locate this address — you can still publish, just double-check it\'s written clearly';
       mapEl.style.display='none';
       return;
     }
     const lat=parseFloat(results[0].lat),lng=parseFloat(results[0].lon);
-    statusEl.textContent='<i data-lucide=check-circle-2 class=ic></i> Address located';
+    statusEl.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Address located';
     mapEl.style.display='block';
     if(!addressMapInstance){
       addressMapInstance=L.map('address-map').setView([lat,lng],16);
@@ -1048,7 +1048,7 @@ async function geocodeAddress(){
     }
     L.marker([lat,lng]).addTo(addressMapInstance);
   }catch(e){
-    statusEl.textContent='<i data-lucide=alert-triangle class=ic></i>️ Could not check this address right now';
+    statusEl.innerHTML='<i data-lucide=alert-triangle class=ic></i>️ Could not check this address right now';
     mapEl.style.display='none';
   }
 }
@@ -1243,7 +1243,7 @@ async function loadL(){
     return new Date(b.created_at)-new Date(a.created_at);
   });
   window._currentListings=sorted;
-  if(!sorted.length){g.innerHTML=`<div class="empty"><div class="emo"><i data-lucide=home class=ic></i></div><p>No listings found. Try adjusting your filters!</p><button class="btn btn-p" onclick="chkPost()">Post your flat →</button></div>`;document.getElementById('lc').textContent='';return;}
+  if(!sorted.length){g.innerHTML=`<div class="empty"><div class="emo"><i data-lucide=home class=ic></i></div><p>No listings found. Try adjusting your filters!</p><button class="btn btn-p" onclick="chkPost()">Post your flat →</button></div>`;document.getElementById('lc').innerHTML='';return;}
   document.getElementById('lc').textContent=`${sorted.length} listing${sorted.length>1?'s':''} found`;
   g.innerHTML=sorted.map(rCard).join('');
   if(mapView)initMap();
@@ -1342,7 +1342,7 @@ async function openDet(id){
   }
 
   document.getElementById('dti').textContent=l.title;
-  document.getElementById('dzo').textContent='<i data-lucide=map-pin class=ic></i> '+l.zone+(l.address?' · '+l.address:'');
+  document.getElementById('dzo').innerHTML='<i data-lucide=map-pin class=ic></i> '+l.zone+(l.address?' · '+l.address:'');
   document.getElementById('dde').textContent=l.description||'No description provided.';
   document.getElementById('dpr').textContent='€'+(l.type==='for_sale'?(l.sale_price||l.price):l.price);
   const dprPer=document.getElementById('dpr-per');
@@ -1925,7 +1925,7 @@ async function confirmSaleActivation(listingId,listingTitle){
     window.location.href=data.checkout_url;
   }catch(e){
     toast('<i data-lucide=x-circle class=ic></i> '+e.message);
-    if(btn){btn.textContent='<i data-lucide=credit-card class=ic></i> Activate for €2/week →';btn.disabled=false;}
+    if(btn){btn.innerHTML='<i data-lucide=credit-card class=ic></i> Activate for €2/week →';btn.disabled=false;}
   }
 }
 
@@ -2126,7 +2126,7 @@ async function startBoostPayment(listingId,listingTitle,listingType){
     window.location.href=data.checkout_url;
   }catch(e){
     toast('<i data-lucide=x-circle class=ic></i> '+e.message);
-    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'<i data-lucide=rocket class=ic></i> Boost';}
+    if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.origText||'<i data-lucide=rocket class=ic></i> Boost';}
   }
 }
 
@@ -2143,7 +2143,7 @@ async function retrySaleActivation(listingId,listingTitle){
     window.location.href=data.checkout_url;
   }catch(e){
     toast('<i data-lucide=x-circle class=ic></i> '+e.message);
-    if(btn){btn.disabled=false;btn.textContent=btn.dataset.origText||'<i data-lucide=credit-card class=ic></i> Activate';}
+    if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.origText||'<i data-lucide=credit-card class=ic></i> Activate';}
   }
 }
 
@@ -2174,7 +2174,7 @@ async function opM(id, title, content, zone, listingId, receiverId){
   currentChatListingId=listingId||null;
   currentChatReceiverId=receiverId||null;
   document.getElementById('moti').textContent=title;
-  document.getElementById('most').textContent='<i data-lucide=map-pin class=ic></i> '+zone;
+  document.getElementById('most').innerHTML='<i data-lucide=map-pin class=ic></i> '+zone;
   document.getElementById('mo').classList.add('open');
 
   // Load all messages for this conversation
@@ -2292,12 +2292,12 @@ function toggleMapView(){
   if(mapView){
     mc.style.display='block';
     lg.style.display='none';
-    btn.textContent='<i data-lucide=clipboard-list class=ic></i> List view';
+    btn.innerHTML='<i data-lucide=clipboard-list class=ic></i> List view';
     initMap();
   } else {
     mc.style.display='none';
     lg.style.display='grid';
-    btn.textContent='<i data-lucide=map class=ic></i> Map view';
+    btn.innerHTML='<i data-lucide=map class=ic></i> Map view';
   }
 }
 
