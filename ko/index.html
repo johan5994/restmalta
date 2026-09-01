@@ -818,7 +818,19 @@ footer ul a:hover{color:var(--terra)}
 function initLucideIcons(){
   if(window.lucide){
     lucide.createIcons();
-    new MutationObserver(()=>{lucide.createIcons();}).observe(document.body,{childList:true,subtree:true});
+    let iconsPending=false;
+    new MutationObserver((mutations)=>{
+      // Ne se redéclenche QUE si une vraie nouvelle icône non convertie
+      // apparaît — sinon lucide.createIcons() (qui modifie le DOM en
+      // remplaçant <i data-lucide> par un <svg>) redéclenchait
+      // l'observateur à l'infini, figeant complètement la page.
+      const hasNewIcon=mutations.some(m=>Array.from(m.addedNodes).some(n=>
+        n.nodeType===1&&(n.hasAttribute?.('data-lucide')||n.querySelector?.('[data-lucide]'))
+      ));
+      if(!hasNewIcon||iconsPending)return;
+      iconsPending=true;
+      setTimeout(()=>{lucide.createIcons();iconsPending=false;},50);
+    }).observe(document.body,{childList:true,subtree:true});
   }else{
     setTimeout(initLucideIcons,50);
   }
