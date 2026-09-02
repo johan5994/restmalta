@@ -3171,7 +3171,11 @@ async function leaveCurrentProperty(){
 
   if(!bk){toast('<i data-lucide=alert-triangle class=ic></i>️ No active rental found');return;}
 
-  try{await sb.from('bookings').update({status:'tenancy_ended',tenancy_ended_at:new Date().toISOString()}).eq('id',bk.id);}catch(e){}
+  const{error:updateError}=await sb.from('bookings').update({status:'tenancy_ended'}).eq('id',bk.id);
+  if(updateError){
+    toast('<i data-lucide=x-circle class=ic></i> Something went wrong — please try again or contact support.');
+    return;
+  }
 
   if(bk.landlord_id){
     try{await sb.from('messages').insert({
