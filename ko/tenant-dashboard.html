@@ -16,8 +16,8 @@
   if(localStorage.getItem('rm_theme')==='dark')document.documentElement.classList.add('dark');
 </script>
 <style>
-:root{--bg:#F5EFE0;--s:#FDFAF4;--s2:#EDE8D8;--b:rgba(26,20,16,.08);--b2:rgba(26,20,16,.15);--terra:#C9553A;--tdim:rgba(201,85,58,.1);--gold:#D4A847;--gdim:rgba(212,168,71,.1);--sea:#2E6B8A;--sdim:rgba(46,107,138,.1);--green:#4CAF7D;--grdim:rgba(76,175,125,.1);--red:#C9553A;--rdim:rgba(201,85,58,.1);--deep:#1A1410;--stone:#6B5F52;--txt:#1A1410;--tm:#6B5F52;--td:#A89880}
-html.dark{--bg:#0F1117;--s:#1A1D27;--s2:#22263A;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--terra:#E05A3A;--tdim:rgba(224,90,58,.15);--gold:#D4A847;--gdim:rgba(212,168,71,.12);--sea:#3A8FB5;--sdim:rgba(58,143,181,.12);--green:var(--green);--grdim:var(--grdim);--red:var(--red);--rdim:rgba(224,90,90,.12);--deep:#F0EDE8;--stone:rgba(240,237,232,.45);--txt:#F0EDE8;--tm:rgba(240,237,232,.45);--td:rgba(240,237,232,.25)}
+:root{--bg:#F5EFE0;--s:#FDFAF4;--s2:#EDE8D8;--b:rgba(26,20,16,.08);--b2:rgba(26,20,16,.15);--terra:#C9553A;--tdim:rgba(201,85,58,.1);--gold:#D4A847;--gdim:rgba(212,168,71,.1);--sea:#2E6B8A;--sdim:rgba(46,107,138,.1);--green:#4CAF7D;--grdim:rgba(76,175,125,.1);--red:#C9553A;--rdim:rgba(201,85,58,.1);--deep:#1A1410;--stone:#6B5F52;--txt:#1A1410;--tm:#6B5F52;--td:#887A68}
+html.dark{--bg:#0F1117;--s:#1A1D27;--s2:#22263A;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--terra:#E05A3A;--tdim:rgba(224,90,58,.15);--gold:#D4A847;--gdim:rgba(212,168,71,.12);--sea:#3A8FB5;--sdim:rgba(58,143,181,.12);--green:var(--green);--grdim:var(--grdim);--red:var(--red);--rdim:rgba(224,90,90,.12);--deep:#F0EDE8;--stone:rgba(240,237,232,.48);--txt:#F0EDE8;--tm:rgba(240,237,232,.48);--td:rgba(240,237,232,.45)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh}
 .sb{width:240px;min-height:100vh;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
@@ -2215,6 +2215,20 @@ function renderCoTenantSignatureRowsTenant(bk){
     </div>`).join('');
 }
 
+function renderEdlCoTenantSignatureRowsTenant(bk){
+  if(!bk)return '';
+  let edlCoLessees=[];
+  try{edlCoLessees=bk.edl_co_lessees_embed_src?JSON.parse(bk.edl_co_lessees_embed_src):[];}catch(e){}
+  if(!edlCoLessees.length)return '';
+  return edlCoLessees.map(cl=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+      <span style="font-size:.78rem"><i data-lucide=users class=ic></i> ${cl.name||'Co-lessee'}</span>
+      ${cl.signed
+        ?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>'
+        :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+    </div>`).join('');
+}
+
 function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   if(!bk) return '';
   const llSigned=bk.lease_signed_landlord;
@@ -2292,25 +2306,43 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
           // Le statut confirme que tout le monde a signé, mais le lien
           // précis manque ici — ne jamais rester muet sur un EDL réellement terminé.
           return`
-      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in Inventory (EDL) — Signatures</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem"><i data-lucide=clipboard-list class=ic></i> Move-in Inventory (Annex A)</span>
+          <span style="font-size:.78rem"><i data-lucide=home class=ic></i> Lessor</span>
+          <span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>
+        </div>
+        ${coTenantEntry?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem"><i data-lucide=user class=ic></i> ${bk.tenant_name||'Main lessee'}</span>
+          <span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>
+        </div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem"><i data-lucide=user class=ic></i> ${coTenantEntry?'You (co-lessee)':'You'}</span>
           <div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${bk.edl_pdf_url?`<a href="${bk.edl_pdf_url}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}</div>
         </div>
+        ${!coTenantEntry?renderEdlCoTenantSignatureRowsTenant(bk):''}
       </div>
       ${!coTenantEntry?`<button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem"><i data-lucide=clipboard-list class=ic></i> View full inventory dossier (with photos) →</button>`:''}
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.7rem;color:var(--gold);margin-bottom:.75rem"><i data-lucide=file-edit class=ic></i> Reminder: submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. This is separate from your RestMalta lease/EDL.</div>`;
         }
         return`
-      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in documents</div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.04em;margin:.75rem 0 .35rem">Move-in Inventory (EDL) — Signatures</div>
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
-          <span style="font-size:.78rem"><i data-lucide=clipboard-list class=ic></i> Move-in Inventory (Annex A)</span>
+          <span style="font-size:.78rem"><i data-lucide=home class=ic></i> Lessor</span>
+          ${bk.edl_signed_landlord?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>
+        ${coTenantEntry?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem"><i data-lucide=user class=ic></i> ${bk.tenant_name||'Main lessee'}</span>
+          ${bk.edl_signed_tenant?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem"><i data-lucide=user class=ic></i> ${coTenantEntry?'You (co-lessee)':'You'}</span>
           ${myEdlSigned
             ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span><a href="${bk.edl_pdf_url||myEdlEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a></div>`
             :`<button onclick="${myEdlSignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer"><i data-lucide=pen-line class=ic></i>️ Sign now</button>`}
         </div>
+        ${!coTenantEntry?renderEdlCoTenantSignatureRowsTenant(bk):''}
       </div>
       ${!coTenantEntry?`<button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem"><i data-lucide=clipboard-list class=ic></i> View full inventory dossier (with photos) →</button>`:''}
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.5rem .65rem;font-size:.7rem;color:var(--gold);margin-bottom:.75rem"><i data-lucide=file-edit class=ic></i> Reminder: submit ARMS Form H (change of occupants) within 30 days — <a href="https://www.arms.com.mt" target="_blank" style="color:var(--gold);text-decoration:underline">arms.com.mt</a>. This is separate from your RestMalta lease/EDL.</div>`;
