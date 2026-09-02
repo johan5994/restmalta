@@ -811,7 +811,14 @@ function initLucideIcons(){
     // complets de l'écran un peu partout sur le site. lucide.createIcons()
     // ne fait rien si aucune icône n'a besoin d'être convertie — sans danger
     // de tourner toutes les secondes.
-    setInterval(()=>{lucide.createIcons();},1000);
+    setInterval(()=>{
+      // Ne jamais toucher au DOM pendant qu'un menu déroulant (natif ou
+      // personnalisé) est ouvert ou qu'un champ a le focus — c'est ce qui
+      // provoquait les menus qui disparaissent une fraction de seconde.
+      const active=document.activeElement;
+      if(active&&(active.tagName==='SELECT'||active.tagName==='INPUT'||active.tagName==='TEXTAREA'))return;
+      lucide.createIcons();
+    },2000);
   }else{
     setTimeout(initLucideIcons,50);
   }
