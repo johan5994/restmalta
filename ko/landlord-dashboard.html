@@ -168,6 +168,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .thread{display:flex;flex-direction:column;gap:.6rem;max-height:200px;overflow-y:auto;padding:.5rem 0;margin-bottom:.8rem}
 .bt{background:var(--s2);padding:.65rem .9rem;border-radius:4px 12px 12px 12px;font-size:.83rem;color:var(--tm);line-height:1.5;align-self:flex-start;max-width:85%}
 .bm{background:var(--terra);color:white;padding:.65rem .9rem;border-radius:12px 4px 12px 12px;font-size:.83rem;line-height:1.5;align-self:flex-end;max-width:85%}
+.bs{background:transparent;border:1px dashed var(--b2);padding:.5rem .85rem;border-radius:10px;font-size:.78rem;color:var(--td);line-height:1.5;align-self:center;max-width:90%}
 
 /* REVIEW */
 .rcard{background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:.75rem}
@@ -417,7 +418,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
               <div class="toggle-row"><span style="font-size:.83rem;color:var(--tm)"><i data-lucide=calendar class=ic></i> Reminder on due date</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
               <div class="toggle-row"><span style="font-size:.83rem;color:var(--tm)"><i data-lucide=alert-triangle class=ic></i>️ Late notice after 3 days</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
               <div class="toggle-row"><span style="font-size:.83rem;color:var(--tm)"><i data-lucide=receipt class=ic></i> Monthly receipts auto-send</span><div class="tgl on" onclick="toggleTgl(this)"><div class="tgl-dot"></div></div></div>
-              <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--green);margin-top:.25rem">
+              <div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--green);margin-top:.25rem">
                 <i data-lucide=check-circle-2 class=ic></i> Reminders stop automatically once lessee confirms payment
               </div>
             </div>
@@ -804,19 +805,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 function initLucideIcons(){
   if(window.lucide){
     lucide.createIcons();
-    let iconsPending=false;
-    new MutationObserver((mutations)=>{
-      // Ne se redéclenche QUE si une vraie nouvelle icône non convertie
-      // apparaît — sinon lucide.createIcons() (qui modifie le DOM en
-      // remplaçant <i data-lucide> par un <svg>) redéclenchait
-      // l'observateur à l'infini, figeant complètement la page.
-      const hasNewIcon=mutations.some(m=>Array.from(m.addedNodes).some(n=>
-        n.nodeType===1&&(n.hasAttribute?.('data-lucide')||n.querySelector?.('[data-lucide]'))
-      ));
-      if(!hasNewIcon||iconsPending)return;
-      iconsPending=true;
-      setTimeout(()=>{lucide.createIcons();iconsPending=false;},50);
-    }).observe(document.body,{childList:true,subtree:true});
+    // Vérification périodique légère plutôt qu'un MutationObserver — celui-ci
+    // réagissait à CHAQUE changement du DOM sur toute la page (y compris
+    // l'ouverture d'un simple menu déroulant natif), provoquant des gels
+    // complets de l'écran un peu partout sur le site. lucide.createIcons()
+    // ne fait rien si aucune icône n'a besoin d'être convertie — sans danger
+    // de tourner toutes les secondes.
+    setInterval(()=>{lucide.createIcons();},1000);
   }else{
     setTimeout(initLucideIcons,50);
   }
@@ -1315,7 +1310,7 @@ async function loadTenantDocuments(tenantId, bookingId){
     if(!entries.length){el.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
     el.innerHTML=entries.map(([key,doc])=>{
       const p=doc.path.replace(/'/g,"\\'");
-      return '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.35rem .6rem;margin-bottom:.25rem">'
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--grdim);border:1px solid var(--grdim);border-radius:7px;padding:.35rem .6rem;margin-bottom:.25rem">'
         +'<div style="font-size:.75rem;font-weight:600">'+(docLabels[key]||key)+'</div>'
         +'<button onclick="viewTenantDoc(this.dataset.path)" data-path="'+doc.path+'" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">View</button>'
         +'</div>';
@@ -1379,7 +1374,7 @@ async function loadCoTenantsLiveInfo(booking){
       const phoneEl=document.getElementById(`ct-phone-${booking.id}-${i}`);
       const verEl=document.getElementById(`ct-ver-${booking.id}-${i}`);
       if(phoneEl)phoneEl.textContent=p?.phone||ct.phone||'—';
-      if(verEl)verEl.innerHTML=p?.verified?'<span style="color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Verified</span>':p?.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)"><i data-lucide=x-circle class=ic></i> Not verified</span>';
+      if(verEl)verEl.innerHTML=p?.verified?'<span style="color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Verified</span>':p?.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)"><i data-lucide=x-circle class=ic></i> Not verified</span>';
 
       const docsEl=document.getElementById(`ct-docs-${booking.id}-${i}`);
       if(docsEl){
@@ -1387,7 +1382,7 @@ async function loadCoTenantsLiveInfo(booking){
         try{docMap=p?.documents?(typeof p.documents==='string'?JSON.parse(p.documents):p.documents):{};}catch(e){}
         const entries=Object.entries(docMap).filter(([,d])=>d?.path);
         docsEl.innerHTML=entries.length
-          ?entries.map(([key,doc])=>`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:6px;padding:.25rem .5rem"><span style="font-weight:600">${docLabels[key]||key}</span><button data-path="${doc.path}" onclick="viewTenantDocLL(this.dataset.path)" style="background:var(--sea);color:white;border:none;border-radius:5px;padding:.15rem .4rem;font-size:.62rem;font-weight:600;cursor:pointer">View →</button></div>`).join('')
+          ?entries.map(([key,doc])=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--grdim);border:1px solid var(--grdim);border-radius:6px;padding:.25rem .5rem"><span style="font-weight:600">${docLabels[key]||key}</span><button data-path="${doc.path}" onclick="viewTenantDocLL(this.dataset.path)" style="background:var(--sea);color:white;border:none;border-radius:5px;padding:.15rem .4rem;font-size:.62rem;font-weight:600;cursor:pointer">View →</button></div>`).join('')
           :'<div>No documents uploaded yet</div>';
       }
     });
@@ -1422,12 +1417,12 @@ async function loadBookingDossier(booking){
   }
 
   const verif=profile.verified
-    ?'<span style="background:rgba(76,175,125,.15);color:#4CAF7D;padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700"><i data-lucide=check-circle-2 class=ic></i> ID Verified</span>'
+    ?'<span style="background:var(--grdim);color:var(--green);padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700"><i data-lucide=check-circle-2 class=ic></i> ID Verified</span>'
     :'<span style="background:rgba(212,168,71,.15);color:var(--gold);padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:700"><i data-lucide=alert-triangle class=ic></i>️ Not verified</span>';
 
   const fields=[profile.full_name,profile.passport_number,profile.nationality,profile.date_of_birth,profile.phone,profile.email,profile.emprent];
   const pct=Math.round(fields.filter(Boolean).length/fields.length*100);
-  const progressColor=pct>=80?'#4CAF7D':pct>=50?'var(--gold)':'var(--red)';
+  const progressColor=pct>=80?'var(--green)':pct>=50?'var(--gold)':'var(--red)';
 
   container.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
@@ -1517,16 +1512,16 @@ async function loadBookingDossier(booking){
     if(container){
       const sigDiv=document.createElement('div');
       sigDiv.style.cssText='margin-top:.6rem;border-top:1px solid var(--b);padding-top:.6rem';
-      sigDiv.innerHTML='<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4CAF7D;margin-bottom:.4rem"><i data-lucide=pen-line class=ic></i>️ Lease Agreement</div>'
+      sigDiv.innerHTML='<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--green);margin-bottom:.4rem"><i data-lucide=pen-line class=ic></i>️ Lease Agreement</div>'
         +(booking.lease_signed_landlord
-          ?'<div style="font-size:.75rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> You signed the lease!</div>'
+          ?'<div style="font-size:.75rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> You signed the lease!</div>'
           :'<button onclick="openSigningDocLL(this.dataset.src,\'Lease Agreement\',this.dataset.bid)" data-bid="'+booking.id+'" data-src="'+booking.lease_landlord_embed+'" style="width:100%;background:var(--terra);color:white;border:none;border-radius:9px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=file-text class=ic></i> Sign Lease Agreement →</button>');
       if(booking.first_payment_sent&&!booking.first_payment_confirmed){
         const payDiv=document.createElement('div');
         payDiv.style.cssText='margin-top:.4rem';
         payDiv.innerHTML='<div style="font-size:.73rem;color:var(--gold);margin-bottom:.25rem"><i data-lucide=euro class=ic></i> Lessee says payment sent:</div>'
           +'<div style="display:flex;gap:.35rem">'
-          +'<button onclick="confirmFirstPaymentReceived(this.dataset.id,true)" data-id="'+booking.id+'" style="flex:1;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Received</button>'
+          +'<button onclick="confirmFirstPaymentReceived(this.dataset.id,true)" data-id="'+booking.id+'" style="flex:1;background:var(--grdim);color:var(--green);border:1px solid var(--grdim);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Received</button>'
           +'<button onclick="confirmFirstPaymentReceived(this.dataset.id,false)" data-id="'+booking.id+'" style="flex:1;background:rgba(224,90,90,.1);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.4rem;font-size:.72rem;font-weight:700;cursor:pointer"><i data-lucide=x-circle class=ic></i> Not received</button>'
           +'</div>';
         container.appendChild(payDiv);
@@ -1534,7 +1529,7 @@ async function loadBookingDossier(booking){
       if(booking.first_payment_confirmed){
         const paidDiv=document.createElement('div');
         paidDiv.id='paycheck-'+booking.id;
-        paidDiv.style.cssText='margin-top:.4rem;font-size:.72rem;color:#4CAF7D;font-weight:600';
+        paidDiv.style.cssText='margin-top:.4rem;font-size:.72rem;color:var(--green);font-weight:600';
         paidDiv.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Payment confirmed';
         container.appendChild(paidDiv);
         // Vérifier que les paiements existent VRAIMENT — un ancien clic
@@ -2295,8 +2290,8 @@ function showRelistPrompt(listingId, listingTitle){
   if(!wrap)return;
   const alert=document.createElement('div');
   alert.className='alert';
-  alert.style.background='rgba(76,175,125,.08)';
-  alert.style.border='1px solid rgba(76,175,125,.2)';
+  alert.style.background='var(--grdim)';
+  alert.style.border='1px solid var(--grdim)';
   alert.style.borderRadius='10px';
   alert.style.padding='.75rem 1rem';
   alert.style.marginBottom='.5rem';
@@ -2451,7 +2446,7 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
     let query=sb.from('messages').select('*').order('created_at',{ascending:true});
     query=listingId?query.eq('listing_id',listingId):query.is('listing_id',null);
     const{data:byListing}=await query;
-    data=(byListing||[]).filter(m=>m.sender_id===senderId||m.receiver_id===senderId||m.sender_id==='system'||m.sender_id===U.id);
+    data=(byListing||[]).filter(m=>m.sender_id===U.id||m.receiver_id===U.id);
   }catch(e){}
   body.innerHTML='';
   (data||[]).forEach(m=>{
@@ -2466,19 +2461,8 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
         <div class="bt" style="max-width:85%">
           <div style="white-space:pre-wrap">${m.content}</div>
           <div style="margin-top:.75rem;display:flex;gap:.5rem">
-            <button onclick="confirmPaymentFromMsg('${m.id}','${listingId}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Yes, I received the payment</button>
-            <button onclick="disputePayment('${m.id}','${listingId}')" style="flex:1;background:rgba(224,90,90,.2);color:#E05A5A;border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=x-circle class=ic></i> Not received yet</button>
-          </div>
-        </div>
-        <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
-    } else if(m.type==='wants_to_rent'&&m.receiver_id===U.id){
-      // Lessee veut louer directement — lessor accepte ou refuse
-      div.innerHTML=`
-        <div class="bt" style="max-width:90%">
-          <div style="white-space:pre-wrap">${m.content}</div>
-          <div style="margin-top:.75rem;display:flex;gap:.5rem">
-            <button onclick="acceptDirectBooking('${m.listing_id}','${m.sender_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Accept & Generate Lease</button>
-            <button onclick="declineDirectBooking('${m.listing_id}','${m.sender_id}')" style="flex:1;background:rgba(224,90,90,.15);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=x-circle class=ic></i> Decline</button>
+            <button onclick="confirmPaymentFromMsg('${m.id}','${listingId}')" style="flex:1;background:var(--green);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Yes, I received the payment</button>
+            <button onclick="disputePayment('${m.id}','${listingId}')" style="flex:1;background:rgba(224,90,90,.2);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=x-circle class=ic></i> Not received yet</button>
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
@@ -2487,12 +2471,15 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
         <div class="bt" style="max-width:85%">
           <div>${m.content}</div>
           <div style="margin-top:.65rem">
-            <button onclick="sp('applications',document.querySelector('.ni[onclick*=applications]'))" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=arrow-right class=ic></i> Review dossier in Applications →</button>
+            <button onclick="sp('applications',document.querySelector('.ni[onclick*=applications]'))" style="width:100%;background:var(--green);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=arrow-right class=ic></i> Review dossier in Applications →</button>
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     } else {
-      div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      const isSystem=m.sender_id==='system';
+      div.innerHTML=isSystem
+        ?`<div class="bs"><i data-lucide=bot class=ic style="width:.85em;height:.85em;opacity:.6"></i> RestMalta — ${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`
+        :`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     }
     body.appendChild(div);
   });
@@ -2511,7 +2498,10 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
       const isMe=m.sender_id===U.id;
       const div=document.createElement('div');
       div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem;animation:fi .2s ease`;
-      div.innerHTML=`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      const isSystemLive=m.sender_id==='system';
+      div.innerHTML=isSystemLive
+        ?`<div class="bs"><i data-lucide=bot class=ic style="width:.85em;height:.85em;opacity:.6"></i> RestMalta — ${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`
+        :`<div class="${isMe?'bm':'bt'}" style="max-width:80%;word-wrap:break-word">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
       body.appendChild(div);body.scrollTop=body.scrollHeight;
       // Mark as read immediately
       sb.from('messages').update({read:true}).eq('id',m.id);
@@ -2519,7 +2509,7 @@ async function openMsgChat(id, title, listingId, senderId, threadId){
     .subscribe(s=>{
       const dot=document.getElementById('ll-dot');
       const txt=document.getElementById('ll-txt');
-      if(dot&&txt){dot.style.background=s==='SUBSCRIBED'?'#4CAF7D':'#ccc';txt.textContent=s==='SUBSCRIBED'?'Live':'Connecting...';}
+      if(dot&&txt){dot.style.background=s==='SUBSCRIBED'?'var(--green)':'#ccc';txt.textContent=s==='SUBSCRIBED'?'Live':'Connecting...';}
     });
 }
 
@@ -2604,7 +2594,7 @@ async function confirmPaymentFromMsg(msgId, listingId){
 
   // Remplacer les boutons
   const container=document.querySelector(`button[onclick*="confirmPaymentFromMsg"][onclick*="${msgId}"]`);
-  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:#4CAF7D;font-weight:600;margin-top:.5rem"><i data-lucide=check-circle-2 class=ic></i> Payment confirmed — agent notified for entry inventory.</div>';
+  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:var(--green);font-weight:600;margin-top:.5rem"><i data-lucide=check-circle-2 class=ic></i> Payment confirmed — agent notified for entry inventory.</div>';
 }
 
 async function disputePayment(msgId, listingId){
@@ -2626,7 +2616,7 @@ async function disputePayment(msgId, listingId){
   }
 
   const container=document.querySelector(`button[onclick*="disputePayment"][onclick*="${msgId}"]`);
-  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:#E05A5A;font-weight:600;margin-top:.5rem"><i data-lucide=alert-triangle class=ic></i>️ Lessee notified to check their payment.</div>';
+  if(container)container.closest('.bt').querySelector('div[style*="display:flex"]').innerHTML='<div style="font-size:.78rem;color:var(--red);font-weight:600;margin-top:.5rem"><i data-lucide=alert-triangle class=ic></i>️ Lessee notified to check their payment.</div>';
   toast('<i data-lucide=alert-triangle class=ic></i>️ Lessee has been notified to check their payment.');
 }
 
@@ -3156,8 +3146,8 @@ function updateLLCompleteness(){
   if(pctEl)pctEl.innerHTML=pct===100?'<i data-lucide=check-circle-2 class=ic></i> Complete':pct+'% complete';
   if(banner){
     banner.style.display='block';
-    banner.style.background=pct===100?'rgba(76,175,125,.08)':'rgba(212,168,71,.1)';
-    banner.style.borderColor=pct===100?'rgba(76,175,125,.25)':'rgba(212,168,71,.25)';
+    banner.style.background=pct===100?'var(--grdim)':'rgba(212,168,71,.1)';
+    banner.style.borderColor=pct===100?'var(--grdim)':'rgba(212,168,71,.25)';
     const t=banner.querySelector('div[style*="font-weight:700"]');
     if(t)t.innerHTML=pct===100?'<span style="color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Profile complete — all features unlocked!</span>':'<span style="color:var(--gold)"><i data-lucide=alert-triangle class=ic></i>️ Complete your profile to unlock all features</span>';
   }
@@ -3208,7 +3198,7 @@ async function loadProfilee(){
   const llBadge = document.getElementById('verify-badge-ll');
   if(P.verified){
     if(llBadge){llBadge.className='badge b-green';llBadge.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Verified';}
-    if(llUploadSection) llUploadSection.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem"><i data-lucide=check-circle-2 class=ic></i></div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.3rem">Identity Verified</div><div style="font-size:.78rem;color:var(--tm)">Your <i data-lucide=check-circle-2 class=ic></i> badge is visible on all your listings.</div></div>`;
+    if(llUploadSection) llUploadSection.innerHTML=`<div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem"><i data-lucide=check-circle-2 class=ic></i></div><div style="font-weight:700;color:var(--green);margin-bottom:.3rem">Identity Verified</div><div style="font-size:.78rem;color:var(--tm)">Your <i data-lucide=check-circle-2 class=ic></i> badge is visible on all your listings.</div></div>`;
   } else if(P.id_submitted){
     if(llBadge){llBadge.className='badge b-gold';llBadge.textContent='⏳ Pending';}
     if(llUploadSection) llUploadSection.innerHTML=`<div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:12px;padding:1.2rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">⏳</div><div style="font-weight:700;color:var(--gold);margin-bottom:.3rem">Under review</div><div style="font-size:.78rem;color:var(--tm)">Verification within 24 hours.</div></div>`;
@@ -3392,7 +3382,7 @@ async function loadRentedProperties(){
     if(agentId&&!leaseSigned&&bk.lease_landlord_embed&&!bk.lease_signed_landlord){
       agencyActionHtml=`<button onclick="signAgencyManagedDoc('${bk.id}','${bk.lease_landlord_embed}','lease_signed_landlord','<i data-lucide=file-text class=ic></i> Lease Agreement')" class="btn bp bsm"><i data-lucide=pen-line class=ic></i>️ Sign lease now</button>`;
     }else if(agentId&&leaseSigned&&!bk.first_payment_confirmed){
-      agencyActionHtml=`<button onclick="confirmTenantPaymentAgencyManaged('${bk.id}')" class="btn bp bsm" style="background:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Confirm payment received</button>`;
+      agencyActionHtml=`<button onclick="confirmTenantPaymentAgencyManaged('${bk.id}')" class="btn bp bsm" style="background:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Confirm payment received</button>`;
     }
 
     return `<div class="card" style="margin-bottom:1rem">
@@ -3679,7 +3669,7 @@ function renderCoTenantSignatureRows(bk){
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
       <span style="font-size:.78rem"><i data-lucide=users class=ic></i> ${cl.name||'Co-lessee'}</span>
       ${cl.signed
-        ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
+        ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
         :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
     </div>`).join('');
 }
@@ -3693,7 +3683,7 @@ function renderEdlCoTenantSignatureRows(bk){
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
       <span style="font-size:.78rem"><i data-lucide=users class=ic></i> ${cl.name||'Co-lessee'}</span>
       ${cl.signed
-        ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
+        ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
         :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
     </div>`).join('');
 }
@@ -3715,13 +3705,13 @@ function renderLandlordEdlSection(bk,g){
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
         <span style="font-size:.78rem"><i data-lucide=home class=ic></i> You</span>
         ${bk.edl_signed_landlord
-          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
+          ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
           :`<button onclick="openLandlordEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer"><i data-lucide=pen-line class=ic></i>️ Sign now</button>`}
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
         <span style="font-size:.78rem"><i data-lucide=user class=ic></i> Lessee</span>
         ${bk.edl_signed_tenant
-          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
+          ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
           :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
       </div>
       ${renderEdlCoTenantSignatureRows(bk)}
@@ -3772,9 +3762,9 @@ function renderLeaseSection(g){
   const moveIn=bk?.move_in_date||g.move_in_date||null; // date choisie par le lessee à la candidature
   const edlDate=bk?.edl_date||moveIn||g.visit_date||null; // par défaut, même date que le move-in — le proprio peut la changer
 
-  return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
-    <div style="background:rgba(76,175,125,.12);padding:.55rem .85rem">
-      <div style="font-size:.82rem;font-weight:700;color:#4CAF7D"><i data-lucide=party-popper class=ic></i> Application accepted — lease in progress</div>
+  return`<div style="margin-top:.6rem;background:var(--grdim);border:1px solid var(--grdim);border-radius:12px;overflow:hidden">
+    <div style="background:var(--grdim);padding:.55rem .85rem">
+      <div style="font-size:.82rem;font-weight:700;color:var(--green)"><i data-lucide=party-popper class=ic></i> Application accepted — lease in progress</div>
     </div>
     <div style="padding:.75rem .85rem">
 
@@ -3800,7 +3790,7 @@ function renderLeaseSection(g){
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem"><i data-lucide=home class=ic></i> You (lessor)</span>
           ${llSigned
-            ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${bk?.lease_landlord_embed?` <a href="${bk.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
+            ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${bk?.lease_landlord_embed?` <a href="${bk.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
             :bk?.lease_landlord_embed
               ?`<button onclick="openSigningDocLL('${bk?.lease_landlord_embed||''}','Lease Agreement','${bk?.id||''}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer"><i data-lucide=pen-line class=ic></i>️ Sign now</button>`
               :`<button onclick="regenLease('${bk?.id||''}','${g.listing_id||''}','${g.tenant_id||''}')" style="background:var(--gold);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer"><i data-lucide=refresh-cw class=ic></i> Generate lease</button>`}
@@ -3808,7 +3798,7 @@ function renderLeaseSection(g){
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem"><i data-lucide=user class=ic></i> Lessee (${g.tenant_name||'—'})</span>
           ${tSigned
-            ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${bk?.lease_tenant_embed?` <a href="${bk.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
+            ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${bk?.lease_tenant_embed?` <a href="${bk.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
             :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
         ${renderCoTenantSignatureRows(bk)}
@@ -3818,19 +3808,19 @@ function renderLeaseSection(g){
       <div id="payrow-${bk?.id||''}" style="background:var(--s2);border-radius:8px;padding:.4rem .65rem;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:.78rem">${payConfirmed?'<i data-lucide=check-circle-2 class=ic></i> Payment confirmed':payDeclared?'<i data-lucide=euro class=ic></i> Lessee declared payment':'⏳ Waiting for payment'}</span>
         ${payDeclared&&!payConfirmed
-          ?`<button onclick="confirmTenantPayment('${bk?.id||''}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Confirm received</button>`
-          :payConfirmed?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i></span>':''}
+          ?`<button onclick="confirmTenantPayment('${bk?.id||''}')" style="background:var(--green);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Confirm received</button>`
+          :payConfirmed?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i></span>':''}
       </div>
 
       ${payConfirmed&&bk?.status!=='move_in_ready'?renderLandlordEdlSection(bk,g):bk?.status==='move_in_ready'?`
-      <div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600;margin-bottom:.5rem"><i data-lucide=check-circle-2 class=ic></i> Move-in inventory completed — lessee has the keys</div>
+      <div style="margin-top:.6rem;background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--green);font-weight:600;margin-bottom:.5rem"><i data-lucide=check-circle-2 class=ic></i> Move-in inventory completed — lessee has the keys</div>
       <button onclick="viewEdlDossier('${bk?.id||''}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem"><i data-lucide=clipboard-list class=ic></i> View full inventory dossier (with photos) →</button>
       ${bk.edl_landlord_embed?`
       <div style="display:flex;flex-direction:column;gap:.3rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.76rem"><i data-lucide=clipboard-list class=ic></i> Move-in Inventory (Annex A)</span>
           ${bk.edl_signed_landlord
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span><a href="${bk.edl_pdf_url||bk.edl_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a></div>`
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span><a href="${bk.edl_pdf_url||bk.edl_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a></div>`
             :`<button onclick="openLandlordEdlDoc('${bk.id}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.7rem;font-weight:600;cursor:pointer"><i data-lucide=pen-line class=ic></i>️ Sign now</button>`}
         </div>
         ${renderEdlCoTenantSignatureRows(bk)}
@@ -3902,8 +3892,8 @@ function renderVisitGroup(g, isPast){
   };
   const sc=statusConfig[g.status]||{label:g.status,cls:'b-dim'};
   const visitDateStr=g.visit_date?new Date(g.visit_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+(g.visit_time?' at '+g.visit_time:''):'Date TBD';
-  const borderColor=sc.cls==='b-green'?'rgba(76,175,125,.25)':sc.cls==='b-gold'?'rgba(212,168,71,.25)':sc.cls==='b-sea'?'rgba(58,143,181,.25)':'var(--b)';
-  const bgColor=sc.cls==='b-green'?'rgba(76,175,125,.04)':sc.cls==='b-gold'?'rgba(212,168,71,.04)':sc.cls==='b-sea'?'rgba(58,143,181,.04)':'var(--s2)';
+  const borderColor=sc.cls==='b-green'?'var(--grdim)':sc.cls==='b-gold'?'rgba(212,168,71,.25)':sc.cls==='b-sea'?'rgba(58,143,181,.25)':'var(--b)';
+  const bgColor=sc.cls==='b-green'?'var(--grdim)':sc.cls==='b-gold'?'rgba(212,168,71,.04)':sc.cls==='b-sea'?'rgba(58,143,181,.04)':'var(--s2)';
   const bk=g.booking||null;
 
   // Charger les infos du lessee si dossier reçu
@@ -3931,14 +3921,14 @@ function renderVisitGroup(g, isPast){
       <div style="font-size:.78rem;font-weight:600;color:var(--gold);margin-bottom:.3rem">⏳ Lessee requested a visit</div>
       <div style="font-size:.7rem;color:var(--td);margin-bottom:.4rem"><i data-lucide=calendar class=ic></i> ${visitDateStr}</div>
       <div style="display:flex;gap:.4rem">
-        <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> I'm available</button>
+        <button onclick="landlordConfirmVisit('${g.id}','yes','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:var(--green);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> I'm available</button>
         <button onclick="landlordConfirmVisit('${g.id}','wrong_date','${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer"><i data-lucide=x-circle class=ic></i> Can't make it</button>
       </div>
     </div>`:''} 
 
     ${g.status==='confirmed'?`
-    <div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.6rem .75rem;margin-top:.4rem">
-      <div style="font-size:.78rem;font-weight:600;color:#4CAF7D;margin-bottom:.2rem"><i data-lucide=check-circle-2 class=ic></i> Visit confirmed</div>
+    <div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.6rem .75rem;margin-top:.4rem">
+      <div style="font-size:.78rem;font-weight:600;color:var(--green);margin-bottom:.2rem"><i data-lucide=check-circle-2 class=ic></i> Visit confirmed</div>
       <div style="font-size:.7rem;color:var(--td)"><i data-lucide=calendar class=ic></i> ${visitDateStr}</div>
     </div>
     ${!g.has_agent?`<div style="margin-top:.4rem"><button class="btn bg bsm" style="font-size:.72rem" onclick="markVisitDone('${g.id}')"><i data-lucide=check-circle-2 class=ic></i> Mark visit as done</button></div>`:`<div style="font-size:.68rem;color:var(--td);margin-top:.3rem"><i data-lucide=hard-hat class=ic></i> Agent handles this visit</div>`}`:''} 
@@ -3952,7 +3942,7 @@ function renderVisitGroup(g, isPast){
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Verified</div><div id="t-ver-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Nationality</div><div id="t-nat-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
           <div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Phone</div><div id="t-phone-${g.tenant_id}" style="font-size:.73rem;font-weight:600">⏳</div></div>
-          ${bk?.monthly_rent&&bk.monthly_rent!==g.listing_price?`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--gold)"><i data-lucide=euro class=ic></i> Proposed rent</div><div style="font-size:.73rem;font-weight:700;color:var(--gold)">€${bk.monthly_rent}/mo <span style="font-size:.65rem;font-weight:400;color:var(--td)">(listed: €${g.listing_price})</span></div></div>`:''}
+          ${bk?.monthly_rent&&g.listing_price&&bk.monthly_rent!==g.listing_price?`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--gold)"><i data-lucide=euro class=ic></i> Proposed rent</div><div style="font-size:.73rem;font-weight:700;color:var(--gold)">€${bk.monthly_rent}/mo <span style="font-size:.65rem;font-weight:400;color:var(--td)">(listed: €${g.listing_price})</span></div></div>`:''}
           ${bk?.move_in_date?`<div style="background:var(--s2);border-radius:6px;padding:.35rem .5rem"><div style="font-size:.6rem;color:var(--td)">Move-in date</div><div style="font-size:.73rem;font-weight:600">${new Date(bk.move_in_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div></div>`:''}
         </div>
         ${bk?.negotiation_note?`
@@ -3969,7 +3959,7 @@ function renderVisitGroup(g, isPast){
         ${renderCoTenantsSummary(bk)}
       </div>
       <div style="display:flex;gap:.4rem">
-        <button onclick="acceptDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Accept</button>
+        <button onclick="acceptDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:2;background:var(--green);color:white;border:none;border-radius:7px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Accept</button>
         <button onclick="declineDirectBooking('${g.listing_id}','${g.tenant_id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer"><i data-lucide=x-circle class=ic></i> Decline</button>
       </div>
     </div>`:''} 
@@ -3990,7 +3980,7 @@ async function loadTenantDossierForLL(tenantId){
     const docs=document.getElementById('t-docs-chips-'+tenantId);
     if(name)name.textContent=p.full_name||'—';
     if(nat)nat.textContent=p.nationality||'—';
-    if(ver)ver.innerHTML=p.verified?'<span style="color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Verified</span>':p.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)"><i data-lucide=x-circle class=ic></i> Not verified</span>';
+    if(ver)ver.innerHTML=p.verified?'<span style="color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Verified</span>':p.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)"><i data-lucide=x-circle class=ic></i> Not verified</span>';
     if(phone)phone.textContent=p.phone||'—';
     if(docs){
       if(!p.documents){docs.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
@@ -3999,7 +3989,7 @@ async function loadTenantDossierForLL(tenantId){
       const entries=Object.entries(docMap).filter(([,d])=>d?.path);
       if(!entries.length){docs.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
       docs.innerHTML=entries.map(([key,doc])=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.35rem .6rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--grdim);border:1px solid var(--grdim);border-radius:7px;padding:.35rem .6rem">
           <div style="font-size:.75rem;font-weight:600">${docLabels[key]||key}</div>
           <button data-path="${doc.path}" onclick="viewTenantDocLL(this.dataset.path)" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">View →</button>
         </div>`).join('');
@@ -4203,11 +4193,11 @@ async function openLandlordEDL(bookingId){
               <input type="number" id="ll-arms-residents" value="1" min="1" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
             </div>
           </div>
-          <div id="ll-annex-status" style="display:none;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.55rem;font-size:.73rem;color:#4CAF7D;margin-bottom:.5rem"></div>
+          <div id="ll-annex-status" style="display:none;background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.55rem;font-size:.73rem;color:var(--green);margin-bottom:.5rem"></div>
         </div>
         <div style="display:flex;gap:.5rem;margin-top:.5rem">
           <button onclick="showEdlStepLL(1)" style="flex:1;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
-          <button onclick="generateAnnexAndCompleteLL()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer"><i data-lucide=paperclip class=ic></i> Generate Annex A & Complete →</button>
+          <button onclick="generateAnnexAndCompleteLL()" style="flex:2;background:var(--green);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer"><i data-lucide=paperclip class=ic></i> Generate Annex A & Complete →</button>
         </div>
       </div>
 
@@ -4661,7 +4651,10 @@ async function acceptDirectBooking(listingId, tenantId){
     await generateLeaseFromBooking(booking.id, listingId, tenantId);
 
     // Mettre à jour le statut de la visite existante → lease_pending
-    try{await sb.from('visits').update({status:'lease_pending'}).eq('listing_id',listingId).eq('tenant_id',tenantId);}catch(e){}
+    // Exclure explicitement les visites déjà annulées/refusées — leur
+    // statut est définitif, elles ne doivent plus jamais bouger, même
+    // si le même locataire a depuis redemandé une nouvelle visite.
+    try{await sb.from('visits').update({status:'lease_pending'}).eq('listing_id',listingId).eq('tenant_id',tenantId).not('status','in','("cancelled","tenant_declined","landlord_declined","date_rejected")');}catch(e){}
 
     // Notifier le lessee principal
     try{
@@ -4805,7 +4798,7 @@ async function llSubmitIDForVerification(){
     const{error:e2}=await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`,_llSelfieFile,{upsert:true});
     if(e2) throw new Error(e2.message);
     await sb.from('profiles').update({id_submitted:true,id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
-    if(status) status.innerHTML='<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem"><i data-lucide=check-circle-2 class=ic></i></div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
+    if(status) status.innerHTML='<div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem"><i data-lucide=check-circle-2 class=ic></i></div><div style="font-weight:700;color:var(--green);margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
     toast('<i data-lucide=check-circle-2 class=ic></i> ID + selfie submitted for verification!');
   }catch(e){
     if(status) status.innerHTML='<div style="color:var(--red)"><i data-lucide=x-circle class=ic></i> '+e.message+'</div>';
