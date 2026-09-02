@@ -279,29 +279,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <!-- Sub-tab: Extend or Stop -->
         <div id="ml-tab-manage" style="display:none">
           <div class="card">
-            <div class="ch"><div class="ct"><i data-lucide=upload class=ic></i> Generate notice to leave</div></div>
+            <div class="ch"><div class="ct"><i data-lucide=door-open class=ic></i> Leave this property</div></div>
             <div class="cb">
-              <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Planning to leave? Generate your official notice letter. The app will automatically calculate if you are still in your Di Fermo period and give you the exact date you can hand back the keys.</p>
-              <div class="fgrid2" style="margin-bottom:.75rem">
-                <div class="fg"><label class="fl">Your lease start date</label><input class="fi" type="date" id="notice-start"></div>
-                <div class="fg"><label class="fl">Di Fermo period</label>
-                  <select class="fsel" id="notice-difermo">
-                    <option value="6">6 months (standard)</option>
-                    <option value="12">12 months</option>
-                    <option value="0">No Di Fermo</option>
-                  </select>
-                </div>
-                <div class="fg"><label class="fl">Notice period</label>
-                  <select class="fsel" id="notice-period">
-                    <option value="1">1 month (standard)</option>
-                    <option value="2">2 months</option>
-                    <option value="3">3 months</option>
-                  </select>
-                </div>
-                <div class="fg"><label class="fl">Desired departure date</label><input class="fi" type="date" id="notice-departure"></div>
-              </div>
-              <button class="btn bp" onclick="generateNotice()"><i data-lucide=file-text class=ic></i> Calculate & generate notice →</button>
-              <div id="notice-result" style="display:none;margin-top:1rem"></div>
+              <p style="font-size:.82rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Moving out? This ends your tenancy on RestMalta — your lessor will be notified, and this property will move out of your active rental so you're free to browse and apply for a new place.</p>
+              <button class="btn bg" style="border-color:var(--red);color:var(--red)" onclick="leaveCurrentProperty()"><i data-lucide=door-open class=ic></i> Leave this property</button>
             </div>
           </div>
         </div>
@@ -1350,7 +1331,7 @@ async function loadMyLocation(){
   if(progressEl)progressEl.innerHTML=renderTenantLeaseSection({},bk);
 
   const docEl=document.getElementById('ml-lease-doc');
-  if(docEl)docEl.innerHTML=renderLeaseDocCard(bk,listing);
+  if(docEl)docEl.innerHTML=renderLeaseDocCard(bk,listing)+renderEdlDocCard(bk);
 
   // Ce bien est géré par une agence sans propriétaire lié à un vrai compte
   // RestMalta — personne côté RestMalta pour suivre paiements/gestion.
@@ -1384,6 +1365,35 @@ function renderLeaseDocCard(bk,listing){
         ${bk.lease_tenant_embed?`<a href="${bk.lease_tenant_embed}" target="_blank" class="btn ${bk.lease_signed_tenant?'bg':'bp'} bsm">${bk.lease_signed_tenant?'<i data-lucide=file-text class=ic></i> View my copy':'<i data-lucide=pen-line class=ic></i>️ Sign now'}</a>`:''}
       </div>
       ${bothSigned?`<div style="margin-top:.75rem;font-size:.72rem;color:var(--td)"><i data-lucide=file-edit class=ic></i> Remember to register this lease at <strong>rentregistration.mt</strong> within 30 days of the start date.</div>`:''}
+    </div>
+  </div>`;
+}
+
+function renderEdlDocCard(bk){
+  const myEdlEmbed=bk.edl_tenant_embed;
+  const myEdlSigned=bk.edl_signed_tenant;
+  if(!myEdlEmbed&&bk.status!=='move_in_ready'){
+    return`<div class="card"><div class="cb"><div class="empty"><div class="em"><i data-lucide=clipboard-list class=ic></i></div><p>Your move-in inventory (EDL) hasn't been generated yet.<br>It will appear here once your lessor or agency prepares it.</p></div></div></div>`;
+  }
+  const bothSigned=bk.edl_signed_landlord&&bk.edl_signed_tenant;
+  return`<div class="card">
+    <div class="ch"><div class="ct"><i data-lucide=clipboard-list class=ic></i> Move-in Inventory (EDL)</div>${bothSigned||bk.status==='move_in_ready'?'<span class="badge b-green"><i data-lucide=check-circle-2 class=ic></i> Fully signed</span>':'<span class="badge b-gold">⏳ In progress</span>'}</div>
+    <div class="cb">
+      <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem"><i data-lucide=home class=ic></i> Lessor</span>
+          ${bk.edl_signed_landlord||bk.status==='move_in_ready'?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
+          <span style="font-size:.78rem"><i data-lucide=user class=ic></i> You</span>
+          ${myEdlSigned||bk.status==='move_in_ready'?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+        </div>
+        ${renderEdlCoTenantSignatureRowsTenant(bk)}
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        ${myEdlEmbed?`<a href="${bk.edl_pdf_url||myEdlEmbed}" target="_blank" class="btn ${myEdlSigned?'bg':'bp'} bsm">${myEdlSigned?'<i data-lucide=file-text class=ic></i> View my copy':'<i data-lucide=pen-line class=ic></i>️ Sign now'}</a>`:''}
+        <button onclick="viewEdlDossierTenant('${bk.id}')" class="btn bg bsm"><i data-lucide=clipboard-list class=ic></i> View full dossier (with photos)</button>
+      </div>
     </div>
   </div>`;
 }
@@ -3146,100 +3156,35 @@ async function cancelVisit(visitId, agentId, listingId){
 }
 
 let cardElement=null;
-async function generateNotice(){
-  const startDate=document.getElementById('notice-start')?.value;
-  const diFermoMonths=parseInt(document.getElementById('notice-difermo')?.value||'6');
-  const noticeMonths=parseInt(document.getElementById('notice-period')?.value||'1');
-  const departureDate=document.getElementById('notice-departure')?.value;
-  const resultEl=document.getElementById('notice-result');
+async function leaveCurrentProperty(){
+  if(!confirm("Leave this property? Your lessor will be notified, and it'll be removed from your active rental — you'll be free to browse and apply for a new place."))return;
 
-  if(!startDate){toast('<i data-lucide=alert-triangle class=ic></i>️ Enter your lease start date');return;}
-  if(!departureDate){toast('<i data-lucide=alert-triangle class=ic></i>️ Enter your desired departure date');return;}
-
-  // Date de fin du Di Fermo (période minimale d'engagement)
-  const diFermoEnd=new Date(startDate);
-  diFermoEnd.setMonth(diFermoEnd.getMonth()+diFermoMonths);
-
-  // Date de départ la plus proche possible = fin du Di Fermo + préavis
-  // (le préavis se compte à partir d'aujourd'hui, mais ne peut jamais faire
-  // sortir le locataire avant la fin du Di Fermo)
-  const today=new Date();
-  const noticeFromToday=new Date(today);
-  noticeFromToday.setMonth(noticeFromToday.getMonth()+noticeMonths);
-  const earliestDeparture=noticeFromToday>diFermoEnd?noticeFromToday:diFermoEnd;
-
-  const chosenDeparture=new Date(departureDate);
-  const isValid=chosenDeparture>=earliestDeparture;
-
-  // Récupérer le bail actif pour pré-remplir la lettre
-  let bk=null,listing=null,landlordProfile=null;
+  let bk=null,listing=null;
   try{
     const{data:bookings}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready']).order('created_at',{ascending:false}).limit(1);
     bk=bookings?.[0]||null;
     if(bk){
-      const{data:l}=await sb.from('listings').select('*').eq('id',bk.listing_id).single();
+      const{data:l}=await sb.from('listings').select('*').eq('id',bk.listing_id).maybeSingle();
       listing=l;
-      const{data:lp}=await sb.from('profiles').select('*').eq('clerk_id',bk.landlord_id).maybeSingle();
-      landlordProfile=lp;
     }
   }catch(e){}
 
-  const todayLabel=today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const departureLabel=chosenDeparture.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const earliestLabel=earliestDeparture.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  if(!bk){toast('<i data-lucide=alert-triangle class=ic></i>️ No active rental found');return;}
 
-  if(!isValid){
-    resultEl.style.display='block';
-    resultEl.innerHTML=`<div style="background:rgba(224,90,58,.1);border:1px solid rgba(224,90,58,.25);border-radius:8px;padding:.75rem;font-size:.82rem;color:var(--terra)"><i data-lucide=alert-triangle class=ic></i>️ Your chosen departure date is too early. Based on your Di Fermo period and notice period, the earliest you can leave is <strong>${earliestLabel}</strong>.</div>`;
-    return;
+  try{await sb.from('bookings').update({status:'tenancy_ended',tenancy_ended_at:new Date().toISOString()}).eq('id',bk.id);}catch(e){}
+
+  if(bk.landlord_id){
+    try{await sb.from('messages').insert({
+      listing_id:bk.listing_id,
+      sender_id:'system',
+      receiver_id:bk.landlord_id,
+      content:`🚪 ${P?.full_name||'Your lessee'} has ended their tenancy for ${listing?.title||'the property'}.`,
+      type:'tenancy_ended'
+    });}catch(e){}
   }
 
-  const letterText=`${P?.full_name||'[Your name]'}
-${P?.home_address||'[Your current address]'}
-${U.email||''}
-
-${todayLabel}
-
-To: ${landlordProfile?.full_name||'[Lessor name]'}
-${landlordProfile?.home_address||listing?.full_address||'[Lessor address]'}
-
-RE: NOTICE OF WITHDRAWAL FROM LEASE AGREEMENT
-Property: ${listing?.full_address||listing?.zone||'[Property address]'}
-
-Dear ${landlordProfile?.full_name||'Lessor'},
-
-In accordance with the Private Residential Leases Act (Chapter 604 of the Laws of Malta), I am writing to formally give notice of my intention to withdraw from the lease agreement for the above-mentioned property.
-
-Lease start date: ${new Date(startDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
-Intended departure date: ${departureLabel}
-
-This notice is being given in compliance with the required notice period under the Act. I confirm that this departure date falls after the applicable Di Fermo (binding) period and satisfies the required notice period.
-
-I will ensure the property is vacated and keys returned on the departure date stated above, in the same condition as recorded in the move-in inventory, subject to fair wear and tear.
-
-Please confirm receipt of this letter at your earliest convenience. I would appreciate arranging a move-out inspection ahead of my departure.
-
-Yours sincerely,
-${P?.full_name||'[Your name]'}
-
----
-<i data-lucide=alert-triangle class=ic></i>️ IMPORTANT: Maltese law requires this notice to be sent by registered mail (or another verifiable method with proof of delivery) to be legally valid. Simply keeping this document is not sufficient — please send it and keep your proof of posting.`;
-
-  resultEl.style.display='block';
-  resultEl.innerHTML=`
-    <div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.82rem;color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> You can give notice now — earliest valid departure was ${earliestLabel}, and ${departureLabel} works.</div>
-    <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:1rem;font-family:Georgia,serif;font-size:.8rem;white-space:pre-wrap;line-height:1.6;max-height:400px;overflow-y:auto;margin-bottom:.75rem">${letterText}</div>
-    <button class="btn bp" style="width:100%;justify-content:center" onclick="downloadNoticeLetter()"><i data-lucide=arrow-down class=ic></i> Download letter →</button>`;
-  window._noticeLetterText=letterText;
-}
-
-function downloadNoticeLetter(){
-  if(!window._noticeLetterText)return;
-  const blob=new Blob([window._noticeLetterText],{type:'text/plain'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='Notice_to_Leave_RestMalta.txt';a.click();
-  URL.revokeObjectURL(url);
+  toast('<i data-lucide=check-circle-2 class=ic></i> You have left the property.');
+  setTimeout(()=>{sp('dash',document.querySelectorAll('.ni')[0]);loadOverview();},1200);
 }
 
 async function loadPaymentsData(){
