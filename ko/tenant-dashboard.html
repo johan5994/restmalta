@@ -17,7 +17,7 @@
 </script>
 <style>
 :root{--bg:#F5EFE0;--s:#FDFAF4;--s2:#EDE8D8;--b:rgba(26,20,16,.08);--b2:rgba(26,20,16,.15);--terra:#C9553A;--tdim:rgba(201,85,58,.1);--gold:#D4A847;--gdim:rgba(212,168,71,.1);--sea:#2E6B8A;--sdim:rgba(46,107,138,.1);--green:#4CAF7D;--grdim:rgba(76,175,125,.1);--red:#C9553A;--rdim:rgba(201,85,58,.1);--deep:#1A1410;--stone:#6B5F52;--txt:#1A1410;--tm:#6B5F52;--td:#A89880}
-html.dark{--bg:#0F1117;--s:#1A1D27;--s2:#22263A;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--terra:#E05A3A;--tdim:rgba(224,90,58,.15);--gold:#D4A847;--gdim:rgba(212,168,71,.12);--sea:#3A8FB5;--sdim:rgba(58,143,181,.12);--green:#4CAF7D;--grdim:rgba(76,175,125,.12);--red:#E05A5A;--rdim:rgba(224,90,90,.12);--deep:#F0EDE8;--stone:rgba(240,237,232,.45);--txt:#F0EDE8;--tm:rgba(240,237,232,.45);--td:rgba(240,237,232,.25)}
+html.dark{--bg:#0F1117;--s:#1A1D27;--s2:#22263A;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--terra:#E05A3A;--tdim:rgba(224,90,58,.15);--gold:#D4A847;--gdim:rgba(212,168,71,.12);--sea:#3A8FB5;--sdim:rgba(58,143,181,.12);--green:var(--green);--grdim:var(--grdim);--red:var(--red);--rdim:rgba(224,90,90,.12);--deep:#F0EDE8;--stone:rgba(240,237,232,.45);--txt:#F0EDE8;--tm:rgba(240,237,232,.45);--td:rgba(240,237,232,.25)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh}
 .sb{width:240px;min-height:100vh;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
@@ -92,6 +92,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 .thread{display:flex;flex-direction:column;gap:.6rem;max-height:200px;overflow-y:auto;margin-bottom:.8rem}
 .bt{background:var(--s2);padding:.65rem .9rem;border-radius:4px 12px 12px 12px;font-size:.83rem;color:var(--tm);line-height:1.5;align-self:flex-start;max-width:85%}
 .bm{background:var(--terra);color:white;padding:.65rem .9rem;border-radius:12px 4px 12px 12px;font-size:.83rem;line-height:1.5;align-self:flex-end;max-width:85%}
+.bs{background:transparent;border:1px dashed var(--b2);padding:.5rem .85rem;border-radius:10px;font-size:.78rem;color:var(--td);line-height:1.5;align-self:center;max-width:90%}
 .ld{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--td);gap:.6rem}
 .sp{width:18px;height:18px;border:2px solid rgba(201,85,58,.2);border-top-color:var(--terra);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -811,19 +812,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 function initLucideIcons(){
   if(window.lucide){
     lucide.createIcons();
-    let iconsPending=false;
-    new MutationObserver((mutations)=>{
-      // Ne se redéclenche QUE si une vraie nouvelle icône non convertie
-      // apparaît — sinon lucide.createIcons() (qui modifie le DOM en
-      // remplaçant <i data-lucide> par un <svg>) redéclenchait
-      // l'observateur à l'infini, figeant complètement la page.
-      const hasNewIcon=mutations.some(m=>Array.from(m.addedNodes).some(n=>
-        n.nodeType===1&&(n.hasAttribute?.('data-lucide')||n.querySelector?.('[data-lucide]'))
-      ));
-      if(!hasNewIcon||iconsPending)return;
-      iconsPending=true;
-      setTimeout(()=>{lucide.createIcons();iconsPending=false;},50);
-    }).observe(document.body,{childList:true,subtree:true});
+    // Vérification périodique légère plutôt qu'un MutationObserver — celui-ci
+    // réagissait à CHAQUE changement du DOM sur toute la page (y compris
+    // l'ouverture d'un simple menu déroulant natif), provoquant des gels
+    // complets de l'écran un peu partout sur le site. lucide.createIcons()
+    // ne fait rien si aucune icône n'a besoin d'être convertie — sans danger
+    // de tourner toutes les secondes.
+    setInterval(()=>{lucide.createIcons();},1000);
   }else{
     setTimeout(initLucideIcons,50);
   }
@@ -1518,7 +1513,7 @@ async function loadMessages(){
       </div>
       </div>
       ${!hasExistingRequest && m.listing_id ? `<div style="display:flex;flex-direction:column;gap:.3rem;padding:.45rem .85rem .65rem;border-top:1px solid var(--b)">
-        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||''). replace(/"/g,'&quot;')}"\n            onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"\n            style="width:100%;background:rgba(76,175,125,.12);color:#4CAF7D;border:1px solid rgba(76,175,125,.25);border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer;margin-bottom:.3rem">\n            <i data-lucide=calendar class=ic></i> I want to visit\n          </button>\n        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-price="${m.listings?.price||0}"
+        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||''). replace(/"/g,'&quot;')}"\n            onclick="requestVisitFromContact(this.dataset.lid,this.dataset.oid,this.dataset.name)"\n            style="width:100%;background:var(--grdim);color:var(--green);border:1px solid var(--grdim);border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer;margin-bottom:.3rem">\n            <i data-lucide=calendar class=ic></i> I want to visit\n          </button>\n        <button data-lid="${m.listing_id||''}" data-oid="${m.otherId||''}" data-name="${(m.listings?.title||'').replace(/"/g,'&quot;')}" data-price="${m.listings?.price||0}"
           onclick="showNegotiationModal(this.dataset.lid,this.dataset.name,this.dataset.oid,parseFloat(this.dataset.price))"
           style="width:100%;background:var(--terra);color:white;border:none;border-radius:7px;padding:.42rem;font-size:.73rem;font-weight:700;cursor:pointer">
           <i data-lucide=home class=ic></i> I want to rent this property →
@@ -1553,7 +1548,7 @@ async function openMsg(threadKey, title, subtitle, listingId, receiverId, thread
   let threadData=[];
   try{
     const{data:byListing}=await sb.from('messages').select('*').eq('listing_id',listingId).order('created_at',{ascending:true});
-    threadData=(byListing||[]).filter(m=>m.sender_id===receiverId||m.receiver_id===receiverId||m.sender_id==='system'||m.sender_id===U.id);
+    threadData=(byListing||[]).filter(m=>m.sender_id===U.id||m.receiver_id===U.id);
   }catch(e){}
   const data=threadData;
   thread.innerHTML='';
@@ -1573,7 +1568,7 @@ async function openMsg(threadKey, title, subtitle, listingId, receiverId, thread
               <input type="file" id="receipt-${m.id}" accept="image/*,.pdf" style="font-size:.72rem;width:100%;background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:.3rem .5rem;color:var(--tf)">
               <div style="font-size:.62rem;color:var(--td);margin-top:.1rem">Screenshot Revolut, bank PDF... helps lessor confirm faster</div>
             </div>
-            <button onclick="declarePaidFromMessage('${m.id}','${m.listing_id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=credit-card class=ic></i> I've paid — notify lessor</button>
+            <button onclick="declarePaidFromMessage('${m.id}','${m.listing_id}')" style="width:100%;background:var(--green);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer"><i data-lucide=credit-card class=ic></i> I've paid — notify lessor</button>
           </div>
         </div>
         <div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
@@ -1581,7 +1576,10 @@ async function openMsg(threadKey, title, subtitle, listingId, receiverId, thread
     } else if(m.type==='visit_interest_check'){
       return;
     } else {
-      div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      const isSystem=m.sender_id==='system';
+      div.innerHTML=isSystem
+        ?`<div class="bs"><i data-lucide=bot class=ic style="width:.85em;height:.85em;opacity:.6"></i> RestMalta — ${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`
+        :`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
     }
     thread.appendChild(div);
   });
@@ -1602,7 +1600,10 @@ async function openMsg(threadKey, title, subtitle, listingId, receiverId, thread
       const isMe=m.sender_id===U.id;
       const div=document.createElement('div');
       div.style.cssText=`display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:.1rem;animation:fi .2s ease`;
-      div.innerHTML=`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      const isSystemLive=m.sender_id==='system';
+      div.innerHTML=isSystemLive
+        ?`<div class="bs"><i data-lucide=bot class=ic style="width:.85em;height:.85em;opacity:.6"></i> RestMalta — ${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`
+        :`<div class="${isMe?'bm':'bt'}">${m.content}</div><div style="font-size:.6rem;color:var(--td)">${new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
       thread.appendChild(div);thread.scrollTop=thread.scrollHeight;
     })
     .subscribe();
@@ -1696,7 +1697,7 @@ async function declarePaidFromMessage(msgId, listingId){
   }
 
   const btn=document.querySelector(`button[onclick*="declarePaidFromMessage"][onclick*="${msgId}"]`);
-  if(btn)btn.closest('div').innerHTML='<div style="margin-top:.5rem;background:rgba(76,175,125,.15);border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Payment declared — waiting for lessor confirmation.</div>';
+  if(btn)btn.closest('div').innerHTML='<div style="margin-top:.5rem;background:var(--grdim);border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Payment declared — waiting for lessor confirmation.</div>';
   toast('<i data-lucide=check-circle-2 class=ic></i> Lessor notified — they will confirm receipt.');
 }
 
@@ -2001,8 +2002,8 @@ function renderTenantVisitCard(v){
   const dateStr=v.visit_date?new Date(v.visit_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(v.visit_time?' at '+v.visit_time:''):'Date TBD';
   const sc=statusColors[v.status]||'b-dim';
   const sl=statusLabels[v.status]||v.status;
-  const bgCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.05)':v.status==='booking_pending'?'rgba(212,168,71,.05)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.05)':'var(--s2)';
-  const borderCol=v.status==='accepted'||v.status==='move_in_ready'?'rgba(76,175,125,.2)':v.status==='booking_pending'?'rgba(212,168,71,.2)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.2)':'var(--b)';
+  const bgCol=v.status==='accepted'||v.status==='move_in_ready'?'var(--grdim)':v.status==='booking_pending'?'rgba(212,168,71,.05)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.05)':'var(--s2)';
+  const borderCol=v.status==='accepted'||v.status==='move_in_ready'?'var(--grdim)':v.status==='booking_pending'?'rgba(212,168,71,.2)':v.status==='lease_pending'||v.status==='edl_scheduled'||v.status==='signing_day'?'rgba(58,143,181,.2)':'var(--b)';
 
   let html=`<div style="padding:.85rem;background:${bgCol};border:1px solid ${borderCol};border-radius:12px;margin-bottom:.65rem">
 
@@ -2029,20 +2030,20 @@ function renderTenantVisitCard(v){
         <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:.3rem"><i data-lucide=calendar class=ic></i> Your lessor proposed this visit</div>
         <div style="font-size:.7rem;color:var(--td);margin-bottom:.5rem">${dateStr}</div>
         <div style="display:flex;gap:.4rem">
-          <button onclick="tenantConfirmProposedVisit('${v.id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Yes, that works!</button>
+          <button onclick="tenantConfirmProposedVisit('${v.id}')" style="flex:1;background:var(--green);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Yes, that works!</button>
           <button onclick="tenantDeclineProposedVisit('${v.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer">Propose another date</button>
         </div>
       </div>`:''}
 
       <!-- ÉTAPE 3 : Visite confirmée -->
       ${(v.status==='confirmed'||v.status==='agent_assigned')?`
-      <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem">
-        <div style="font-size:.75rem;font-weight:600;color:#4CAF7D;margin-bottom:.15rem"><i data-lucide=check-circle-2 class=ic></i> Visit confirmed — see you there!</div>
+      <div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem">
+        <div style="font-size:.75rem;font-weight:600;color:var(--green);margin-bottom:.15rem"><i data-lucide=check-circle-2 class=ic></i> Visit confirmed — see you there!</div>
         <div style="font-size:.7rem;color:var(--td)"><i data-lucide=calendar class=ic></i> ${dateStr}</div>
       </div>
       ${v.has_agent&&!v.tenant_confirmed?`
       <div style="margin-top:.4rem">
-        <button onclick="confirmTenantPresence('${v.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Confirm I will attend</button>
+        <button onclick="confirmTenantPresence('${v.id}')" style="width:100%;background:var(--green);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Confirm I will attend</button>
       </div>`:''} `:''} 
 
       <!-- ÉTAPE 4 : Visite faite — intéressé ou non -->
@@ -2050,7 +2051,7 @@ function renderTenantVisitCard(v){
       <div style="background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2);border-radius:8px;padding:.6rem;margin-top:.4rem">
         <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.4rem">How did the visit go?</div>
         <div style="display:flex;gap:.4rem">
-          <button onclick="tenantInterested('${v.id}','${v.listing_id}',${v.listing_price||0},'${(v.listing_title||'').replace(/'/g,"\\'")}','${v.landlord_id||''}' )" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=home class=ic></i> I want to rent!</button>
+          <button onclick="tenantInterested('${v.id}','${v.listing_id}',${v.listing_price||0},'${(v.listing_title||'').replace(/'/g,"\\'")}','${v.landlord_id||''}' )" style="flex:1;background:var(--green);color:white;border:none;border-radius:7px;padding:.5rem;font-size:.78rem;font-weight:600;cursor:pointer"><i data-lucide=home class=ic></i> I want to rent!</button>
           <button onclick="tenantNotInterested('${v.id}')" style="flex:1;background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:7px;padding:.5rem;font-size:.75rem;font-weight:600;cursor:pointer"><i data-lucide=x-circle class=ic></i> Not interested</button>
         </div>
       </div>`:''} 
@@ -2063,7 +2064,7 @@ function renderTenantVisitCard(v){
       ${bk?.receipt_tenant_embed?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-top:.4rem">
         <span style="font-size:.76rem"><i data-lucide=receipt class=ic></i> Reservation fee receipt</span>
         ${bk?.receipt_signed_tenant
-          ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span><a href="${bk.receipt_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a></div>`
+          ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.7rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span><a href="${bk.receipt_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a></div>`
           :`<a href="${bk.receipt_tenant_embed}" target="_blank" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;text-decoration:none"><i data-lucide=pen-line class=ic></i>️ Sign now</a>`}
       </div>`:''}`:''} 
 
@@ -2107,7 +2108,7 @@ async function renderTenantCoTenantSection(coTenantBookings){
         const entry=b._myCoTenantEntry;
         const isAccepted=['accepted','edl_scheduled','signing_day','move_in_ready'].includes(b.status);
 
-        html+=`<div style="padding:.85rem;background:${isAccepted?'rgba(76,175,125,.05)':'var(--s2)'};border:1px solid ${isAccepted?'rgba(76,175,125,.2)':'var(--b)'};border-radius:12px;margin-bottom:.6rem">
+        html+=`<div style="padding:.85rem;background:${isAccepted?'var(--grdim)':'var(--s2)'};border:1px solid ${isAccepted?'var(--grdim)':'var(--b)'};border-radius:12px;margin-bottom:.6rem">
           <div style="font-size:.85rem;font-weight:700;margin-bottom:.2rem">${listing.title||'Property'}</div>
           <div style="font-size:.72rem;color:var(--td);margin-bottom:.4rem"><i data-lucide=map-pin class=ic></i> ${listing.zone||'Malta'} · Main applicant: ${b.tenant_name||'—'}</div>`;
 
@@ -2202,7 +2203,7 @@ function renderCoTenantSignatureRowsTenant(bk){
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
       <span style="font-size:.78rem"><i data-lucide=users class=ic></i> ${cl.name||'Co-lessee'}</span>
       ${cl.signed
-        ?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>'
+        ?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>'
         :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
     </div>`).join('');
 }
@@ -2231,9 +2232,9 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
   const totalDue=deposit+rent-holding;
   const perPersonShare=Math.round((totalDue/totalTenants)*100)/100;
 
-  return`<div style="margin-top:.6rem;background:rgba(76,175,125,.05);border:1px solid rgba(76,175,125,.2);border-radius:12px;overflow:hidden">
-    <div style="background:rgba(76,175,125,.12);padding:.5rem .85rem">
-      <div style="font-size:.82rem;font-weight:700;color:#4CAF7D"><i data-lucide=party-popper class=ic></i> Application accepted!</div>
+  return`<div style="margin-top:.6rem;background:var(--grdim);border:1px solid var(--grdim);border-radius:12px;overflow:hidden">
+    <div style="background:var(--grdim);padding:.5rem .85rem">
+      <div style="font-size:.82rem;font-weight:700;color:var(--green)"><i data-lucide=party-popper class=ic></i> Application accepted!</div>
     </div>
     <div style="padding:.75rem .85rem">
 
@@ -2254,16 +2255,16 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem"><i data-lucide=home class=ic></i> Lessor</span>
-          ${llSigned?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+          ${llSigned?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>
         ${coTenantEntry?`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem"><i data-lucide=user class=ic></i> ${bk.tenant_name||'Main lessee'}</span>
-          ${bk.lease_signed_tenant?'<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+          ${bk.lease_signed_tenant?'<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>':'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
         </div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem"><i data-lucide=user class=ic></i> ${coTenantEntry?'You (co-lessee)':'You'}</span>
           ${tSigned
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}</div>`
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${mySignEmbed?`<a href="${mySignEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}</div>`
             :mySignEmbed
               ?`<button onclick="${mySignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer"><i data-lucide=pen-line class=ic></i>️ Sign now</button>`
               :'<span style="font-size:.72rem;color:var(--gold)">⏳ Being prepared</span>'}
@@ -2288,7 +2289,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
       <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem">
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem"><i data-lucide=clipboard-list class=ic></i> Move-in Inventory (Annex A)</span>
-          <div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${bk.edl_pdf_url?`<a href="${bk.edl_pdf_url}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}</div>
+          <div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${bk.edl_pdf_url?`<a href="${bk.edl_pdf_url}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}</div>
         </div>
       </div>
       ${!coTenantEntry?`<button onclick="viewEdlDossierTenant('${bk.id}')" style="width:100%;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:.5rem;font-size:.76rem;font-weight:600;cursor:pointer;margin-bottom:.5rem"><i data-lucide=clipboard-list class=ic></i> View full inventory dossier (with photos) →</button>`:''}
@@ -2300,7 +2301,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
           <span style="font-size:.78rem"><i data-lucide=clipboard-list class=ic></i> Move-in Inventory (Annex A)</span>
           ${myEdlSigned
-            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span><a href="${bk.edl_pdf_url||myEdlEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a></div>`
+            ?`<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span><a href="${bk.edl_pdf_url||myEdlEmbed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a></div>`
             :`<button onclick="${myEdlSignFn}" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer"><i data-lucide=pen-line class=ic></i>️ Sign now</button>`}
         </div>
       </div>
@@ -2315,7 +2316,7 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         <div style="font-size:.75rem;font-weight:600;margin-bottom:.35rem"><i data-lucide=euro class=ic></i> Amount due to lessor</div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span><i data-lucide=lock class=ic></i> Security deposit</span><span>€${deposit}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--tm);margin-bottom:.15rem"><span><i data-lucide=home class=ic></i> First month rent</span><span>€${rent}</span></div>
-        ${holding?`<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#4CAF7D;margin-bottom:.15rem"><span><i data-lucide=check-circle-2 class=ic></i> Holding deposit deducted</span><span>-€${holding}</span></div>`:''}
+        ${holding?`<div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--green);margin-bottom:.15rem"><span><i data-lucide=check-circle-2 class=ic></i> Holding deposit deducted</span><span>-€${holding}</span></div>`:''}
         <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;border-top:1px solid var(--b);padding-top:.3rem;margin-top:.3rem"><span>Total due</span><span>€${deposit+rent-holding}</span></div>
       </div>
       ${totalTenants>1?`<div style="background:rgba(46,107,138,.08);border:1px solid rgba(46,107,138,.2);border-radius:8px;padding:.5rem .65rem;margin-bottom:.4rem">
@@ -2329,9 +2330,9 @@ function renderTenantLeaseSection(v, bk, coTenantEntry=null){
         ${bk.landlord_revolut?`<i data-lucide=heart class=ic></i> Revolut: <strong>${bk.landlord_revolut}</strong>`:''}
       </div>`:''}
       ${!payDeclared&&!payConfirmed
-        ?`<button onclick="declareTenantPayment('${bk.id}')" style="width:100%;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> I have transferred the payment →</button>`
-        :`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600">⏳ Payment declared — awaiting lessor confirmation</div>`}
-      `:`<div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Payment confirmed by lessor</div>
+        ?`<button onclick="declareTenantPayment('${bk.id}')" style="width:100%;background:var(--green);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> I have transferred the payment →</button>`
+        :`<div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:var(--green);font-weight:600">⏳ Payment declared — awaiting lessor confirmation</div>`}
+      `:`<div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.4rem .65rem;font-size:.75rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Payment confirmed by lessor</div>
       ${!coTenantEntry?renderTenantEdlSection(bk):''}`}
     </div>
   </div>`;
@@ -2529,11 +2530,11 @@ async function openTenantEDL(bookingId){
               <input type="number" id="tn-arms-residents" value="1" min="1" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
             </div>
           </div>
-          <div id="tn-annex-status" style="display:none;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.55rem;font-size:.73rem;color:#4CAF7D;margin-bottom:.5rem"></div>
+          <div id="tn-annex-status" style="display:none;background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.55rem;font-size:.73rem;color:var(--green);margin-bottom:.5rem"></div>
         </div>
         <div style="display:flex;gap:.5rem;margin-top:.5rem">
           <button onclick="showEdlStepTn(1)" style="flex:1;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
-          <button onclick="generateAnnexAndCompleteTn()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer"><i data-lucide=paperclip class=ic></i> Generate Annex A & Complete →</button>
+          <button onclick="generateAnnexAndCompleteTn()" style="flex:2;background:var(--green);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer"><i data-lucide=paperclip class=ic></i> Generate Annex A & Complete →</button>
         </div>
       </div>
 
@@ -3067,9 +3068,7 @@ async function cancelVisit(visitId, agentId, listingId){
   const hoursUntil=visitDate?(visitDate-now)/(1000*60*60):999;
   const isLate=hoursUntil<24;
 
-  if(isLate){
-    if(!confirm('⚠️ Less than 24 hours before the visit. The landlord/agent will be notified this is a late cancellation. Continue cancelling?'))return;
-  }
+  if(!confirm('Cancel this visit? The landlord/agent will be notified.'))return;
 
   // Marquer la visite comme annulée
   try{await sb.from('visits').update({status:'cancelled'}).eq('id',visitId);}catch(e){}
@@ -3087,9 +3086,7 @@ async function cancelVisit(visitId, agentId, listingId){
       content:`❌ Visit cancelled by tenant.
 
 👤 Tenant: ${P?.full_name||'—'}
-📅 Visit was scheduled for: ${visitDateStr}
-
-${isLate?'⚠️ Cancelled less than 24 hours before the visit.':'✅ Cancelled more than 24 hours before — plenty of notice.'}`,
+📅 Visit was scheduled for: ${visitDateStr}${isLate?'\n\nNote: cancelled less than 24 hours before the visit.':''}`,
       type:'visit_cancelled'
     });}catch(e){}
   }
@@ -3100,12 +3097,12 @@ ${isLate?'⚠️ Cancelled less than 24 hours before the visit.':'✅ Cancelled 
       listing_id:listingToNotify,
       sender_id:'system',
       receiver_id:visit.landlord_id,
-      content:`❌ Visit cancelled by tenant (${P?.full_name||'—'}) scheduled for ${visitDateStr}.${isLate?' Less than 24h notice.':''}`,
+      content:`❌ Visit cancelled by tenant (${P?.full_name||'—'}) scheduled for ${visitDateStr}.`,
       type:'visit_cancelled'
     });}catch(e){}
   }
 
-  toast(isLate?'<i data-lucide=x-circle class=ic></i> Visit cancelled — less than 24h notice, fee may apply.':'<i data-lucide=check-circle-2 class=ic></i> Visit cancelled — no fee.');
+  toast('<i data-lucide=check-circle-2 class=ic></i> Visit cancelled.');
   loadTenantVisits();
 }
 
@@ -3191,7 +3188,7 @@ ${P?.full_name||'[Your name]'}
 
   resultEl.style.display='block';
   resultEl.innerHTML=`
-    <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.82rem;color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> You can give notice now — earliest valid departure was ${earliestLabel}, and ${departureLabel} works.</div>
+    <div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.82rem;color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> You can give notice now — earliest valid departure was ${earliestLabel}, and ${departureLabel} works.</div>
     <div style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:1rem;font-family:Georgia,serif;font-size:.8rem;white-space:pre-wrap;line-height:1.6;max-height:400px;overflow-y:auto;margin-bottom:.75rem">${letterText}</div>
     <button class="btn bp" style="width:100%;justify-content:center" onclick="downloadNoticeLetter()"><i data-lucide=arrow-down class=ic></i> Download letter →</button>`;
   window._noticeLetterText=letterText;
@@ -3564,9 +3561,9 @@ async function loadProfilee(){
     badge.className='badge b-green';
     badge.innerHTML='<i data-lucide=check-circle-2 class=ic></i> Verified';
     if(uploadSection) uploadSection.innerHTML=`
-      <div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:12px;padding:1.2rem;text-align:center">
+      <div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:12px;padding:1.2rem;text-align:center">
         <div style="font-size:2rem;margin-bottom:.4rem"><i data-lucide=check-circle-2 class=ic></i></div>
-        <div style="font-weight:700;color:#4CAF7D;margin-bottom:.3rem">Identity Verified</div>
+        <div style="font-weight:700;color:var(--green);margin-bottom:.3rem">Identity Verified</div>
         <div style="font-size:.78rem;color:var(--tm)">Your identity has been verified by RestMalta. Your <i data-lucide=check-circle-2 class=ic></i> badge is visible to all lessors.</div>
       </div>`;
   } else if(P.id_submitted){
@@ -3924,7 +3921,7 @@ function checkDossierComplete(){
   if(!res)return;
   const missing=DOCS_REQUIRED.filter(d=>!uploadedDocs[d]);
   if(!missing.length){
-    res.innerHTML=`<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Profile complete — you can now request visits!</div>`;
+    res.innerHTML=`<div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Profile complete — you can now request visits!</div>`;
   } else {
     res.innerHTML=`<div style="background:rgba(212,168,71,.1);border:1px solid rgba(212,168,71,.25);border-radius:8px;padding:.75rem;font-size:.8rem;color:var(--gold)"><i data-lucide=alert-triangle class=ic></i>️ Missing documents: ${missing.map(d=>d==='id'?'Passport/ID':'Employer letter').join(', ')}</div>`;
   }
@@ -4002,7 +3999,7 @@ async function submitIDForVerification(){
     const{error:e2} = await sb.storage.from('tenant-documents').upload(`docs/${U.id}/selfie.${selfieExt}`, _selfieFile, {upsert:true});
     if(e2) throw new Error(e2.message);
     await sb.from('profiles').update({id_submitted:true, id_submitted_at:new Date().toISOString()}).eq('clerk_id',U.id);
-    if(status) status.innerHTML = '<div style="background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem"><i data-lucide=check-circle-2 class=ic></i></div><div style="font-weight:700;color:#4CAF7D;margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
+    if(status) status.innerHTML = '<div style="background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.5rem;margin-bottom:.3rem"><i data-lucide=check-circle-2 class=ic></i></div><div style="font-weight:700;color:var(--green);margin-bottom:.2rem">Submitted successfully!</div><div style="font-size:.78rem;color:var(--tm)">A RestMalta team member will verify your identity within 24 hours.</div></div>';
     toast('<i data-lucide=check-circle-2 class=ic></i> ID + selfie submitted for verification!');
   }catch(e){
     if(status) status.innerHTML = '<div style="color:var(--red)"><i data-lucide=x-circle class=ic></i> '+e.message+'</div>';
@@ -4050,7 +4047,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
 
       <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;margin-bottom:1rem">
         <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer">
-          <input type="checkbox" id="nego-toggle" onchange="document.getElementById('nego-fields').style.display=this.checked?'block':'none'" style="accent-color:#E05A3A;width:15px;height:15px;cursor:pointer">
+          <input type="checkbox" id="nego-toggle" onchange="document.getElementById('nego-fields').style.display=this.checked?'block':'none'" style="accent-color:var(--terra);width:15px;height:15px;cursor:pointer">
           <div>
             <div style="font-size:.8rem;font-weight:600;color:#F0EDE8"><i data-lucide=handshake class=ic></i> I want to negotiate</div>
             <div style="font-size:.7rem;color:rgba(240,237,232,.35)">Propose a different rent or request extras</div>
@@ -4068,7 +4065,7 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
           <div style="margin-bottom:.85rem">
             <label style="font-size:.72rem;font-weight:600;color:rgba(240,237,232,.5);display:block;margin-bottom:.35rem"><i data-lucide=gift class=ic></i> Extras to request</label>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem">
-              ${['<i data-lucide=flame class=ic></i> Microwave','<i data-lucide=snowflake class=ic></i>️ A/C','<i data-lucide=shirt class=ic></i> Washing machine','<i data-lucide=car class=ic></i> Parking','<i data-lucide=tv class=ic></i> Smart TV','<i data-lucide=wifi class=ic></i> Faster WiFi','<i data-lucide=sofa class=ic></i>️ Extra furniture','<i data-lucide=sparkles class=ic></i> 1st clean'].map(e=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;font-size:.72rem;color:rgba(240,237,232,.6)"><input type="checkbox" class="neg-extra" value="${e.replace(/[<i data-lucide=flame class=ic></i><i data-lucide=snowflake class=ic></i>️<i data-lucide=shirt class=ic></i><i data-lucide=car class=ic></i><i data-lucide=tv class=ic></i><i data-lucide=wifi class=ic></i><i data-lucide=sofa class=ic></i>️<i data-lucide=sparkles class=ic></i>]/g,'').trim()}" style="accent-color:#E05A3A;cursor:pointer">${e}</label>`).join('')}
+              ${['<i data-lucide=flame class=ic></i> Microwave','<i data-lucide=snowflake class=ic></i>️ A/C','<i data-lucide=shirt class=ic></i> Washing machine','<i data-lucide=car class=ic></i> Parking','<i data-lucide=tv class=ic></i> Smart TV','<i data-lucide=wifi class=ic></i> Faster WiFi','<i data-lucide=sofa class=ic></i>️ Extra furniture','<i data-lucide=sparkles class=ic></i> 1st clean'].map(e=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;font-size:.72rem;color:rgba(240,237,232,.6)"><input type="checkbox" class="neg-extra" value="${e.replace(/[<i data-lucide=flame class=ic></i><i data-lucide=snowflake class=ic></i>️<i data-lucide=shirt class=ic></i><i data-lucide=car class=ic></i><i data-lucide=tv class=ic></i><i data-lucide=wifi class=ic></i><i data-lucide=sofa class=ic></i>️<i data-lucide=sparkles class=ic></i>]/g,'').trim()}" style="accent-color:var(--terra);cursor:pointer">${e}</label>`).join('')}
             </div>
           </div>
           <div>
@@ -4085,17 +4082,17 @@ async function showNegotiationModal(listingId, listingTitle, contactId, price){
         </div>
       </div>
       ${commission>0?`
-        <div style="font-size:.78rem;font-weight:700;color:#4CAF7D;margin-bottom:.4rem"><i data-lucide=credit-card class=ic></i> Platform fee authorization</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.4rem"><i data-lucide=credit-card class=ic></i> Platform fee authorization</div>
         <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem">By proceeding, you authorize RestMalta to charge <strong style="color:#F0EDE8">€${commission} (${commissionLabel})</strong> only if your application is accepted by the lessor.</div>
-        <div id="nego-card-status">${hasCard?`<div style="font-size:.72rem;color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:#E05A3A;margin-bottom:.5rem"><i data-lucide=alert-triangle class=ic></i>️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="width:100%;background:#E05A3A;color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=credit-card class=ic></i> Register my card first →</button>`}</div>
+        <div id="nego-card-status">${hasCard?`<div style="font-size:.72rem;color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Card on file — will be charged only if accepted</div>`:`<div style="font-size:.72rem;color:var(--terra);margin-bottom:.5rem"><i data-lucide=alert-triangle class=ic></i>️ A card is required. You won't be charged unless accepted.</div><button onclick="registerCardThenSend('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="width:100%;background:var(--terra);color:white;border:none;border-radius:8px;padding:.55rem;font-size:.78rem;font-weight:700;cursor:pointer"><i data-lucide=credit-card class=ic></i> Register my card first →</button>`}</div>
       </div>
       <div style="display:flex;gap:.5rem" id="nego-action-buttons">
-        ${hasCard?`<button id="nego-submit-btn" onclick="this.disabled=true;this.innerHTML='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed"><i data-lucide=rocket class=ic></i> Send application →</button>`}
+        ${hasCard?`<button id="nego-submit-btn" onclick="this.disabled=true;this.innerHTML='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>`:`<button disabled style="flex:1;background:rgba(255,255,255,.1);color:rgba(240,237,232,.3);border:none;border-radius:10px;padding:.7rem;font-size:.88rem;cursor:not-allowed"><i data-lucide=rocket class=ic></i> Send application →</button>`}
       `:`
         <div style="font-size:.72rem;color:rgba(240,237,232,.5);line-height:1.6;margin-bottom:.5rem"><i data-lucide=building-2 class=ic></i> This property is managed by an agency — you pay nothing to RestMalta to apply.</div>
       </div>
       <div style="display:flex;gap:.5rem" id="nego-action-buttons">
-        <button id="nego-submit-btn" onclick="this.disabled=true;this.innerHTML='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>
+        <button id="nego-submit-btn" onclick="this.disabled=true;this.innerHTML='⏳ Sending...';submitNegotiationAndRent('${listingId}','${(listingTitle||'').replace(/'/g,"\\'")}','${contactId||''}',${price||0})" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.88rem;font-weight:700;cursor:pointer"><i data-lucide=rocket class=ic></i> Send application →</button>
       `}
         <button onclick="document.getElementById('nego-modal-overlay').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .85rem;font-size:.82rem;cursor:pointer">Cancel</button>
       </div>
@@ -4114,9 +4111,9 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
       <div style="font-size:.95rem;font-weight:800;color:#F0EDE8;margin-bottom:.3rem"><i data-lucide=credit-card class=ic></i> Register your card</div>
       <div style="font-size:.75rem;color:rgba(240,237,232,.45);margin-bottom:1rem">Required to send an application — you won't be charged unless the lessor accepts.</div>
       <div id="inline-card-element" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:.85rem;margin-bottom:.75rem"></div>
-      <div id="inline-card-error" style="color:#E05A5A;font-size:.76rem;margin-bottom:.5rem;display:none"></div>
+      <div id="inline-card-error" style="color:var(--red);font-size:.76rem;margin-bottom:.5rem;display:none"></div>
       <div style="display:flex;gap:.5rem">
-        <button id="inline-card-save-btn" style="flex:1;background:#E05A3A;color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">Save card →</button>
+        <button id="inline-card-save-btn" style="flex:1;background:var(--terra);color:white;border:none;border-radius:10px;padding:.7rem;font-size:.86rem;font-weight:700;cursor:pointer">Save card →</button>
         <button onclick="document.getElementById('inline-card-modal').remove()" style="background:rgba(255,255,255,.06);color:rgba(240,237,232,.5);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .9rem;font-size:.82rem;cursor:pointer">Cancel</button>
       </div>
     </div>`;
@@ -4124,7 +4121,7 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
 
   if(!stripeInstance)stripeInstance=Stripe('pk_live_51PCmBIRohPPRcIAMybMYQlU1lK84EYglMY2Y8RbC8ziqAooxPtrWmMq6FketwD9daJxG67MRyMJIskT2U3tHTFNH009UkL6iMQ');
   const elements=stripeInstance.elements();
-  const inlineCard=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'#E05A5A'}}});
+  const inlineCard=elements.create('card',{style:{base:{color:'#F0EDE8',fontFamily:'"DM Sans",sans-serif',fontSize:'14px','::placeholder':{color:'rgba(240,237,232,.4)'}},invalid:{color:'var(--red)'}}});
   inlineCard.mount('#inline-card-element');
 
   document.getElementById('inline-card-save-btn').onclick=async()=>{
@@ -4155,13 +4152,13 @@ async function registerCardThenSend(listingId, listingTitle, contactId, price){
       // (et le prix négocié, le message, la date d'emménagement...) puisque
       // showNegotiationModal() réinitialise tout à chaque appel.
       const statusEl=document.getElementById('nego-card-status');
-      if(statusEl)statusEl.innerHTML=`<div style="font-size:.72rem;color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Card on file — will be charged only if accepted</div>`;
+      if(statusEl)statusEl.innerHTML=`<div style="font-size:.72rem;color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Card on file — will be charged only if accepted</div>`;
       const btnsEl=document.getElementById('nego-action-buttons');
       if(btnsEl){
         const sendBtn=btnsEl.querySelector('button:first-child');
         if(sendBtn){
           sendBtn.disabled=false;
-          sendBtn.style.background='#E05A3A';
+          sendBtn.style.background='var(--terra)';
           sendBtn.style.color='white';
           sendBtn.style.cursor='pointer';
           sendBtn.innerHTML='<i data-lucide=rocket class=ic></i> Send application →';
@@ -4352,7 +4349,7 @@ async function lookupCoTenant(slotId){
   }
 
   if(profile&&!missingFields.length){
-    resultEl.innerHTML=`<span style="color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'RestMalta account'}</strong> — their profile will be used for the lease.</span>`;
+    resultEl.innerHTML=`<span style="color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'RestMalta account'}</strong> — their profile will be used for the lease.</span>`;
     manualEl.style.display='none';
     manualEl.innerHTML='';
     window._coTenantsData[slotId]={
@@ -4423,6 +4420,18 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
   price=listing?.price||price||0; // toujours faire confiance au prix réel en base, pas à ce qui a été passé
   if(!price){toast('<i data-lucide=x-circle class=ic></i> This listing has no price set — contact RestMalta support.');return;}
 
+  // Empêcher une double candidature sur le même bien — sans ça, annuler une
+  // visite puis en redemander une autre avant de re-cliquer "louer" créait
+  // deux dossiers séparés pour le même locataire chez le même propriétaire.
+  try{
+    const{data:existingBooking}=await sb.from('bookings').select('id,status').eq('tenant_id',U.id).eq('listing_id',listingId).not('status','in','("declined","cancelled_by_tenant")').maybeSingle();
+    if(existingBooking){
+      toast('<i data-lucide=alert-triangle class=ic></i> You already have an active application for this property — check My Visits.');
+      sp('visits',document.querySelector('.ni[onclick*="visits"]'));
+      return;
+    }
+  }catch(e){}
+
   const coTenantIds=coTenantsFull.filter(c=>c.hasAccount&&c.tenant_id).map(c=>c.tenant_id);
 
   // Une agence gérée directement — pas de frais RestMalta côté locataire,
@@ -4436,7 +4445,7 @@ async function openDirectRentPayment(listingId, listingTitle, landlordId, price,
         <div style="font-size:1rem;font-weight:800;margin-bottom:.3rem"><i data-lucide=home class=ic></i> Confirm your request</div>
         <div style="font-size:.78rem;color:var(--tm);margin-bottom:1rem"><strong style="color:var(--txt)">€${price}/mo</strong> · ${listingTitle||''}</div>
         <div style="background:var(--s2);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.78rem">
-          <div style="font-weight:700;color:#4CAF7D"><i data-lucide=building-2 class=ic></i> This property is managed by an agency</div>
+          <div style="font-weight:700;color:var(--green)"><i data-lucide=building-2 class=ic></i> This property is managed by an agency</div>
           <div style="font-size:.7rem;color:var(--td);margin-top:.3rem">You pay nothing to RestMalta to apply — no card needed.</div>
         </div>
         <div id="rent-pay-error" style="color:var(--red);font-size:.78rem;margin-bottom:.5rem;display:none"></div>
@@ -4643,7 +4652,7 @@ async function checkCoTenant(idx){
     }
 
     coTenantsData[idx] = { email, profile };
-    status.innerHTML = '<span style="color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> '+profile.full_name+' — Profile complete, ready to co-sign.</span>';
+    status.innerHTML = '<span style="color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> '+profile.full_name+' — Profile complete, ready to co-sign.</span>';
   }catch(e){
     status.innerHTML = '<span style="color:var(--red)"><i data-lucide=x-circle class=ic></i> Error: '+e.message+'</span>';
   }
