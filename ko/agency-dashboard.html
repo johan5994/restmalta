@@ -18,7 +18,7 @@
 :root{
   --bg:#070B14;--s:#0D1220;--s2:#141A2E;--s3:#1B2340;
   --b:rgba(255,255,255,.06);--b2:rgba(255,255,255,.11);
-  --terra:#E05A3A;--gold:#D4A847;--sea:#3A8FB5;--green:#4CAF7D;--red:#E05A5A;
+  --terra:#E05A3A;--gold:#D4A847;--sea:#3A8FB5;--green:var(--green);--red:var(--red);
   --purple:#8B5CF6;--purpledim:rgba(139,92,246,.15);
   --txt:#F0EDE8;--tm:rgba(240,237,232,.5);--td:rgba(240,237,232,.25);
   --agency:#6366F1;--agencydim:rgba(99,102,241,.15);--agencybright:#818CF8;
@@ -86,7 +86,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 
 /* ── Badges ── */
 .badge{padding:.2rem .6rem;border-radius:100px;font-size:.68rem;font-weight:700;display:inline-block}
-.b-green{background:rgba(76,175,125,.15);color:var(--green)}
+.b-green{background:var(--grdim);color:var(--green)}
 .b-gold{background:rgba(212,168,71,.15);color:var(--gold)}
 .b-sea{background:rgba(58,143,181,.15);color:var(--sea)}
 .b-red{background:rgba(224,90,90,.15);color:var(--red)}
@@ -944,19 +944,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
 function initLucideIcons(){
   if(window.lucide){
     lucide.createIcons();
-    let iconsPending=false;
-    new MutationObserver((mutations)=>{
-      // Ne se redéclenche QUE si une vraie nouvelle icône non convertie
-      // apparaît — sinon lucide.createIcons() (qui modifie le DOM en
-      // remplaçant <i data-lucide> par un <svg>) redéclenchait
-      // l'observateur à l'infini, figeant complètement la page.
-      const hasNewIcon=mutations.some(m=>Array.from(m.addedNodes).some(n=>
-        n.nodeType===1&&(n.hasAttribute?.('data-lucide')||n.querySelector?.('[data-lucide]'))
-      ));
-      if(!hasNewIcon||iconsPending)return;
-      iconsPending=true;
-      setTimeout(()=>{lucide.createIcons();iconsPending=false;},50);
-    }).observe(document.body,{childList:true,subtree:true});
+    // Vérification périodique légère plutôt qu'un MutationObserver — celui-ci
+    // réagissait à CHAQUE changement du DOM sur toute la page (y compris
+    // l'ouverture d'un simple menu déroulant natif), provoquant des gels
+    // complets de l'écran un peu partout sur le site. lucide.createIcons()
+    // ne fait rien si aucune icône n'a besoin d'être convertie — sans danger
+    // de tourner toutes les secondes.
+    setInterval(()=>{lucide.createIcons();},1000);
   }else{
     setTimeout(initLucideIcons,50);
   }
@@ -1450,7 +1444,7 @@ async function loadListings(){
           </td>
           <td style="font-size:.82rem;color:var(--td)"><i data-lucide=map-pin class=ic></i> ${l.zone||'—'}</td>
           <td style="font-weight:700;color:var(--green)">${l.type==='for_sale'?`€${l.sale_price||l.price||'—'}`:`€${l.price||'—'}/mo`}</td>
-          <td>${l.type==='for_sale'?'<span class="agency-listing-badge" style="background:rgba(76,175,125,.15);color:#2d7a56"><i data-lucide=tag class=ic></i>️ For sale</span>':'<span class="agency-listing-badge"><i data-lucide=building-2 class=ic></i> Agency</span>'}</td>
+          <td>${l.type==='for_sale'?'<span class="agency-listing-badge" style="background:var(--grdim);color:#2d7a56"><i data-lucide=tag class=ic></i>️ For sale</span>':'<span class="agency-listing-badge"><i data-lucide=building-2 class=ic></i> Agency</span>'}</td>
           <td style="font-size:.82rem;color:var(--td)" id="visit-count-${l.id}">—</td>
           <td style="position:relative">
             <button onclick="toggleListingMenu(event,'${l.id}')" style="background:var(--s2);border:1px solid var(--b2);border-radius:8px;width:32px;height:32px;font-size:1rem;cursor:pointer;color:var(--txt)">⋮</button>
@@ -2239,9 +2233,9 @@ function renderAgencyMessages(){
     const displayName=nameMap[m._other_id]||listing?.title||'Conversation';
     const preview=(m.content||'').split('\n')[0]||'';
     const isUnread=!m.read&&m.receiver_id===U.id;
-    return`<div style="padding:.75rem 1rem;background:${isUnread?'rgba(76,175,125,.06)':'var(--s2)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="openAgencyMsg('${m.listing_id||''}','${m._other_id}','${displayName.replace(/'/g,"\\'")}')">
+    return`<div style="padding:.75rem 1rem;background:${isUnread?'var(--grdim)':'var(--s2)'};border-bottom:1px solid var(--b);cursor:pointer" onclick="openAgencyMsg('${m.listing_id||''}','${m._other_id}','${displayName.replace(/'/g,"\\'")}')">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
-        <span style="font-size:.8rem;font-weight:700;color:${isUnread?'#4CAF7D':'var(--txt)'}">${displayName}</span>
+        <span style="font-size:.8rem;font-weight:700;color:${isUnread?'var(--green)':'var(--txt)'}">${displayName}</span>
         <span style="font-size:.65rem;color:var(--td)">${date}</span>
       </div>
       <div style="font-size:.78rem;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.sender_id===U.id?'You: ':''}${preview}</div>
@@ -2431,7 +2425,7 @@ function renderCoTenantSignatureRows(bk){
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
       <span style="font-size:.78rem"><i data-lucide=users class=ic></i> ${cl.name||'Co-lessee'}</span>
       ${cl.signed
-        ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
+        ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
         :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
     </div>`).join('');
 }
@@ -2445,7 +2439,7 @@ function renderEdlCoTenantSignatureRows(bk){
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem;margin-top:.3rem">
       <span style="font-size:.78rem"><i data-lucide=users class=ic></i> ${cl.name||'Co-lessee'}</span>
       ${cl.signed
-        ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
+        ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${cl.embed_src?` <a href="${cl.embed_src}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`
         :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
     </div>`).join('');
 }
@@ -2453,7 +2447,7 @@ function renderEdlCoTenantSignatureRows(bk){
 // ── Move-in inventory (EDL) — décision + prise en charge par l'agence ──
 function renderAgencyEdlSection(b){
   if(b.status==='move_in_ready'){
-    return`<div style="margin-top:.6rem;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Move-in inventory completed</div>${renderEdlCoTenantSignatureRows(b)}`;
+    return`<div style="margin-top:.6rem;background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Move-in inventory completed</div>${renderEdlCoTenantSignatureRows(b)}`;
   }
   if(!b.edl_handler){
     return`<div style="margin-top:.6rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:.65rem">
@@ -2479,13 +2473,13 @@ function renderAgencyEdlSection(b){
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
         <span style="font-size:.78rem"><i data-lucide=home class=ic></i> Lessor</span>
         ${b.edl_signed_landlord
-          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
+          ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
           :`<button onclick="showEdlSigningOptionsScreen('${b.id}','${b.edl_landlord_embed}','','${(b.listing_title||'').replace(/'/g,"\\'")}','')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer"><i data-lucide=link class=ic></i> Send / sign</button>`}
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
         <span style="font-size:.78rem"><i data-lucide=user class=ic></i> Lessee</span>
         ${b.edl_signed_tenant
-          ?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
+          ?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>`
           :'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
       </div>
       ${renderEdlCoTenantSignatureRows(b)}
@@ -2659,11 +2653,11 @@ async function openAgencyEDL(bookingId){
               <input type="number" id="ag-arms-residents" value="1" min="1" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:.45rem .65rem;color:var(--txt);font-size:.8rem">
             </div>
           </div>
-          <div id="ag-annex-status" style="display:none;background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:8px;padding:.55rem;font-size:.73rem;color:#4CAF7D;margin-bottom:.5rem"></div>
+          <div id="ag-annex-status" style="display:none;background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.55rem;font-size:.73rem;color:var(--green);margin-bottom:.5rem"></div>
         </div>
         <div style="display:flex;gap:.5rem;margin-top:.5rem">
           <button onclick="showEdlStepAg(1)" style="flex:1;background:var(--s2);color:var(--txt);border:1px solid var(--b);border-radius:10px;padding:.65rem;font-size:.82rem;font-weight:600;cursor:pointer">← Back</button>
-          <button onclick="generateAnnexAndCompleteAg()" style="flex:2;background:#4CAF7D;color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer"><i data-lucide=paperclip class=ic></i> Generate Annex A & Complete →</button>
+          <button onclick="generateAnnexAndCompleteAg()" style="flex:2;background:var(--green);color:white;border:none;border-radius:10px;padding:.65rem;font-size:.85rem;font-weight:700;cursor:pointer"><i data-lucide=paperclip class=ic></i> Generate Annex A & Complete →</button>
         </div>
       </div>
 
@@ -2823,7 +2817,7 @@ async function checkAndSendEdlViaRestMalta(bookingId,signLink,propertyTitle,btn)
     const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
     if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
     if(profile){
-      resultEl.style.color='#4CAF7D';
+      resultEl.style.color='var(--green)';
       resultEl.innerHTML=`<i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'this account'}</strong> — `;
       const sendBtn=document.createElement('button');
       sendBtn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';
@@ -3033,7 +3027,7 @@ async function loadApplications(){
         // ensemble une fois signé, c'est l'agence qui choisit à chaque fois
         let landlordSignRow;
         if(b.lease_signed_landlord){
-          landlordSignRow=`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${b.lease_landlord_embed?` <a href="${b.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`;
+          landlordSignRow=`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${b.lease_landlord_embed?` <a href="${b.lease_landlord_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`;
         }else if(b.lease_landlord_embed){
           landlordSignRow=`<span style="font-size:.72rem;color:var(--gold)">⏳ Waiting</span> <button onclick="signAsAgencyLessor('${b.id}','${b.lease_landlord_embed}')" style="background:var(--terra);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.3rem"><i data-lucide=pen-line class=ic></i>️ Sign now</button> <button onclick="showLeaseSigningOptionsScreen('${b.id}','${b.lease_landlord_embed}','${(listing.manual_landlord_email||'').replace(/'/g,"\\'")}','${(listing.title||'').replace(/'/g,"\\'")}','${listing.manual_landlord_phone||''}')" style="background:var(--s2);color:var(--txt);border:1px solid var(--b2);border-radius:6px;padding:.25rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:.3rem"><i data-lucide=link class=ic></i> Send to lessor</button>`;
         }else{
@@ -3043,9 +3037,9 @@ async function loadApplications(){
         const paymentRow=paymentConfirmed
           ?'<span style="font-size:.78rem"><i data-lucide=check-circle-2 class=ic></i> Payment confirmed</span>'
           :(b.no_landlord_tracking&&!b.landlord_id)
-            ?`<span style="font-size:.78rem">⏳ Waiting for funds</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem"><i data-lucide=check-circle-2 class=ic></i> Confirm received</button>`
+            ?`<span style="font-size:.78rem">⏳ Waiting for funds</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:var(--green);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem"><i data-lucide=check-circle-2 class=ic></i> Confirm received</button>`
             :b.first_payment_sent
-              ?`<span style="font-size:.78rem"><i data-lucide=euro class=ic></i> Lessee declared payment</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem"><i data-lucide=check-circle-2 class=ic></i> Confirm received</button>`
+              ?`<span style="font-size:.78rem"><i data-lucide=euro class=ic></i> Lessee declared payment</span><button onclick="agencyConfirmPaymentReceived('${b.id}')" style="background:var(--green);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;margin-left:.4rem"><i data-lucide=check-circle-2 class=ic></i> Confirm received</button>`
               :'<span style="font-size:.78rem">⏳ Waiting for the lessee to send funds</span>';
 
         return`<div class="card" style="margin-bottom:.85rem">
@@ -3066,7 +3060,7 @@ async function loadApplications(){
               </div>
               <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:8px;padding:.4rem .65rem">
                 <span style="font-size:.78rem"><i data-lucide=user class=ic></i> Lessee</span>
-                ${b.lease_signed_tenant?`<span style="font-size:.72rem;color:#4CAF7D;font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${b.lease_tenant_embed?` <a href="${b.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`:'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
+                ${b.lease_signed_tenant?`<span style="font-size:.72rem;color:var(--green);font-weight:600"><i data-lucide=check-circle-2 class=ic></i> Signed</span>${b.lease_tenant_embed?` <a href="${b.lease_tenant_embed}" target="_blank" style="font-size:.68rem;color:var(--td);text-decoration:none"><i data-lucide=file-text class=ic></i> View</a>`:''}`:'<span style="font-size:.72rem;color:var(--gold)">⏳ Not yet</span>'}
               </div>
               ${renderCoTenantSignatureRows(b)}
             </div>
@@ -3129,7 +3123,7 @@ async function loadApplications(){
                   <button onclick="checkLandlordEmailInline('${b.id}')" class="btn bg bsm" style="white-space:nowrap"><i data-lucide=search class=ic></i> Check</button>
                 </div>
               </div>
-              <div id="li-found-${b.id}" style="display:none;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.25);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:#4CAF7D;margin-bottom:.5rem"></div>
+              <div id="li-found-${b.id}" style="display:none;background:var(--grdim);border:1px solid var(--grdim);border-radius:8px;padding:.5rem .65rem;font-size:.75rem;color:var(--green);margin-bottom:.5rem"></div>
               <div style="font-size:.66rem;color:var(--td);margin:.3rem 0">— or fill in their details directly below —</div>
               <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">Owner full name *</label><input class="fi" id="li-name-${b.id}"></div>
               <div class="fg" style="margin-bottom:.4rem"><label class="fl" style="font-size:.68rem">ID/Passport</label><input class="fi" id="li-passport-${b.id}"></div>
@@ -3137,7 +3131,7 @@ async function loadApplications(){
               <div class="fg"><label class="fl" style="font-size:.68rem">Email * <span style="font-size:.62rem;color:var(--td)">(required for signing)</span></label><input class="fi" type="email" id="li-email-${b.id}"></div>
             </div>`:''}
             <div style="display:flex;gap:.5rem;margin-top:.6rem">
-              <button onclick="acceptApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="flex:1;background:#4CAF7D;color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Accept & Generate Lease</button>
+              <button onclick="acceptApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="flex:1;background:var(--green);color:white;border:none;border-radius:8px;padding:.6rem;font-size:.8rem;font-weight:700;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Accept & Generate Lease</button>
               <button onclick="declineApplicationAgency('${b.id}','${b.listing_id}','${b.tenant_id}')" style="background:rgba(224,90,90,.12);color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:8px;padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer">Decline</button>
             </div>
           </div>
@@ -3164,7 +3158,7 @@ async function loadTenantDossierForAgency(tenantId){
     const docs=document.getElementById('t-docs-chips-'+tenantId);
     if(name)name.textContent=p.full_name||'—';
     if(nat)nat.textContent=p.nationality||'—';
-    if(ver)ver.innerHTML=p.verified?'<span style="color:#4CAF7D"><i data-lucide=check-circle-2 class=ic></i> Verified</span>':p.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)"><i data-lucide=x-circle class=ic></i> Not verified</span>';
+    if(ver)ver.innerHTML=p.verified?'<span style="color:var(--green)"><i data-lucide=check-circle-2 class=ic></i> Verified</span>':p.id_submitted?'<span style="color:var(--gold)">⏳ Pending</span>':'<span style="color:var(--td)"><i data-lucide=x-circle class=ic></i> Not verified</span>';
     if(phone)phone.textContent=p.phone||'—';
     if(docs){
       if(!p.documents){docs.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
@@ -3173,7 +3167,7 @@ async function loadTenantDossierForAgency(tenantId){
       const entries=Object.entries(docMap).filter(([,d])=>d?.path);
       if(!entries.length){docs.innerHTML='<div style="font-size:.72rem;color:var(--td)">No documents uploaded yet</div>';return;}
       docs.innerHTML=entries.map(([key,doc])=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:7px;padding:.35rem .6rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--grdim);border:1px solid var(--grdim);border-radius:7px;padding:.35rem .6rem">
           <div style="font-size:.75rem;font-weight:600">${docLabels[key]||key}</div>
           <button data-path="${doc.path}" onclick="viewTenantDocAgency(this.dataset.path)" style="background:var(--sea);color:white;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer">View →</button>
         </div>`).join('');
@@ -3252,7 +3246,7 @@ async function checkAndSendDossierViaRestMalta(listingId,dossierText,btn){
     const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
     if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
     if(profile){
-      resultEl.style.color='#4CAF7D';
+      resultEl.style.color='var(--green)';
       resultEl.innerHTML=`<i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'this account'}</strong> — `;
       const sendBtn=document.createElement('button');
       sendBtn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';
@@ -3705,7 +3699,7 @@ async function checkAndSendLeaseViaRestMalta(bookingId,signLink,propertyTitle,bt
     const{data:profile}=await sb.from('profiles').select('clerk_id,full_name').ilike('email',email).maybeSingle();
     if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide=search class=ic></i> Check';}
     if(profile){
-      resultEl.style.color='#4CAF7D';
+      resultEl.style.color='var(--green)';
       resultEl.innerHTML=`<i data-lucide=check-circle-2 class=ic></i> Found: <strong>${profile.full_name||'this account'}</strong> — `;
       const sendBtn=document.createElement('button');
       sendBtn.innerHTML='<i data-lucide=smartphone class=ic></i> Send';
@@ -3896,7 +3890,7 @@ async function loadVisits(){
         <td><span class="badge ${v.status==='confirmed'?'b-green':v.status==='completed'?'b-sea':v.status==='awaiting_landlord'?'b-gold':'b-dim'}" style="font-size:.62rem">${v.status==='awaiting_landlord'?'🆕 New':v.status==='confirmed'?'<i data-lucide=check-circle-2 class=ic></i> Confirmed':v.status==='completed'?'<i data-lucide=flag class=ic></i> Visit done':v.status||'—'}</span></td>
         <td>${v.status==='awaiting_landlord'?`
           <div style="display:flex;gap:.3rem">
-            <button onclick="agencyConfirmVisit('${v.id}','yes','${v.listing_id}','${v.tenant_id}')" style="background:#4CAF7D;color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Confirm</button>
+            <button onclick="agencyConfirmVisit('${v.id}','yes','${v.listing_id}','${v.tenant_id}')" style="background:var(--green);color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer"><i data-lucide=check-circle-2 class=ic></i> Confirm</button>
             <button onclick="agencyConfirmVisit('${v.id}','wrong_date','${v.listing_id}','${v.tenant_id}')" style="background:transparent;color:var(--red);border:1px solid rgba(224,90,90,.3);border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer"><i data-lucide=x-circle class=ic></i> Can't do it</button>
           </div>`:v.status==='confirmed'?`
           <button onclick="agencyMarkVisitDone('${v.id}')" style="background:var(--agencybright);color:white;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.68rem;font-weight:600;cursor:pointer"><i data-lucide=flag class=ic></i> Visit done</button>`:'—'}</td>
