@@ -825,19 +825,13 @@ footer ul a:hover{color:var(--terra)}
 function initLucideIcons(){
   if(window.lucide){
     lucide.createIcons();
-    let iconsPending=false;
-    new MutationObserver((mutations)=>{
-      // Ne se redéclenche QUE si une vraie nouvelle icône non convertie
-      // apparaît — sinon lucide.createIcons() (qui modifie le DOM en
-      // remplaçant <i data-lucide> par un <svg>) redéclenchait
-      // l'observateur à l'infini, figeant complètement la page.
-      const hasNewIcon=mutations.some(m=>Array.from(m.addedNodes).some(n=>
-        n.nodeType===1&&(n.hasAttribute?.('data-lucide')||n.querySelector?.('[data-lucide]'))
-      ));
-      if(!hasNewIcon||iconsPending)return;
-      iconsPending=true;
-      setTimeout(()=>{lucide.createIcons();iconsPending=false;},50);
-    }).observe(document.body,{childList:true,subtree:true});
+    // Vérification périodique légère plutôt qu'un MutationObserver — celui-ci
+    // réagissait à CHAQUE changement du DOM sur toute la page (y compris
+    // l'ouverture d'un simple menu déroulant natif), provoquant des gels
+    // complets de l'écran un peu partout sur le site. lucide.createIcons()
+    // ne fait rien si aucune icône n'a besoin d'être convertie — sans danger
+    // de tourner toutes les secondes.
+    setInterval(()=>{lucide.createIcons();},1000);
   }else{
     setTimeout(initLucideIcons,50);
   }
