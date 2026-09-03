@@ -232,6 +232,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
         <div style="margin-bottom:1.2rem">
           <div style="font-size:1rem;font-weight:700"><i data-lucide=home class=ic></i> My Rental</div>
           <div style="font-size:.78rem;color:var(--tm);margin-top:.15rem" id="ml-property-name">—</div>
+          <div id="ml-tenancy-ended-notice" style="display:none;background:rgba(224,90,90,.08);border:1px solid rgba(224,90,90,.2);border-radius:10px;padding:.65rem .9rem;margin-top:.6rem;font-size:.78rem;color:var(--red);line-height:1.5"></div>
         </div>
 
         <div id="ml-lease-progress"></div>
@@ -1308,10 +1309,19 @@ async function loadMyLocation(){
   const emptyEl=document.getElementById('ml-empty');
   const contentEl=document.getElementById('ml-content');
   const activeStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
-  let bk=null,listing=null;
+  let bk=null,listing=null,daysLeftToView=null;
   try{
-    const{data}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',activeStatuses).order('created_at',{ascending:false}).limit(1).maybeSingle();
-    bk=data;
+    const{data}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',[...activeStatuses,'tenancy_ended']).order('created_at',{ascending:false}).limit(5);
+    // Une location quittée reste visible 7 jours (le temps de sauvegarder
+    // documents/reçus/messages) avant de vraiment disparaître d'ici.
+    bk=(data||[]).find(b=>{
+      if(activeStatuses.includes(b.status))return true;
+      if(b.status==='tenancy_ended'&&b.tenancy_ended_at){
+        const daysSince=(Date.now()-new Date(b.tenancy_ended_at).getTime())/(1000*60*60*24);
+        if(daysSince<7){daysLeftToView=Math.max(1,Math.ceil(7-daysSince));return true;}
+      }
+      return false;
+    })||null;
   }catch(e){}
 
   if(!bk){
@@ -1326,6 +1336,12 @@ async function loadMyLocation(){
   if(bk)bk.agency_listing=!!listing?.agency_listing;
   const nameEl=document.getElementById('ml-property-name');
   if(nameEl)nameEl.textContent=listing?.title?`${listing.title} · ${listing.full_address||listing.zone||'Malta'}`:'—';
+
+  const leftNoticeEl=document.getElementById('ml-tenancy-ended-notice');
+  if(leftNoticeEl){
+    leftNoticeEl.style.display=daysLeftToView?'block':'none';
+    if(daysLeftToView)leftNoticeEl.innerHTML=`<i data-lucide=alert-triangle class=ic></i>️ You've left this property. It'll be removed from here in ${daysLeftToView} day${daysLeftToView>1?'s':''} — save anything you need now.`;
+  }
 
   const progressEl=document.getElementById('ml-lease-progress');
   if(progressEl)progressEl.innerHTML=renderTenantLeaseSection({},bk);
@@ -3157,7 +3173,7 @@ async function cancelVisit(visitId, agentId, listingId){
 
 let cardElement=null;
 async function leaveCurrentProperty(){
-  if(!confirm("Leave this property? Your lessor will be notified, and it'll be removed from your active rental — you'll be free to browse and apply for a new place."))return;
+  if(!confirm("Leave this property? Your lessor will be notified. This property will stay visible in My Rental for 7 more days so you can save anything you need (documents, receipts, messages) — after that it'll be removed for good."))return;
 
   let bk=null,listing=null;
   try{
@@ -3171,7 +3187,7 @@ async function leaveCurrentProperty(){
 
   if(!bk){toast('<i data-lucide=alert-triangle class=ic></i>️ No active rental found');return;}
 
-  const{error:updateError}=await sb.from('bookings').update({status:'tenancy_ended'}).eq('id',bk.id);
+  const{error:updateError}=await sb.from('bookings').update({status:'tenancy_ended',tenancy_ended_at:new Date().toISOString()}).eq('id',bk.id);
   if(updateError){
     toast('<i data-lucide=x-circle class=ic></i> Something went wrong — please try again or contact support.');
     return;
@@ -3182,12 +3198,12 @@ async function leaveCurrentProperty(){
       listing_id:bk.listing_id,
       sender_id:'system',
       receiver_id:bk.landlord_id,
-      content:`🚪 ${P?.full_name||'Your lessee'} has ended their tenancy for ${listing?.title||'the property'}.`,
+      content:`🚪 ${P?.full_name||'Your lessee'} has ended their tenancy for ${listing?.title||'the property'}. It'll move out of Rented Properties in 7 days.`,
       type:'tenancy_ended'
     });}catch(e){}
   }
 
-  toast('<i data-lucide=check-circle-2 class=ic></i> You have left the property.');
+  toast('<i data-lucide=check-circle-2 class=ic></i> You have left the property. It stays visible for 7 more days.');
   setTimeout(()=>{sp('dash',document.querySelectorAll('.ni')[0]);loadOverview();},1200);
 }
 
