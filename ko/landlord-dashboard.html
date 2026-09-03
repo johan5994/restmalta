@@ -198,6 +198,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
   [style*="grid-template-columns:repeat(3,1fr)"],
   [style*="grid-template-columns:repeat(2,1fr)"]{grid-template-columns:1fr 1fr!important}
   [style*="grid-template-columns:280px 1fr"]{height:auto!important;max-height:80vh}
+  /* Messages sur mobile — ne jamais montrer la liste et la conversation
+     empilées ensemble, toujours l'une OU l'autre, avec un vrai bouton
+     retour, comme une vraie appli de messagerie. */
+  #msg-thread-panel{display:none!important}
+  #msg-split.thread-open #msg-list-panel{display:none!important}
+  #msg-split.thread-open #msg-thread-panel{display:flex!important}
+  #msg-back-btn{display:inline-flex!important}
+  .ch{flex-wrap:wrap;gap:.4rem}
   .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:100}.sb.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.5)}.main{margin-left:0}.kgrid{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}.sflow{grid-template-columns:1fr 1fr}#mob-menu{display:inline-flex!important}}
 </style>
   <script src="https://js.stripe.com/v3/"></script>
@@ -367,9 +375,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       <div id="applications-page-list"><div class="ld"><div class="sp"></div></div></div>
     </div>
     <div class="page" id="page-payments">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap;gap:.6rem">
         <div style="font-size:1rem;font-weight:700">Payments & Rent</div>
-        <div style="display:flex;gap:.5rem">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <button class="btn bp bsm" onclick="addRentEntry()">+ Add lessee rent</button>
           <button class="btn bg bsm" onclick="exportPayments()"><i data-lucide=inbox class=ic></i> Export CSV</button>
         </div>
@@ -434,15 +442,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
     <!-- MESSAGES -->
     <div class="page" id="page-messages">
       <div style="margin-bottom:1.2rem;font-size:1rem;font-weight:700">Messages</div>
-      <div style="display:grid;grid-template-columns:280px 1fr;background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;height:560px">
-        <div style="border-right:1px solid var(--b);display:flex;flex-direction:column;min-height:0">
+      <div id="msg-split" style="display:grid;grid-template-columns:280px 1fr;background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;height:560px">
+        <div id="msg-list-panel" style="border-right:1px solid var(--b);display:flex;flex-direction:column;min-height:0">
           <div style="padding:.75rem;border-bottom:1px solid var(--b);flex-shrink:0"><input class="fi" placeholder="Search..." oninput="filterMsgs(this.value)" style="font-size:.82rem;padding:.5rem .75rem"></div>
           <div id="msg-list" style="overflow-y:auto;flex:1"></div>
         </div>
-        <div style="display:flex;flex-direction:column;min-height:0">
-          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-            <div><div style="font-size:.9rem;font-weight:600" id="msg-chat-name">Select a conversation</div><div style="font-size:.72rem;color:var(--tm)" id="msg-chat-sub"></div></div>
-            <button id="propose-visit-btn" style="display:none;background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap" onclick="proposeVisitFromChat()"><i data-lucide=calendar class=ic></i> Propose a visit</button>
+        <div id="msg-thread-panel" style="display:flex;flex-direction:column;min-height:0">
+          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:.6rem;flex-shrink:0">
+            <button id="msg-back-btn" onclick="closeMobileMsgThread()" style="display:none;background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:.4rem .6rem;cursor:pointer;flex-shrink:0"><i data-lucide=x class=ic style="width:1rem;height:1rem"></i></button>
+            <div style="flex:1;min-width:0"><div style="font-size:.9rem;font-weight:600" id="msg-chat-name">Select a conversation</div><div style="font-size:.72rem;color:var(--tm)" id="msg-chat-sub"></div></div>
+            <button id="propose-visit-btn" style="display:none;background:var(--terra);color:white;border:none;border-radius:8px;padding:.5rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0" onclick="proposeVisitFromChat()"><i data-lucide=calendar class=ic></i> Propose a visit</button>
           </div>
           <div style="flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.6rem;min-height:0" id="msg-chat-body"><div style="text-align:center;color:var(--td);font-size:.85rem;margin-top:2rem">Select a conversation to start messaging</div></div>
           <div style="padding:.75rem 1rem;border-top:1px solid var(--b);display:flex;gap:.5rem;flex-shrink:0;align-items:flex-end">
@@ -2419,7 +2428,12 @@ function filterMsgs(q){
   wrap.innerHTML=filtered.map(m=>`<div class="mitem" onclick="openMsgChat('${m.id}','${(m.listings?.title||'').replace(/'/g,"\\'")}','${m.listing_id||''}','${m.sender_id||''}')"><div class="mav">${(m.listings?.title||'?')[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:.83rem;font-weight:600">${m.listings?.title||'Listing'}</div><div class="mprev">${m.content}</div></div></div>`).join('');
 }
 
+function closeMobileMsgThread(){
+  document.getElementById('msg-split')?.classList.remove('thread-open');
+}
+
 async function openMsgChat(id, title, listingId, senderId, threadId){
+  document.getElementById('msg-split')?.classList.add('thread-open');
   activeMsgId=id;
   activeChatListingId=listingId;
   activeChatSenderId=senderId;
