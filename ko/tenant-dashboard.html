@@ -1309,12 +1309,28 @@ async function loadMyLocation(){
   const emptyEl=document.getElementById('ml-empty');
   const contentEl=document.getElementById('ml-content');
   const activeStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
-  let bk=null,listing=null,daysLeftToView=null;
+  let bk=null,listing=null,daysLeftToView=null,myCoTenantEntry=null;
   try{
-    const{data}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',[...activeStatuses,'tenancy_ended']).order('created_at',{ascending:false}).limit(5);
+    // Réservations où JE suis le locataire principal
+    const{data:ownBookings}=await sb.from('bookings').select('*').eq('tenant_id',U.id).in('status',[...activeStatuses,'tenancy_ended']);
+
+    // Réservations où JE suis co-locataire (compte relié) chez quelqu'un
+    // d'autre — même motif que celui déjà utilisé pour Visits/Applications.
+    const{data:allWithCoTenants}=await sb.from('bookings').select('*').not('co_tenants_data','is',null).neq('tenant_id',U.id).in('status',[...activeStatuses,'tenancy_ended']);
+    const coTenantBookings=[];
+    (allWithCoTenants||[]).forEach(b=>{
+      let coTenantsData=[];
+      try{coTenantsData=JSON.parse(b.co_tenants_data);}catch(e){}
+      const isMe=coTenantsData.find(ct=>ct.hasAccount&&ct.tenant_id===U.id);
+      if(!isMe)return;
+      coTenantBookings.push(b);
+    });
+
+    const allCandidates=[...(ownBookings||[]),...coTenantBookings].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
     // Une location quittée reste visible 7 jours (le temps de sauvegarder
     // documents/reçus/messages) avant de vraiment disparaître d'ici.
-    bk=(data||[]).find(b=>{
+    bk=allCandidates.find(b=>{
       if(activeStatuses.includes(b.status))return true;
       if(b.status==='tenancy_ended'&&b.tenancy_ended_at){
         const daysSince=(Date.now()-new Date(b.tenancy_ended_at).getTime())/(1000*60*60*24);
@@ -1322,6 +1338,15 @@ async function loadMyLocation(){
       }
       return false;
     })||null;
+
+    // Si la réservation trouvée est celle où je suis co-locataire, retrouver
+    // ma propre entrée pour que la section bail/EDL affiche mon vrai statut
+    // de signature, pas celui du locataire principal.
+    if(bk&&bk.tenant_id!==U.id){
+      let coTenantsData=[];
+      try{coTenantsData=JSON.parse(bk.co_tenants_data);}catch(e){}
+      myCoTenantEntry=coTenantsData.find(ct=>ct.hasAccount&&ct.tenant_id===U.id)||null;
+    }
   }catch(e){}
 
   if(!bk){
@@ -1344,7 +1369,7 @@ async function loadMyLocation(){
   }
 
   const progressEl=document.getElementById('ml-lease-progress');
-  if(progressEl)progressEl.innerHTML=renderTenantLeaseSection({},bk);
+  if(progressEl)progressEl.innerHTML=renderTenantLeaseSection({},bk,myCoTenantEntry);
 
   const docEl=document.getElementById('ml-lease-doc');
   if(docEl)docEl.innerHTML=renderLeaseDocCard(bk,listing)+renderEdlDocCard(bk);
@@ -1666,7 +1691,20 @@ async function declarePaidFromMessage(msgId, listingId){
 
   const deposit=lease?.deposit||0;
   const firstMonth=lease?.rent||0;
-  const total=deposit+firstMonth;
+
+  // Diviser par le nombre réel de personnes sur le bail — sans ça, chaque
+  // co-locataire déclarait payer le montant TOTAL du bien, faisant croire
+  // au propriétaire qu'il recevait 2x (ou plus) ce qui était vraiment dû.
+  let headcount=1;
+  try{
+    const{data:bk}=await sb.from('bookings').select('co_tenants_data').eq('listing_id',listingId).eq('tenant_id',U.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    const coTenants=bk?.co_tenants_data?JSON.parse(bk.co_tenants_data):[];
+    headcount=1+(Array.isArray(coTenants)?coTenants.length:0);
+  }catch(e){}
+
+  const myDeposit=deposit/headcount;
+  const myFirstMonth=firstMonth/headcount;
+  const total=myDeposit+myFirstMonth;
 
   // Créer ou mettre à jour le payment record avec lease_id
   try{
