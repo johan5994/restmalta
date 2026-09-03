@@ -4524,22 +4524,37 @@ async function generateRentScheduleLL(ctx,monthsAhead=12){
   if(checkErr)console.warn('[generateRentScheduleLL] dedup check failed:',checkErr);
   if(existing&&existing.length){console.log('[generateRentScheduleLL] schedule already exists, skipping');return;}
 
+  // Diviser entre toutes les personnes réellement sur le bail — sans ça,
+  // tout le calendrier de loyer était rattaché au seul locataire principal,
+  // montant complet, et les co-locataires n'avaient jamais leurs propres
+  // lignes correctement à leur nom et à leur part.
+  let coTenantsWithAccount=[];
+  try{
+    const ct=bk.co_tenants_data?JSON.parse(bk.co_tenants_data):[];
+    coTenantsWithAccount=Array.isArray(ct)?ct.filter(c=>c.hasAccount&&c.tenant_id):[];
+  }catch(e){}
+  const payers=[{tenant_id:bk.tenant_id,tenant_name:ctx.tenant?.full_name||null,tenant_email:ctx.tenant?.email||null},
+    ...coTenantsWithAccount.map(c=>({tenant_id:c.tenant_id,tenant_name:c.name||null,tenant_email:c.email||null}))];
+  const myShare=bk.monthly_rent/payers.length;
+
   const rows=[];
   const base=new Date(bk.move_in_date||bk.start_date||Date.now());
   const dueDayOfMonth=base.getDate();
   for(let i=1;i<=monthsAhead;i++){
     const due=new Date(base.getFullYear(),base.getMonth()+i,dueDayOfMonth);
-    rows.push({
-      landlord_id:U.id,
-      tenant_id:bk.tenant_id,
-      listing_id:bk.listing_id,
-      booking_id:bk.id,
-      tenant_name:ctx.tenant?.full_name||null,
-      tenant_email:ctx.tenant?.email||null,
-      amount:bk.monthly_rent,
-      type:'rent',
-      status:'pending',
-      due_date:due.toISOString().split('T')[0]
+    payers.forEach(payer=>{
+      rows.push({
+        landlord_id:U.id,
+        tenant_id:payer.tenant_id,
+        listing_id:bk.listing_id,
+        booking_id:bk.id,
+        tenant_name:payer.tenant_name,
+        tenant_email:payer.tenant_email,
+        amount:myShare,
+        type:'rent',
+        status:'pending',
+        due_date:due.toISOString().split('T')[0]
+      });
     });
   }
   const{error:insErr}=await sb.from('payments').insert(rows);
