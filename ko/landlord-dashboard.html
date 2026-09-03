@@ -3313,7 +3313,7 @@ async function loadRentedProperties(){
   if(!wrap)return;
 
   const occupiedStatuses=['accepted','lease_pending','edl_scheduled','signing_day','move_in_ready'];
-  const{data:ownBookings}=await sb.from('bookings').select('*').eq('landlord_id',U.id).in('status',occupiedStatuses);
+  const{data:ownBookings}=await sb.from('bookings').select('*').eq('landlord_id',U.id).in('status',[...occupiedStatuses,'tenancy_ended']);
 
   // Biens gérés par une agence mais liés à ce compte propriétaire — même
   // liste, même carte, mais uniquement une fois que l'agence a explicitement
@@ -3322,16 +3322,24 @@ async function loadRentedProperties(){
   const agencyListingIds=(agencyListings||[]).map(l=>l.id);
   let agencyBookings=[];
   if(agencyListingIds.length){
-    const{data}=await sb.from('bookings').select('*').in('listing_id',agencyListingIds).eq('lease_signed_landlord',true).eq('lease_signed_tenant',true).in('status',occupiedStatuses).order('created_at',{ascending:false});
+    const{data}=await sb.from('bookings').select('*').in('listing_id',agencyListingIds).eq('lease_signed_landlord',true).eq('lease_signed_tenant',true).in('status',[...occupiedStatuses,'tenancy_ended']).order('created_at',{ascending:false});
     agencyBookings=data||[];
   }
   const agentByListing={};(agencyListings||[]).forEach(l=>{agentByListing[l.id]=l.agent_id;});
 
   const seen=new Set();
+  // Une location quittée reste visible ici 7 jours (le temps pour le
+  // propriétaire de finaliser paiements/état des lieux) avant de vraiment
+  // disparaître de cette liste.
   const bookings=[...(ownBookings||[]),...agencyBookings].filter(b=>{
     if(seen.has(b.id))return false;
     seen.add(b.id);
-    return true;
+    if(occupiedStatuses.includes(b.status))return true;
+    if(b.status==='tenancy_ended'&&b.tenancy_ended_at){
+      const daysSince=(Date.now()-new Date(b.tenancy_ended_at).getTime())/(1000*60*60*24);
+      if(daysSince<7){b._daysLeftToView=Math.max(1,Math.ceil(7-daysSince));return true;}
+    }
+    return false;
   });
 
   if(!bookings.length){
@@ -3387,6 +3395,9 @@ async function loadRentedProperties(){
     // Tickets de maintenance ouverts pour ce bien
     const openTickets=ticketsByListing[bk.listing_id]||[];
 
+    // Locataire parti — encart de compte à rebours avant disparition
+    const leftHtml=bk._daysLeftToView?`<div style="background:rgba(224,90,90,.08);border:1px solid rgba(224,90,90,.2);border-radius:8px;padding:.5rem .7rem;font-size:.72rem;color:var(--red);margin-bottom:.5rem"><i data-lucide=alert-triangle class=ic></i>️ Lessee has left — this card disappears in ${bk._daysLeftToView} day${bk._daysLeftToView>1?'s':''}</div>`:'';
+
     const recentPays=pays.filter(p=>p.status==='paid').sort((a,b)=>new Date(b.paid_at||b.due_date)-new Date(a.paid_at||a.due_date)).slice(0,5);
     const receiptsHtml=recentPays.length?recentPays.map(p=>`
       <div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--b);font-size:.75rem">
@@ -3418,6 +3429,7 @@ async function loadRentedProperties(){
         ${payBadge}
       </div>
       <div class="cb">
+        ${leftHtml}
         <div style="display:flex;flex-direction:column;gap:.2rem;margin-bottom:.65rem">
           ${nextPaymentHtml}
           ${leaseEndHtml}
