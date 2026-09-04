@@ -380,7 +380,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);disp
       </div>
 
       <div class="tabs">
-        <button class="tab act" onclick="setImportTab('url',this)"><i data-lucide=link class=ic></i> From URL</button>
+        <button class="tab act" id="import-tab-url" onclick="setImportTab('url',this)"><i data-lucide=link class=ic></i> From URL</button>
+        <button class="tab" id="import-tab-bulk" onclick="setImportTab('bulk',this)"><i data-lucide=layers class=ic></i> Bulk from a listings page</button>
+      </div>
+
+      <!-- Bulk import — one page, many listings -->
+      <div id="import-bulk" style="display:none">
+        <div class="card">
+          <div class="ch"><div class="ct"><i data-lucide=layers class=ic></i> Import all listings from one page</div></div>
+          <div class="cb">
+            <div style="font-size:.8rem;color:var(--tm);margin-bottom:1rem;line-height:1.6">Paste the link to your agency's "all listings" or search results page — RestMalta finds every individual property on it and imports them one by one, using the same AI as above.</div>
+            <div class="fg">
+              <label class="fl">Listings page URL</label>
+              <input class="fi" id="import-bulk-input" placeholder="https://your-agency.com/rentals or https://your-agency.com/search?...">
+            </div>
+            <button class="btn bp" onclick="findBulkListings()" style="width:100%;justify-content:center"><i data-lucide=bot class=ic></i> Find listings on this page →</button>
+            <div id="import-bulk-result" style="margin-top:.75rem"></div>
+          </div>
+        </div>
       </div>
 
       <!-- URL import -->
@@ -1543,12 +1560,92 @@ async function deleteListing(id, title, btn){
 function setImportTab(tab, btn){
   document.querySelectorAll('#page-import .tab').forEach(t=>t.classList.remove('act'));
   btn.classList.add('act');
-  ['url'].forEach(t=>document.getElementById('import-'+t).style.display='none');
+  ['url','bulk'].forEach(t=>document.getElementById('import-'+t).style.display='none');
   document.getElementById('import-'+tab).style.display='block';
 }
 
 function initImport(){
   document.getElementById('import-preview').style.display='none';
+}
+
+let bulkFoundUrls=[];
+let bulkResults=[];
+
+async function findBulkListings(){
+  const url=document.getElementById('import-bulk-input').value.trim();
+  if(!url){toast('Please enter a URL');return;}
+  const result=document.getElementById('import-bulk-result');
+  result.innerHTML='<div style="display:flex;align-items:center;gap:.5rem;color:var(--agencybright)"><div class="sp"></div><span><i data-lucide=bot class=ic></i> Scanning the page for individual listings...</span></div>';
+  try{
+    const response=await fetch('/.netlify/functions/extract-listing-links',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url})
+    });
+    const parsed=await response.json();
+    if(parsed.error){result.innerHTML=`<div style="color:var(--red)"><i data-lucide=x-circle class=ic></i> ${parsed.error}</div>`;return;}
+    bulkFoundUrls=parsed.urls||[];
+    if(!bulkFoundUrls.length){result.innerHTML='<div style="color:var(--red)"><i data-lucide=x-circle class=ic></i> No individual listings found on that page.</div>';return;}
+
+    result.innerHTML=`
+      <div class="m-card" style="background:var(--s2);border-radius:10px;padding:.75rem;margin-bottom:.5rem">
+        <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem"><i data-lucide=check-circle-2 class=ic></i> Found ${bulkFoundUrls.length} listing${bulkFoundUrls.length>1?'s':''}</div>
+        <div style="font-size:.72rem;color:var(--td);max-height:160px;overflow-y:auto;margin-bottom:.6rem">
+          ${bulkFoundUrls.map((u,i)=>`<div style="display:flex;align-items:center;gap:.4rem;padding:.2rem 0"><input type="checkbox" checked id="bulk-check-${i}"><span style="word-break:break-all">${u}</span></div>`).join('')}
+        </div>
+        <button class="btn bp bsm" onclick="runBulkImport()" style="width:100%;justify-content:center"><i data-lucide=zap class=ic></i> Import selected listings →</button>
+      </div>
+      <div id="import-bulk-progress" style="margin-top:.5rem"></div>`;
+  }catch(e){
+    result.innerHTML='<div style="color:var(--red)"><i data-lucide=x-circle class=ic></i> Could not scan that page. Try a specific listing URL in the other tab instead.</div>';
+  }
+}
+
+async function runBulkImport(){
+  const selected=bulkFoundUrls.filter((u,i)=>document.getElementById(`bulk-check-${i}`)?.checked);
+  if(!selected.length){toast('Select at least one listing');return;}
+  bulkResults=[];
+  const progressEl=document.getElementById('import-bulk-progress');
+
+  for(let i=0;i<selected.length;i++){
+    progressEl.innerHTML=`<div style="display:flex;align-items:center;gap:.5rem;color:var(--agencybright);font-size:.8rem"><div class="sp"></div><span>Importing ${i+1} of ${selected.length}...</span></div>`;
+    try{
+      const response=await fetch('/.netlify/functions/extract-listing',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({url:selected[i]})
+      });
+      const parsed=await response.json();
+      bulkResults.push({url:selected[i],data:parsed.error?null:parsed,error:parsed.error||null});
+    }catch(e){
+      bulkResults.push({url:selected[i],data:null,error:'Could not extract this listing'});
+    }
+  }
+
+  const okCount=bulkResults.filter(r=>r.data).length;
+  const failCount=bulkResults.length-okCount;
+  progressEl.innerHTML=`
+    <div class="m-card" style="background:var(--s2);border-radius:10px;padding:.75rem">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:.5rem"><i data-lucide=check-circle-2 class=ic></i> Done — ${okCount} ready, ${failCount} failed</div>
+      ${bulkResults.map((r,i)=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem 0;border-top:1px solid var(--b)">
+          <div style="font-size:.74rem;flex:1;min-width:0">
+            <div style="font-weight:600">${r.data?.title||'(could not extract)'}</div>
+            <div style="color:var(--td);word-break:break-all">${r.url}</div>
+          </div>
+          ${r.data
+            ?`<button class="btn bg bsm" onclick="reviewBulkResult(${i})">Review →</button>`
+            :`<span style="color:var(--red);font-size:.7rem">${r.error||'Failed'}</span>`}
+        </div>`).join('')}
+    </div>`;
+}
+
+function reviewBulkResult(i){
+  const r=bulkResults[i];
+  if(!r?.data)return;
+  importedListing=r.data;
+  setImportTab('url',document.getElementById('import-tab-url'));
+  showImportPreview(r.data);
 }
 
 async function importFromURL(){
