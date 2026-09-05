@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestMalta — Agency Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sand:#F5EFE0;--warm:#FDFAF4;--terra:#C9553A;--terra-l:#E8715A;
+  --ochre:#D4A847;--deep:#1A1410;--stone:#6B5F52;--stone-l:#A89880;
+  --sea:#2E6B8A;--green:#4CAF7D;--indigo:#6366F1;--card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--sand);color:var(--deep);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:2rem 1rem;
+}
+.wrap{max-width:920px;width:100%}
+.top{text-align:center;margin-bottom:2rem}
+.eyebrow{font-size:.78rem;color:var(--terra);font-weight:600;margin-bottom:.5rem}
+h1{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(1.6rem,4vw,2.4rem);letter-spacing:-.01em;line-height:1.15}
+.sub{color:var(--stone);font-size:.95rem;margin-top:.6rem;max-width:560px;margin-left:auto;margin-right:auto}
+
+.stage{
+  background:var(--warm);border-radius:24px;border:1px solid rgba(26,20,16,.08);
+  box-shadow:0 30px 80px rgba(26,20,16,.1);
+  display:grid;grid-template-columns:1fr 1.15fr;overflow:hidden;
+  min-height:480px;
+}
+@media(max-width:760px){.stage{grid-template-columns:1fr;min-height:auto}}
+
+.narrate{padding:2.4rem 2.2rem;display:flex;flex-direction:column;justify-content:center}
+.stepnum{
+  font-family:'Playfair Display',serif;font-size:3.2rem;font-weight:900;
+  color:var(--terra-l);opacity:.35;line-height:1;margin-bottom:.6rem;
+}
+.steptitle{font-family:'Playfair Display',serif;font-weight:700;font-size:1.5rem;line-height:1.2;margin-bottom:.7rem}
+.stepbody{color:var(--stone);font-size:.92rem;line-height:1.6}
+.stepbody b{color:var(--deep);font-weight:600}
+
+.dots{display:flex;gap:.4rem;margin-top:1.8rem;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(26,20,16,.15);transition:all .3s ease;cursor:pointer}
+.dot.act{background:var(--terra);width:22px;border-radius:5px}
+
+.navbtns{display:flex;gap:.6rem;margin-top:1.6rem}
+.nbtn{
+  border:none;border-radius:9px;padding:.6rem 1.1rem;font-family:'DM Sans',sans-serif;
+  font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;
+}
+.nbtn.primary{background:var(--terra);color:white}
+.nbtn.primary:hover{background:#B34830}
+.nbtn.ghost{background:transparent;color:var(--stone);border:1px solid rgba(26,20,16,.15)}
+.nbtn.ghost:hover{background:rgba(26,20,16,.04)}
+.nbtn:disabled{opacity:.35;cursor:default}
+
+.mockcol{background:#F0EAD9;position:relative;display:flex;align-items:center;justify-content:center;padding:1.6rem}
+.phone{
+  width:100%;max-width:290px;background:#1A1D27;border-radius:26px;padding:8px;
+  box-shadow:0 20px 50px rgba(26,20,16,.25);
+}
+.screen{background:var(--warm);border-radius:19px;overflow:hidden;min-height:420px;position:relative}
+.mockframe{padding:1rem;opacity:0;transform:translateY(8px);animation:reveal .45s ease forwards}
+@keyframes reveal{to{opacity:1;transform:translateY(0)}}
+
+.m-bar{background:var(--indigo);color:white;border-radius:10px;padding:.5rem .75rem;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem}
+.m-card{background:white;border:1px solid rgba(26,20,16,.08);border-radius:12px;padding:.75rem;margin-bottom:.6rem;box-shadow:0 4px 14px rgba(26,20,16,.05)}
+.m-card .t{font-size:.72rem;font-weight:700;margin-bottom:.25rem}
+.m-card .s{font-size:.62rem;color:var(--stone)}
+.m-badge{display:inline-block;font-size:.58rem;font-weight:700;padding:.15rem .5rem;border-radius:20px;margin-top:.35rem}
+.m-badge.gold{background:rgba(212,168,71,.15);color:#9c7a25}
+.m-badge.green{background:rgba(76,175,125,.15);color:#2f7a52}
+.m-badge.indigo{background:rgba(99,102,241,.13);color:#4649c4}
+.m-btn{width:100%;text-align:center;background:var(--indigo);color:white;border-radius:8px;padding:.5rem;font-size:.65rem;font-weight:700;margin-top:.5rem}
+.m-btn.o{background:transparent;border:1px solid rgba(26,20,16,.15);color:var(--deep)}
+.m-input{background:#F5EFE0;border-radius:8px;padding:.5rem .65rem;font-size:.62rem;color:var(--stone-l);margin-bottom:.5rem}
+.m-row{display:flex;gap:.4rem}
+.m-row>*{flex:1}
+.m-check{display:flex;align-items:center;gap:.4rem;font-size:.62rem;padding:.4rem 0}
+.m-check .c{width:14px;height:14px;border-radius:50%;background:var(--green);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-size:.5rem}
+.m-photo{background:linear-gradient(135deg,#E8DFC8,#D8CBAE);border-radius:9px;height:70px;margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.m-photo.small{height:46px;flex:1;margin-bottom:0}
+.m-avatar{width:28px;height:28px;border-radius:50%;background:var(--indigo);color:white;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0}
+.m-agentrow{display:flex;align-items:center;gap:.5rem;padding:.4rem 0}
+.pulse{animation:pulse 1.6s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+.finalcta{text-align:center;margin-top:2rem}
+.finalcta a{
+  display:inline-block;background:var(--deep);color:var(--warm);text-decoration:none;
+  padding:.85rem 1.8rem;border-radius:10px;font-weight:600;font-size:.9rem;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div class="eyebrow">RestMalta for agencies</div>
+    <h1>Run your whole portfolio from one place</h1>
+    <p class="sub">Here's exactly what happens, step by step, when your agency manages listings, clients and leases with RestMalta.</p>
+  </div>
+
+  <div class="stage">
+    <div class="narrate">
+      <div class="stepnum" id="stepnum">01</div>
+      <div class="steptitle" id="steptitle">Import an existing listing in seconds</div>
+      <div class="stepbody" id="stepbody">Paste a URL from a listing you already have elsewhere — RestMalta pulls in the photos, price and details automatically.</div>
+      <div class="dots" id="dots"></div>
+      <div class="navbtns">
+        <button class="nbtn ghost" id="prevBtn" onclick="prevStep()">← Previous</button>
+        <button class="nbtn primary" id="nextBtn" onclick="nextStep()">Next →</button>
+      </div>
+    </div>
+    <div class="mockcol">
+      <div class="phone"><div class="screen" id="screen"></div></div>
+    </div>
+  </div>
+
+  <div class="finalcta">
+    <a href="https://restmalta.com" target="_blank">See RestMalta for real →</a>
+  </div>
+</div>
+
+<script>
+const steps = [
+  {
+    title: "Import an existing listing in seconds",
+    body: "Paste a URL from a listing you already have elsewhere — RestMalta <b>pulls in the photos, price and details automatically</b>. No retyping every property by hand.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>⚡ Quick Import</span></div>
+        <div class="m-input">Paste listing URL...</div>
+        <div class="m-btn">Import listing →</div>
+        <div class="m-card" style="margin-top:.6rem">
+          <div class="s">Found: photos, price, description, amenities</div>
+          <span class="m-badge indigo">Ready to review</span>
+        </div>
+      </div>`
+  },
+  {
+    title: "New landlords reach out to you directly",
+    body: "A lessor browsing RestMalta can <b>message your agency directly</b> to ask you to rent out, sell, or value their property — a lead channel that didn't exist before.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>💬 New enquiry</span></div>
+        <div class="m-card">
+          <div class="t">Cedric G. — via RestMalta</div>
+          <div class="s">"Could you manage the letting of my flat in Sliema?"</div>
+          <span class="m-badge indigo">New lead</span>
+        </div>
+        <div class="m-btn">Reply →</div>
+      </div>`
+  },
+  {
+    title: "Your whole team, one dashboard",
+    body: "Add agents to your account — everyone sees <b>only their own clients</b> by default, while you keep the full overview as admin.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>👥 Team</span></div>
+        <div class="m-agentrow"><div class="m-avatar">MC</div><div><div class="t" style="margin:0">Maria C.</div><div class="s">14 listings · 6 clients</div></div></div>
+        <div class="m-agentrow"><div class="m-avatar">JD</div><div><div class="t" style="margin:0">James D.</div><div class="s">9 listings · 4 clients</div></div></div>
+        <div class="m-btn o">+ Invite an agent</div>
+      </div>`
+  },
+  {
+    title: "Every client, tracked in one CRM",
+    body: "Every visit and application becomes a contact automatically — <b>see the full history</b> with each client, no separate spreadsheet needed.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>📇 CRM</span></div>
+        <div class="m-card">
+          <div class="t">Delphine G.</div>
+          <div class="s">2 visits · 1 active application</div>
+        </div>
+        <div class="m-card">
+          <div class="t">Marc T.</div>
+          <div class="s">1 visit · Looking, Sliema</div>
+        </div>
+      </div>`
+  },
+  {
+    title: "Visits across every listing, in one queue",
+    body: "New requests land in one place regardless of which property or agent they're for — <b>propose a time in one click</b>, no juggling between listings.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>📅 Visits</span></div>
+        <div class="m-card">
+          <div class="t">Anna K. — Studio, Gzira</div>
+          <div class="s">Requested: tomorrow, any time</div>
+        </div>
+        <div class="m-row">
+          <div class="m-input">2:00 PM</div>
+          <div class="m-input">5:00 PM</div>
+        </div>
+        <div class="m-btn">Propose slot →</div>
+      </div>`
+  },
+  {
+    title: "Applications arrive pre-verified",
+    body: "Every applicant's dossier is <b>already complete</b> — ID, proof of income — before it reaches you. Accept or decline in one tap.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>📋 Applications</span></div>
+        <div class="m-card">
+          <div class="t">Delphine G. wants to rent</div>
+          <div class="s">2-bed, Sliema · € 950/mo</div>
+          <span class="m-badge green">Dossier verified</span>
+        </div>
+        <div class="m-row">
+          <div class="m-btn">Accept</div>
+          <div class="m-btn o">Decline</div>
+        </div>
+      </div>`
+  },
+  {
+    title: "The lease drafts itself — you choose who signs",
+    body: "Once accepted, the lease generates automatically. <b>Sign it yourself on the lessor's behalf</b>, or send it to their RestMalta account if they have one — your call, every time.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>📄 Lease ready</span></div>
+        <div class="m-card">
+          <div class="t">Long-let lease generated</div>
+          <div class="s">Lessor: Cedric G.</div>
+        </div>
+        <div class="m-row">
+          <div class="m-btn">Sign for lessor</div>
+          <div class="m-btn o">Send to lessor</div>
+        </div>
+      </div>`
+  },
+  {
+    title: "Move-in inventory, handled the same way",
+    body: "Fill in the entry inventory with photos, then choose how it gets signed — <b>same flexible hand-off</b> as the lease, property by property.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>📋 Move-in inventory</span></div>
+        <div class="m-card">
+          <div class="t">Living room</div>
+          <div class="s">Good condition · 3 photos</div>
+        </div>
+        <div class="m-check"><div class="c pulse">✓</div> Lessee signed</div>
+        <div class="m-btn">Send to lessor for signature →</div>
+      </div>`
+  },
+  {
+    title: "Payments across your whole portfolio",
+    body: "See every rent and deposit, for every property you manage, <b>in a single view</b>. Confirm receipt in one tap, no chasing spreadsheets.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>💶 Payments</span></div>
+        <div class="m-card">
+          <div class="t">€ 950 — Sliema, Sept rent</div>
+          <span class="m-badge gold">Declared</span>
+        </div>
+        <div class="m-card">
+          <div class="t">€ 1,200 — Gzira, deposit</div>
+          <span class="m-badge green">Confirmed</span>
+        </div>
+      </div>`
+  },
+  {
+    title: "Maintenance issues, sorted by urgency",
+    body: "Every ticket across every property lands in <b>one queue</b> — handle it yourself, or forward it straight to the lessor or a contractor. Nothing gets lost between properties.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>🔧 Maintenance</span></div>
+        <div class="m-card">
+          <div class="t">Leaking tap — Sliema</div>
+          <div class="s">Reported by Delphine G.</div>
+        </div>
+        <div class="m-row">
+          <div class="m-btn">Assign contractor</div>
+          <div class="m-btn o">Notify lessor</div>
+        </div>
+      </div>`
+  },
+  {
+    title: "Rented properties, always visible",
+    body: "Once a lease is fully signed, the property moves here automatically — a <b>clean view of everything currently occupied</b>, separate from what's still on the market.",
+    mock: `
+      <div class="mockframe">
+        <div class="m-bar"><span>🏠 Rented Properties</span></div>
+        <div class="m-card">
+          <div class="t">2-bed apartment, Sliema</div>
+          <div class="s">Delphine G. · Lease ends Aug 2027</div>
+        </div>
+        <div class="m-card">
+          <div class="t">Studio, Gzira</div>
+          <div class="s">Anna K. · Lease ends Jun 2027</div>
+        </div>
+      </div>`
+  }
+];
+
+let current = 0;
+
+function renderDots(){
+  const d = document.getElementById('dots');
+  d.innerHTML = steps.map((_, i) => `<div class="dot ${i===current?'act':''}" onclick="goStep(${i})"></div>`).join('');
+}
+
+function render(){
+  const s = steps[current];
+  document.getElementById('stepnum').textContent = String(current+1).padStart(2,'0');
+  document.getElementById('steptitle').textContent = s.title;
+  document.getElementById('stepbody').innerHTML = s.body;
+  document.getElementById('screen').innerHTML = s.mock;
+  document.getElementById('prevBtn').disabled = current === 0;
+  document.getElementById('nextBtn').textContent = current === steps.length-1 ? 'Start over ↺' : 'Next →';
+  renderDots();
+}
+
+function nextStep(){
+  if(current === steps.length-1){ current = 0; } else { current++; }
+  render();
+}
+function prevStep(){ if(current>0){ current--; render(); } }
+function goStep(i){ current = i; render(); }
+
+render();
+</script>
+</body>
+</html>
