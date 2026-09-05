@@ -1364,8 +1364,9 @@ async function loadOverview(){
   try{
     const{data:listings}=await sb.from('listings').select('id,title,zone,price,photos,created_at').eq('agent_id',U.id).order('created_at',{ascending:false}).limit(5);
     const{data:visits}=await sb.from('visits').select('id,status,tenant_name,listing_title,created_at').eq('landlord_id',U.id).order('created_at',{ascending:false}).limit(5);
+    const{count:activeCount}=await sb.from('listings').select('*',{count:'exact',head:true}).eq('agent_id',U.id).eq('active',true);
 
-    document.getElementById('k-listings').textContent=(listings||[]).length;
+    document.getElementById('k-listings').textContent=activeCount??0;
     document.getElementById('k-visits').textContent=(visits||[]).filter(v=>new Date(v.created_at)>new Date(Date.now()-30*86400000)).length;
     document.getElementById('k-leads').textContent=(visits||[]).length;
 
@@ -1551,7 +1552,33 @@ async function deleteListing(id, title, btn){
   if(!confirm(`Delete listing "${title}"? This cannot be undone.`)) return;
   btn.textContent='⏳';
   const{error}=await sb.from('listings').delete().eq('id',id);
-  if(error){toast('<i data-lucide=x-circle class=ic></i> '+error.message);btn.innerHTML='<i data-lucide=trash-2 class=ic></i>';return;}
+  if(error){
+    // Le plus souvent : des messages existent encore pour cette annonce.
+    // Laisser un vrai choix — parfois le bien est loué ailleurs et on veut
+    // vraiment tout effacer, pas juste le cacher.
+    const forceDelete=confirm("This listing has message history, so it can't be deleted while keeping that history.\n\nPress OK to permanently delete it AND all its linked messages (cannot be undone).\nPress Cancel to just hide it from search instead (keeps the message history).");
+    if(forceDelete){
+      await sb.from('messages').delete().eq('listing_id',id);
+      const{error:retryError}=await sb.from('listings').delete().eq('id',id);
+      if(retryError){
+        toast('<i data-lucide=x-circle class=ic></i> Still could not delete this listing — please contact support.');
+        btn.innerHTML='<i data-lucide=trash-2 class=ic></i>';
+        return;
+      }
+      toast('<i data-lucide=trash-2 class=ic></i>️ Listing and its messages permanently deleted');
+      loadListings();
+      return;
+    }
+    const{error:deactivateError}=await sb.from('listings').update({active:false}).eq('id',id);
+    if(deactivateError){
+      toast('<i data-lucide=x-circle class=ic></i> Could not delete or hide this listing — please contact support.');
+      btn.innerHTML='<i data-lucide=trash-2 class=ic></i>';
+      return;
+    }
+    toast('<i data-lucide=alert-triangle class=ic></i>️ Listing hidden from search (message history kept).');
+    loadListings();
+    return;
+  }
   toast('<i data-lucide=check-circle-2 class=ic></i> Listing deleted');
   loadListings();
 }
