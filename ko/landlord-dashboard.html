@@ -1140,7 +1140,33 @@ async function deleteListing(id){
     return;
   }
   if(!confirm('Delete this listing? This cannot be undone.'))return;
-  await sb.from('listings').delete().eq('id',id);
+
+  const{error}=await sb.from('listings').delete().eq('id',id);
+  if(error){
+    // Le plus souvent : des messages existent encore pour cette annonce.
+    // Laisser un vrai choix — parfois le bien est loué ailleurs et on veut
+    // vraiment tout effacer, pas juste le cacher.
+    const forceDelete=confirm("This listing has message history, so it can't be deleted while keeping that history.\n\nPress OK to permanently delete it AND all its linked messages (cannot be undone).\nPress Cancel to just hide it from search instead (keeps the message history).");
+    if(forceDelete){
+      await sb.from('messages').delete().eq('listing_id',id);
+      const{error:retryError}=await sb.from('listings').delete().eq('id',id);
+      if(retryError){
+        toast('<i data-lucide=x-circle class=ic></i> Still could not delete this listing — please contact support.');
+        return;
+      }
+      toast('<i data-lucide=trash-2 class=ic></i>️ Listing and its messages permanently deleted');
+      loadListings();loadDash();
+      return;
+    }
+    const{error:deactivateError}=await sb.from('listings').update({active:false}).eq('id',id);
+    if(deactivateError){
+      toast('<i data-lucide=x-circle class=ic></i> Could not delete or hide this listing — please contact support.');
+      return;
+    }
+    toast('<i data-lucide=alert-triangle class=ic></i>️ Listing hidden from search (message history kept).');
+    loadListings();loadDash();
+    return;
+  }
   toast('<i data-lucide=trash-2 class=ic></i>️ Listing deleted');loadListings();loadDash();
 }
 
