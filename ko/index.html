@@ -2051,7 +2051,7 @@ async function doPost(){
     bills_included:document.getElementById('pbi')?.checked||false,
     landlord_id:U.id,
     // mandat_exclusif retiré — fonctionnalité jamais utile, supprimée
-    active:document.getElementById('pt').value!=='for_sale', // reste caché tant que l'abonnement de vente n'est pas payé
+    active:!['for_sale','room_rental'].includes(document.getElementById('pt').value), // reste caché tant que le paiement requis (abonnement vente, ou frais room rental) n'est pas fait
     sale_price:document.getElementById('pt').value==='for_sale'?parseInt(pr):null,
     sale_subscription_status:document.getElementById('pt').value==='for_sale'?'pending':null,
     tenure:document.getElementById('pt').value==='for_sale'?(document.getElementById('p-tenure')?.value||null):null,
@@ -2118,6 +2118,22 @@ async function doPost(){
       });
       const data=await res.json();
       if(!data.success)throw new Error(data.error||'Could not start subscription');
+      window.location.href=data.checkout_url;
+    }catch(e){
+      sA(err,'Listing created, but activation failed: '+e.message+'. You can retry from your dashboard.');
+      setTimeout(()=>{window.location.href='/landlord-dashboard.html';},2500);
+    }
+  }else if(document.getElementById('pt').value==='room_rental'&&listing){
+    // Pas de commission ni de bail/EDL sur les room rentals — un petit
+    // frais fixe à la publication à la place, une seule fois par annonce.
+    sA(ok,'⏳ Redirecting you to activate your listing (€3)...');
+    try{
+      const res=await fetch('/.netlify/functions/create-room-rental-fee-payment',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({listing_id:listing.id,payer_email:U.email,listing_title:listing.title})
+      });
+      const data=await res.json();
+      if(!data.success)throw new Error(data.error||'Could not start payment');
       window.location.href=data.checkout_url;
     }catch(e){
       sA(err,'Listing created, but activation failed: '+e.message+'. You can retry from your dashboard.');
