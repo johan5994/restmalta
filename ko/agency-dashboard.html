@@ -1554,28 +1554,36 @@ async function deleteListing(id, title, btn){
   const{error}=await sb.from('listings').delete().eq('id',id);
   if(error){
     // Le plus souvent : des messages existent encore pour cette annonce.
-    // Laisser un vrai choix — parfois le bien est loué ailleurs et on veut
-    // vraiment tout effacer, pas juste le cacher.
-    const forceDelete=confirm("This listing has message history, so it can't be deleted while keeping that history.\n\nPress OK to permanently delete it AND all its linked messages (cannot be undone).\nPress Cancel to just hide it from search instead (keeps the message history).");
-    if(forceDelete){
-      await sb.from('messages').delete().eq('listing_id',id);
-      const{error:retryError}=await sb.from('listings').delete().eq('id',id);
-      if(retryError){
-        toast('<i data-lucide=x-circle class=ic></i> Still could not delete this listing — please contact support.');
+    // OK sur une simple confirmation ne suffit plus pour effacer des
+    // messages définitivement — trop facile de cliquer par erreur sans
+    // avoir lu. Il faut maintenant taper le vrai titre de l'annonce.
+    const wantsForce=confirm("This listing has message history, so it can't be deleted while keeping that history.\n\nPress OK to hide it from search instead (safe, keeps message history — recommended).\nPress Cancel if you specifically need to permanently erase it and its messages too.");
+    if(wantsForce){
+      const{error:deactivateError}=await sb.from('listings').update({active:false}).eq('id',id);
+      if(deactivateError){
+        toast('<i data-lucide=x-circle class=ic></i> Could not hide this listing — please contact support.');
         btn.innerHTML='<i data-lucide=trash-2 class=ic></i>';
         return;
       }
-      toast('<i data-lucide=trash-2 class=ic></i>️ Listing and its messages permanently deleted');
+      toast('<i data-lucide=alert-triangle class=ic></i>️ Listing hidden from search (message history kept).');
       loadListings();
       return;
     }
-    const{error:deactivateError}=await sb.from('listings').update({active:false}).eq('id',id);
-    if(deactivateError){
-      toast('<i data-lucide=x-circle class=ic></i> Could not delete or hide this listing — please contact support.');
+
+    const typed=prompt(`To permanently delete this listing AND all its messages, type its exact title to confirm:\n\n"${title}"`);
+    if(typed!==title){
+      if(typed!==null)toast("<i data-lucide=x-circle class=ic></i> Title didn't match — nothing was deleted.");
       btn.innerHTML='<i data-lucide=trash-2 class=ic></i>';
       return;
     }
-    toast('<i data-lucide=alert-triangle class=ic></i>️ Listing hidden from search (message history kept).');
+    await sb.from('messages').delete().eq('listing_id',id);
+    const{error:retryError}=await sb.from('listings').delete().eq('id',id);
+    if(retryError){
+      toast('<i data-lucide=x-circle class=ic></i> Still could not delete this listing — please contact support.');
+      btn.innerHTML='<i data-lucide=trash-2 class=ic></i>';
+      return;
+    }
+    toast('<i data-lucide=trash-2 class=ic></i>️ Listing and its messages permanently deleted');
     loadListings();
     return;
   }
@@ -2108,7 +2116,9 @@ async function loadCRM(){
     const listingIds=myListings.map(l=>l.id);
     const listingMap={};myListings.forEach(l=>{listingMap[l.id]=l;});
 
-    // ── Lessees — tout locataire ayant candidaté ou visité un de mes biens
+    // ── Lessees — tout locataire ayant candidaté, visité, OU simplement
+    // envoyé un message à propos d'un de mes biens (sans forcément avoir
+    // de visite/candidature associée)
     let lesseeIds=new Set();
     if(listingIds.length){
       try{
@@ -2118,6 +2128,16 @@ async function loadCRM(){
       try{
         const{data:vs}=await sb.from('visits').select('tenant_id').in('listing_id',listingIds);
         (vs||[]).forEach(v=>{if(v.tenant_id)lesseeIds.add(v.tenant_id);});
+      }catch(e){}
+      try{
+        const{data:msgs}=await sb.from('messages').select('sender_id,receiver_id').in('listing_id',listingIds);
+        (msgs||[]).forEach(m=>{
+          // Peut venir de l'une ou l'autre direction (locataire→agence ou
+          // agence→locataire) — et jamais 'system', ce n'est pas une vraie
+          // personne à ajouter au CRM.
+          if(m.sender_id&&m.sender_id!=='system'&&m.sender_id!==U.id)lesseeIds.add(m.sender_id);
+          if(m.receiver_id&&m.receiver_id!=='system'&&m.receiver_id!==U.id)lesseeIds.add(m.receiver_id);
+        });
       }catch(e){}
     }
     let lesseeProfiles=[];
@@ -3700,6 +3720,23 @@ async function generateLeaseFromBookingAgency(bookingId,listingId,tenantId){
         email:listing?.manual_landlord_email||'',
         phone:listing?.manual_landlord_phone||''
       };
+    }
+
+    // Room rental — pas de bail ni d'EDL automatiques, volontairement
+    // laissé informel entre le locataire principal et la personne qui
+    // prend la chambre (déjà annoncé à la publication de l'annonce).
+    if(listing?.type==='room_rental'){
+      await sb.from('bookings').update({status:'move_in_ready'}).eq('id',bookingId);
+      try{
+        await sb.from('messages').insert({
+          listing_id:listingId,sender_id:'system',receiver_id:tenantId,
+          content:`✅ Your request for "${listing?.title||'this room'}" has been accepted! Please arrange the move-in details directly with the lessor.`,
+          type:'room_rental_accepted'
+        });
+      }catch(e){}
+      toast('<i data-lucide=check-circle-2 class=ic></i> Accepted! No lease/EDL needed for room rentals — arrange move-in directly with the lessee.');
+      loadApplications?.();
+      return;
     }
 
     // DocuSeal exige un email valide pour chaque signataire — vérifier avant
