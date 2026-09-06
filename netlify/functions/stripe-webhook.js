@@ -71,6 +71,16 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
     }
 
+    // ── Frais de publication Room rental — paiement unique, active l'annonce ──
+    if (session.metadata?.type === 'room_rental_fee') {
+      const listingId = session.metadata.listing_id;
+      if (listingId) {
+        await sb.from('listings').update({ active: true, room_rental_fee_paid: true }).eq('id', listingId);
+        console.log(`Room rental listing ${listingId} activated after fee payment`);
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
+    }
+
     // ── Abonnement agence — active le plan choisi au premier paiement ──
     if (session.metadata?.type === 'agency_subscription') {
       const agencyId = session.metadata.agency_id;
