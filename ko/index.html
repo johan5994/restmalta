@@ -390,7 +390,7 @@ footer ul a:hover{color:var(--terra)}
     <div class="hero-l">
       <div class="hero-tag">🇲🇹 Malta's first smart rental platform</div>
       <h1><em>RestMalta</em> — The safer way to rent in Malta.</h1>
-      <p class="hero-desc">Verified listings, real-time chat with lessors, guided visits and e-signed leases — all in one place. No cash to strangers, no vanishing "agents" from a WhatsApp group. Free for lessees.</p>
+      <p class="hero-desc">Verified listings, real-time chat with lessors, guided visits and e-signed leases — all in one place. No cash to strangers, no vanishing "agents" from a WhatsApp group.</p>
       <div class="hero-acts">
         <button class="btn btn-p" onclick="stl()"><i data-lucide=search class=ic></i> Browse listings</button>
         <button class="btn btn-s" onclick="chkPost()"><i data-lucide=home class=ic></i> List your flat</button>
@@ -500,7 +500,7 @@ footer ul a:hover{color:var(--terra)}
       </button>
     </div>
     <div style="margin-top:1.5rem;font-size:.75rem;color:var(--stone-l);text-align:center;line-height:1.6">
-      <i data-lucide=check-circle-2 class=ic></i> Free for lessees · <i data-lucide=lock class=ic></i> Secure · 🇲🇹 Malta only
+      <i data-lucide=check-circle-2 class=ic></i> Verified listings · <i data-lucide=lock class=ic></i> Secure · 🇲🇹 Malta only
     </div>
   </div></div>
 </div>
@@ -1400,9 +1400,20 @@ async function openDet(id){
       window.showPhoto=showPhoto;
     };
     showPhoto(0);
+    window.showHeroVideo=function(){
+      const url=window._heroVideoUrl;
+      if(!url)return;
+      h.innerHTML=`
+        <button class="bbtn" onclick="go('home')" style="z-index:3">← Back</button>
+        <video src="${url}" controls autoplay style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:20px"></video>
+      `;
+    };
     if(thumbs){
       thumbs.innerHTML=photos.map((p,i)=>`<img src="${p}" class="dphoto-thumb${i===0?' active':''}" onclick="window.showPhoto(${i})" loading="lazy">`).join('');
-      if(l.video_url)thumbs.innerHTML+=`<div style="width:72px;height:52px;border-radius:8px;background:#1a1410;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;border:2px solid transparent" onclick="document.getElementById('dh').innerHTML='<button class=\'bbtn\' onclick=\'go(\\\'home\\\')\'>← Back</button><video src=\'${l.video_url}\' controls autoplay style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:20px\'></video>'"><i data-lucide=video class=ic></i></div>`;
+      if(l.video_url){
+        window._heroVideoUrl=l.video_url;
+        thumbs.innerHTML+=`<div style="width:72px;height:52px;border-radius:8px;background:#1a1410;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;border:2px solid transparent" onclick="showHeroVideo()"><i data-lucide=video class=ic></i></div>`;
+      }
     }
   } else {
     h.innerHTML=`<button class="bbtn" onclick="go('home')">← Back</button><span style="font-size:7rem">${ic[l.type]||'<i data-lucide=home class=ic></i>'}</span>`;
