@@ -1083,6 +1083,24 @@ async function startBoostPaymentLL(listingId,listingTitle,listingType){
 }
 
 async function toggleListing(id,active){
+  if(!active){
+    // Sur le point d'ACTIVER une annonce actuellement inactive — vérifier
+    // que ce n'est pas une room rental qui attend encore son paiement de
+    // 3€, sinon ce bouton la rendrait active gratuitement.
+    const{data:listing}=await sb.from('listings').select('type,room_rental_fee_paid,title').eq('id',id).maybeSingle();
+    if(listing?.type==='room_rental'&&!listing?.room_rental_fee_paid){
+      toast('<i data-lucide=alert-triangle class=ic></i>️ This room rental needs its €3 posting fee paid before it can go live.');
+      try{
+        const res=await fetch('/.netlify/functions/create-room-rental-fee-payment',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({listing_id:id,payer_email:U.email,listing_title:listing.title})
+        });
+        const data=await res.json();
+        if(data.success)window.location.href=data.checkout_url;
+      }catch(e){}
+      return;
+    }
+  }
   await sb.from('listings').update({active:!active}).eq('id',id);
   toast(active?'⏸ Listing paused':'<i data-lucide=check-circle-2 class=ic></i> Listing activated');
   loadListings();loadDash();
